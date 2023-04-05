@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="52.13044"
+   height="97.300674"
+   id="svg3745"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="eighthNoteWhite.svg">
+  <metadata
+     id="metadata8">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview6"
+     showgrid="false"
+     inkscape:zoom="2.4254714"
+     inkscape:cx="26.06522"
+     inkscape:cy="48.650337"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg3745" />
+  <defs
+     id="defs3747" />
+  <g
+     transform="translate(-382.50621,-657.99756)"
+     id="layer1"
+     style="fill:#f2f2f2">
+    <path
+       d="M 408.03975,657.99756 C 413.91839,672.33794 420.33548,680.75735 424.42835,685.41798 C 427.65984,689.09775 445.36895,705.46024 424.95817,731.03074 C 437.08481,705.99357 432.71996,691.1513 411.03975,681.99756 C 411.03975,701.99756 411.03975,716.99756 411.03975,734.99756 C 411.71985,756.82591 389.29458,758.16032 383.82546,752.3547 C 378.17646,746.35813 391.49587,726.46464 408.03975,732.99756 C 408.03975,716.99756 408.03975,686.99756 408.03975,657.99756 z "
+       style="fill:#f2f2f2;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;display:inline"
+       id="path3743" />
+  </g>
+</svg>

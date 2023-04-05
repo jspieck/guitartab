@@ -1,0 +1,116 @@
+.guitar{
+	overflow: hidden;
+    position:relative;
+    width:100%;
+    height: 100%;
+    background: #f4cfb2;
+	background-image: linear-gradient(to top, #e6b980 0%, #eacda3 100%);
+
+	ul{
+		list-style: none;
+	}
+
+    .strings{
+        width: 90%;
+        position: absolute;
+        height: calc(100% - 20px);
+        top: 10px;
+    	z-index:2;
+
+        li {
+            position:absolute;
+            height: 1px;
+            width: 100%;
+            background: #c8bb93;
+            /*margin-bottom: 14px;*/
+            border-bottom: 2px solid #958963;
+            box-sizing: border-box;
+
+			&.stringAnim{
+	            /*animation-duration: 0.2s;
+	            animation-iteration-count: 10;
+	            animation-name: guitarString;*/
+	            border-bottom: 2px solid #cfbf89;
+	        }
+        }
+    }
+}
+
+.guitar-neck {
+    position: relative;
+    left: 10%;
+    width: 80%;
+    height: 100%;
+    background: #322209;
+    box-shadow: inset -1px 0px 11px 0px rgba(0, 0, 0, 0.75);
+
+    .fret {
+        position: absolute;
+        width: 3px;
+        height: 100%;
+        background: #d7d6d6;
+        border-right: 2px solid #686868;
+
+		&.first{
+			position: absolute;
+	        width: 200px;
+	        left: -212px;
+	        border-radius: 120%;
+	        top: -50%;
+	        height: 200%;
+	        overflow: hidden;
+	        margin-left: 0;
+	    	background: #392010;
+	        border: none;
+		}
+
+		&.last{
+			position: absolute;
+	        width: 15px;
+	        right: -15px;
+	        top: 0;
+	        margin-left: 0;
+	        background: #494949;
+	        border-right: none
+		}
+    }
+    .dots {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        right: -6px;
+
+        li {
+            position: absolute;
+            top: calc(50% - 6px);
+            width: 12px;
+            height:12px;
+            border-radius: 50%;
+            background: #c4c3c1;
+        }
+    }
+}
+.guitar-neck.hidden {
+  display: none;
+}
+#guitarMarkerContainer{
+    width: 100%;
+    position: absolute;
+    height: calc(100% - 20px);
+    top: 5px;
+}
+@keyframes guitarString {
+    25%  {border-bottom: 2px solid #4f4935;}
+    75%  {border-bottom: 2px solid #cfbf89;}
+}
+.guitarNoteMarker{
+    position: absolute;
+    background: #db7b7b;
+    z-index: 3;
+    /*left: 11%;*/
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 10px;
+    display:none;
+}

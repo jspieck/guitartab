@@ -1,0 +1,2432 @@
+/*SASS MAIN FILE*/
+@font-face {
+    font-family: maestro;
+    src: url(../fonts/maestro.ttf);
+    font-weight: normal;
+}
+@font-face {
+    font-family: "Source Sans Pro";
+    src: url(../fonts/SourceSansPro-Regular.ttf);
+    font-weight: normal;
+}
+@font-face {
+    font-family: "musicFont";
+    src: url(../fonts/musicFont.ttf);
+    font-weight: normal;
+}
+@font-face {
+    font-family: "notesFont";
+    src: url(../fonts/a1.ttf);
+    font-weight: normal;
+}
+
+$color-glowingRed: #ef596f;
+$color-glowingGreen: #53caa0;
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video{
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+#content img{
+    max-width: 100%;
+    box-sizing: border-box;
+    height: auto;
+}
+h1,h2,h3,h4,h5,h6 {
+	clear: both;
+	font-weight: normal;
+    line-height: 1.5em;
+    margin: 20px 0 0;
+}
+body,
+input,
+select,
+textarea {
+	font-size: 12px;
+	line-height: 1.5;
+}
+html, body{
+    height: 100%;
+}
+body{
+    transform:translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+}
+#app {
+    height: 100%;
+}
+#content{
+    display: flex;
+    flex-direction: column;
+    height:100%;
+}
+.entry-content{
+    overflow: hidden;
+    flex-grow: 1;
+    position: relative;
+	display: flex;
+    flex-direction: row;
+    position: relative;
+}
+#svgTestArea{
+    transform-origin: 0px 0px;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+.playBackBarClass{
+    will-change: transform;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+}
+.bottomBars{
+    flex-grow: 0;
+    display: inline-block;
+    width: 100%;
+}
+.mainWrapper{
+    overflow: auto;
+    will-change: transform;
+	flex: 1;
+    background: #f5f5f5;
+}
+
+#drumInfo{
+    div{
+        display: inline-block;
+        margin-left: 10px;
+        margin-bottom: 15px;
+        padding:2px;
+        padding-right: 0;
+        font-size: 13px;
+        cursor: pointer;
+
+        &:hover {
+            background: #4982d0;
+        }
+        span{
+            padding: 5px;
+            background: #f7f7f7;
+        }
+        span.sp2{
+            background: #70dd78;
+            color: black;
+        }
+        span.sp3{
+            background: #6691b3;
+            color: white;
+        }
+    }
+}
+
+#tabAreas .hidden{
+    display:none;
+}
+
+#effectsLabel{
+    vertical-align: middle;
+    font-size: 20px;
+    margin-left:5px;
+    color: #6d7998;
+}
+
+.disable-select, label, span, img, button, .note, .blockNumber {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+#content{
+    /*min-height: 1200px;*/
+    font-family:"Source Sans Pro";
+}
+
+#player {
+  height: 15px;
+  position: relative;
+}
+
+.volume {
+    position: absolute;
+    left: 10%;
+    height: 5px;
+    width: 80%;
+    background: #555;
+    border-radius: 15px;
+
+    .ui-slider-range-min {
+        height: 5px;
+        width: 300px;
+        position: absolute;
+        background: #2ecc71;
+        border: none;
+        border-radius: 10px;
+        outline: none;
+    }
+
+    .ui-slider-handle {
+        width: 15px;
+       height: 15px;
+       border-radius: 20px;
+       background: #fafafa;
+       position: absolute;
+       margin-left: -8px;
+       margin-top: -5px;
+       cursor: pointer;
+       outline: none;
+    }
+
+    .ui-slider-handle:active {
+       width: 18px;
+       height: 18px;
+       margin-top: -6px;
+    }
+}
+
+#trackCapsule{
+    position: fixed;
+    z-index: 99;
+    display: inline-block;
+    /* position: absolute; */
+    right: 30px;
+    top: 20px;
+}
+
+#tabBar{
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-wrap: nowrap;
+    flex-wrap: nowrap;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
+    min-height: 30px;
+    position: relative;
+    height: 28px;
+    line-height: 28px;
+    z-index: 5;
+}
+
+#completeBar{
+    border: 1px solid #e8e8e8;
+    /* background-image: -webkit-linear-gradient(right, rgba(255, 219, 219, 0.2), rgba(253, 195, 207, 0.23)) !important; */
+    box-shadow: 0 1px 2px rgba(222, 222, 222, 0.3), 0 0 20px rgba(198, 198, 198, 0.1) inset;
+    /*background: rgba(255, 255, 255, 0.92);*/
+    background: rgb(255, 255, 255);
+    position: absolute;
+    z-index: 200;
+}
+
+.tabBarElemSelected{
+    border-top: 2px solid #2f5cce !important;
+    color: #aac1fb !important;
+    color: #2f5cce !important;
+}
+
+.tabBarElem{
+    cursor: pointer;
+    margin: 0 15px;
+    display:inline-block;
+    color: #6d7998;
+    color: #111;
+    font-size: 14px;
+    border-top: 2px solid #ffffff;
+    transition: all 200ms ease-in-out;
+
+    &:hover, &:active{
+        border-top: 2px solid #2f5cce;
+        color: #aac1fb;
+        color: #2f5cce;
+    }
+}
+.hideChord{
+    opacity:0.2;
+}
+body {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+#content .muteButton, #content .soloButton{
+    width:20px;
+    height:20px;
+    border:1px solid white;
+    color:white;
+    border-radius:20px;
+    background: transparent;
+    margin-right: 5px;
+    vertical-align: middle;
+    padding: 1px;
+}
+
+#content .muteButton:hover, #content .soloButton:hover{
+    background: white;
+    color: #3C4669;
+}
+
+#trackSign{
+    float: right;
+    width: 50px;
+    height: 50px;
+    background: none;
+    border-radius: 50px;
+}
+#trackSign img{
+    padding: 7px;
+    padding-top: 3px;
+}
+
+@-webkit-keyframes check {
+  0% {
+    height: 0;
+    width: 0;
+  }
+  25% {
+    height: 0;
+    width: 10px;
+  }
+  50% {
+    height: 20px;
+    width: 10px;
+  }
+}
+@keyframes check {
+  0% {
+    height: 0;
+    width: 0;
+  }
+  25% {
+    height: 0;
+    width: 10px;
+  }
+  50% {
+    height: 20px;
+    width: 10px;
+  }
+}
+#drumInfoModal{
+    width: 743px;
+}
+#drumInfoFooter{
+    cursor:pointer;
+}
+#notificationEmblem{
+    display:none;
+    position: fixed;
+    right: 100px;
+    top: 29px;
+    padding: 3px 6px;
+    font-size: 13px;
+    vertical-align: middle;
+    height: 25px;
+    line-height: 25px;
+    text-align: center;
+    background: #9dd39d;
+    background: #5ed490;
+    border-radius: 6px;
+    color: white;
+}
+#infoNotification{
+    width: 15px;
+}
+.wrapper {
+    width: 30px;
+    height: 30px;
+    display: inline-block;
+    align-items: center;
+    margin-left: 20px;
+    justify-content: center;
+    cursor:pointer;
+
+    .file-upload {
+        height: 30px;
+        width: 30px;
+        border-radius: 25px;
+        position: relative;
+        display: inline-block;
+        justify-content: center;
+        align-items: center;
+        transition: all 1s;
+        color: #FFFFFF;
+        vertical-align: top;
+        background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+        background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+        background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
+        background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
+        background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+        /*box-shadow: 2px 2px 5px 0px rgb(175, 175, 175);*/
+        text-align: center;
+
+        input[type='file'] {
+            height: 25px;
+            width: 25px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        img{
+            padding: 6px;
+        }
+        &:hover {
+          background-position: 0 -100%;
+          color: #2590EB;
+        }
+    }
+}
+
+#tabAuthor{
+    margin-top: 2px;
+}
+#completeTab{
+    position: relative;
+    margin-top: 90px;
+}
+.svgPage{
+    background-color: #fff;
+    -webkit-filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
+}
+
+#graceSelect label{
+    display: block;
+}
+#trackInfoModal{
+    width: 350px;
+
+    label{
+        display: block;
+    }
+    input{
+        width: 100%;
+        height: 26px;
+        margin-bottom: 10px;
+    }
+}
+
+#songCommentsInput{
+    width: calc(100% - 10px);
+}
+#textSelection{
+    display: block;
+}
+#graceSelectButton{
+    margin-left: 10px;
+    margin-right: 0;
+}
+.visibleEye{
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    width: 25px;
+    cursor: pointer;
+	z-index: 4;
+}
+#content .playChange{
+    width: 20px;
+    height: 28px;
+    opacity: 1;
+    line-height: 12px;
+    border-radius: 0;
+    padding: 4px;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+    background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+}
+#content #oneMeasureBack{
+    margin: 2px;
+    border-radius: 10px 0 0 10px;
+    grid-column: 1;
+    grid-row: 1;
+}
+#content #oneMeasureForward{
+    margin: 2px;
+    border-radius: 0 10px 10px 0px;
+    grid-column: 2;
+    grid-row: 1;
+}
+#content button.playStart{
+    vertical-align: top;
+    margin: 2px;
+    width: 28px;
+    /* margin-bottom: 7px; */
+    /* margin-top: 17px; */
+    height: 28px;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+    background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+    background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
+    background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
+    background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+    /* border-radius: 20px; */
+    text-align: center;
+    /* border: 1px solid rgb(236, 236, 236); */
+    cursor: pointer;
+    padding: 6px;
+    padding-left: 7px;
+    float: left;
+    grid-column: 1/2;
+    grid-row: 1;
+    border-right: 1px solid rgba(93, 93, 93, 0.08);
+    border-left: 1px solid rgba(93, 93, 93, 0.08);
+    z-index: 2;
+}
+#content button.playStart:hover, #content button.playChange:hover, #content #stopButton:hover{
+	background: white;
+	background-image: -webkit-linear-gradient(top, #c5e0fb, #759dba);
+
+	/*    transform: rotate(360deg);*/
+    background: #cb5920;
+    background-image: linear-gradient(to top, #d5d4d0 0%, #d5d4d0 1%, #eeeeec 31%, #efeeec 75%, #e9e9e7 100%);
+    transition-duration: 1s;
+}
+#content #recordButton:hover{
+    background: #e88888;
+}
+#content #playMusicImg{
+	display: block;
+}
+#content #pauseMusicImg{
+	display: none;
+}
+#content button.classicalButton, button.classicalButton{
+    width: 28px;
+    height: 28px;
+    background: white;
+    border-radius: 30px;
+    background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+    cursor: pointer;
+    margin: 7px 9px;
+}
+.deleteButton{
+    outline: 0;
+    padding: 10px;
+    color: black;
+    background: #e2e2e2;
+    border: none;
+    margin-top: 5px;
+    height: 40px;
+    width: 49%;
+    cursor: pointer;
+}
+#classicalToggleButton.classicalBack {
+    background: #f8c1c1 !important;
+}
+#compressorModal .modalBody{
+    background: #d7d7d7;
+}
+.shiftPiano{
+    height: 0px !important;
+    width: 35px !important;
+    margin-left: calc(100% - 35px);
+}
+#content .shiftPiano #pianoList{
+    display: none;
+}
+#content .shiftPiano .guitar-neck{
+    display: none;
+}
+#content .shiftPiano #effectBarLayout{
+    display: none;
+}
+#content .shiftPiano #guitarEye, #content .shiftPiano #pianoEye{
+    display: none;
+}
+#capoTitle{
+    display: inline-block;
+    min-width:10px;
+}
+#capoTitle:empty::after {
+    content: ".";
+    visibility: hidden;
+}
+#tabTitle, #tabAuthor, #tuningTitle, #capoTitle{
+    text-align: center;
+    cursor:pointer;
+    fill:black;
+}
+.bpmMeter, .chordDiagram, #trackTitle{
+    cursor:pointer;
+}
+.chordDiagram, .bpmMeter{
+    pointer-events: bounding-box;
+}
+#tabTitle:hover, #tabAuthor:hover, #tuningTitle:hover, #capoTitle:hover, .bpmMeter:hover, .chordDiagram:hover, #trackTitle:hover{
+    filter: url(#solid)
+}
+.statusBarSelected{
+    display: inline-block !important;
+}
+.statusBar{
+    display:none;
+    border-top: 1px solid #e9e8f6;
+}
+#tabArea{
+	position:relative;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+#tabLabel{
+	position: absolute;
+	white-space: pre-wrap;
+	letter-spacing: 0.1em;
+	line-height: 17px;
+	top: 40px;
+	left: 15px;
+}
+.note{
+	position: absolute;
+	background: rgba(255, 255, 255, 0.26);
+	line-height: 20px;
+	width: 17px;
+	text-align: center;
+    white-space: nowrap;
+	z-index: 3;
+}
+#tabAreas{
+    position: relative;
+    outline: none;
+}
+#compressorModal{
+    position: fixed;
+    z-index: 200;
+    top: 200px;
+    left: 200px;
+    background: white;
+}
+#compressorModal .knob{
+    transform: scale(2);
+    margin-top: 12px;
+    margin-bottom: 13px;
+}
+.knobBox{
+    display: inline-block;
+    height: 72px;
+    width: 70px;
+    text-align: center;
+    margin-right: 5px;
+}
+#content button{
+	border: none;
+	cursor: pointer;
+}
+#content .checkBoxBar{
+	display: inline-block;
+	margin-left: 15px;
+}
+.tabArea:focus {outline:0;}
+#content button:focus {outline:0;}
+#content button.pressed{
+	/*background-image: -webkit-linear-gradient(top, #ffd8fb, rgb(186, 83, 83)) !important;*/
+	    background: #f8c1c1 !important;
+}
+#content button.checkBoxNote:hover {
+    background-image: -webkit-linear-gradient(top, #dfdfdf, #e7e7e7);
+    background: #ebebeb;
+}
+#content button.checkBoxNote{
+	display:inline-block;
+	vertical-align: top;
+	margin-right:10px;
+    width: 28px;
+    height: 28px;
+	background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+	background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+	background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
+	background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
+	background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+	/*box-shadow: 2px 2px 5px 0px rgb(175, 175, 175);*/
+	border-radius: 20px;
+	text-align: center;
+	line-height: 20px;
+    padding: 2px;
+    margin: 4px;
+}
+#content .checkBoxDov{
+    display:inline-block;
+    position:relative;
+}
+#content .checkBoxDov:hover #tupletDropDown{
+    display: block;
+}
+#tupletDropDown{
+    display: none;
+    position: absolute;
+    top: 30px;
+    left: 0px;
+    outline: none;
+    border-radius: 20px;
+}
+#tupletDropDown option{
+    width:20px;
+}
+#content button:disabled{
+    opacity: 0.1;
+}
+#loadingWheel{
+    display: none;
+}
+.loader{
+    position: absolute;
+    height: 50px;
+    top: 50%;
+    left: 50%;
+    z-index: 10;
+    transform: scale(3);
+    background: rgba(255, 255, 255, 0.63);
+}
+
+#content button.playButton{
+	padding: 6px;
+	text-align: center;
+}
+#content button.playButton:hover, #content button.playButton:hover, #content .classicalButton:hover {
+    background: #e7e7e7;
+}
+/*MODAL EFFECT*/
+.show {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150px;
+  height: 40px;
+  margin-top: -20px;
+  margin-left: -75px;
+  background: #e74c3c;
+  color: #fff;
+  border-radius: 5px;
+  border: 0;
+  border-bottom: 2px solid #c0392b;
+  cursor: pointer;
+}
+.show:hover {
+  background: #c0392b;
+}
+.show:active {
+  transform: scale(0.9);
+}
+.close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 35px;
+    height: 30px;
+    background: #000;
+    color: #fff;
+    cursor: pointer;
+    border: 0;
+}
+/*.blurFilter{
+    -webkit-filter: blur(20px);
+    -moz-filter: blur(20px);
+    filter: blur(20px);
+}*/
+.modalTopBarLabel{
+    font-size: 12px;
+    padding-left: 15px;
+    pointer-events: none;
+}
+.modalCaption{
+    margin: 0 0 10px 0;
+    font-size: 20px;
+    margin: 0 15px 10px 0;
+}
+.checkmark__circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+  stroke: #7ac142;
+  fill: none;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+.checkmark {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: block;
+    stroke-width: 2;
+    stroke: #fff;
+    stroke-miterlimit: 10;
+    box-shadow: inset 0px 0px 0px #7ac142;
+    animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+}
+.modal {
+    position: fixed;
+    background-color: white;
+    -moz-box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
+    -webkit-box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
+    box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.19);
+    z-index: 100;
+    /*transition: 0.5s ease-out;*/
+    transform: translateY(45px);
+    display:inline-block;
+    box-sizing: border-box;
+    display:none;
+}
+.modalBody{
+    padding: 15px;
+    padding-right: 15px;
+
+    input, .select{
+        margin-bottom: 10px;
+        margin-top: 5px;
+    }
+}
+#instrumentSettingsModal .modalBody, #trackInfoModal .modalBody, #addTremoloPickingModal .modalBody,
+#addGraceModal .modalBody, #addStrokeModal .modalBody, #bpmModal .modalBody{
+    padding-bottom: 35px;
+}
+#numberOfRepititionsModal .modalBody, #addTextModal .modalBody, #addMarkerModal .modalBody{
+    padding-right: 35px;
+}
+#graceSelect{
+    margin-bottom: 5px;
+}
+.modalTopBar{
+    /*position: absolute;
+    top: -20px;*/
+    height: 25px;
+    line-height: 25px;
+    width: 100%;
+    color: black;
+    border-bottom: 1px solid #e9e8f6;
+    background: #f7f7f7;
+}
+.modal .eyeToggle{
+    display: none;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    background: rgba(0, 0, 0, 0.37);
+}
+.modal.hideBar:hover .eyeToggle{
+    display:block
+}
+.active {
+    display:inline-block;
+    transform: translateY(0);
+}
+.modal_close{
+    position: absolute;
+    top: 2px;
+    right: 10px;
+}
+.modal_close .icon {
+    width: 13px;
+    height: 13px;
+    fill: #222;
+    stroke: #222;
+}
+.modal_close:hover {
+    cursor: pointer;
+}
+
+.checkmark__check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes stroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes scale {
+  0%, 100% {
+    transform: none;
+  }
+  50% {
+    transform: scale3d(1.1, 1.1, 1);
+  }
+}
+@keyframes fill {
+  100% {
+    box-shadow: inset 0px 0px 0px 30px #7ac142;
+  }
+}
+#bendEditor{
+    /*border: 1px solid #adadad;*/
+    width: 487px;
+    display: block;
+    height: 200px;
+}
+#tremoloEditor{
+    width: 100%;
+    height: 300px;
+    margin-top: 20px;
+}
+#chordDisplay{
+    display: block;
+    height: 200px;
+}
+#pianoModal{
+    position: fixed;
+    z-index: 200;
+    top: 200px;
+    left: 200px;
+    width: 1176px;
+    background: white;
+}
+#pianoModal .modalBody{
+    padding: 0;
+}
+.hideTopBar{
+    position: absolute;
+    top: 4px;
+    right: 30px;
+    background: #FF5722;
+    width: 12px;
+    z-index: 6;
+    height: 12px;
+    border-radius: 14px;
+}
+#guitarModal{
+    position: fixed;
+    z-index: 200;
+    top: 200px;
+    left: 200px;
+    width: 1176px;
+    background: white;
+    height: 112px;
+}
+#guitarModal .modalBody{
+    padding: 0;
+    height: 100%;
+}
+.modal.hideBar .modalTopBar{
+    display: none;
+}
+.modal.hideBar .hideTopBar{
+    background: #9E9E9E;
+}
+.openWindows{
+    height: 20px;
+    line-height: 20px;
+    padding: 0 4px;
+    flex-grow: 0;
+    background: $color-glowingRed;
+    text-transform: uppercase;
+    color: white;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+}
+.label{
+    min-width: 40px;
+}
+/*SELECT BOXES*/
+.selectButton{
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    outline: 0;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+.selectButton:hover{
+    background: #2895b5;
+}
+.select {
+    position: relative;
+    display: inline-block;
+    background: #e6e6e6;
+    color: #7b7b7b;
+}
+ .harmonicSelect select{
+    width: 186px;
+ }
+ body.disableMouseEffects{
+    pointer-events: none;
+ }
+.select select {
+    display: inline-block;
+    cursor: pointer;
+    padding: 10px 10px;
+    padding-right: 25px;
+    outline: 0;
+    border: 0;
+    background: none;
+    -webkit-appearance: none;
+    /*user-select: none;*/
+}
+
+.select:hover,
+.select:focus {
+  color: #000;
+  background: #ccc;
+  background: rgba(204, 204, 204, 0.66);
+}
+.select:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.select__arrow {
+    position: absolute;
+    right: 10px;
+    top: 15px;
+    pointer-events: none;
+    border-style: solid;
+    border-width: 8px 5px 0 5px;
+    border-color: #7b7b7b transparent transparent transparent;
+}
+.select:hover ~ .select__arrow,
+.select:focus ~ .select__arrow {
+  border-top-color: #000;
+}
+.select:disabled ~ .select__arrow {
+  border-top-color: #ccc;
+}
+/*Separator*/
+.or-spacer-vertical {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+}
+.or-spacer-vertical .inner {
+    overflow: hidden;
+   width: 10px;
+   height: 30px;
+}
+.or-spacer-vertical.left .inner:after {
+  content: '';
+  display: block;
+  margin-left: -20px;
+  width: 20px;
+  height: 100%;
+  border-radius: 12px / 125px;
+  box-shadow: 0 0 2px #1b3d7b;
+}
+.or-spacer-vertical.right .inner:before {
+  content: '';
+  display: block;
+  margin-left: 20px;
+  width: 20px;
+  height: 100%;
+  border-radius: 12px / 125px;
+  box-shadow: 0 0 2px #1b3d7b;
+}
+/*Add Tracks*/
+.addTrackIcon{
+    /*background: rgba(14, 14, 86, 0.93);*/
+    height: 25px;
+    width: 30px;
+    border-radius: 40px;
+}
+.addTrackDropDown{
+    align-items: center;
+    border-bottom: 1px solid #cacaca;
+    position: relative;
+    font-size: 14px;
+    padding-top: 5px;
+    cursor: pointer;
+}
+.addTrackRowCapsule {
+    display: none;
+    background: #f6f6f6;
+    color: black;
+    margin: 5px 0px;
+    padding: 5px;
+    &.visible {
+        display: block;
+    }
+}
+.addTrackInnerRow{
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin: 2px;
+}
+.addTrackInnerRow:not(:last-child){
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.addTrackDropDown:after{
+  /* Little arrow */
+  content: "";
+  width: 0;
+  height: 0;
+  position: absolute;
+  top: 12px;
+  right: 5px;
+  margin-top: -3px;
+  border-width: 6px 6px 0 6px;
+  border-style: solid;
+  border-color: #4cbeff transparent;
+}
+.instrumentContainer{
+    height: 450px;
+    width: 450px;
+    padding: 15px;
+    border-radius: 10px;
+    overflow-y: auto;
+}
+.harmonicSelect{
+    width: 220px;
+}
+.addTrackTitle{
+    margin-left: 10px;
+    font-size: 13px;
+}
+#effectBar{
+    display: none;
+    position:relative;
+    z-index: 20;
+    font-size: 12px;
+    width: 100%;
+    height: 83px;
+    transition:0.5s;
+    background: #f9f9f9;
+    border-top: 1px solid #e9e8f6;
+    box-shadow: 2px 1px 2px rgba(222, 222, 222, 0.3), 0 0 20px rgba(198, 198, 198, 0.1) inset;
+}
+#sequencerSideBar #masterVolume{
+    width: 90px;
+    background: rgba(255, 255, 255, 0.06)
+}
+#masterVolume .volume .ui-slider-range{
+    background: #cc2e2e;
+    background: $color-glowingRed;
+}
+
+@import './piano';
+
+@import './guitar';
+
+#addChordModal label{
+    display: block;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #completeTab * {
+    visibility: visible;
+    width:100%;
+  }
+  #completeTab {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  #trackCapsule{
+      display: none;
+  }
+}
+#content #completeTab.pdfrender{
+    margin:0;
+    border: none;
+    box-shadow: none;
+}
+
+/*CHECKBOXES*/
+.styled-checkbox {
+  position: absolute;
+  opacity: 0;
+}
+.styled-checkbox + label {
+    position: relative;
+    cursor: pointer;
+    padding: 0;
+}
+.styled-checkbox + label:before {
+  content: '';
+  margin-right: 10px;
+  display: inline-block;
+  vertical-align: text-top;
+  width: 20px;
+  height: 20px;
+  background: #cecece;
+  background: #eaeaea;
+}
+.styled-checkbox:hover + label:before {
+  background: #ffae99;
+}
+.styled-checkbox:focus + label:before {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+}
+.styled-checkbox:checked + label:before {
+  background: #f35429;
+}
+.styled-checkbox:disabled + label {
+  color: #b8b8b8;
+  cursor: auto;
+}
+.styled-checkbox:disabled + label:before {
+    box-shadow: none;
+    background: #ddd;
+}
+.styled-checkbox:checked + label:after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 9px;
+    background: white;
+    width: 2px;
+    height: 2px;
+    box-shadow: 2px 0 0 white, 4px 0 0 white, 4px -2px 0 white, 4px -4px 0 white, 4px -6px 0 white, 4px -8px 0 white;
+    transform: rotate(45deg);
+}
+#alternativeContainer{
+    .unstyled {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+    }
+    li {
+      margin: 20px 0;
+    }
+    .centered {
+      width: 155px;
+      margin: auto;
+    }
+}
+
+button[data-tooltip] {
+    position: relative;
+
+    &::before, &::after {
+      position: absolute;
+      display: none;
+      font-family: "Source Sans Pro";
+      opacity: 0.85;
+    }
+    &::before {
+        /*
+        * using data-tooltip instead of title so we
+        * don't have the real tooltip overlapping
+        */
+        content: attr(data-tooltip);
+        z-index: 100;
+        background: #000;
+        color: #fff;
+        font-size: 13px;
+        padding: 5px;
+        border-radius: 5px;
+        /* we don't want the text to wrap */
+        white-space: nowrap;
+        text-decoration: none;
+        top: 100%;
+        left: 0;
+        margin-top: 10px;
+    }
+    &::after {
+        width: 0;
+        height: 0;
+        border: 6px solid transparent;
+        content: '';
+        border-bottom-color: #000;
+        border-top: none;
+        top: 100%;
+        left: 10px;
+        margin-top: 4px;
+    }
+    &:hover::before, &:hover::after {
+      display: block;
+    }
+}
+#mixerModal{
+    position: fixed;
+    z-index: 200;
+    top: 200px;
+    left: 200px;
+    width: 800px;
+    background: white;
+
+    .modalBody{
+        padding: 0;
+    }
+}
+/*#mixerModal div.panKnobInner:after {
+    background: #5862b9;
+}*/
+div.mixerColumnActive{
+    background: #f7af9b;
+}
+.mixerColumn{
+    display: inline-block;
+    width: 24px;
+    background: #f7f7f7;
+    font-size: 12px;
+    border-right: 1px solid #f0f0f0;
+    height: 100%;
+}
+#mixerMain{
+    font-size: 0px;
+    white-space: nowrap;
+    overflow-x: scroll;
+    height: 100%;
+}
+.panContainer, .reverbContainer, .chorusContainer{
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    /* vertical-align: middle; */
+    text-align: center;
+    /* padding: 5px; */
+    float: left;
+    display:none;
+}
+.slotName{
+    writing-mode: vertical-lr;
+    padding: 3px;
+    padding-top: 7px;
+    height: 90px;
+    transform: rotate(180deg);
+    overflow: hidden;
+    font-size:11px;
+}
+.slotNumber {
+    text-align: center;
+    /*background: rgba(196, 196, 196, 0.16);*/
+    color: #3d3d3d;
+}
+.slotVolume {
+    height: 80px;
+    border: 1px solid rgba(255, 255, 255, 0.84);
+    background: rgb(238, 238, 238);
+    background: rgb(226, 226, 226);
+    margin-left: 2px;
+    width: 18px;
+}
+.slotSlider{
+    height: 70px;
+    width: 24px;
+    position: relative;
+    margin-top: 10px;
+
+    .volume {
+        position: absolute;
+        left: 10px;
+        width: 5px;
+        height: 80%;
+        background: #555;
+        border-radius: 15px;
+        /*background: #aaa3a3;*/
+
+        .ui-slider-range-min {
+            width: 5px;
+            height: 300px;
+            position: absolute;
+            background: #2ecc71;
+            border: none;
+            border-radius: 10px;
+            outline: none;
+            bottom: 0;
+        }
+        .ui-slider-handle {
+            margin-left: -5px;
+            margin-bottom: -5px;
+        }
+        .ui-slider-handle:active {
+            margin-left: -7px;
+            margin-bottom: -6px;
+        }
+    }
+}
+.volume .ui-slider-handle {
+    background: #555555;
+}
+.slotActive.slotInActive{
+    background: #555555;
+}
+.slotPan{
+    height: 25px;
+    transform: scale(0.9);
+    margin-left: -2px;
+
+    div.panKnob{
+        float: none;
+        display: block;
+        background: none;
+    }
+}
+.panKnob .knobRing{
+    transform: rotate(-90deg);
+}
+.panKnob{
+    transform: rotate(-90deg);
+}
+.reverbKnob .knobRing, .chorusKnob .knobRing{
+    transform: rotate(90deg);
+}
+.reverbKnob, .chorusKnob{
+    transform: rotate(90deg);
+}
+.mixerColumn .knobRing{
+    transform: rotate(-90deg);
+}
+/*
+.slotPan .knob{
+    width: 20px;
+    height: 20px;
+}
+
+.slotPan .panKnobInner, .slotPan .panKnobInner:after {
+    width: 18px;
+    height: 18px;
+    transform-origin: 9px center 0px;
+    width: 22px;
+height: 22px;
+transform-origin: 11px center 0px;
+}
+.slotPan .panKnobInner:before {
+    left: 8px;
+}*/
+.slotActive{
+    height: 12px;
+    width: 12px;
+    margin: 3px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background: #F44336;
+}
+
+@import 'sequencer';
+
+/*#content button#guitarEyeToggle{
+	background: #f4cfb2;
+	background-image: linear-gradient(to top, rgba(230, 185, 128, 0.69) 0%, rgba(234, 205, 163, 0.69) 100%);
+}
+#content button#pianoEyeToggle, #content button#guitarEyeToggle{
+	background-image: linear-gradient(to top, #c79081 0%, #dfa579 100%);
+    background: #797676;
+}*/
+#content button#pianoEyeToggle:hover, #content button#guitarEyeToggle:hover{
+    background: #e7e7e7;
+}
+.instrumentListDelete{
+	width: 30px;
+    height: 30px;
+    padding: 5px;
+    background: rgba(191, 93, 93, 0.9);
+	display:none;
+}
+.instrumentChange{
+	width: 30px;
+    height: 30px;
+    padding: 5px;
+	background: rgba(75, 151, 201, 0.66);
+	display:none;
+}
+#sequencerEdit{
+    width: 30px;
+    height: 30px;
+    float: right;
+    cursor: pointer;
+    img{
+        padding: 5px;
+        width: 30px;
+    }
+    &:hover img{
+        transition-duration: 1s;
+        transform: rotate(90deg);
+    }
+}
+#sequencerAddInstrument{
+	width: 30px;
+    float: right;
+    padding: 5px;
+    cursor: pointer;
+}
+#measureBox{
+    height: 93px;
+    margin-top: 15px;
+    width: 75px;
+    display: inline-block;
+}
+#measureBox label{
+    display: block;
+}
+#eqCurrentFreq, #eqCurrentGain{
+    font-size: 18px;
+}
+.qualityKnob{
+    margin: auto;
+    grid-column: 1;
+    grid-row: 1;
+    transform: scale(1.2);
+}
+#qualityLabel1, #qualityLabel2, #qualityLabel3{
+    margin-left: 12px;
+    display:none;
+    grid-column: 1;
+    grid-row: 1;
+}
+.modeLabel{
+    grid-column: 2;
+    grid-row: 2;
+}
+.qualityLabel{
+    grid-column: 1;
+    grid-row: 2;
+}
+.filterNodeSetting{
+    position: relative;
+    width: 150px;
+    padding: 10px;
+    padding-top: 20px;
+    display: grid;
+    margin-top: 15px;
+    grid-template-rows: auto auto;
+    /*grid-template-columns: 65px 35px auto;*/
+    grid-template-columns: 65px 85px;
+    background: #d7d7d7;
+
+    label{
+        margin: auto;
+        margin-left: 0;
+    }
+    &::after{
+        position: absolute;
+        top: -10px;
+        font-size: 14px;
+        background: white;
+        width: 40px;
+        left: 61px;
+        text-align: center;
+        /*New Settings*/
+        top: 2px;
+        font-size: 15px;
+        left: 3px;
+    }
+}
+.filterNodeContainer{
+    display:inline-block;
+    margin-right: 10px;
+    vertical-align: top;
+}
+#fNodeContainer1 .filterNodeSetting::after{
+    /*background: rgb(204, 236, 197);*/
+    background:none;
+    background: rgb(116, 176, 103);
+    background: #89ca78;
+    color: white;
+    content:"LOW";
+}
+#fNodeContainer2 .filterNodeSetting::after{
+    /*background: rgb(235, 182, 182);*/
+    background:none;
+    background: rgb(213, 107, 107);
+    background: $color-glowingRed;
+    color: white;
+    content:"MID";
+}
+#fNodeContainer3 .filterNodeSetting::after{
+    /*background: rgb(246, 225, 185);*/
+    background:none;
+    background: rgb(234, 191, 114);
+    color: white;
+    content:"HIGH";
+}
+div.knob{
+    width: 30px;
+    height: 30px;
+    padding: 4px;
+    box-sizing: border-box;
+    position:relative;
+    background: rgba(255, 255, 255, 0.57);
+}
+.eqKnob{
+    width:30px;
+    height:30px;
+}
+
+.panKnob, .reverbKnob, .chorusKnob{
+    width: 22px;
+    height: 22px;
+    margin-top: 4px;
+}
+
+div.panKnobInner, div.reverbKnobInner, div.chorusKnobInner{
+	border-radius: 22px;
+    width: 22px;
+    height: 22px;
+    /* background: #cfcfcf; */
+    position: relative;
+    transform-origin: 11px 11px;
+    /* transform: rotate(10deg); */
+
+    &:before, &:after  {
+        content: '';
+        display: block;
+        position: absolute;
+    }
+    &:before	{
+        z-index: 2;
+        height: 5px;
+        width: 2px;
+        background: white;
+        border-radius: 2px;
+        /*top: 4px;*/
+        bottom: 4px;
+        left: 10px;
+    }
+}
+
+/*.knobBox div.panKnobInner:before, .filterNodeSetting div.panKnobInner:before{
+    bottom:4px;
+    top: inherit;
+}*/
+.knobRing{
+	position: absolute;
+    /*pointer-events: none;*/
+	width: 22px;
+	height: 22px;
+    top: 4px;
+    left: 4px;
+	z-index: 5;
+    transform: rotate(90deg);
+    overflow: visible;
+}
+.panKnob, .reverbKnob, .chorusKnob{
+    overflow: visible;
+}
+.knobRing rect, .knobRing circle, .panKnob rect, .panKnob circle, .reverbKnob rect, .reverbKnob circle, .chorusKnob rect, .chorusKnob circle{
+    pointer-events: none;
+}
+
+div.panKnobInner:after, div.reverbKnob:after, div.chorusKnob:after {
+    height: 22px;
+    width: 22px;
+    border-radius: 100%;
+    /*box-shadow: 0px 2px 5px 4px rgba(0, 0, 0, 0.2);*/
+	background: radial-gradient(ellipse 20px 20px, rgba(73, 73, 73, 0.72), rgb(26, 26, 26) );
+	background: radial-gradient(ellipse 20px 20px, rgba(36, 82, 123, 0.72), rgb(63, 117, 228) );
+    background: #595757;
+    box-sizing: border-box;
+    border: 2px solid #226aa9;
+    border: 2px solid #373737;
+    border: 2px solid #d7d7d7;
+    border: 2px solid #ffffff;
+
+    /*Prevent aliasing on border*/
+    height: 24px;
+    width: 24px;
+    margin-left: -1px;
+    margin-top: -1px;
+}
+.filterNodeSetting label{
+    width: 100%;
+    text-align: center;
+}
+document, img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+}
+
+.unselectable, #sequencerSideBar .label, #sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  cursor:default;
+}
+
+#sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument{
+	width: 30px;
+    height: 30px;
+    float: right;
+    color: black;
+    text-align: center;
+    font-size: 12px;
+    line-height: 30px;
+	display:none;
+}
+#voiceLabel{
+    padding: 7px;
+    font-size: 13px;
+}
+.voiceButton, #pageLayoutToggle{
+    width: 28px;
+    margin: 5px 8px;
+    height: 28px;
+    background: white;
+    color: white;
+    cursor: pointer;
+    border-radius: 30px;
+    opacity: 0.2;
+}
+#pageLayoutToggle{
+    background: #2b2b2b;
+    overflow: hidden;
+    opacity: 0.7;
+}
+#chordOverviewContainer{
+    /*height: 150px;*/
+    min-height: 150px;
+    /*width: 400px;
+    background: #e2e2e2;*/
+    padding: 15px;
+    position: relative;
+}
+#chordsContainer{
+    margin-top: -10px;
+}
+#addChordDiagram{
+    position: absolute;
+    width: 28px;
+    right: 5px;
+    top: 5px;
+    display: inline-block;
+    background: #464646;
+    height: 28px;
+    line-height: 28px;
+    color: white;
+    font-size: 22px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 30px;
+    padding: 0;
+    font-family: "Source Sans Pro";
+    border: none;
+}
+.chordBox{
+    height: 100%;
+    width: 100px;
+    margin-top: 10px;
+    position: relative;
+    background: #eeeeee;
+    display: inline-block;
+    margin-right: 15px;
+}
+#chordManagerModal{
+    width:430px;
+}
+.displayChord{
+    position: absolute;
+    bottom: 0;
+    /* left: 40px; */
+    /* bottom: 10px; */
+    width: 100%;
+    height: 20px;
+    cursor: pointer;
+    text-align: center;
+    background: #9c9c9c;
+    background: #464646;
+    color: white;
+}
+.removeChord{
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+}
+.voiceSelected{
+	opacity: 1;
+}
+#voice0{
+	/*background-image: linear-gradient(to right, #f78ca0 0%, #f9748f 19%, #fd868c 60%, #fe9a8b 100%);*/
+    background-color: #ed9797;
+}
+#voice1{
+	/*background-image: linear-gradient(to top, #4481eb 0%, #04befe 100%);*/
+    background: #6099e8;
+}
+.isTooBright{
+	background: #666666;
+    padding: 2px;
+}
+#stringsListBackTop{
+	left: 90%;
+    width: 10%;
+    transform: skewY(-4deg);
+    transform-origin: top left;
+}
+#stringsListBackBottom{
+	left: 90%;
+    width: 10%;
+    transform: skewY(4deg);
+    transform-origin: top left;
+}
+#capo{
+	position: absolute;
+    /*left: 22px;*/
+    top: -5px;
+    width: 7px;
+    /* height: 10px; */
+    height: 100%;
+    background: #1e1e1e;
+    box-shadow: inset 3px 0 #070707;
+    border: 1px solid #767676;
+    border-radius: 5px;
+    z-index: 4;
+}
+#numberOfRepititionsInput{
+	height: 30px;
+    box-sizing: border-box;
+    margin-top: 5px;
+}
+
+#chordDisplay *{
+    cursor: pointer;
+}
+#chordDisplay text{
+    cursor:default;
+}
+#chordDisplay g text{
+    cursor: pointer;
+}
+.equalizerModeSelectBox{
+    grid-column: 2;
+    margin: 5px 0;
+}
+/*#equalizerModal.modal{
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    top: 100px;
+    left: 100px;
+}
+#equalizerModal .modalBody{
+    text-transform: uppercase;
+}*/
+#equalizerContainer{
+    position:relative;
+}
+#equalizerOverlay{
+    position:absolute;
+    top:0;
+    left:0;
+    z-index:5;
+}
+#equalizerOverlay circle:hover{
+    /*transform:scale(1.5);*/
+    transform-origin:center;
+}
+.svgNote{
+    font-family: "Source Sans Pro";
+    text-anchor: "middle";
+    fill:black;
+    font-size:18px;
+}
+#content #recordButton{
+    opacity: 1.0;
+    position: absolute;
+    left: 42px;
+    width: 26px;
+    height: 26px;
+    background: #ff9999;
+    background: $color-glowingRed;
+    grid-column: 2;
+    grid-row: 2;
+    margin: 6px;
+    margin-left: 0px;
+    display: inline-block;
+
+    &.prepareRecording{
+        background: #c76262;
+    }
+    &.recording{
+        background: #ffffff;
+        border: 1px solid #ece9e9;
+        &:after {
+            background: $color-glowingRed;
+        	animation: pulse 1.25s infinite cubic-bezier(0.66, 0, 0, 1);
+        	animation: pulse 1.25s infinite;
+        }
+    }
+    &:after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        /* border: 1px solid #cac7c7; */
+        background: $color-glowingRed;
+        background-size: 100px 100px;
+        opacity: 0.9;
+    }
+}
+
+@keyframes pulse {to {box-shadow: 0 0 0 8px rgba(232, 76, 61, 0.8);}}
+
+#content #stopButton{
+    opacity: 1.0;
+    position: absolute;
+    left: 1px;
+    width: 26px;
+    height: 26px;
+    background: #f1f1f1;
+    grid-column: 1;
+    grid-row: 2;
+    margin: 6px;
+    margin-left: 10px;
+    display: inline-block;
+}
+#content #stopButton:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+	background: #769ee3;
+    background-size: 100px 100px;
+    opacity: 0.9;
+}
+#content #tempoMeter{
+    width: 30px;
+    line-height: 25px;
+    height: 25px;
+    margin: 10px;
+    padding: 1px;
+    font-size: 14px;
+    margin: 7px;
+    /* border-radius: 4px; */
+    text-align: center;
+    /* border-bottom: 1px solid #4481eb; */
+    cursor: n-resize;
+    /*background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);*/
+    margin-top: -10px;
+}
+.bpmSidebarLabel{
+    font-size: 10px;
+    padding: 0px 13px;
+}
+#tempoMeterModal{
+	font-size: 18px;
+	width: 40px;
+    height: 30px;
+    margin: 10px;
+    /* margin: 5px; */
+    margin-left: 0;
+    border-radius: 4px;
+    text-align: center;
+    border-bottom: 1px solid #4481eb;
+    cursor: n-resize;
+}
+#instrumentColorPicker {
+    border: 1px solid black;
+}
+#instrumentNameInput, #instrumentColorPicker, .select #stringCountSelect, .select #capoSelect{
+    display: block;
+    width: 50px;
+    height: 25px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+.jscolor{
+	cursor: pointer;
+	border:none;
+}
+#stringCountSelectBox, #capoSelectBox{
+	display: block;
+	width: 50px;
+}
+#stringCountSelectBox .select__arrow, #capoSelectBox .select__arrow{
+    top: 9px;
+    right: 12px;
+    border-width: 6px 3px 0 3px;
+}
+.select #stringCountSelect, .select #capoSelect{
+	padding: 1px 2px;
+    padding-left: 10px;
+}
+#instrumentNameInput{
+	width: 150px;
+}
+#tuningAreaModal{
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-left: -5px;
+    margin-right: 5px;
+
+    .select{
+    	display: block;
+        width: 50px;
+        height: 30px;
+        margin: 5px;
+    }
+    .select select{
+    	padding: 1px 2px;
+        padding-left: 10px;
+
+    	display: block;
+        width: 50px;
+        height: 25px;
+        box-sizing: border-box;
+        margin-bottom: 10px;
+    }
+    .select .select__arrow{
+        top: 9px;
+        right: 12px;
+        border-width: 6px 3px 0 3px;
+    }
+}
+
+.currentMarkedBlock{
+	background: rgba(255, 255, 129, 0.25);
+}
+svg text {
+    /*cursor: default;*/
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+#audioWaveForm{
+    background:white;
+    height:30px;
+}
+#audioWaveForm wave{
+    border-right: none !important;
+}
+
+#tabAreas{
+    display: none;
+}
+#completeTab.dinA4Size {
+    /*width: 21cm;
+    height: 29.7cm;
+    Double to use the screen better
+    */
+   width: 31.5cm;
+   height: 44.55cm;
+
+    margin: auto;
+    margin-top: 90px;
+    margin-bottom: 50px;
+    will-change: transform;
+}
+#content button.dynamicNote{
+	font-family: notesFont;
+	padding:3px;
+	font-size: 20px;
+	line-height: 30px !important;
+}
+#playBackBarSvg{
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    /*Give each their own layer*/
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+.svgTrackWrapper{
+    position: absolute;
+    /*Give each their own layer*/
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    /*box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(128, 128, 128, 0.1) inset;*/
+}
+.vexFlowRow svg{
+    overflow: visible;
+}
+.modalBody label{
+    font-size: 12px;
+}
+input, textarea, input[type="number"]{
+    border: 1px solid #cacaca;
+    padding: 2px;
+    padding-left: 5px;
+        box-sizing: border-box;
+    font-family: "Source Sans Pro";
+    font-size: 12px;
+    background: #eaeaea;
+    background: rgba(230, 230, 230, 0.57);
+    border: 1px solid #eaeaea;
+}
+select{
+    font-family: "Source Sans Pro";
+}
+input:focus, textarea:focus{
+    outline: none;
+    box-shadow: 0 0 5px #43D1AF;
+    border: 1px solid #43D1AF;
+}
+.labelRightMargin{
+    margin-right: 5px;
+}
+.labelTopMargin{
+    display: block;
+    margin-top: 10px;
+}
+#graceSelect select{
+    width: 120px;
+}
+#addStrokeModal select{
+    width: 100px;
+}
+#strokeSelectButton{
+    margin-left: 10px;
+}
+#markerColorPicker{
+    border: 1px solid white;
+    margin-right: 10px;
+}
+#content #heavyAccentuated{
+    padding: 1px 6px;
+}
+img{
+    vertical-align: sub;
+}
+#content #accentuated{
+    padding: 5px 2px 2px 5px;
+}
+#content #ghost{
+    padding-left:7px;
+    padding-right: 4px;
+}
+#content #fadeIn, #content #pop, #content #slap, #content #tap, #content #stacatto{
+    padding: 5px;
+}
+#content #dead{
+    padding: 6px;
+}
+#content #pullDown, #content #slide{
+    padding-left:4px;
+    padding-right: 4px;
+}
+#content .noteImg{
+    width:12px;
+    height:22px;
+}
+/*TABLE*/
+table{
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.24);
+    border-spacing: 0;
+
+    tr{
+        font-size: 14px;
+    }
+    th, td{
+        font-size: 14px;
+        padding: 1px 10px;
+        border:none;
+    }
+    th{
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    }
+    tbody tr:hover td{
+        background: rgb(33, 113, 138);
+        color: white;
+        cursor:pointer;
+    }
+}
+.selectedRow td{
+    color: white;
+    background: rgb(49, 142, 126);
+}
+#footerBar{
+    display: flex;
+    height: 20px;
+    background: #2f2f2f;
+    width: 100%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    padding: 0;
+    font-size: 0px;
+    line-height: 20px;
+    user-select: none;
+}
+#footerFiller{
+    flex-grow:1;
+}
+.footerBlock{
+    height: 100%;
+    font-size: 11px;
+    display: inline-block;
+    color: white;
+    margin: 0px 10px;
+    vertical-align: middle;
+    flex-grow:0;
+    position: relative;
+}
+#midiLabel{
+    margin-right:2px;
+    cursor: pointer;
+}
+#modeSwitcher, #capoLabel, #autoScroll, #tuningFooter, #drumMixerOpen, #samplesOpen{
+     cursor:pointer
+}
+.footerBlock:hover{
+    color: #094694;
+}
+#isMidiActive{
+    height:10px;
+    width:10px;
+    border-radius:10px;
+    margin-left:0px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    vertical-align: middle;
+    transform: translate(-50%,-50%);
+    background: $color-glowingRed;
+}
+#isMidiActive.activated{
+    background: rgb(49, 142, 126);
+}
+
+/*Optional Styles*/
+.tabBarElem{
+    /*font-family: "Roboto";*/
+    text-transform: uppercase;
+    color: #6b6b6b;
+}
+/*.modal label {
+    font-family: "Roboto";
+    text-transform: uppercase;
+    color: #232323;
+}*/
+#tabBar, #songPlayArea, #sideBarButtons{
+    background: #f7f7f7;
+}
+.tabBarElem{
+    border-top: 2px solid #f7f7f7;
+}
+.statusBar{
+    background: #e2e2e2;
+}
+#songPlayArea{
+    background: linear-gradient(180deg, #f7f7f7 45%, #e2e2e2 45%);
+}
+#content #oneMeasureForward {
+    background: none;
+}
+#content #oneMeasureBack {
+    background: none;
+}
+#content button.playStart{
+    background: none;
+}
+#tabBar {
+    height: 31px;
+    border-right: 1px solid #e9e8f6;
+}
+#completeBar{
+    border: none;
+    box-shadow: none;
+}
+#content button.playStart:hover{
+    background: #e2e2e2;
+}
+/*.modal{
+    background-color: #e2e2e2;
+}*/
+.select {
+    background: #eaeaea;
+    background: rgba(230, 230, 230, 0.57);
+}
+.or-spacer-vertical.left .inner:after {
+    box-shadow: 0 0 2px #868686;
+}
+#trackSign{
+    background: white;
+}
+#footerBar {
+    background: #e2e2e2;
+}
+.footerBlock {
+    color: black;
+}
+.bottomStatusBar{
+    height: 37px;
+    background: #e2e2e2;
+}
+.vexFlowRow{
+    position:absolute;
+}
+#content button.checkBoxNote{
+    background: none;
+}
+#content button.classicalButton, #classicalToggle, button.classicalButton{
+    background: none;
+}
+.instrumentListDelete {
+    background: none;
+}
+.instrumentChange {
+    background: none;
+}
+div.knob {
+    background: none;
+}
+#content #stopButton {
+    background: none;
+}
+#content #recordButton{
+    background: none;
+}
+#content #recordButton.prepareRecording {
+    background: #eda4a4;
+}
+#statusBars{
+    display:inline-block;
+    margin-left: 79px;
+}
+svg text{
+    font-size: "10px";
+    text-align: "right";
+    fill: black;
+}
+.strongGridLine{
+    stroke:#909090;
+} 
+.gridLine{
+    stroke:rgb(214, 214, 214);
+    /*stroke: #343434*/
+}
+#bendEditor rect, #tremoloEditor rect, #chordDisplay rect{
+    stroke: rgb(230, 225, 225);
+    stroke-width: 1;
+    fill: white;
+} 
+#content button.playing #playMusicImg{
+	display: none;
+}
+#content button.playing #pauseMusicImg{
+	display: block;
+}
+.clickMarkerPath{
+    stroke: rgb(136, 0, 0);
+} 
+svg.svgPage .blockNumber{
+    font-size: 10px;
+    fill: rgb(204, 0, 0);
+}
+.exactPositionMarker{
+    fill: rgba(29, 56, 107, 0.4);
+}
+ 
+@import 'darkMode';
+
+/*MEDIA*/
+@media only screen and (max-width: 1200px) {
+    .piano ul li {
+        /* width: 1.43%; */
+        width: 15px;
+    }
+}
+@media only screen and (max-width: 850px) {
+    #content .piano ul{
+        overflow-x: scroll;
+        overflow-y: hidden;
+    }
+}
+@media screen and (max-width: 1600px) and (max-height: 900px) {
+    #guitar{
+        height: 75px;
+    }
+    .piano ul li .key {
+        height: 57px;
+    }
+	#pianoModal{
+		height: 62px;
+		width: 1064px;
+	}
+    .piano ul li .upper-key {
+        height: 41px;
+    }
+    .piano ul li {
+        width: 19px;
+    }
+    #content .piano ul {
+        height: 65px;
+    }
+    #sequencerBar{
+        zoom: 0.9;
+    }
+    #completeBar {
+        zoom: 0.9;
+        height: 68px;
+    }
+    #footerBar{
+        zoom:0.9;
+    }
+    #sideBarButtons {
+        zoom: 0.9;
+    }
+    @media only screen and (max-width: 1070px) {
+        .piano ul li {
+            /* width: 1.43%; */
+            width: 15px;
+        }
+    }
+}
+@media screen and (max-width: 1280px) and (max-height: 720px) {
+    #guitar{
+        height: 60px;
+    }
+    .piano ul li .key {
+        height: 50px;
+    }
+    .piano ul li .upper-key {
+        height: 34px;
+    }
+    .piano ul li {
+        width: 17px;
+    }
+    #sequencerBar{
+        zoom: 0.8;
+    }
+    #completeBar {
+        zoom: 0.8;
+        height: 67px;
+    }
+    #sideBarButtons {
+        zoom: 0.8;
+    }
+    #footerBar{
+        zoom:0.8;
+    }
+    @media only screen and (max-width: 955px) {
+        #content .piano ul{
+            overflow-x: scroll;
+            overflow-y: hidden;
+        }
+    }
+}
+.headerDiv{
+    background: #bcbcbc !important;
+    border-bottom: none;
+}
+:focus {
+    outline: none;
+}
+#content{
+    line-height: 1.8em;
+    font-size: 18px;
+}
+body {
+    font-family: Source Sans Pro;
+}
+.svgMainFullscreen .svgPage{
+    filter:none;
+    -webkit-filter:none;
+}
