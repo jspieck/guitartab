@@ -1,0 +1,295 @@
+$color-glowingRed: #ef596f;
+$color-glowingGreen: #53caa0;
+
+#darkMode{
+    svg text{
+        fill:white;
+    }
+    .pointConnectionLine{
+        stroke: #4386ca;
+    }
+    /*.gridLine{
+        stroke: #343434;
+    }*/
+    .strongGridLine{
+        stroke: #616161;
+    }
+    .chordBox{
+        background: #2d2d2d;
+    }
+    .chordCross{
+        stroke: white;
+    }
+    svg.svgPage .chordCross{
+        stroke: black;
+    }
+    #bendEditor rect, #tremoloEditor rect, #chordDisplay rect{
+        fill: #111;
+        stroke: #111;
+    }
+    #bendEditor circle, #tremoloEditor circle, #chordDisplay circle{
+        fill: #4386ca;
+    }
+    #svgTestArea {
+        filter: invert(90%);
+    }
+    svg.svgPage text {
+        fill: black;
+    }
+    .filterNodeSetting{
+        background: #282828;
+    }
+    #sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument{
+        color: white;
+    }
+    #sideBarButtons {
+        border-right: none;
+        background: rgb(68, 68, 68);
+    }
+    #classicalToggle.classicalBack{
+        background: #a24f4f;
+    }
+    #footerBar {
+        background: #101010;
+    }
+    .footerBlock {
+        color: white;
+    }
+    #songPlayArea {
+        border-bottom: 1px solid rgb(68, 68, 68);
+        /* box-shadow: 0 1px 2px rgba(222, 222, 222, 0.3), 0 0 20px rgba(198, 198, 198, 0.1) inset; */
+        box-shadow: none;
+        border-right: 1px solid rgb(68, 68, 68);
+        background: rgb(68, 68, 68);
+    }
+    #completeBar {
+        border: 1px solid rgb(68, 68, 68);
+        box-shadow: none;
+        background: rgb(68, 68, 68);
+    }
+    .statusBar {
+        border-top: none;
+    }
+    .mainWrapper {
+        background: #111;
+    }
+    .svgPage {
+        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.1));
+    }
+    .tabBarElemSelected {
+        border-top: 2px solid #ffffff !important;
+        color: #ffffff !important;
+    }
+    .clickMarkerPath{
+        stroke: rgb(119, 255, 255);
+    }
+    .exactPositionMarker{
+        fill: rgba(226, 199, 148, 0.4);
+    }
+    svg.svgPage .blockNumber{
+        fill: rgb(41, 255, 255);
+    }
+    .tabBarElem {
+        color: #bbbbbb;
+        border-top: 2px solid rgb(68, 68, 68);
+    }
+    #trackSign {
+        background: rgba(241, 241, 241, 0.12);
+    }
+    #voiceLabel {
+        color: white;
+    }
+    #tabBar{
+        background: none;
+    }
+    .statusBar {
+        background: none;
+    }
+    .bottomStatusBar {
+        background: #2b2b2b;
+    }
+    #content button.checkBoxNote {
+        /*background: rgba(241, 241, 241, 0.12);*/
+        color: white;
+    }
+    #content button.classicalButton, #classicalToggle, button.classicalButton {
+        /*background: rgba(241, 241, 241, 0.12);*/
+    }
+    #content button.playStart, #oneMeasureBack, #oneMeasureForward{
+        /*background: rgba(241, 241, 241, 0.12);*/
+    }
+    #tabBar {
+        border-right: none;
+    }
+    #content #tempoMeter {
+        /*background: rgba(241, 241, 241, 0.12);*/
+        color: white;
+    }
+    #content button#pianoEyeToggle {
+        /*background: rgba(241, 241, 241, 0.12);*/
+    }
+    #content button#guitarEyeToggle {
+        /*background: rgba(241, 241, 241, 0.12);*/
+    }
+    #content #stopButton {
+        /*background: rgba(241, 241, 241, 0.12);*/
+    }
+    .ui-slider-range-min {
+        background: $color-glowingGreen;
+    }
+    #compressorModal .modalBody{
+        background: #202020;/*#111111;*/
+    }
+    #drumInfo div span {
+        background: #353535;
+    }
+    #addTrackRowCapsule{
+        background: #191919;
+        color: white;
+    }
+    ::-webkit-scrollbar {
+        border-radius:5px;
+        background: rgb(100, 100, 100);  /* Optional: just make scrollbar invisible */
+    }
+    /* Optional: show position indicator in red */
+    ::-webkit-scrollbar-thumb {
+        background: rgb(27, 27, 27);
+        border-radius:5px;
+    }
+    ::-webkit-scrollbar-corner{
+        background:transparent;
+    }
+    .addTrackDropDown {
+        border-bottom: 1px solid #303030;
+    }
+    .muteBtn{
+        background: $color-glowingGreen;
+    }
+    #voice0 {
+        background: rgba(255, 153, 153, 0.67);
+        background: $color-glowingRed;
+    }
+    .or-spacer-vertical.left .inner:after {
+        box-shadow: 0 0 2px #ffffff;
+    }
+    #content button.pressed {
+        background: #df4b4b !important;
+    }
+    #composition .sequencerOneBlock .beat {
+        background-color: #3c3c3c;
+    }
+    #composition .sequencerOneBlock .beat, #composition #sequencerOneBlock .beat {
+        border-left: 1px solid #676767;
+        border-left: 0.5px solid #363636;
+        border-left: 1px solid rgba(0, 0, 0, 0.0784313725490196);
+    }
+    #composition .sequencerOneBlock .beat::after, #composition #sequencerOneBlock .beat::after {
+        color: white;
+    }
+    #composition .sequencerOneBlock .beat.beatNumber {
+        background-color: #2a2a2a;
+    }
+    #sequencerSideBar {
+        background: #2a2a2a;
+    }
+    #sequencerMainHeader{
+        background: #2a2a2a;
+    }
+    #sequencerMainBody{
+        background: #3c3c3c;
+    }
+    #content button.checkBoxNote:hover {
+        background: rgb(62, 62, 62);
+    }
+    #content .classicalButton:hover{
+        background: rgba(193, 193, 193, 0.48);
+    }
+    #content button#guitarEyeToggle:hover, #content button#pianoEyeToggle:hover{
+        background: rgba(193, 193, 193, 0.48);
+    }
+    #indicator {
+        background-color: rgba(210, 210, 210, 0.22);
+        background-color: rgba(0, 0, 0, 0.22);
+    }
+    #indicatorCell {
+        background-color: rgba(177, 177, 177, 0.22);
+        background: rgba(35, 35, 35, 0.67);
+    }
+    #pageLayoutToggle {
+        background: #ffffff;
+    }
+    .modal{
+        background-color: #202020; /*#383838;*/
+        color: white;
+        box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
+    }
+    .modalTopBar {
+        color: black;
+        border-bottom: none;
+        background: #111111;
+    }
+    .bpmSidebarLabel{
+        color: white;
+    }
+    .modalTopBarLabel {
+        color: white;
+    }
+    input, textarea, input[type="number"]{
+        background: #111111;
+        border: 1px solid #111111;
+        color: white;
+    }
+    .volume .ui-slider-handle {
+        background: #ffffff;
+    }
+    div.panKnobInner:after{
+        border: 2px solid #222222;
+    }
+    .modal_close .icon {
+        fill: #fff;
+        stroke: #fff;
+    }
+    /*#bendEditor{
+        background: #383838;
+    }*/
+    #bendEditor text{
+        color:white;
+    }
+    .select{
+        background: #111111;
+    }
+    .select select {
+        background: #111111;
+        color: white;
+    }
+    .slotNumber {
+        background: none;
+        color: #cfcfcf;
+        border-bottom: none;
+    }
+    .slotName{
+        color: #adadad;
+    }
+    .muteBtnCircle.muted{
+        background: rgba(95, 95, 95, 0.8);
+    }
+    .gridLine{
+        stroke: #2c2c2c;
+    }
+    .mixerColumn {
+        background: #111111;
+        border-right: 1px solid rgba(218, 218, 218, 0.05);
+    }
+    .slotVolume {
+        border: 1px solid rgba(197, 197, 197, 0.18);
+        background: rgba(255, 255, 255, 0.09);
+    }
+    #sequencerSideBar .labelDiv {
+        background: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+        box-sizing: border-box;
+    }
+    #sequencerSideBar .label {
+        color: white;
+    }
+}

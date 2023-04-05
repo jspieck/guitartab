@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="39.99999795357289"
+   height="49.9999974419661"
+   OVERFLOW="hidden"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="myWoodblockDesign.svg">
+  <defs
+     id="defs25" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview23"
+     showgrid="false"
+     inkscape:zoom="6.6750885"
+     inkscape:cx="3.5252381"
+     inkscape:cy="-2.5738003"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g10" />
+  <metadata
+     id="metadata7">image/svg+xml<rdf:RDF>
+  <cc:Work
+     rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type
+       rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+  </cc:Work>
+</rdf:RDF>
+</metadata>
+  <g
+     id="g10"
+     transform="translate(-0.74905374,-0.14981075)">
+    <title
+       id="title12">Layer 1</title>
+    <ellipse
+       ry="4.90768"
+       rx="5.0048599"
+       cy="31.873661"
+       cx="17.437992"
+       STROKE-WIDTH="0"
+       STROKE="#000"
+       FILL="#dddddd"
+       id="svg_1"
+       style="fill:#e6e6e6" />
+    <rect
+       height="6.8999"
+       width="28.497858"
+       y="39.895"
+       x="4.8211799"
+       stroke-width="null"
+       stroke-opacity="null"
+       stroke="null"
+       FILL="#bbbbbb"
+       id="svg_7"
+       style="fill:#b3b3b3" />
+    <rect
+       FILL-OPACITY="1"
+       STROKE-WIDTH="0"
+       STROKE-DASHARRAY="none"
+       STROKE="#000"
+       FILL="#dddddd"
+       height="27.4459"
+       width="1.21451"
+       y="-18.944569"
+       x="-30.501154"
+       transform="matrix(-0.88294759,-0.46947156,0.46947156,-0.88294759,0,0)"
+       id="svg_13"
+       style="fill:#e6e6e6" />
+  </g>
+</svg>

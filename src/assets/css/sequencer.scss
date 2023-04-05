@@ -1,0 +1,330 @@
+$color-glowingRed: #ef596f;
+
+#indicator {
+    background-color: rgba(23, 61, 66, 0.22);
+    position: absolute;
+    width: 30px;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+#indicatorCell,  #indicatorCellHeader{
+    background-color: rgba(23, 61, 66, 0.22);
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    top: 30px;
+    bottom: 0;
+    pointer-events: none;
+}
+#indicatorCellHeader{
+    top:0px;
+}
+#sequencerMenuBody{
+    overflow-y: hidden;
+}
+#composition {
+    display: inline-block;
+    position: relative;
+    box-sizing: border-box;
+    font-weight: 300;
+    font-size: 13px;
+    white-space: nowrap;
+    vertical-align: top;
+    overflow-x: hidden;
+    overflow-y: hidden;
+	transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+#sequencerMain{
+    will-change: transform;
+    display:flex;
+    flex-direction: column;
+    .beat{
+        cursor: pointer;
+    }
+    #sequencerMainHeader{
+        /*margin-right: 17px;
+        border-right: 1px solid #dcdada;*/
+        overflow-x: hidden;
+        min-height: 30px;
+        position: relative;
+    }
+    #sequencerMainBody{
+        background: white;
+        flex-grow: 1;
+        position:relative;
+        overflow-x: scroll;
+    }
+}
+.minimized #sequencerMain #sequencerMainBody{
+    overflow-y: scroll;
+}
+#sequencerWrapper{
+    display: flex;
+    &.minimized{
+        max-height: 165px;
+        overflow-y: hidden;
+        #sequencerMain{
+            max-height: 165px;
+        }
+    }
+}
+.sequencerOneBlock{
+    display: block;
+    height: 30px;
+    min-height: 30px;
+    vertical-align: top;
+}
+.beatText{
+    font-Size: 10px;
+    overflow: visible;
+    position: absolute;
+    padding: 0px;
+    z-index: 2;
+    background: #3f67a2;
+    padding-left: 10px;
+    padding-right: 10px;
+    color: white;
+
+    &:hover{
+        z-index: 3;
+        border-right: 1px solid white;
+    }
+}
+
+#intervalMarkerBody, #intervalMarkerHeader{
+    display:block;
+    position:absolute;
+    pointer-events:none;
+}
+
+#composition{
+    width: 100%;
+
+    .sequencerOneBlock{
+        background-color: white;
+        cursor: pointer;
+        display: table;
+        line-height: 30px;
+        &:first-child{
+            background-color: #e2e2e2;
+        }
+        .beat.beatNumber {
+            background-color: #f0f0f0;
+
+            border-color: #dcdada;
+            background-color: #e2e2e2;
+        }
+        .beat{
+            background-color: #ffffff;
+            display: inline-block;
+            width: 30px;
+            text-align: center;
+            height: 30px;
+        	line-height: 30px;
+            position: relative;
+            box-sizing: border-box;
+            border-left: 1px solid rgba(240, 240, 240, 0.24);
+            vertical-align: top;
+            pointer-events: none;
+
+            &.masterBeat{
+                font-Size: 10px;
+                overflow: visible;
+                padding: 0px;
+            }
+            &.bar{
+                background-color: #f0f0f0;
+            }
+            &::after{
+                content: attr(symbol);
+                /* position: absolute; */
+                font-size: 12px;
+                /* top: 50%; */
+                /* left: 50%; */
+                margin: auto;
+            }
+        }
+
+        .beat.bar:first-child, .beat:first-child, .header .pattern .bar .beats .beat.bar:first-child, .header .pattern .bar .beats .beat:first-child {
+            border-left: none;
+        }
+    }
+
+    .header .label {
+        width: 80px;
+        position: absolute;
+        left: -80px;
+        box-sizing: border-box;
+        padding-right: 8px;
+        height: 30px;
+        line-height: 30px;
+        top: 0;
+        padding-left: 12px;
+        box-sizing: border-box;
+        color: #ffffff;
+        text-transform: uppercase;
+        font-size: 0.8em;
+        text-align: right;
+        background-color: #31838e;
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
+}
+
+#sequencerBar{
+    background: #f8f8f8;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+#sequencerToggle{
+	cursor: pointer;
+}
+/*For mute button and co*/
+#sequencerSideBar{
+    font-weight: 300;
+    font-size: 13px;
+    display: inline-block;
+    min-width: 108px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.11);
+    background: #e2e2e2;
+    min-width: 258px;
+    display: flex;
+    flex-direction: column;
+
+    .instrumentLabel{
+    	cursor:pointer !important;
+    }
+    .label.activeInstrument{
+    	width:78px;
+    	box-sizing: border-box;
+    }
+    .labelDiv.activeInstrument{
+        background: #cccccc !important;
+    }
+    .labelDiv {
+        height: 30px;
+        clear: both;
+        width: 258px;
+        background: #e2e2e2!important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.11);
+        box-sizing: border-box;
+
+        .labelImg{
+            float: left;
+            width: 30px;
+            height: 30px;
+            padding: 2px;
+                background:none;
+            /*background: rgb(59, 59, 59)*/
+        	cursor:pointer;
+        }
+        .muteBtn{
+            float: left;
+            width: 30px;
+            height: 30px;
+            padding: 2px;
+            box-sizing: border-box;
+            text-align: center;
+            vertical-align: middle;
+            padding: 5px;
+        	cursor:pointer;
+            background:none;
+            color: #2ecc71;
+        }
+        .soloBtn{
+            float: left;
+            width: 30px;
+            height: 30px;
+            padding: 2px;
+            box-sizing: border-box;
+            text-align: center;
+            vertical-align: middle;
+            padding: 5px;
+        	cursor:pointer;
+            background:none;
+            color: $color-glowingRed;
+        }
+        .volumeFader{
+        	float: left;
+            width: 90px;
+            height: 30px;
+            padding: 2px;
+            box-sizing: border-box;
+            text-align: center;
+            color: white;
+            vertical-align: middle;
+            padding: 1px;
+        	position: relative;
+        	overflow: hidden;
+            will-change: transform;
+        	cursor:pointer;
+            background: none;
+        }
+        .labelImg.sequencerHeaderImg{
+            padding: 4px;
+        }
+    }
+    .label{
+    	float: left;
+        width: 70px;
+        padding-right: 8px;
+        height: 30px;
+        line-height: 30px;
+        color: #000000;
+        text-transform: uppercase;
+        font-size: 0.8em;
+        text-align: right;
+        /*-webkit-transform: translateZ(0);
+        transform: translateZ(0);*/
+        overflow: hidden;
+    }
+    .headerLabel {
+        background-color: #31838e;
+        width:100px;
+        background-color: #246068;
+    }
+    #masterVolume {
+         background: none;
+    }
+}
+.instrumentLabel, .panKnob, .instrumentChange, .instrumentListDelete{
+	cursor:pointer;
+}
+
+#player{
+	margin-top: 10px;
+}
+.muteBtnCircle{
+	box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    border-radius: 20px;
+
+    &.muted{
+        background: rgba(255, 255, 255, 0.8);
+    }
+}
+.volumeControl{
+	position: absolute;
+    top: 0;
+    left:0;
+    height: 30px;
+    box-sizing: border-box;
+    background: transparent;
+    /*
+    background: rgba(255, 255, 255, 0.27);
+    width: 90px;
+    transform-origin: left;
+    transform: scaleX(0);*/
+}
+#sideBarButtons{
+    width: 44px;
+    position: relative;
+    border-right: 1px solid #e9e8f6;
+    padding-top: 78px;
+    overflow: visible;
+}
