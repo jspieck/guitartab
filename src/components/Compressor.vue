@@ -1,5 +1,5 @@
 <template>
-    <div id="compressorModal" class="modal" role="alert">
+    <div>
         <div class="modalTopBar">
             <label class="modalTopBarLabel">Compressor</label>
             <div class="modal_close">
@@ -11,56 +11,33 @@
             </div>
         </div>
         <div class="modalBody">
-            <div class="knobBox">
-                <label class="qualityLabel">Attack</label>
-                <div id="attackKnobContainer" class="knob qualityKnob">
-                    <Knob id="attackKnob" data-id="0" :rotate-func="compressorKnobRotate" :start="attack.start"
-                            :min="attack.min" :max="attack.max" mid-knob="false" ref="knobRef"></Knob>
-                </div>
-                <label id="compAttValue">{{ `${knobValues[0].toFixed(2)}ms` }}</label>
-            </div>
-            <div class="knobBox">
-                <label class="qualityLabel">Release</label>
-                <div id="releaseKnobContainer" class="knob qualityKnob">
-                    <Knob id="releaseKnob" data-id="0" :rotate-func="compressorKnobRotate" :start="release.start"
-                            :min="release.min" :max="release.max" mid-knob="false"></Knob>
-                </div>
-                <label id="compReleaseValue">{{ `${knobValues[1].toFixed(2)}ms` }}</label>
-            </div>
-            <div class="knobBox">
-                <label class="qualityLabel">Threshold</label>
-                <div id="thresholdKnobContainer" class="knob qualityKnob">
-                    <Knob id="thresholdKnob" data-id="0" :rotate-func="compressorKnobRotate" :start="threshold.start"
-                            :min="threshold.min" :max="threshold.max" mid-knob="false"></Knob>
-                </div>
-                <label id="compThresholdValue">{{ `${knobValues[2].toFixed(2)}db` }}</label>
-            </div>
-            <div class="knobBox">
-                <label class="qualityLabel">Ratio</label>
-                <div id="ratioKnobContainer" class="knob qualityKnob">
-                    <Knob id="ratioKnob" data-id="0" :rotate-func="compressorKnobRotate" :start="ratio.start"
-                            :min="ratio.min" :max="ratio.max" mid-knob="false"></Knob>
-                </div>
-                <label id="compRatioValue">{{ `${knobValues[3].toFixed(2)}:1` }}</label>
-            </div>
+            <KnobBox v-for="(setting, index) in settings" :key="index" :label="setting.label"
+                :containerId="setting.containerId" :knobId="setting.knobId" :dataId="index"
+                :rotate-func="compressorKnobRotate" :start="setting.start" :min="setting.min" :max="setting.max"
+                :valueId="setting.valueId" :knobValue="knobValues[index]" :unit="setting.unit" :midKnob="true"/>
         </div>
     </div>
 </template>
-
+  
 <script lang="ts">
-import { defineComponent, ref, onMounted, Ref } from 'vue';
+import { defineComponent, ref, onMounted, Ref, reactive } from 'vue';
 import { audioEngine } from '../assets/js/audioEngine';
 import Knob from './Knob.vue';
+import KnobBox from './KnobBox.vue';
 
 export default defineComponent({
     name: 'Compressor',
+    components: { Knob, KnobBox },
     props: {},
     setup() {
-        const ratio = { start: 20, min: 1, max: 20 };
-        const attack = { start: 5, min: 0, max: 100 };
-        const release = { start: 50, min: 1, max: 1000 };
-        const threshold = { start: -1, min: -60, max: 0 };
-        const knobValues = {'0': ratio.start, '1': attack.start, '2': release.start, '3': threshold.start};
+        const settings = [
+            { label: 'Attack', containerId: 'attackKnobContainer', knobId: 'attackKnob', start: 5, min: 0, max: 100, valueId: 'compAttValue', unit: 'ms' },
+            { label: 'Release', containerId: 'releaseKnobContainer', knobId: 'releaseKnob', start: 50, min: 1, max: 1000, valueId: 'compReleaseValue', unit: 'ms' },
+            { label: 'Threshold', containerId: 'thresholdKnobContainer', knobId: 'thresholdKnob', start: -1, min: -60, max: 0, valueId: 'compThresholdValue', unit: 'db' },
+            { label: 'Ratio', containerId: 'ratioKnobContainer', knobId: 'ratioKnob', start: 20, min: 1, max: 20, valueId: 'compRatioValue', unit: ':1' },
+        ];
+
+        const knobValues = reactive(Object.fromEntries(settings.map((setting, index) => [index, setting.start])));
 
         const knobRef: Ref<typeof Knob | null> = ref(null);
         const isMounted = ref(false);
@@ -69,39 +46,36 @@ export default defineComponent({
             isMounted.value = true;
         })
 
+        function setLimiterProperty(limiter: DynamicsCompressorNode, property: string, value: number) {
+            switch (property) {
+                case 'attack':
+                    limiter.attack.value = value / 1000; // ms
+                    break;
+                case 'release':
+                    limiter.release.value = value / 1000; // ms
+                    break;
+                case 'threshold':
+                    limiter.threshold.value = value;
+                    break;
+                case 'ratio':
+                    limiter.ratio.value = value;
+                    break;
+            }
+        }
+
         function compressorKnobRotate(angle: number, knobId: string, parentId: string) {
             if (!isMounted.value) return;
 
-            const circumference = knobRef.value!.getCircumference();
-            document.getElementById(`outerRing${parentId}`)?.setAttribute(
-                'stroke-dashoffset',
-                (circumference - circumference * (angle / 360)).toString(),
-            );
-
+            const setting = settings[parseInt(knobId)];
             if (audioEngine.limiter != null) {
-                if (knobId === '0') {
-                    knobValues[knobId] = (angle / 360) * (attack.max - attack.min) + attack.min;
-                    audioEngine.limiter.attack.value = knobValues[knobId] / 1000; // ms
-                } else if (knobId === '1') {
-                    knobValues[knobId] = (angle / 360) * (release.max - release.min) + release.min;
-                    audioEngine.limiter.release.value = knobValues[knobId] / 1000; // ms
-                } else if (knobId === '2') {
-                    knobValues[knobId] = (angle / 360) * (threshold.max - threshold.min)
-                        + threshold.min;
-                    audioEngine.limiter.threshold.value = knobValues[knobId];
-                } else if (knobId === '3') {
-                    knobValues[knobId] = (angle / 360) * (ratio.max - ratio.min) + ratio.min;
-                    audioEngine.limiter.ratio.value = knobValues[knobId];
-                }
+                knobValues[knobId] = (angle / 360) * (setting.max - setting.min) + setting.min;
+                setLimiterProperty(audioEngine.limiter, setting.label.toLowerCase(), knobValues[knobId]);
             }
         }
 
         return {
             compressorKnobRotate,
-            ratio,
-            attack,
-            release,
-            threshold,
+            settings,
             knobValues
         };
     },
