@@ -14,7 +14,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, SetupContext } from 'vue';
+import { defineComponent, computed, SetupContext, ref } from 'vue';
 
 interface CreateKnobProps {
     id: string;
@@ -82,19 +82,21 @@ export default defineComponent({
 
         const pointerY = computed(() => (props.midKnob ? 3 : 14));
 
-        const dashValue = computed(() => 2 * radiusOuter * Math.PI);
-
-        const strokeDashOffset = computed(() => {
-            if (props.midKnob) {
-                return dashValue.value - dashValue.value * ((startAngle.value - 180) / 360);
-            } else {
-                return dashValue.value - dashValue.value * (startAngle.value / 360);
-            }
-        });
-
         function getCircumference(): number {
             return 2 * radiusOuter * Math.PI;
         }
+
+        const dashValue = computed(() => getCircumference());
+
+        let currentAngle = ref(startAngle.value);
+
+        const strokeDashOffset = computed(() => {
+            if (props.midKnob) {
+                return dashValue.value - dashValue.value * ((currentAngle.value - 180) / 360);
+            } else {
+                return dashValue.value - dashValue.value * (currentAngle.value / 360);
+            }
+        });
 
         function removeEventListeners() {
             document.body.classList.remove('disableMouseEffects');
@@ -112,6 +114,8 @@ export default defineComponent({
                 let angle = previousAngle + (initYPos - mouseYnew) * 3;
                 angle = Math.min(angle, 360);
                 angle = Math.max(angle, 0);
+
+                currentAngle.value = angle;
 
                 functionToExecuteOnRotate(angle, dataId, domTarget.id);
 

@@ -135,6 +135,7 @@ import interact from 'interactjs';
 import Helper from '../assets/js/helper';
 import Settings from '../assets/js/settingManager';
 import knobFactory from '../assets/js/knob';
+import audioEngine from '../assets/js/audioEngine';
 
 interface InteractEvent {
     target: HTMLElement,
@@ -142,7 +143,7 @@ interface InteractEvent {
     dy: number
 }
 
-const props = defineProps(['audioCtx']);
+const audioCtx = audioEngine.context;
 
 const CANVAS_WIDTH = 600;
 const DECIBEL_WIDTH = 20;
@@ -171,9 +172,9 @@ const circleColors = ['#89ca78', '#ef596f', '#e5c07b'];
 let currentNode = -1;
 let logarithmicMin = Math.log(frequencyLines[0]) / Math.LN10;
 let logarithmicMax = Math.log(frequencyLines[frequencyLines.length - 1]) / Math.LN10;
-let lowshelf = props.audioCtx.createBiquadFilter();
-let mid = props.audioCtx.createBiquadFilter();
-let highshelf = props.audioCtx.createBiquadFilter();
+let lowshelf = audioCtx.createBiquadFilter();
+let mid = audioCtx.createBiquadFilter();
+let highshelf = audioCtx.createBiquadFilter();
 let quality = { start: 1, min: 0.5, max: 20 };
 let reTimeOut: number | null = null;
 
@@ -634,7 +635,7 @@ function drawSpectrum(ctx: CanvasRenderingContext2D, frequencyArray: Uint8Array)
     ctx.fill();
 }
 
-return {
+defineExpose({
     canvasRef,
     equalizerOverlayRef,
     isMounted,
@@ -644,5 +645,5 @@ return {
     handleModeChange1,
     handleModeChange2,
     handleModeChange3,
-};
+});
 </script>
