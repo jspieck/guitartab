@@ -125,14 +125,6 @@ class ModalHandler {
 
   tremoloEditorClientWidth: number;
 
-  ratio: { start: number, min: number, max: number };
-
-  attack: { start: number, min: number, max: number };
-
-  release: { start: number, min: number, max: number };
-
-  threshold: { start: number, min: number, max: number };
-
   tempoFuncBinded: (e: MouseEvent) => void;
 
   remTempoBinded: (e: MouseEvent) => void;
@@ -269,11 +261,6 @@ class ModalHandler {
     this.mouseOffsetX = 0;
     this.mouseOffsetY = 0;
     this.tremoloEditorClientWidth = 0;
-
-    this.ratio = { start: 20, min: 1, max: 20 };
-    this.attack = { start: 5, min: 0, max: 100 };
-    this.release = { start: 50, min: 1, max: 1000 };
-    this.threshold = { start: -1, min: -60, max: 0 };
 
     let hideTopBarElems = document.querySelectorAll('.hideTopBar');
     hideTopBarElems.forEach(elem => {
@@ -2299,50 +2286,6 @@ class ModalHandler {
         };
       }
     }
-  }
-
-  compressorKnobRotate(angle: number, knobId: string, parentId: string) {
-    const circumference = knobFactory.getCircumference();
-    document.getElementById(`outerRing${parentId}`)?.setAttribute(
-      'stroke-dashoffset',
-      (circumference - circumference * (angle / 360)).toString(),
-    );
-
-    if (audioEngine.limiter != null) {
-      if (knobId === '0') {
-        const scaled = (angle / 360) * (this.attack.max - this.attack.min) + this.attack.min;
-        audioEngine.limiter.attack.value = scaled / 1000; // ms
-        document.getElementById('compAttValue')!.textContent = `${scaled.toFixed(2)}ms`;
-      } else if (knobId === '1') {
-        const scaled = (angle / 360) * (this.release.max - this.release.min) + this.release.min;
-        audioEngine.limiter.release.value = scaled / 1000; // ms
-        document.getElementById('compReleaseValue')!.textContent = `${scaled.toFixed(2)}ms`;
-      } else if (knobId === '2') {
-        const scaled = (angle / 360) * (this.threshold.max - this.threshold.min)
-          + this.threshold.min;
-        audioEngine.limiter.threshold.value = scaled;
-        document.getElementById('compThresholdValue')!.textContent = `${scaled.toFixed(2)}db`;
-      } else if (knobId === '3') {
-        const scaled = (angle / 360) * (this.ratio.max - this.ratio.min) + this.ratio.min;
-        audioEngine.limiter.ratio.value = scaled;
-        document.getElementById('compRatioValue')!.textContent = `${scaled.toFixed(2)}:1`;
-      }
-    }
-  }
-
-  initCompressor() {
-    const attCont = document.getElementById('attackKnobContainer')!;
-    attCont.appendChild(knobFactory.createKnob('attackKnob', 0,
-      (a, k, p) => { this.compressorKnobRotate(a, k, p); }, this.attack, false));
-    const releaseCont = document.getElementById('releaseKnobContainer')!;
-    releaseCont.appendChild(knobFactory.createKnob('releaseKnob', 1,
-      (a, k, p) => { this.compressorKnobRotate(a, k, p); }, this.release, false));
-    const thresholdCont = document.getElementById('thresholdKnobContainer')!;
-    thresholdCont.appendChild(knobFactory.createKnob('thresholdKnob', 2,
-      (a, k, p) => { this.compressorKnobRotate(a, k, p); }, this.threshold, false));
-    const ratioCont = document.getElementById('ratioKnobContainer')!;
-    ratioCont.appendChild(knobFactory.createKnob('ratioKnob', 3,
-      (a, k, p) => { this.compressorKnobRotate(a, k, p); }, this.ratio, false));
   }
 
   placeFingerOnChord(

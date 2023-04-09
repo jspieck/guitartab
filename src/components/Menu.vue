@@ -230,9 +230,8 @@ import { tab, Tab } from '../assets/js/tab';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import Helper from '../assets/js/helper';
 import AppManager from '../assets/js/appManager';
-import { audioEngine } from '../assets/js/audioEngine';
 import { classicalNotation } from '../assets/js/vexflowClassical';
-import { sequencer, Sequencer } from '../assets/js/sequencer';
+import { Sequencer } from '../assets/js/sequencer';
 import { overlayHandler } from '../assets/js/overlayHandler';
 
 let tempoMoveTmp = () => { };
