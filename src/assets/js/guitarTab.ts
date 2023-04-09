@@ -76,7 +76,6 @@ const startUp = function startUp() {
   // audioEngine.initSound();
   midiEngine.init();
   // document.getElementById('files').addEventListener('change', handleFileSelect, false);
-  modalHandler.initCompressor();
   menuHandler.initMenuButtons();
 
   document.addEventListener('mousewheel', (e: Event) => {
@@ -108,8 +107,6 @@ const startUp = function startUp() {
         normalize: true
     });
     waveSurfer.load('./audio/strings/tremoloStringsC4.ogg'); */
-
-  audioEngine.equalizer.initEqualizer();
   modalHandler.createMixer();
   menuHandler.applyStyleMode();
 

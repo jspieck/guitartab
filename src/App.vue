@@ -925,41 +925,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div id="compressorModal" class="modal" role="alert">
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Compressor</label>
-        <div class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
-        <div class="knobBox">
-          <label class="qualityLabel">Attack</label>
-          <div id="attackKnobContainer" class="knob qualityKnob"></div>
-          <label id="compAttValue">5ms</label>
-        </div>
-        <div class="knobBox">
-          <label class="qualityLabel">Release</label>
-          <div id="releaseKnobContainer" class="knob qualityKnob"></div>
-          <label id="compReleaseValue">50ms</label>
-        </div>
-        <div class="knobBox">
-          <label class="qualityLabel">Threshold</label>
-          <div id="thresholdKnobContainer" class="knob qualityKnob"></div>
-          <label id="compThresholdValue">-1db</label>
-        </div>
-        <div class="knobBox">
-          <label class="qualityLabel">Ratio</label>
-          <div id="ratioKnobContainer" class="knob qualityKnob"></div>
-          <label id="compRatioValue">20:1</label>
-        </div>
-      </div>
-    </div>
-
+    <Compressor />
     <Equalizer />
 
     <div id="instrumentSettingsModal" class="modal" role="alert">
