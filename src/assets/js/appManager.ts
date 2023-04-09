@@ -1,7 +1,6 @@
 import tinycolor from 'tinycolor2';
 import fastdom from 'fastdom';
 import LZString from 'lz-string';
-import jQuery from 'jquery';
 import { tab, Tab } from './tab';
 import { overlayHandler } from './overlayHandler';
 import {
@@ -48,11 +47,22 @@ const AppManager = {
     if (this.notificationTimeOut != null) {
       clearTimeout(this.notificationTimeOut);
     }
-    jQuery('#notificationEmblem').fadeIn('slow', () => {
+    // Fade-in and fade-out
+    let notificationEmblem = document.getElementById('notificationEmblem');
+    if (notificationEmblem) {
+      notificationEmblem.style.opacity = '0';
+      notificationEmblem.style.transition = 'opacity 0.5s';
+      notificationEmblem.style.display = 'block';
+      setTimeout(() => {
+        notificationEmblem!.style.opacity = '1';
+      }, 0);
       this.notificationTimeOut = setTimeout(() => {
-        jQuery('#notificationEmblem').fadeOut();
+        notificationEmblem!.style.opacity = '0';
+        setTimeout(() => {
+          notificationEmblem!.style.display = 'none';
+        }, 500);
       }, 5000);
-    });
+    }
   },
 
   scrollTabEvent(event: WheelEvent) {
@@ -557,7 +567,6 @@ const AppManager = {
         e.stopPropagation();
         const capsuleDom = trackDrop.querySelector('.addTrackRowCapsule');
         capsuleDom?.classList.toggle('visible');
-        // jQuery(trackDrop).children('.addTrackRowCapsule').toggle();
       });
 
       for (let j = 0; j < instrumentGroups[i].choices.length; j += 1) {
@@ -574,8 +583,6 @@ const AppManager = {
         innerRow.appendChild(trackImg);
         innerRow.appendChild(trackTitle);
 
-        // (function innerRowClickHandler(instr) {
-        // jQuery(innerRow).click(() => {
         innerRow.addEventListener('click', () => {
           if (this.numberOfTrackToAdd < 0) {
             this.addNewInstrument(instrument[2], instrument[1]);
@@ -583,7 +590,6 @@ const AppManager = {
             this.changeInstrumentForTrack(this.numberOfTrackToAdd, instrument[2], instrument[1]);
           }
         });
-        // }(instrument));
         innerRowParent.appendChild(innerRow);
       }
       instrumentContainer!.appendChild(trackDrop);

@@ -1046,7 +1046,7 @@ class PlayBackLogic {
       this.trackChange = false;
       if (this.lastFader != null) {
         fastdom.mutate(() => {
-          jQuery(this.lastFader!).hide();
+          this.lastFader!.style.display = "none";
         });
       }
       this.wasTrackChanged = true;
@@ -1078,7 +1078,7 @@ class PlayBackLogic {
       const currentRow = tab.blockToRow[Song.currentTrackId][voiceId][this.currentBlockPP].rowId;
       if (this.lastRow !== currentRow || this.wasTrackChanged) {
         if (this.lastRow !== -1 && !this.wasTrackChanged) {
-          jQuery(`#songFader_${Song.currentTrackId}_${voiceId}_${this.lastRow}`).hide();
+          document.getElementById(`songFader_${Song.currentTrackId}_${voiceId}_${this.lastRow}`)!.style.display = "none";
         }
         if (Settings.scrollingEnabled) {
           svgDrawer.scrollToSvgPos(currentRow, this.currentBlockPP);

@@ -1,5 +1,4 @@
 import fastdom from 'fastdom';
-import jQuery from 'jquery';
 import AppManager from './appManager';
 import Settings from './settingManager';
 import Song, { Measure, Note, Interval } from './songData';
@@ -223,11 +222,14 @@ class OverlayHandler {
 
   clearAllOverlays() {
     // empty previous overlays
-    jQuery.each(this.overlaysPerRow, (key: number) => {
-      if (this.overlaysPerRow[key] != null) {
-        this.overlaysPerRow[key].parentNode?.removeChild(this.overlaysPerRow[key]);
+    for (let key in this.overlaysPerRow) {
+      if (this.overlaysPerRow.hasOwnProperty(key) && this.overlaysPerRow[key] != null) {
+        let parentNode = this.overlaysPerRow[key].parentNode;
+        if (parentNode) {
+          parentNode.removeChild(this.overlaysPerRow[key]);
+        }
       }
-    });
+    }
     this.overlaysPerRow.length = 0;
     Sequencer.removeOverlay();
     // clear triangle pointer

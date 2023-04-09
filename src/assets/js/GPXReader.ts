@@ -84,9 +84,9 @@ class GpxReader {
       return;
     }
     const xmlDocString = new TextDecoder('utf-8').decode(new Uint8Array(scoreContent));
-    // var parser = new DOMParser();
-    // this.xmlDoc = parser.parseFromString(xmlDocString,"text/xml");
-    this.xmlDoc = jQuery.parseXML(xmlDocString);
+    const parser = new DOMParser();
+    this.xmlDoc = parser.parseFromString(xmlDocString, "text/xml");
+    // this.xmlDoc = jQuery.parseXML(xmlDocString);
     // this.xmlDoc.getElementsByTagName("title")[0].children[0].nodeValue;
   }
 

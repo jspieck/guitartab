@@ -1,6 +1,4 @@
 import fastdom from 'fastdom';
-import jQuery from 'jquery';
-import 'jquery-ui-dist/jquery-ui';
 import Settings from './settingManager';
 import { audioEngine } from './audioEngine';
 import Song from './songData';
@@ -11,6 +9,57 @@ import playBackLogic from './playBackLogicNew';
 import AppManager from './appManager';
 import { svgDrawer, SvgDrawer } from './svgDrawer';
 import { modalHandler } from './modalHandler';
+
+interface SliderOptions {
+  min: number;
+  max: number;
+  value: number;
+  range: 'min';
+  slide(event: Event): void;
+}
+
+class Slider {
+  static create(container: HTMLElement, options: SliderOptions) {
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = options.min.toString();
+    slider.max = options.max.toString();
+    slider.value = options.value.toString();
+    slider.addEventListener('input', options.slide);
+    container.appendChild(slider);
+  }
+}
+
+class MasterSlider {
+  static create(container: HTMLElement) {
+    Slider.create(container, {
+      min: 0,
+      max: 127,
+      value: Settings.masterVolume * 127,
+      range: 'min',
+      slide(event: Event) {
+        const value = parseInt((event.target as HTMLInputElement).value);
+        audioEngine.setMasterGain(value / 127);
+      },
+    });
+  }
+}
+
+class TrackSlider {
+  static create(container: HTMLElement, k: number) {
+    Slider.create(container, {
+      min: 0,
+      max: 127,
+      value: Song.playBackInstrument[k].volume,
+      range: 'min',
+      slide(event: Event) {
+        const value = parseInt((event.target as HTMLInputElement).value);
+        Song.playBackInstrument[k].volume = value;
+        audioEngine.busses[k].volume.gain.value = value / 100.0;
+      },
+    });
+  }
+}
 
 class Sequencer {
   colorPalette: string[];
@@ -72,43 +121,63 @@ class Sequencer {
 
   toggleSequencerEditMode() {
     if (!this.editModeActive) {
-      jQuery('.volumeFader').hide();
-      jQuery('#sequencerBar .soloBtn').hide();
-      jQuery('#sequencerBar .muteBtn').hide();
-
-      jQuery('#sequencerChoInstrument').show();
-      jQuery('#sequencerRevInstrument').show();
-      jQuery('#sequencerPanInstrument').show();
-      jQuery('#sequencerBar .chorusContainer').show();
-      jQuery('#sequencerBar .reverbContainer').show();
-      jQuery('#sequencerBar .panContainer').show();
-      jQuery('.instrumentListDelete').show();
-      jQuery('.instrumentChange').show();
-
+      const volumeFaders = document.querySelectorAll('.volumeFader');
+      volumeFaders.forEach(fader => (fader as HTMLElement).style.display = 'none');
+    
+      const soloBtns = document.querySelectorAll('#sequencerBar .soloBtn');
+      soloBtns.forEach(btn => (btn as HTMLElement).style.display = 'none');
+    
+      const muteBtns = document.querySelectorAll('#sequencerBar .muteBtn');
+      muteBtns.forEach(btn => (btn as HTMLElement).style.display = 'none');
+    
+      document.getElementById('sequencerChoInstrument')!.style.display = 'block';
+      document.getElementById('sequencerRevInstrument')!.style.display = 'block';
+      document.getElementById('sequencerPanInstrument')!.style.display = 'block';
+      const chorusContainers = document.querySelectorAll('#sequencerBar .chorusContainer');
+      chorusContainers.forEach(container => (container as HTMLElement).style.display = 'block');
+      const reverbContainers = document.querySelectorAll('#sequencerBar .reverbContainer');
+      reverbContainers.forEach(container => (container as HTMLElement).style.display = 'block');
+      const panContainers = document.querySelectorAll('#sequencerBar .panContainer');
+      panContainers.forEach(container => (container as HTMLElement).style.display = 'block');
+    
+      const instrumentListDeletes = document.querySelectorAll('.instrumentListDelete');
+      instrumentListDeletes.forEach(btn => (btn as HTMLElement).style.display = 'block');
+    
+      const instrumentChanges = document.querySelectorAll('.instrumentChange');
+      instrumentChanges.forEach(btn => (btn as HTMLElement).style.display = 'block');
+    
       document.getElementById('sequencerEdit')!.style.background = 'rgba(103, 103, 103, 0.22)';
-
-      // jQuery(".instrumentLabel").attr("contenteditable", "true");
-      // jQuery('#bodyDiv').sortable();
+    
+      // document.querySelectorAll('.instrumentLabel').forEach(label => label.contentEditable = true);
+      // const bodyDiv = document.getElementById('bodyDiv');
+      // Sortable.create(bodyDiv);
     } else {
-      jQuery('.volumeFader').show();
-      jQuery('#sequencerBar .soloBtn').show();
-      jQuery('#sequencerBar .muteBtn').show();
-
-      jQuery('#sequencerChoInstrument').hide();
-      jQuery('#sequencerRevInstrument').hide();
-      jQuery('#sequencerPanInstrument').hide();
-      jQuery('#sequencerBar .chorusContainer').hide();
-      jQuery('#sequencerBar .reverbContainer').hide();
-      jQuery('#sequencerBar .panContainer').hide();
-      jQuery('.instrumentListDelete').hide();
-      jQuery('.instrumentChange').hide();
-
+      const volumeFaders = document.querySelectorAll('.volumeFader');
+      volumeFaders.forEach(fader => (fader as HTMLElement).style.display = 'block');
+    
+      const soloBtns = document.querySelectorAll('#sequencerBar .soloBtn');
+      soloBtns.forEach(btn => (btn as HTMLElement).style.display = 'block');
+    
+      const muteBtns = document.querySelectorAll('#sequencerBar .muteBtn');
+      muteBtns.forEach(btn => (btn as HTMLElement).style.display = 'block');
+    
+      document.getElementById('sequencerChoInstrument')!.style.display = 'none';
+      document.getElementById('sequencerRevInstrument')!.style.display = 'none';
+      document.getElementById('sequencerPanInstrument')!.style.display = 'none';
+      const chorusContainers = document.querySelectorAll('#sequencerBar .chorusContainer');
+      chorusContainers.forEach(container => (container as HTMLElement).style.display = 'none');
+      const reverbContainers = document.querySelectorAll('#sequencerBar .reverbContainer');
+      reverbContainers.forEach(container => (container as HTMLElement).style.display = 'none');
+      const panContainers = document.querySelectorAll('#sequencerBar .panContainer');
+      panContainers.forEach(container => (container as HTMLElement).style.display = 'none');
+    
+      const instrumentListDeletes = document.querySelectorAll('.instrumentListDelete');
+      instrumentListDeletes.forEach(btn => (btn as HTMLElement).style.display = 'none');
+    
+      const instrumentChanges = document.querySelectorAll('.instrumentChange');
+      instrumentChanges.forEach(btn => (btn as HTMLElement).style.display = 'none');
+    
       document.getElementById('sequencerEdit')!.style.background = 'transparent';
-
-      // jQuery(".instrumentLabel").attr("contenteditable", "false");
-
-      // jQuery('#bodyDiv').sortable('disable');
-      // jQuery('#bodyDiv').disableSelection('disabled');
     }
     this.editModeActive = !this.editModeActive;
   }
@@ -219,9 +288,9 @@ class Sequencer {
     changeButton.setAttribute('id', `instrumentChange_${trackId}`);
     changeButton.setAttribute('class', 'instrumentChange');
     if (Settings.darkMode) {
-      changeButton.src = './images/changeWhite.svg';
+      changeButton.src = './src/assets/images/changeWhite.svg';
     } else {
-      changeButton.src = './images/change.svg';
+      changeButton.src = './src/assets/images/change.svg';
     }
     changeButton.addEventListener('click', () => {
       AppManager.numberOfTrackToAdd = trackId;
@@ -235,9 +304,9 @@ class Sequencer {
     trashButton.setAttribute('id', `instrumentListDelete_${trackId}`);
     trashButton.setAttribute('class', 'instrumentListDelete');
     if (Settings.darkMode) {
-      trashButton.src = './images/trashCanWhite.svg';
+      trashButton.src = './src/assets/images/trashCanWhite.svg';
     } else {
-      trashButton.src = './images/trashCan.svg';
+      trashButton.src = './src/assets/images/trashCan.svg';
     }
     trashButton.addEventListener('click', () => {
       if (Song.measures.length > 1) {
@@ -252,37 +321,15 @@ class Sequencer {
   getBackgroundColor(id: number) {
     return this.colorPalette[id % this.colorPalette.length];
   }
-
-  static createMasterSlider(container: HTMLElement) {
-    const options: JQueryUI.SliderOptions = {
-      min: 0,
-      max: 127,
-      value: Settings.masterVolume * 127,
-      range: 'min',
-      slide(event: JQueryEventObject, ui: JQueryUI.SliderUIParams) {
-        if (ui.value != null) {
-          audioEngine.setMasterGain(ui.value / 127);
-        }
-      },
-    };
-    jQuery(container).slider(options);
+    
+  static createMasterSlider(container) {
+    MasterSlider.create(container);
   }
-
-  static createTrackSlider(container: HTMLElement, k: number) {
-    const options: JQueryUI.SliderOptions = {
-      min: 0,
-      max: 127,
-      value: Song.playBackInstrument[k].volume,
-      range: 'min',
-      slide(event: JQueryEventObject, ui: JQueryUI.SliderUIParams) {
-        if (ui.value != null) {
-          Song.playBackInstrument[k].volume = ui.value;
-          audioEngine.busses[k].volume.gain.value = ui.value / 100.0;
-        }
-      },
-    };
-    jQuery(container).slider(options);
+  
+  static createTrackSlider(container, k) {
+    TrackSlider.create(container, k);
   }
+  
 
   getVolumeCanvasContext(i: number) {
     return this.volumeCanvasContexts[i];
@@ -326,9 +373,9 @@ class Sequencer {
     img.setAttribute('id', 'labelImgMaster');
     img.setAttribute('class', 'labelImg');
     if (Settings.darkMode) {
-      img.src = './images/instrumentIcons/myMasterDesignWhite.svg';
+      img.src = './src/assets/images/instrumentIcons/myMasterDesignWhite.svg';
     } else {
-      img.src = './images/instrumentIcons/myMasterDesign.svg';
+      img.src = './src/assets/images/instrumentIcons/myMasterDesign.svg';
     }
     labelDiv.appendChild(img);
     const sLabel = document.createElement('div');
@@ -475,7 +522,7 @@ class Sequencer {
     }, false);
     const editImg = document.createElement('img');
     editImg.setAttribute('id', 'sequencerEditImg');
-    editImg.src = './images/cogWheel.svg';
+    editImg.src = './src/assets/images/cogWheel.svg';
     sequencerEdit.appendChild(editImg);
     return sequencerEdit;
   }
@@ -490,7 +537,7 @@ class Sequencer {
     const headerImg = document.createElement('img');
     headerImg.setAttribute('id', 'sequencerToggle');
     headerImg.setAttribute('class', 'labelImg sequencerHeaderImg');
-    headerImg.src = './images/sequencerToggle.svg';
+    headerImg.src = './src/assets/images/sequencerToggle.svg';
     headerDiv.appendChild(headerImg);
 
     headerImg.addEventListener('click', () => {
@@ -509,7 +556,7 @@ class Sequencer {
     const sequencerAddInstrument = document.createElement('img');
     sequencerAddInstrument.setAttribute('id', 'sequencerAddInstrument');
     sequencerAddInstrument.setAttribute('data-tooltip', 'Add Instrument');
-    sequencerAddInstrument.src = './images/addInstrument.svg';
+    sequencerAddInstrument.src = './src/assets/images/addInstrument.svg';
     sequencerAddInstrument.addEventListener('click', () => {
       AppManager.numberOfTrackToAdd = -1;
       modalHandler.openAddTrack();
@@ -548,20 +595,23 @@ class Sequencer {
     this.redrawSequencerMain();
 
     // synchronous scrolling
-    document.getElementById('sequencerMainBody')?.addEventListener('scroll', () => {
-      fastdom.measure(() => {
-        const sequencerScrollTop = jQuery('#sequencerMainBody').scrollTop();
-        const sequencerScrollLeft = jQuery('#sequencerMainBody').scrollLeft();
-        if (sequencerScrollTop != null && sequencerScrollLeft != null) {
-          this.sequencerScrollTop = sequencerScrollTop;
-          this.sequencerScrollLeft = sequencerScrollLeft;
-        }
+    const sequencerMainBody = document.getElementById('sequencerMainBody');
+    if (sequencerMainBody) {
+      sequencerMainBody.addEventListener('scroll', () => {
+        fastdom.measure(() => {
+          const sequencerScrollTop = sequencerMainBody.scrollTop;
+          const sequencerScrollLeft = sequencerMainBody.scrollLeft;
+          if (sequencerScrollTop != null && sequencerScrollLeft != null) {
+            this.sequencerScrollTop = sequencerScrollTop;
+            this.sequencerScrollLeft = sequencerScrollLeft;
+          }
+        });
+        fastdom.mutate(() => {
+          document.getElementById('sequencerMenuBody')!.scrollTop = this.sequencerScrollTop;
+          document.getElementById('sequencerMainHeader')!.scrollLeft = this.sequencerScrollLeft;
+        });
       });
-      fastdom.mutate(() => {
-        jQuery('#sequencerMenuBody').scrollTop(this.sequencerScrollTop);
-        jQuery('#sequencerMainHeader').scrollLeft(this.sequencerScrollLeft);
-      });
-    });
+    }
     this.markActiveInstrument(Song.currentTrackId);
   }
 
