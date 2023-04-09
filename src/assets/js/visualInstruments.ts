@@ -271,7 +271,7 @@ class VisualInstruments {
   }
 
   static unmarkNoteOnGuitar(string: number, fretWithCapo: number) {
-    jQuery(`#gnm${string}_${fretWithCapo - 1}`).hide();
+    document.getElementById(`gnm${string}_${fretWithCapo - 1}`)!.style.display = "none";
     const stringDom = document.getElementById(`string${string}`);
     if (stringDom != null) {
       stringDom.style.borderBottom = '2px solid #958963';

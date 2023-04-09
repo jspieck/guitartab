@@ -1,6 +1,4 @@
 import Picker from 'vanilla-picker';
-import jQuery from 'jquery';
-import 'jquery-ui-dist/jquery-ui';
 import interact from 'interactjs';
 import fastdom from 'fastdom';
 import Song, {
@@ -277,30 +275,32 @@ class ModalHandler {
     this.release = { start: 50, min: 1, max: 1000 };
     this.threshold = { start: -1, min: -60, max: 0 };
 
-    /* document.getElementsByClassName('.modal_close').on('click', (e) => {
-      const { id } = e.currentTarget.parentNode.parentNode;
-      // console.log(e.currentTarget, e.currentTarget.parentNode.parentNode, id);
-      this.closeModal(id);
-    }); */
-
-    jQuery('.hideTopBar').on('click', (e) => {
-      if (e.currentTarget != null
-        && e.currentTarget.parentNode != null
-        && e.currentTarget.parentNode.parentNode != null
-      ) {
-        const modal = e.currentTarget.parentNode.parentNode;
-        ModalHandler.toggleTopBar(modal as HTMLElement);
-      }
+    let hideTopBarElems = document.querySelectorAll('.hideTopBar');
+    hideTopBarElems.forEach(elem => {
+      elem.addEventListener('click', (e) => {
+        let target = e.currentTarget as HTMLElement;
+        if (target != null
+          && target.parentNode != null
+          && target.parentNode.parentNode != null
+        ) {
+          const modal = target.parentNode.parentNode;
+          ModalHandler.toggleTopBar(modal as HTMLElement);
+        }
+      });
     });
-
-    jQuery('.eyeToggle').on('click', (e) => {
-      if (e.currentTarget != null
-        && e.currentTarget.parentNode != null
-        && e.currentTarget.parentNode.parentNode != null
-      ) {
-        const modal = e.currentTarget.parentNode.parentNode;
-        ModalHandler.toggleTopBar(modal as HTMLElement);
-      }
+    
+    let eyeToggleElems = document.querySelectorAll('.eyeToggle');
+    eyeToggleElems.forEach(elem => {
+      elem.addEventListener('click', (e) => {
+        let target = e.currentTarget as HTMLElement;
+        if (target != null
+          && target.parentNode != null
+          && target.parentNode.parentNode != null
+        ) {
+          const modal = target.parentNode.parentNode;
+          ModalHandler.toggleTopBar(modal as HTMLElement);
+        }
+      });
     });
   }
 
@@ -311,7 +311,6 @@ class ModalHandler {
       ModalHandler.removeWindowMarker(id);
       document.getElementById(id)?.removeEventListener('mousedown',
         () => { this.moveToFront(id); });
-      // jQuery("#content").removeClass("blurFilter");
       document.getElementById(id)?.classList.remove('active');
     });
   }
@@ -980,21 +979,53 @@ class ModalHandler {
     const slotSliderChild = document.createElement('div');
     slotSliderChild.setAttribute('class', 'volume');
     slotSliderChild.setAttribute('id', `slotSlider${number}`);
-    const options: JQueryUI.SliderOptions = {
+
+    const options = {
       min: 0,
       orientation: 'vertical',
       max: 120,
       value: 40 * drumInfo[2],
       range: 'min',
-      slide: (event: JQueryEventObject, ui: JQueryUI.SliderUIParams) => {
-        if (ui != null && ui.value != null) {
-          drumInfo[2] = (1 / 40) * ui.value;
-          const dr = drumInfo[2];
-          audioEngine.drumBusses[number].volume.gain.value = dr;
-        }
-      },
     };
-    jQuery(slotSliderChild).slider(options);
+
+    const slider = document.createElement('div');
+    Object.assign(slider.style, {
+      height: '100px',
+      width: '20px',
+      backgroundColor: 'grey',
+      position: 'relative',
+      margin: '0 auto',
+    });
+
+    const handle = document.createElement('div');
+    Object.assign(handle.style, {
+      position: 'absolute',
+      height: '20px',
+      width: '20px',
+      backgroundColor: 'white',
+      borderRadius: '50%',
+      bottom: `${(options.value / options.max) * 100}%`,
+      transform: 'translate(-50%, 50%)',
+      cursor: 'grab',
+    });
+
+    slider.appendChild(handle);
+
+    slider.addEventListener('input', (event) => {
+      const target = event.target as HTMLInputElement;
+      const ui = {
+        value: target.valueAsNumber,
+      };
+      if (ui != null && ui.value != null) {
+        drumInfo[2] = (1 / 40) * ui.value;
+        const dr = drumInfo[2];
+        audioEngine.drumBusses[number].volume.gain.value = dr;
+        handle.style.bottom = `${(ui.value / options.max) * 100}%`;
+      }
+    });
+    slotSliderChild.appendChild(slider);
+
+
     slotSlider.appendChild(slotSliderChild);
     mixerColumn.appendChild(slotNumber);
     mixerColumn.appendChild(slotName);
@@ -1543,7 +1574,7 @@ class ModalHandler {
       this.initYPosModal = e.pageY;
       this.oldBpm = this.bpmData;
 
-      jQuery('body').addClass('disableMouseEffects');
+      document.querySelector('body')!.classList.add('disableMouseEffects');
       this.tempoFuncBinded = this.changeTempoFunc.bind(this);
       this.remTempoBinded = this.removeEventListenersTempo.bind(this);
       document.addEventListener('mousemove', this.tempoFuncBinded);
@@ -2050,7 +2081,6 @@ class ModalHandler {
 
         if (!this.tremoloBarModalData.bound) {
           document.getElementById('tremoloEditor')!.onmousedown = (e) => {
-            // jQuery("#tremoloEditor").mousedown(function (e) {
             fastdom.measure(() => {
               const t = document.getElementById('tremoloEditor')!.getBoundingClientRect();
               this.mouseOffsetX = e.clientX - t.left;

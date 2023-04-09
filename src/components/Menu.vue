@@ -238,6 +238,13 @@ import { overlayHandler } from '../assets/js/overlayHandler';
 let tempoMoveTmp = () => { };
 let removeListenersTmp = () => { };
 let previousBar = 1;
+let noteTiedTo = null;
+let initYPos = 0;
+let oldBpm = 90;
+let lastVoiceId = 0;
+let lastNoteLengthButton = '8thNote';
+let lastMeasureSelectButton = '';
+
 const effectGroups = [
     ['pullDown', 'slide', 'bend', 'trill', 'tremoloPicking', 'tremoloBar', 'dead'],
     ['stacatto', 'palmMute'],
@@ -263,13 +270,6 @@ const secondStatusBar = ['pullDown', 'ghost', 'stacatto', 'accentuated', 'heavyA
     'vibrato', 'tremoloBar', 'artificial', 'trill', 'bend', 'slide', 'tap', 'fadeIn', 'grace', 'slap', 'pop',
     'dead', 'tremoloPicking', 'stroke', 'letRing'];
 
-const lastNoteLengthButton = '8thNote';
-const lastMeasureSelectButton = '';
-
-let initYPos = 0;
-let oldBpm = 90;
-let lastVoiceId = 0;
-
 const elementToProperty = {
     bend: 'bendPresent',
     artificial: 'artificialPresent',
@@ -293,7 +293,7 @@ const elementToProperty = {
 };
 const noteEffects = ['tap', 'slide', 'fadeIn', 'grace', 'pullDown', 'stacatto', 'accentuated', 'trill', 'bend', 'artificial',
     'heavyAccentuated', 'palmMute', 'vibrato', 'slap', 'pop', 'dead', 'tremoloPicking', 'letRing', 'ghost'];
-const noteTiedTo = null;
+
 const noteToBeat = {
     w: 'wholeNote', h: 'halfNote', q: 'quarterNote', e: '8thNote', s: '16thNote', t: '32ndNote', z: '64thNote', o: '128thNote',
 };
