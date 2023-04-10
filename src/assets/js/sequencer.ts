@@ -203,7 +203,7 @@ class Sequencer {
     compButtonCircle.textContent = 'C';
     compButton.appendChild(compButtonCircle);
     compButton.addEventListener('click', () => {
-      modalHandler.toggleModal('compressorModal', 'Compressor');
+      modalHandler.toggleModal('compressorModal', '34');
     });
     return compButton;
   }

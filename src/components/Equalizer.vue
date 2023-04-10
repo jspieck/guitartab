@@ -12,21 +12,20 @@
         </div>
         <div class="modalBody">
             <div id="equalizerContainer">
-                <canvas id="equalizerCanvas" ref="canvasRef"></canvas>
-                <svg id="equalizerOverlay" ref="equalizerOverlayRef" :width="`${CANVAS_WIDTH + DECIBEL_WIDTH}px`"
-                    :height="`${CANVAS_HEIGHT + FREQUENCY_HEIGHT}px`">
+                <canvas id="equalizerCanvas" ref="canvasRef" :width="CANVAS_WIDTH + DECIBEL_WIDTH" :height="CANVAS_HEIGHT + FREQUENCY_HEIGHT"></canvas>
+                <svg id="equalizerOverlay" ref="equalizerOverlayRef" :width="`${CANVAS_WIDTH + DECIBEL_WIDTH}px`" :height="`${CANVAS_HEIGHT + FREQUENCY_HEIGHT}px`">
                     <g>
-                        <template v-for="(freq, i) in frequencyLines" :key="'freq-' + i">
+                        <g v-for="(freq, i) in frequencyLines" :key="'freq-' + i">
                             <text :x="frequencyToXPos(freq)" y="13" text-anchor="middle">
                                 {{ freq < 1000 ? freq : freq / 1000 + 'k' }} </text>
-                        </template>
-                        <template v-for="(db, i) in decibelLines" :key="'db-' + i">
+                            </g>
+                        <g v-for="(db, i) in decibelLines" :key="'db-' + i">
                             <text v-if="i < decibelLines.length - 1" :x="CANVAS_WIDTH + 5"
                                 :y="FREQUENCY_HEIGHT + (CANVAS_HEIGHT * i) / (decibelLines.length - 1) + 4"
                                 text-anchor="center">
                                 {{ db }}
                             </text>
-                        </template>
+                        </g>
                         <text :x="CANVAS_WIDTH + 5" :y="FREQUENCY_HEIGHT + CANVAS_HEIGHT" text-anchor="center">
                             {{ decibelLines[0] }}
                         </text>
@@ -58,8 +57,8 @@
                     </div>
                     <label class="qualityLabel">Quality (Q)</label>
                     <div id="qualityContainer1" class="knob qualityKnob" v-if="isMounted">
-                        <Knob id="qKnob1" data-id="1" :rotate-func="qualityKnobRotate" :start="quality.start"
-                            :min="quality.min" :max="quality.max" mid-knob="false"></Knob>
+                        <Knob id="qKnob1" :data-id="1" :rotate-func="qualityKnobRotate" :start="quality.start"
+                            :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
                     </div>
 
                     <label id="qualityLabel1">1.0</label>
@@ -83,8 +82,8 @@
                     </div>
                     <label class="qualityLabel">Quality (Q)</label>
                     <div id="qualityContainer2" class="knob qualityKnob" v-if="isMounted">
-                        <Knob id="qKnob2" data-id="2" :rotate-func="qualityKnobRotate" :start="quality.start"
-                            :min="quality.min" :max="quality.max" mid-knob="false"></Knob>
+                        <Knob id="qKnob2" :data-id="2" :rotate-func="qualityKnobRotate" :start="quality.start"
+                            :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
                     </div>
                     <label id="qualityLabel2">1.0</label>
                 </div>
@@ -107,17 +106,17 @@
                     </div>
                     <label class="qualityLabel">Quality (Q)</label>
                     <div id="qualityContainer3" class="knob qualityKnob" v-if="isMounted">
-                        <Knob id="qKnob3" data-id="3" :rotate-func="qualityKnobRotate" :start="quality.start"
-                            :min="quality.min" :max="quality.max" mid-knob="false"></Knob>
+                        <Knob id="qKnob3" :data-id="3" :rotate-func="qualityKnobRotate" :start="quality.start"
+                            :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
                     </div>
                     <label id="qualityLabel3">1.0</label>
                 </div>
             </div>
             <div id="measureBox">
                 <label>Frequency</label>
-                <label id="eqCurrentFreq">0 Hz</label>
+                <label id="eqCurrentFreq">{{ `${eqCurrentFreq} Hz` }}</label>
                 <label>Gain</label>
-                <label id="eqCurrentGain">0 db</label>
+                <label id="eqCurrentGain">{{ `${eqGain} db` }}</label>
             </div>
         </div>
     </div>
@@ -132,9 +131,7 @@ import {
 import Knob from './Knob.vue';
 
 import interact from 'interactjs';
-import Helper from '../assets/js/helper';
 import Settings from '../assets/js/settingManager';
-import knobFactory from '../assets/js/knob';
 import audioEngine from '../assets/js/audioEngine';
 
 interface InteractEvent {
@@ -163,12 +160,7 @@ const frequencyLines = [
 ];
 const decibelLines = [-18, -12, -6, 0, 6, 12, 18];
 const circleColors = ['#89ca78', '#ef596f', '#e5c07b'];
-// const canvas = ref(null);
-// const canvas = $refs.canvas as HTMLCanvasElement; // document.getElementById('equalizerCanvas') as HTMLCanvasElement;
-// const ctx = canvas.getContext('2d')!;
-// canvas.width = CANVAS_WIDTH + DECIBEL_WIDTH;
-// canvas.height = CANVAS_HEIGHT + FREQUENCY_HEIGHT;
-// equalizerOverlay = document.getElementById('equalizerOverlay')!;
+
 let currentNode = -1;
 let logarithmicMin = Math.log(frequencyLines[0]) / Math.LN10;
 let logarithmicMax = Math.log(frequencyLines[frequencyLines.length - 1]) / Math.LN10;
@@ -185,6 +177,8 @@ const midFrequency = 1000;
 const highshelfFrequency = 15000;
 const equalizerNodeFrequencies = [lowshelfFrequency, midFrequency, highshelfFrequency];
 
+const eqGain = ref(0.0);
+const eqCurrentFreq = ref('0.0');
 const isMounted = ref(false);
 const canvasRef: Ref<HTMLCanvasElement | null> = ref(null);
 const equalizerOverlayRef = ref(null);
@@ -196,8 +190,6 @@ onMounted(() => {
     if (!canvas || !equalizerOverlay) return
 
     const ctx = canvas.getContext('2d');
-    Helper.removeAllChildren(equalizerOverlay);
-
     clearCanvas(ctx!);
     drawFrequencyLines(ctx!);
     drawAttenuationCurve(ctx!);
@@ -224,9 +216,9 @@ function initInteract(ctx: CanvasRenderingContext2D) {
     });
 }
 
-const equalizerMode1 = ref("lowshelf");
+const equalizerMode1 = ref("highpass");
 const equalizerMode2 = ref("peaking");
-const equalizerMode3 = ref("highshelf");
+const equalizerMode3 = ref("lowpass");
 
 const handleModeChange1 = () => {
     lowshelf.type = equalizerMode1.value as BiquadFilterType;
@@ -258,7 +250,6 @@ const handleModeChange3 = () => {
     }
 };
 
-
 function insertBetween(audioNodeBefore: AudioNode, audioNodeAfter: AudioNode) {
     equalizerNodes[0] = lowshelf;
     equalizerNodes[1] = mid;
@@ -276,6 +267,12 @@ function insertBetween(audioNodeBefore: AudioNode, audioNodeAfter: AudioNode) {
     lowshelf.connect(mid);
     mid.connect(highshelf);
     highshelf.connect(audioNodeAfter);
+
+    const canvas = canvasRef.value;
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        redraw(ctx!);
+    }
 }
 
 function setCurrentNode(id: number, ctx: CanvasRenderingContext2D) {
@@ -290,24 +287,19 @@ function setCurrentNode(id: number, ctx: CanvasRenderingContext2D) {
 }
 
 function qualityKnobRotate(angle: number, knobId: string, parentId: string) {
-    const circumference = knobFactory.getCircumference();
-    document.getElementById(`outerRing${parentId}`)?.setAttribute(
-        'stroke-dashoffset',
-        (circumference - (circumference * angle) / 360).toString(),
-    );
     const scaled = (angle / 360) * (quality.max - quality.min) + quality.min;
     if (knobId === '1') {
         // low
         lowshelf.Q.value = scaled;
-        document.getElementById('qualityLabel1')!.textContent = scaled.toFixed(2);
+        // document.getElementById('qualityLabel1')!.textContent = scaled.toFixed(2);
     } else if (knobId === '2') {
         // mid
         mid.Q.value = scaled;
-        document.getElementById('qualityLabel2')!.textContent = scaled.toFixed(2);
+        // document.getElementById('qualityLabel2')!.textContent = scaled.toFixed(2);
     } else if (knobId === '3') {
         // high
         highshelf.Q.value = scaled;
-        document.getElementById('qualityLabel3')!.textContent = scaled.toFixed(2);
+        // document.getElementById('qualityLabel3')!.textContent = scaled.toFixed(2);
     }
     const canvas = canvasRef.value;
     if (canvas) {
@@ -416,8 +408,8 @@ function moveEqualizerNode(event: InteractEvent, ctx: CanvasRenderingContext2D) 
             intFreq = Math.round(intFreq / 100);
             intFreqString = `${intFreq / 10}k`;
         }
-        document.getElementById('eqCurrentFreq')!.textContent = `${intFreqString} Hz`;
-        document.getElementById('eqCurrentGain')!.textContent = `${db.toFixed(2)} db`;
+        eqCurrentFreq.value = intFreqString;
+        eqGain.value = Number(db.toFixed(2));
         setCurrentNode(id, ctx);
         redraw(ctx);
         // update the posiion attributes
@@ -636,6 +628,9 @@ function drawSpectrum(ctx: CanvasRenderingContext2D, frequencyArray: Uint8Array)
 }
 
 defineExpose({
+    equalizerNodeFrequencies,
+    frequencyLines,
+    decibelLines,
     canvasRef,
     equalizerOverlayRef,
     isMounted,
@@ -645,5 +640,6 @@ defineExpose({
     handleModeChange1,
     handleModeChange2,
     handleModeChange3,
+    insertBetween
 });
 </script>

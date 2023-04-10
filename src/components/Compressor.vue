@@ -20,7 +20,7 @@
 </template>
   
 <script lang="ts">
-import { defineComponent, ref, onMounted, Ref, reactive } from 'vue';
+import { defineComponent, reactive } from 'vue';
 import { audioEngine } from '../assets/js/audioEngine';
 import Knob from './Knob.vue';
 import KnobBox from './KnobBox.vue';
@@ -38,13 +38,6 @@ export default defineComponent({
         ];
 
         const knobValues = reactive(Object.fromEntries(settings.map((setting, index) => [index, setting.start])));
-
-        const knobRef: Ref<typeof Knob | null> = ref(null);
-        const isMounted = ref(false);
-
-        onMounted(() => {
-            isMounted.value = true;
-        })
 
         function setLimiterProperty(limiter: DynamicsCompressorNode, property: string, value: number) {
             switch (property) {
@@ -64,8 +57,6 @@ export default defineComponent({
         }
 
         function compressorKnobRotate(angle: number, knobId: string, parentId: string) {
-            if (!isMounted.value) return;
-
             const setting = settings[parseInt(knobId)];
             if (audioEngine.limiter != null) {
                 knobValues[knobId] = (angle / 360) * (setting.max - setting.min) + setting.min;
