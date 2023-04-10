@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import Menu from './components/Menu.vue'
 import Footer from './components/Footer.vue'
 import Compressor from './components/Compressor.vue'
 import Equalizer from './components/Equalizer.vue'
 import { startUp } from './assets/js/guitarTab'
 
+const equalizer = ref(null);
+
 onMounted(() => {
-  startUp()
+  startUp(equalizer)
 })
 </script>
 
@@ -928,7 +930,7 @@ onMounted(() => {
     </div>
 
     <Compressor id="compressorModal" class="modal" role="alert"/>
-    <Equalizer />
+    <Equalizer ref="equalizer"/>
 
     <div id="instrumentSettingsModal" class="modal" role="alert">
       <div class="modalTopBar">

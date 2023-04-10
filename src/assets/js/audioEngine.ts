@@ -1,11 +1,14 @@
 import Song, { PlayBackInstrument, Measure, Note } from './songData';
 import Settings from './settingManager';
-import Equalizer from './equalizer';
+// import Equalizer from './equalizer';
 import { modalHandler } from './modalHandler';
 import { sequencer } from './sequencer';
 import Chorus from './chorus';
 import Freeverb from './freeverb';
 import sf2Parser from './sf2parser';
+
+import { Ref } from 'vue';
+import Equalizer from '../../components/Equalizer.vue';
 
 type EventFunction = (e: Event) => void;
 
@@ -16,7 +19,7 @@ class AudioEngine {
 
   averageVolumeIsNull: boolean;
 
-  equalizer: Equalizer;
+  equalizer: Ref<typeof Equalizer> | null;
 
   busses: { volume: GainNode, pan: StereoPannerNode, analyser: AnalyserNode,
     convolver: Freeverb, chorus: Chorus }[];
@@ -68,7 +71,7 @@ class AudioEngine {
     this.context = new AudioContext();
     this.averageVolumeIsNull = true;
 
-    this.equalizer = new Equalizer(this.context);
+    // this.equalizer = new Equalizer(this.context);
     this.busses = [];
     this.drumBusses = [];
     this.limiter = null;
@@ -80,6 +83,7 @@ class AudioEngine {
     this.bufferLength = 0;
     this.drumBufferLength = 0;
     this.masterBufferLength = 0;
+    this.equalizer = null;
 
     this.playingInstrumentSet = new Set();
 
@@ -267,7 +271,7 @@ class AudioEngine {
     this.dataArray = new Uint8Array(this.bufferLength);
   }
 
-  createBusses() {
+  createBusses(equalizer: Ref<typeof Equalizer>) {
     // limiter
     const limiter = this.context.createDynamicsCompressor();
     limiter.threshold.value = -1.0; // this is the pitfall, leave some headroom
@@ -281,7 +285,8 @@ class AudioEngine {
     this.masterGain.gain.value = 1.0;
     // this.masterGain.connect(limiter);
     // create equalizer
-    this.equalizer.insertBetween(this.masterGain, limiter);
+    equalizer.value.insertBetween(this.masterGain, limiter);
+    this.equalizer = equalizer;
     limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.context.destination);
     this.masterAnalyser.smoothingTimeConstant = 0.9;
@@ -378,7 +383,7 @@ class AudioEngine {
             canvasContext, 120, 30, color, true);
         }
         if (modalHandler.isDisplayed('equalizerModal')) {
-          this.equalizer.drawSpectrum(this.masterDataArray);
+          this.equalizer.value.drawSpectrum(this.masterDataArray);
         }
       }
       requestAnimationFrame(() => {

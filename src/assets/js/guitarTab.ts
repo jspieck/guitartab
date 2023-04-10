@@ -69,7 +69,7 @@ if (!inBrowser) {
 
 // let waveSurfer;
 // let wml;
-const startUp = function startUp() {
+const startUp = function startUp(equalizer) {
   document.fonts.load('10pt "musicFont"');
   document.fonts.load('10pt "notesFont"');
   Settings.darkMode = Settings.load('darkMode') === 'true';
@@ -93,7 +93,7 @@ const startUp = function startUp() {
 
   visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
   OverlayHandler.createDrumInfo();
-  audioEngine.createBusses();
+  audioEngine.createBusses(equalizer);
 
   AppManager.createGuitarTab(0);
   AppManager.createAllInstruments();
