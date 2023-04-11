@@ -4,6 +4,7 @@ import Menu from './components/Menu.vue'
 import Footer from './components/Footer.vue'
 import Compressor from './components/Compressor.vue'
 import Equalizer from './components/Equalizer.vue'
+import Sequencer from './components/Sequencer.vue'
 import { startUp } from './assets/js/guitarTab'
 
 const equalizer = ref(null);
@@ -95,15 +96,7 @@ onMounted(() => {
         </div>
         <img id="effectEye" class="visibleEye" src="./assets/images/eyeInverted.svg" />
       </div>
-      <div id="sequencerBar">
-        <div id="sequencerWrapper">
-          <div id="sequencerSideBar"></div>
-          <div id="composition">
-            <div id="sequencerMain"></div>
-            <!--<div id="audioWaveForm"></div>-->
-          </div>
-        </div>
-      </div>
+      <Sequencer/>
     </div>
     <Footer/>
     <!-- 2 -->
