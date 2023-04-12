@@ -6,6 +6,7 @@ import Compressor from './components/Compressor.vue'
 import Equalizer from './components/Equalizer.vue'
 import Sequencer from './components/Sequencer.vue'
 import GuitarModal from './components/GuitarModal.vue'
+import PianoModal from './components/PianoModal.vue'
 import { startUp } from './assets/js/guitarTab'
 
 const equalizer = ref(null);
@@ -156,26 +157,8 @@ onMounted(() => {
       </div>
     </div>
 
-    <div id="pianoModal" class="modal" role="alert">
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Piano</label>
-        <div class="hideTopBar"></div>
-        <div id="pianoModalClose" class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
-        <div id="piano" class='piano'>
-          <ul id="pianoList"></ul>
-        </div>
-        <img class="eyeToggle visibleEye" src="./assets/images/eye.svg" />
-      </div>
-    </div>
-
+    <PianoModal id="pianoModal" class="modal" role="alert"></PianoModal>
+    
     <div id="drumInfoModal" class="modal" role="alert">
       <div class="modalTopBar">
         <label class="modalTopBarLabel">Drum Info</label>

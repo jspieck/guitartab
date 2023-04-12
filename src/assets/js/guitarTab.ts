@@ -91,7 +91,7 @@ const startUp = function startUp(equalizer) {
   playBackLogic.initTimerWorker();
   Song.initEmptySong();
 
-  visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
+  // visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
   OverlayHandler.createDrumInfo();
   audioEngine.createBusses(equalizer);
 
