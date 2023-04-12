@@ -5,6 +5,7 @@ import Footer from './components/Footer.vue'
 import Compressor from './components/Compressor.vue'
 import Equalizer from './components/Equalizer.vue'
 import Sequencer from './components/Sequencer.vue'
+import GuitarModal from './components/GuitarModal.vue'
 import { startUp } from './assets/js/guitarTab'
 
 const equalizer = ref(null);
