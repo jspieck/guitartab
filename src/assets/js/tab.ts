@@ -985,7 +985,7 @@ class Tab {
 
       const img = document.getElementById('trackSignImg') as HTMLImageElement;
       img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
-      visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
+      // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
     }
     // draw suitable sequencer
     sequencer.drawBeat();

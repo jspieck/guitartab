@@ -108,6 +108,8 @@ import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
 import { svgDrawer } from '../assets/js/svgDrawer';
 import { modalHandler } from '../assets/js/modalHandler';
+import Knob from './Knob.vue';
+import SequenceMarker from './SequenceMarker.vue';
 import Fader from './Fader.vue';
 
 const colorPalette = ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#99B898', '#FECEAB', '#FF847C', '#E84A5F', '#2A363B'];

@@ -354,7 +354,7 @@ const AppManager = {
 
     console.log(`drawTrack: ${performance.now() - t2}ms`);
     console.log(`Track Change: ${performance.now() - t0}ms`);
-    visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
+    // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
     // draw suitable sequencer
     sequencer.drawBeat();
     sequencer.setIndicator(0, 0);
@@ -376,7 +376,7 @@ const AppManager = {
     const img = document.getElementById('trackSignImg') as HTMLImageElement;
     img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
 
-    visualInstruments.createGuitar(Song.tracks[trackId].numStrings, 25);
+    // visualInstruments.createGuitar(Song.tracks[trackId].numStrings, 25);
     this.setEffects(trackId);
     playBackLogic.trackChange = true;
 
