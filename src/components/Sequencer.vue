@@ -4,13 +4,13 @@
             <div id="sequencerSideBar" :class="{'mininized': sequencerWrapperMininized}">
                 <div class="labelDiv headerDiv">
                     <img id="sequencerToggle" class="labelImg sequencerHeaderImg"
-                        src="./src/assets/images/sequencerToggle.svg" @click="toggleSequencerWrapperMinimize" />
+                        src="../assets/images/sequencerToggle.svg" @click="toggleSequencerWrapperMinimize" />
                     <div class="label unselectable">Sequencer</div>
                     <div id="sequencerEdit" @click="toggleSequencerEditMode" :background="editModeActive ? 'transparent' : 'rgba(103, 103, 103, 0.22)'">
-                        <img id="sequencerEditImg" src="./src/assets/images/cogWheel.svg" alt="Edit Sequencer">
+                        <img id="sequencerEditImg" src="../assets/images/cogWheel.svg" alt="Edit Sequencer">
                     </div>
                     <img id="sequencerAddInstrument" data-tooltip="Add Instrument"
-                        src="./src/assets/images/addInstrument.svg" @click="openAddTrack" />
+                        src="../assets/images/addInstrument.svg" @click="openAddTrack" />
                     <div id="sequencerPanInstrument" v-if="!editModeActive">Pan</div>
                     <div id="sequencerRevInstrument" v-if="!editModeActive">Rev</div>
                     <div id="sequencerChoInstrument" v-if="!editModeActive">Cho</div>
