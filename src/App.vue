@@ -191,39 +191,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div id="guitarModal" class="modal" role="alert">
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Guitar</label>
-        <div id="guitarModalClose" class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
-        <div id="guitar" class="guitar">
-          <ul id="stringsList" class="strings"></ul>
-          <ul id="stringsListBackTop" class="strings"></ul>
-          <ul id="stringsListBackBottom" class="strings"></ul>
-          <div class="guitar-neck">
-            <div id="capo"></div>
-            <div class="fret first"></div>
-            <div id="fretContainer" class="frets"></div>
-            <div class="fret last"></div>
-            <ul id="dots" class="dots"></ul>
-            <div id="guitarMarkerContainer"></div>
-          </div>
-          <div class="dot"
-            style="position: absolute;right: 0px;width: 10px;height: 10px;background: #5a5a5a;border: 2px solid #c8bb93;z-index: 20;border-radius: 10px;bottom: -6px;">
-          </div>
-          <div class="dot"
-            style="position: absolute;right: 0px;width: 10px;height: 10px;background: #5a5a5a;border: 2px solid #c8bb93;z-index: 20;border-radius: 10px;top: -6px;">
-          </div>
-        </div>
-      </div>
-    </div>
+    <GuitarModal id="guitarModal" class="modal" role="alert"/>
 
     <div id="reallyDeleteModal" class="modal" role="alert">
       <div class="modalTopBar">
