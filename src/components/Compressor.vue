@@ -1,22 +1,11 @@
 <template>
-    <div>
-        <div class="modalTopBar">
-            <label class="modalTopBarLabel">Compressor</label>
-            <div class="modal_close">
-                <div class="icon">
-                    <svg viewBox="0 0 32 32">
-                        <use xlink:href="#close-icon"></use>
-                    </svg>
-                </div>
-            </div>
-        </div>
-        <div class="modalBody">
+    <BaseModal>
+        <template #title>Compressor</template>
             <KnobBox v-for="(setting, index) in settings" :key="index" :label="setting.label"
                 :containerId="setting.containerId" :knobId="setting.knobId" :dataId="index"
                 :rotate-func="compressorKnobRotate" :start="setting.start" :min="setting.min" :max="setting.max"
                 :valueId="setting.valueId" :knobValue="knobValues[index]" :unit="setting.unit" :midKnob="true"/>
-        </div>
-    </div>
+    </BaseModal>
 </template>
   
 <script lang="ts">
@@ -24,6 +13,7 @@ import { defineComponent, reactive } from 'vue';
 import { audioEngine } from '../assets/js/audioEngine';
 import Knob from './Knob.vue';
 import KnobBox from './KnobBox.vue';
+import BaseModal from './BaseModal.vue';
 
 export default defineComponent({
     name: 'Compressor',

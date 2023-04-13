@@ -1,125 +1,115 @@
 <template>
-    <div id="equalizerModal" class="modal" role="alert">
-        <div class="modalTopBar">
-            <label class="modalTopBarLabel">Equalizer</label>
-            <div class="modal_close">
-                <div class="icon">
-                    <svg viewBox="0 0 32 32">
-                        <use xlink:href="#close-icon"></use>
-                    </svg>
-                </div>
-            </div>
-        </div>
-        <div class="modalBody">
-            <div id="equalizerContainer">
-                <canvas id="equalizerCanvas" ref="canvasRef" :width="CANVAS_WIDTH + DECIBEL_WIDTH" :height="CANVAS_HEIGHT + FREQUENCY_HEIGHT"></canvas>
-                <svg id="equalizerOverlay" ref="equalizerOverlayRef" :width="`${CANVAS_WIDTH + DECIBEL_WIDTH}px`" :height="`${CANVAS_HEIGHT + FREQUENCY_HEIGHT}px`">
-                    <g>
-                        <g v-for="(freq, i) in frequencyLines" :key="'freq-' + i">
-                            <text :x="frequencyToXPos(freq)" y="13" text-anchor="middle">
-                                {{ freq < 1000 ? freq : freq / 1000 + 'k' }} </text>
-                            </g>
-                        <g v-for="(db, i) in decibelLines" :key="'db-' + i">
-                            <text v-if="i < decibelLines.length - 1" :x="CANVAS_WIDTH + 5"
-                                :y="FREQUENCY_HEIGHT + (CANVAS_HEIGHT * i) / (decibelLines.length - 1) + 4"
-                                text-anchor="center">
-                                {{ db }}
-                            </text>
-                        </g>
-                        <text :x="CANVAS_WIDTH + 5" :y="FREQUENCY_HEIGHT + CANVAS_HEIGHT" text-anchor="center">
-                            {{ decibelLines[0] }}
+    <BaseModal>
+        <template #title>Equalizer</template>
+        <div id="equalizerContainer">
+            <canvas id="equalizerCanvas" ref="canvasRef" :width="CANVAS_WIDTH + DECIBEL_WIDTH"
+                :height="CANVAS_HEIGHT + FREQUENCY_HEIGHT"></canvas>
+            <svg id="equalizerOverlay" ref="equalizerOverlayRef" :width="`${CANVAS_WIDTH + DECIBEL_WIDTH}px`"
+                :height="`${CANVAS_HEIGHT + FREQUENCY_HEIGHT}px`">
+                <g>
+                    <g v-for="(freq, i) in frequencyLines" :key="'freq-' + i">
+                        <text :x="frequencyToXPos(freq)" y="13" text-anchor="middle">
+                            {{ freq < 1000 ? freq : freq / 1000 + 'k' }} </text>
+                    </g>
+                    <g v-for="(db, i) in decibelLines" :key="'db-' + i">
+                        <text v-if="i < decibelLines.length - 1" :x="CANVAS_WIDTH + 5"
+                            :y="FREQUENCY_HEIGHT + (CANVAS_HEIGHT * i) / (decibelLines.length - 1) + 4"
+                            text-anchor="center">
+                            {{ db }}
                         </text>
                     </g>
-                    <g>
-                        <circle v-for="(frequency, index) in equalizerNodeFrequencies" :key="index"
-                            :cx="frequencyToXPos(frequency)" :cy="FREQUENCY_HEIGHT + CANVAS_HEIGHT / 2"
-                            :data-x="frequencyToXPos(frequency)" :data-y="FREQUENCY_HEIGHT + CANVAS_HEIGHT / 2"
-                            :data-id="index" :r="7" :fill="circleColors[index]" :stroke="circleColors[index]"
-                            ref="equalizerNodesRef"></circle>
-                    </g>
-                </svg>
-            </div>
-            <div id="fNodeContainer1" class="filterNodeContainer">
-                <div class="filterNodeSetting">
-                    <label class="modeLabel">Mode</label>
-                    <div class="equalizerModeSelectBox select">
-                        <select id="equalizerModeSelect1" v-model="equalizerMode1" @change="handleModeChange1">
-                            <option value="lowpass">Lowpass</option>
-                            <option value="highpass">Highpass</option>
-                            <option value="bandpass">Bandpass</option>
-                            <option value="lowshelf">Lowshelf</option>
-                            <option value="highshelf">Highshelf</option>
-                            <option value="peaking">Peaking</option>
-                            <option value="notch">Notch</option>
-                            <option value="allpass">Allpass</option>
-                        </select>
-                        <div class="select__arrow"></div>
-                    </div>
-                    <label class="qualityLabel">Quality (Q)</label>
-                    <div id="qualityContainer1" class="knob qualityKnob" v-if="isMounted">
-                        <Knob id="qKnob1" :data-id="1" :rotate-func="qualityKnobRotate" :start="quality.start"
-                            :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
-                    </div>
+                    <text :x="CANVAS_WIDTH + 5" :y="FREQUENCY_HEIGHT + CANVAS_HEIGHT" text-anchor="center">
+                        {{ decibelLines[0] }}
+                    </text>
+                </g>
+                <g>
+                    <circle v-for="(frequency, index) in equalizerNodeFrequencies" :key="index"
+                        :cx="frequencyToXPos(frequency)" :cy="FREQUENCY_HEIGHT + CANVAS_HEIGHT / 2"
+                        :data-x="frequencyToXPos(frequency)" :data-y="FREQUENCY_HEIGHT + CANVAS_HEIGHT / 2" :data-id="index"
+                        :r="7" :fill="circleColors[index]" :stroke="circleColors[index]" ref="equalizerNodesRef"></circle>
+                </g>
+            </svg>
+        </div>
+        <div id="fNodeContainer1" class="filterNodeContainer">
+            <div class="filterNodeSetting">
+                <label class="modeLabel">Mode</label>
+                <div class="equalizerModeSelectBox select">
+                    <select id="equalizerModeSelect1" v-model="equalizerMode1" @change="handleModeChange1">
+                        <option value="lowpass">Lowpass</option>
+                        <option value="highpass">Highpass</option>
+                        <option value="bandpass">Bandpass</option>
+                        <option value="lowshelf">Lowshelf</option>
+                        <option value="highshelf">Highshelf</option>
+                        <option value="peaking">Peaking</option>
+                        <option value="notch">Notch</option>
+                        <option value="allpass">Allpass</option>
+                    </select>
+                    <div class="select__arrow"></div>
+                </div>
+                <label class="qualityLabel">Quality (Q)</label>
+                <div id="qualityContainer1" class="knob qualityKnob" v-if="isMounted">
+                    <Knob id="qKnob1" :data-id="1" :rotate-func="qualityKnobRotate" :start="quality.start"
+                        :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
+                </div>
 
-                    <label id="qualityLabel1">1.0</label>
-                </div>
-            </div>
-            <div id="fNodeContainer2" class="filterNodeContainer">
-                <div class="filterNodeSetting">
-                    <label class="modeLabel">Mode</label>
-                    <div class="equalizerModeSelectBox select">
-                        <select id="equalizerModeSelect2" v-model="equalizerMode2" @change="handleModeChange2">
-                            <option value="lowpass">Lowpass</option>
-                            <option value="highpass">Highpass</option>
-                            <option value="bandpass">Bandpass</option>
-                            <option value="lowshelf">Lowshelf</option>
-                            <option value="highshelf">Highshelf</option>
-                            <option value="peaking">Peaking</option>
-                            <option value="notch">Notch</option>
-                            <option value="allpass">Allpass</option>
-                        </select>
-                        <div class="select__arrow"></div>
-                    </div>
-                    <label class="qualityLabel">Quality (Q)</label>
-                    <div id="qualityContainer2" class="knob qualityKnob" v-if="isMounted">
-                        <Knob id="qKnob2" :data-id="2" :rotate-func="qualityKnobRotate" :start="quality.start"
-                            :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
-                    </div>
-                    <label id="qualityLabel2">1.0</label>
-                </div>
-            </div>
-            <div id="fNodeContainer3" class="filterNodeContainer">
-                <div class="filterNodeSetting">
-                    <label class="modeLabel">Mode</label>
-                    <div class="equalizerModeSelectBox select">
-                        <select id="equalizerModeSelect3" v-model="equalizerMode3" @change="handleModeChange3">
-                            <option value="lowpass">Lowpass</option>
-                            <option value="highpass">Highpass</option>
-                            <option value="bandpass">Bandpass</option>
-                            <option value="lowshelf">Lowshelf</option>
-                            <option value="highshelf">Highshelf</option>
-                            <option value="peaking">Peaking</option>
-                            <option value="notch">Notch</option>
-                            <option value="allpass">Allpass</option>
-                        </select>
-                        <div class="select__arrow"></div>
-                    </div>
-                    <label class="qualityLabel">Quality (Q)</label>
-                    <div id="qualityContainer3" class="knob qualityKnob" v-if="isMounted">
-                        <Knob id="qKnob3" :data-id="3" :rotate-func="qualityKnobRotate" :start="quality.start"
-                            :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
-                    </div>
-                    <label id="qualityLabel3">1.0</label>
-                </div>
-            </div>
-            <div id="measureBox">
-                <label>Frequency</label>
-                <label id="eqCurrentFreq">{{ `${eqCurrentFreq} Hz` }}</label>
-                <label>Gain</label>
-                <label id="eqCurrentGain">{{ `${eqGain} db` }}</label>
+                <label id="qualityLabel1">1.0</label>
             </div>
         </div>
-    </div>
+        <div id="fNodeContainer2" class="filterNodeContainer">
+            <div class="filterNodeSetting">
+                <label class="modeLabel">Mode</label>
+                <div class="equalizerModeSelectBox select">
+                    <select id="equalizerModeSelect2" v-model="equalizerMode2" @change="handleModeChange2">
+                        <option value="lowpass">Lowpass</option>
+                        <option value="highpass">Highpass</option>
+                        <option value="bandpass">Bandpass</option>
+                        <option value="lowshelf">Lowshelf</option>
+                        <option value="highshelf">Highshelf</option>
+                        <option value="peaking">Peaking</option>
+                        <option value="notch">Notch</option>
+                        <option value="allpass">Allpass</option>
+                    </select>
+                    <div class="select__arrow"></div>
+                </div>
+                <label class="qualityLabel">Quality (Q)</label>
+                <div id="qualityContainer2" class="knob qualityKnob" v-if="isMounted">
+                    <Knob id="qKnob2" :data-id="2" :rotate-func="qualityKnobRotate" :start="quality.start"
+                        :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
+                </div>
+                <label id="qualityLabel2">1.0</label>
+            </div>
+        </div>
+        <div id="fNodeContainer3" class="filterNodeContainer">
+            <div class="filterNodeSetting">
+                <label class="modeLabel">Mode</label>
+                <div class="equalizerModeSelectBox select">
+                    <select id="equalizerModeSelect3" v-model="equalizerMode3" @change="handleModeChange3">
+                        <option value="lowpass">Lowpass</option>
+                        <option value="highpass">Highpass</option>
+                        <option value="bandpass">Bandpass</option>
+                        <option value="lowshelf">Lowshelf</option>
+                        <option value="highshelf">Highshelf</option>
+                        <option value="peaking">Peaking</option>
+                        <option value="notch">Notch</option>
+                        <option value="allpass">Allpass</option>
+                    </select>
+                    <div class="select__arrow"></div>
+                </div>
+                <label class="qualityLabel">Quality (Q)</label>
+                <div id="qualityContainer3" class="knob qualityKnob" v-if="isMounted">
+                    <Knob id="qKnob3" :data-id="3" :rotate-func="qualityKnobRotate" :start="quality.start"
+                        :min="quality.min" :max="quality.max" :mid-knob="false"></Knob>
+                </div>
+                <label id="qualityLabel3">1.0</label>
+            </div>
+        </div>
+        <div id="measureBox">
+            <label>Frequency</label>
+            <label id="eqCurrentFreq">{{ `${eqCurrentFreq} Hz` }}</label>
+            <label>Gain</label>
+            <label id="eqCurrentGain">{{ `${eqGain} db` }}</label>
+        </div>
+    </BaseModal>
 </template>
 
 <script setup lang="ts">
@@ -129,6 +119,7 @@ import {
     Ref
 } from 'vue';
 import Knob from './Knob.vue';
+import BaseModal from './BaseModal.vue'
 
 import interact from 'interactjs';
 import Settings from '../assets/js/settingManager';
