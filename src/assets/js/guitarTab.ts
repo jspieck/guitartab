@@ -107,7 +107,6 @@ const startUp = function startUp(equalizer) {
         normalize: true
     });
     waveSurfer.load('./audio/strings/tremoloStringsC4.ogg'); */
-  modalHandler.createMixer();
   menuHandler.applyStyleMode();
 
   audioEngine.loadSF2();

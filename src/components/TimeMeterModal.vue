@@ -1,16 +1,6 @@
 <template>
-    <div id="timeMeterModal" class="modal" role="alert">
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Time Meter</label>
-        <div class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
+    <BaseModal>
+        <template #title>Time Meter</template>
         <div class="timeMeterSelectCapsule">
           <label class="labelTopMargin">Numerator</label>
           <div class="select">
@@ -37,13 +27,13 @@
           <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
           <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
         </svg>
-      </div>
-    </div>
+    </BaseModal>
   </template>
   
   <script setup lang="ts">
   import { ref } from 'vue';
-  
+  import BaseModal from './BaseModal.vue';
+
   const numerator = ref(4);
   const denominator = ref(4);
   const denominators = [1, 2, 4, 8, 16, 32];

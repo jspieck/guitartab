@@ -1,17 +1,6 @@
 <template>
-    <div>
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Piano</label>
-        <div class="hideTopBar"></div>
-        <div id="pianoModalClose" class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
+    <BaseModal>
+        <template #title>Piano</template>
         <div id="piano" class="piano">
           <ul id="pianoList">
             <li v-for="(key, index) in keys" :key="index">
@@ -21,13 +10,13 @@
           </ul>
         </div>
         <img class="eyeToggle visibleEye" src="../assets/images/eye.svg" />
-      </div>
-    </div>
+    </BaseModal>
   </template>
   
   <script setup lang="ts">
   import { ref, computed } from 'vue';
   import midiEngine from '../assets/js/midiReceiver';
+  import BaseModal from './BaseModal.vue';
   
   let clickedKeyOnPiano = 0;
   const numTasten = ref(56);

@@ -1,22 +1,3 @@
-<script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import Menu from './components/Menu.vue'
-import Footer from './components/Footer.vue'
-import Compressor from './components/Compressor.vue'
-import Equalizer from './components/Equalizer.vue'
-import Sequencer from './components/Sequencer.vue'
-import GuitarModal from './components/GuitarModal.vue'
-import PianoModal from './components/PianoModal.vue'
-import TimeMeterModal from './components/TimeMeterModal.vue'
-import { startUp } from './assets/js/guitarTab'
-
-const equalizer = ref(null);
-
-onMounted(() => {
-  startUp(equalizer)
-})
-</script>
-
 <template>
   <div id="content" class="main">
     <svg width="0" height="0">
@@ -790,78 +771,33 @@ onMounted(() => {
       </div>
     </div>
 
-    <div id="mixerModal" class="modal" role="alert">
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Mixer</label>
-        <div class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
-        <div id="mixerMain"></div>
-      </div>
-    </div>
-
+    <Mixer />
     <Compressor id="compressorModal" class="modal" role="alert"/>
-    <Equalizer ref="equalizer"/>
-
-    <div id="instrumentSettingsModal" class="modal" role="alert">
-      <div class="modalTopBar">
-        <label class="modalTopBarLabel">Instrument Settings</label>
-        <div class="modal_close">
-          <div class="icon">
-            <svg viewBox="0 0 32 32">
-              <use xlink:href="#close-icon"></use>
-            </svg>
-          </div>
-        </div>
-      </div>
-      <div class="modalBody">
-        <label>Name:</label>
-        <input id="instrumentNameInput" />
-        <label>Color:</label>
-        <div id="instrumentColorPicker" readonly="readonly"></div>
-        <div id="alternativeContainer">
-          <ul class="unstyled">
-            <li><input class="styled-checkbox" id="ringCheckbox" type="checkbox"><label for="ringCheckbox">Let it
-                ring</label></li>
-          </ul>
-        </div>
-        <label>String Count:</label>
-        <div id="stringCountSelectBox" class="select">
-          <select id="stringCountSelect">
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-          </select>
-          <div class="select__arrow"></div>
-        </div>
-        <label>Capo:</label>
-        <div id="capoSelectBox" class="select">
-          <select id="capoSelect">
-            <option v-for="num in 16" :value="num - 1">{{ num - 1 }}</option>
-          </select>
-          <div class="select__arrow"></div>
-        </div>
-        <label>String Tuning:</label>
-        <div id="tuningAreaModal"></div>
-
-        <svg id="instrumentSettingsSelectButton" class="checkmark selectButton" xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 52 52">
-          <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-          <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-        </svg>
-      </div>
-    </div>
+    <Equalizer id="equalizerModal" class="modal" role="alert" ref="equalizer"/>
+    <InstrumentSettingsModal id="isntrumentSettingsModal" class="modal" role="alert" />
   </div>
 </template>
+
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import Menu from './components/Menu.vue'
+import Footer from './components/Footer.vue'
+import Compressor from './components/Compressor.vue'
+import Equalizer from './components/Equalizer.vue'
+import Sequencer from './components/Sequencer.vue'
+import GuitarModal from './components/GuitarModal.vue'
+import PianoModal from './components/PianoModal.vue'
+import TimeMeterModal from './components/TimeMeterModal.vue'
+import InstrumentSettingsModal from './components/InstrumentSettingModal.vue';
+import Mixer from './components/Mixer.vue'
+import { startUp } from './assets/js/guitarTab'
+
+const equalizer = ref(null);
+
+onMounted(() => {
+  startUp(equalizer)
+})
+</script>
 
 <style scoped>
 .logo {
