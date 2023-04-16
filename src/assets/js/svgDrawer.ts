@@ -3,7 +3,6 @@ import Song, {
   Note, Measure, Grace, TremoloBar, Bend,
 } from './songData';
 import Settings from './settingManager';
-import { menuHandler } from './menuHandler';
 import Duration from './duration';
 import playBackLogic from './playBackLogicNew';
 import { tab } from './tab';
@@ -13,6 +12,7 @@ import { modalHandler } from './modalHandler';
 import { audioEngine } from './audioEngine';
 import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
+import EventBus from "./eventBus";
 
 class SvgDrawer {
   rowsPerPage: { rowStart: number, rowEnd: number }[][][];
@@ -690,8 +690,7 @@ class SvgDrawer {
     const pageId = this.blockToPage[blockId];
     this.moveMarkerToPosition(trackId, blockId, voiceId, beatId, string, pageId);
     this.markClickedPos(trackId, blockId, voiceId, beatId, string, pageId);
-    menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
-    menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, string);
+    EventBus.emit("menu.clickedOnPos", {trackId, blockId, voiceId, beatId, string})
     playBackLogic.setPlayPosition(trackId, blockId, voiceId, beatId);
   }
 

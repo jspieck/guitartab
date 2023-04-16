@@ -3,7 +3,7 @@ import AppManager from './appManager';
 import Settings from './settingManager';
 import Song, { Measure, Note, Interval } from './songData';
 import { revertHandler } from './revertHandler';
-import menuHandler from './menuHandler';
+import EventBus from './eventBus';
 import Duration from './duration';
 import Helper from './helper';
 import playBackLogic from './playBackLogicNew';
@@ -266,9 +266,9 @@ class OverlayHandler {
     this.setEndOverlay(trackId, blockId, voiceId, beatId);
     this.redrawOverlays();
     if (this.isNoteSelected()) {
-      menuHandler.enableNoteEffectButtons();
+      EventBus.emit("menu.enableNoteEffectButtons");
     } else {
-      menuHandler.disableNoteEffectButtons();
+      EventBus.emit("menu.disableNoteEffectButtons");
     }
   }
 
@@ -563,42 +563,13 @@ class OverlayHandler {
     }
   }
 
-  static createDrumInfo() {
-    fastdom.mutate(() => {
-      const drumInfoContainer = document.getElementById('drumInfo');
-      const {
-        trackId, blockId, voiceId, beatId, string,
-      } = tab.markedNoteObj;
-      for (const [key, drumInfo] of audioEngine.noteToDrum) {
-        const name = drumInfo[0];
-        // const shortName = audioEngine.noteToDrum[key][5];
-        const iDiv = document.createElement('div');
-        const span1 = document.createElement('span');
-        span1.textContent = name;
-        // const span2 = document.createElement("span");
-        // span2.setAttribute("class","sp2");
-        // span2.textContent = shortName;
-        const span3 = document.createElement('span');
-        span3.setAttribute('class', 'sp3');
-        span3.textContent = key.toString();
-        iDiv.appendChild(span1);
-        // iDiv.appendChild(span2);
-        iDiv.appendChild(span3);
-        drumInfoContainer?.appendChild(iDiv);
-        iDiv.addEventListener('click', () => {
-          AppManager.placeNote(trackId, blockId, voiceId, beatId, string, key);
-        });
-      }
-    });
-  }
-
   getNotesInInterval(interval: Interval | null): {
     notes: {trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, note: Note}[],
     blocks: number[],
     beats: {trackId: number, blockId: number, voiceId: number, beatId: number,
       beat: Measure}[]
-  } {
+  } | null {
     const notesToExecuteOn: {trackId: number, blockId: number, voiceId: number,
       beatId: number, string: number, note: Note}[] = [];
     const blocks = [];
@@ -609,6 +580,8 @@ class OverlayHandler {
     }
     const { trackId } = tab.markedNoteObj;
     const { voiceId } = tab.markedNoteObj;
+    if (!Song.measures[trackId]) return null;
+
     if (loopI == null || loopI.trackId !== Song.currentTrackId) {
       const note = Song.measures[trackId][tab.markedNoteObj.blockId][voiceId][
         tab.markedNoteObj.beatId].notes[tab.markedNoteObj.string];

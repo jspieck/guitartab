@@ -233,6 +233,34 @@ import AppManager from '../assets/js/appManager';
 import { classicalNotation } from '../assets/js/vexflowClassical';
 import { Sequencer } from '../assets/js/sequencer';
 import { overlayHandler } from '../assets/js/overlayHandler';
+import { onMounted, onBeforeUnmount } from 'vue';
+import EventBus from "../assets/js/eventBus";
+
+function clickedOnPos(position: {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}) {
+    const {trackId, blockId, voiceId, beatId, string} = position;
+    activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
+    setNoteLengthForMark(trackId, blockId, voiceId, beatId, string);
+}
+
+onMounted(() => {
+    // EventBus.on("menu.applyStyleMode", () => applyStyleMode);
+    // EventBus.on("menu.handleEffectGroupCollision", {notes: arr.notes, property: 'bend', isVariableSet})
+    EventBus.on("menu.activateEffectsForMarkedBeat", () => activateEffectsForMarkedBeat);
+    EventBus.on("menu.activateEffectsForMarkedPos", () => activateEffectsForMarkedPos);
+    EventBus.on("menu.activateEffectsForBeat", beat => activateEffectsForBeat(beat as Measure));
+    EventBus.on("menu.enableNoteEffectButtons", () => enableNoteEffectButtons);
+    EventBus.on("menu.disableNoteEffectButtons", () => disableNoteEffectButtons);
+    EventBus.on("menu.activateEffectsForBlock", () => activateEffectsForBlock)
+    EventBus.on("menu.noteLengthSelect", () => (info: {name: string, value: string}) => noteLengthSelect(info.name, info.value));
+    EventBus.on("menu.activateEffectsForPos", () => (trackId: number, blockId: number, voiceId: number, beatId: number, string: number) => activateEffectsForPos(trackId, blockId, voiceId, beatId, string));
+    EventBus.on("menu.activateEffectsForNote", note => activateEffectsForNote(note as Note));
+    EventBus.on("menu.clickedOnPos", position => clickedOnPos(position as {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}));
+})
+
+onBeforeUnmount(() => {
+    EventBus.off("menu.activateEffectsForNote", note => activateEffectsForNote(note as Note));
+    EventBus.off("menu.clickedOnPos", position => clickedOnPos(position as {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}));
+});
 
 let tempoMoveTmp = () => { };
 let removeListenersTmp = () => { };
@@ -494,7 +522,7 @@ function processNotationSelect(
     } else if (id === 'closeBar' && isRevert == null && !Song.measureMeta[blockId].repeatClosePresent) {
         modalHandler.openRepititionNumberModal(trackId, blockId, voiceId);
     } else if (id === 'timeMeter' && isRevert == null && (blockId === 0 || !Song.measureMeta[blockId].timeMeterPresent)) {
-        modalHandler.openTimeMeterModal(trackId, blockId, voiceId);
+        modalHandler.openTimeMeterModal();
     } else if (id === 'bpmMeter' && isRevert == null && !Song.measureMeta[blockId].bpmPresent) {
         modalHandler.openBpmModal(trackId, blockId, voiceId);
     } else {

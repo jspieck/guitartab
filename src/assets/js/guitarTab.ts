@@ -1,17 +1,15 @@
 // import { ipcRenderer } from "electron";
 import Settings from './settingManager';
-import { menuHandler } from './menuHandler';
 import playBackLogic from './playBackLogicNew';
 import Song from './songData';
-import { modalHandler } from './modalHandler';
 import { audioEngine } from './audioEngine';
 import midiEngine from './midiReceiver';
 import AppManager from './appManager';
-import { visualInstruments } from './visualInstruments';
-import { OverlayHandler } from './overlayHandler';
 import { revertHandler } from './revertHandler';
 import { gp5Writer } from './GP5Writ';
 import { gProReader } from './GProReader';
+import Equalizer from '../../components/Equalizer.vue';
+import Menu from '../../components/Menu.vue';
 // import { svgDrawer } from './svgDrawer';
 
 console.log('File is called!!!!!!');
@@ -58,9 +56,9 @@ if (!inBrowser) {
 
     Song.initEmptySong();
     AppManager.createGuitarTab(0);
-    menuHandler.applyStyleMode();
-    AppManager.createAllInstruments();
-    menuHandler.activateEffectsForPos(0, 0, 0, 0, 0);
+    Menu.applyStyleMode();
+    // TODO AppManager.createAllInstruments();
+    Menu.activateEffectsForPos(0, 0, 0, 0, 0);
   });
   window.api.response('saved', () => {
     AppManager.showNotification('Saved!');
@@ -69,14 +67,14 @@ if (!inBrowser) {
 
 // let waveSurfer;
 // let wml;
-const startUp = function startUp(equalizer) {
+const startUp = function startUp(equalizer: typeof Equalizer, menu: typeof Menu) {
   document.fonts.load('10pt "musicFont"');
   document.fonts.load('10pt "notesFont"');
   Settings.darkMode = Settings.load('darkMode') === 'true';
   // audioEngine.initSound();
   midiEngine.init();
   // document.getElementById('files').addEventListener('change', handleFileSelect, false);
-  menuHandler.initMenuButtons();
+  Menu.initMenuButtons();
 
   document.addEventListener('mousewheel', (e: Event) => {
     AppManager.scrollTabEvent(e as WheelEvent);
@@ -92,12 +90,9 @@ const startUp = function startUp(equalizer) {
   Song.initEmptySong();
 
   // visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
-  OverlayHandler.createDrumInfo();
   audioEngine.createBusses(equalizer);
 
   AppManager.createGuitarTab(0);
-  AppManager.createAllInstruments();
-
   /* test: draw audio audioWaveForm
     waveSurfer = WaveSurfer.create({
         container: '#audioWaveForm',
@@ -107,7 +102,7 @@ const startUp = function startUp(equalizer) {
         normalize: true
     });
     waveSurfer.load('./audio/strings/tremoloStringsC4.ogg'); */
-  menuHandler.applyStyleMode();
+  Menu.applyStyleMode();
 
   audioEngine.loadSF2();
 

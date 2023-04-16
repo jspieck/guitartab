@@ -1,7 +1,6 @@
 import Song, { Measure, Note, TremoloBar } from './songData';
 import GPXByteBuffer from './GPXByteBuffer';
 import GProReader from './GProReader';
-import { menuHandler } from './menuHandler';
 import AppManager from './appManager';
 
 class GpxReader {
@@ -66,7 +65,7 @@ class GpxReader {
     // t0 = performance.now();
     GProReader.writeNoteInfoToBeat();
     AppManager.createGuitarTab(0);
-    menuHandler.applyStyleMode();
+    // menuHandler.applyStyleMode();
     // console.log("Track Change: " + (performance.now()-t0)+"ms");
   }
 

@@ -4,15 +4,17 @@ import { sequencer } from './sequencer';
 import { svgDrawer } from './svgDrawer';
 import { revertHandler } from './revertHandler';
 import AppManager from './appManager';
-import { menuHandler, MenuHandler } from './menuHandler';
 import Duration from './duration';
 import Helper from './helper';
 import Settings from './settingManager';
 import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
-import { visualInstruments } from './visualInstruments';
+
+import Menu from '../../components/Menu.vue';
 
 class Tab {
+  menu: typeof Menu;
+
   currentZoom: number;
 
   ZOOM_STEP: number;
@@ -48,7 +50,9 @@ class Tab {
 
   drawTrackCall: [number, number, boolean, (() => void) | null] | null;
 
-  constructor() {
+  constructor(menu: typeof Menu) {
+    this.menu = menu;
+
     this.currentZoom = 1.0;
     this.ZOOM_STEP = 0.05;
     this.ZOOM_MAX = 1.5;
@@ -259,7 +263,7 @@ class Tab {
 
     // only draw when current track is visible
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-      menuHandler.enableNoteEffectButtons();
+      this.menu.enableNoteEffectButtons();
       svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
       svgDrawer.rerenderBlock(trackId, blockId, voiceId);
     }
@@ -446,7 +450,7 @@ class Tab {
       this.tupletManager[nextBeat.tupletId] = { originalDuration: '' };
       this.markedNoteObj.beatId = beatId;
     }
-    menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
+    this.menu.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
 
     const tupletDom = document.getElementById('tuplet');
     tupletDom?.classList.toggle('pressed');
@@ -1076,7 +1080,7 @@ class Tab {
       trackId, blockId, voiceId, beatId, string, newDuration, previousDuration, noteLength,
     );
     svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-    MenuHandler.showAvailableTupletSizes(newDuration);
+    this.menu.showAvailableTupletSizes(newDuration);
 
     if (this.trackRerenderNecessary(trackId, blockId, voiceId)) {
       this.drawTrack(trackId, voiceId, true, null);
@@ -1412,6 +1416,5 @@ class Tab {
   }
 }
 
-const tab = new Tab();
-export { Tab, tab };
+export { Tab };
 export default Tab;
