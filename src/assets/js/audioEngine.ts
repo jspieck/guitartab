@@ -596,7 +596,7 @@ class AudioEngine {
     // sf2Parser.loadSoundFont("./GeneralMidi/Turtle Beach Montego II Aureal GM.sf2");
     // sf2Parser.loadSoundFont("./GeneralMidi/SGM-v2.01-NicePianosGuitarsBass-V1.2.sf2");
     // TODO this is the best one
-    sf2Parser.loadSoundFont('./GeneralMidi/Roland SC-55Edited.sf2'); // FAVORITE
+    sf2Parser.loadSoundFont('./src/assets/audio/Roland SC-55Edited.sf2'); // FAVORITE
     // sf2Parser.loadSoundFont("./GeneralMidi/Timbres Of Heaven GM_GS_XG_SFX V 3.4 Final.sf2");
     // sf2Parser.loadSoundFont("./GeneralMidi/FluidR3 GM2-2.sf2");
     // sf2Parser.loadSoundFont("./GeneralMidi/Arachno SoundFont - Version 1.0.sf2");

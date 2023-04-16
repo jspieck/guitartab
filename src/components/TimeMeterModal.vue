@@ -1,45 +1,104 @@
 <template>
-    <BaseModal>
-        <template #title>Time Meter</template>
-        <div class="timeMeterSelectCapsule">
-          <label class="labelTopMargin">Numerator</label>
-          <div class="select">
-            <select v-model="numerator">
-              <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
-            </select>
-            <div class="select__arrow"></div>
-          </div>
-          <label class="labelTopMargin">Denominator</label>
-          <div class="select timeMeterSelect">
-            <select v-model="denominator">
-              <option v-for="n in denominators" :key="n" :value="n">{{ n }}</option>
-            </select>
-            <div class="select__arrow"></div>
-          </div>
-        </div>
-        <svg
-          id="timeMeterSelectButton"
-          class="checkmark selectButton"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 52 52"
-          @click="onSelectButtonClick"
-        >
-          <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-          <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-        </svg>
-    </BaseModal>
-  </template>
-  
-  <script setup lang="ts">
-  import { ref } from 'vue';
-  import BaseModal from './BaseModal.vue';
+  <BaseModal>
+    <template #title>Time Meter</template>
+    <div class="timeMeterSelectCapsule">
+      <label class="labelTopMargin">Numerator</label>
+      <div class="select">
+        <select v-model="numerator">
+          <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
+        </select>
+        <div class="select__arrow"></div>
+      </div>
+      <label class="labelTopMargin">Denominator</label>
+      <div class="select timeMeterSelect">
+        <select v-model="denominator">
+          <option v-for="n in denominators" :key="n" :value="n">{{ n }}</option>
+        </select>
+        <div class="select__arrow"></div>
+      </div>
+    </div>
+    <SubmitButton :submitInfo="onSelectButtonClick" />
+  </BaseModal>
+</template>
 
-  const numerator = ref(4);
-  const denominator = ref(4);
-  const denominators = [1, 2, 4, 8, 16, 32];
-  
-  function onSelectButtonClick() {
-    console.log('Selected time meter:', numerator.value, denominator.value);
+<script setup lang="ts">
+import { ref } from "vue";
+import BaseModal from "./BaseModal.vue";
+import Song from "../assets/js/songData";
+import modalHandler from "../assets/js/modalHandler";
+import AppManager from "../assets/js/appManager";
+import { revertHandler } from "../assets/js/revertHandler";
+import { tab } from "../assets/js/tab";
+
+const numerator = ref(4);
+const denominator = ref(4);
+const denominators = [1, 2, 4, 8, 16, 32];
+
+const props = defineProps({
+  trackId: {
+    type: Number,
+    required: true,
+  },
+  blockId: {
+    type: Number,
+    required: true,
+  },
+  voiceId: {
+    type: Number,
+    required: true,
+  },
+});
+
+function onSelectButtonClick() {
+  const blockId = props.blockId;
+  Song.measureMeta[blockId].timeMeterPresent = true;
+  modalHandler.closeModal("timeMeterModal");
+  // TODO arrays
+  const numeratorBefore = Song.measureMeta[blockId].numerator;
+  const denominatorBefore = Song.measureMeta[blockId].denominator;
+
+  Song.measureMeta[blockId].numerator = numerator.value;
+  Song.measureMeta[blockId].denominator = denominator.value;
+
+  const notesBefore = AppManager.checkAndAdaptTimeMeter(blockId);
+  if (notesBefore == null) {
+    Song.measureMeta[blockId].numerator = numeratorBefore;
+    Song.measureMeta[blockId].denominator = denominatorBefore;
+    Song.measureMeta[blockId].timeMeterPresent = false;
+    return;
   }
-  </script>
-  
+  // Set until the end of track/ next timeMeter
+  for (let bId = blockId + 1; bId < Song.measureMeta.length; bId += 1) {
+    if (Song.measureMeta[bId].timeMeterPresent) break;
+    Song.measureMeta[bId].numerator = Song.measureMeta[blockId].numerator;
+    Song.measureMeta[bId].denominator = Song.measureMeta[blockId].denominator;
+  }
+
+  const { numerator, denominator } = Song.measureMeta[blockId];
+  revertHandler.addTimeMeter(
+    props.trackId,
+    blockId,
+    props.voiceId,
+    numeratorBefore,
+    numerator,
+    denominatorBefore,
+    denominator,
+    false,
+    true,
+    notesBefore
+  );
+
+  tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
+}
+
+function setTimeMeterState(blockId: number) {
+  if (Song.measureMeta[blockId].denominator != null) {
+    denominator.value = Song.measureMeta[blockId].denominator;
+  }
+  if (Song.measureMeta[blockId].numerator != null) {
+    numerator.value = Song.measureMeta[blockId].numerator;
+  }
+}
+
+setTimeMeterState(props.blockId);
+</script>

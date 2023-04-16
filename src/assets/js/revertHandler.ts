@@ -2,7 +2,7 @@ import Song, {
   Measure, MeasureMetaInfo, Track, Bend, TremoloBar, Chord, Marker, Stroke,
   Grace, Note, MeasureEffects,
 } from './songData';
-import { menuHandler, MenuHandler } from './menuHandler';
+import EventBus from './eventBus';
 import { tab, Tab } from './tab';
 import AppManager from './appManager';
 import { svgDrawer } from './svgDrawer';
@@ -802,7 +802,7 @@ class RevertHandler {
     Song.measures[trackId][blockId][voiceId][beatId].text = previousText;
     Song.measures[trackId][blockId][voiceId][beatId].textPresent = textPresentBefore;
     svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreText({
@@ -814,7 +814,7 @@ class RevertHandler {
     Song.measures[trackId][blockId][voiceId][beatId].text = nextText;
     Song.measures[trackId][blockId][voiceId][beatId].textPresent = textPresentAfter;
     svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Marker
@@ -853,7 +853,7 @@ class RevertHandler {
       }
     }
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Time Meter
@@ -885,7 +885,7 @@ class RevertHandler {
       }
     }
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreTimeMeter(
@@ -897,7 +897,7 @@ class RevertHandler {
     Song.measureMeta[infoObj.blockId].denominator = infoObj.denominatorAfter;
     AppManager.checkAndAdaptTimeMeter(infoObj.blockId);
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Bpm Meter
@@ -909,7 +909,7 @@ class RevertHandler {
     Song.measureMeta[infoObj.blockId].bpm = infoObj.bpmBefore;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreBpmMeter(
@@ -920,7 +920,7 @@ class RevertHandler {
     Song.measureMeta[infoObj.blockId].bpm = infoObj.bpmAfter;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Chord
@@ -933,7 +933,7 @@ class RevertHandler {
     Song.measures[trackId][blockId][voiceId][beatId].chord = chordBefore;
     Song.measures[trackId][blockId][voiceId][beatId].chordPresent = chordPresentBefore;
     svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreChord({
@@ -945,7 +945,7 @@ class RevertHandler {
     Song.measures[trackId][blockId][voiceId][beatId].chord = chordAfter;
     Song.measures[trackId][blockId][voiceId][beatId].chordPresent = chordPresentAfter;
     svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Repeat Alternative
@@ -958,7 +958,7 @@ class RevertHandler {
     Song.measureMeta[blockId].repeatAlternativePresent = repeatAlternativePresentBefore;
     Song.measureMeta[blockId].repeatAlternative = repeatAlternativeBefore;
     svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreRepeatAlternative({
@@ -970,7 +970,7 @@ class RevertHandler {
     Song.measureMeta[blockId].repeatAlternativePresent = repeatAlternativePresentAfter;
     Song.measureMeta[blockId].repeatAlternative = repeatAlternativeAfter;
     svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Repeat Close
@@ -981,7 +981,7 @@ class RevertHandler {
     Song.measureMeta[infoObj.blockId].repeatClosePresent = infoObj.repeatClosePresentBefore;
     Song.measureMeta[infoObj.blockId].repeatClose = infoObj.repeatCloseBefore;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreRepeatClose(
@@ -991,7 +991,7 @@ class RevertHandler {
     Song.measureMeta[infoObj.blockId].repeatClosePresent = infoObj.repeatClosePresentAfter;
     Song.measureMeta[infoObj.blockId].repeatClose = infoObj.repeatCloseAfter;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    menuHandler.activateEffectsForMarkedPos();
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Stroke
@@ -1004,7 +1004,7 @@ class RevertHandler {
     beat.effects.stroke = infoObj.strokeBefore;
     beat.effects.strokePresent = infoObj.strokePresentBefore;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    MenuHandler.activateEffectsForMarkedBeat();
+    EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
   static restoreStroke(infoObj: {trackId: number, blockId: number, voiceId: number, beatId: number,
@@ -1013,7 +1013,7 @@ class RevertHandler {
     beat.effects.stroke = infoObj.strokeAfter;
     beat.effects.strokePresent = infoObj.strokePresentAfter;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    MenuHandler.activateEffectsForMarkedBeat();
+    EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
   // Artificial
@@ -1028,7 +1028,7 @@ class RevertHandler {
       note.artificialStyle = artificialBefore;
       note.artificialPresent = artificialPresentBefore;
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }
@@ -1045,7 +1045,7 @@ class RevertHandler {
       note.artificialStyle = artificialAfter;
       note.artificialPresent = artificialPresentAfter;
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is nul');
     }
@@ -1063,7 +1063,7 @@ class RevertHandler {
       note.graceObj = graceBefore;
       note.gracePresent = gracePresentBefore;
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }
@@ -1080,7 +1080,7 @@ class RevertHandler {
       note.graceObj = graceAfter;
       note.gracePresent = gracePresentAfter;
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }
@@ -1103,7 +1103,7 @@ class RevertHandler {
       }
     }
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    MenuHandler.activateEffectsForMarkedBeat();
+    EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
   static restoreTremoloBar(
@@ -1116,7 +1116,7 @@ class RevertHandler {
     beat.effects.tremoloBar = infoObj.tremoloBarAfter;
     beat.effects.tremoloBarPresent = infoObj.tremoloBarPresentAfter;
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-    MenuHandler.activateEffectsForMarkedBeat();
+    EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
   // tremoloPicking
@@ -1136,7 +1136,7 @@ class RevertHandler {
         }
       }
       svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }
@@ -1155,7 +1155,7 @@ class RevertHandler {
       note.tremoloPickingLength = tremoloPickingAfter;
       note.tremoloPicking = tremoloPickingPresentAfter;
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }
@@ -1177,7 +1177,7 @@ class RevertHandler {
         }
       }
       svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }
@@ -1196,7 +1196,7 @@ class RevertHandler {
       note.bendObj = bendAfter;
       note.bendPresent = bendPresentAfter;
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
-      menuHandler.activateEffectsForMarkedPos();
+      EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
     }

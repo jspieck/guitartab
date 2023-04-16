@@ -4,16 +4,16 @@ import LZString from 'lz-string';
 import { tab, Tab } from './tab';
 import { overlayHandler } from './overlayHandler';
 import {
-  Song, PlayBackInstrument, Note, Track,
+  Song, PlayBackInstrument, Note,
 } from './songData';
 import { modalHandler } from './modalHandler';
-import { menuHandler } from './menuHandler';
+import EventBus from "./eventBus";
 import { svgDrawer } from './svgDrawer';
 import { visualInstruments } from './visualInstruments';
 import midiEngine from './midiReceiver';
 import playBackLogic from './playBackLogicNew';
 import Helper from './helper';
-import { instrumentGroups, instrumentList, numToInstr } from './instrumentData';
+import { numToInstr } from './instrumentData';
 import { audioEngine } from './audioEngine';
 import { sequencer } from './sequencer';
 import Duration from './duration';
@@ -24,7 +24,6 @@ const AppManager = {
   stillMouseDown: false,
   loopIntervalChanged: false,
   duringTrackCreation: false,
-  numberOfTrackToAdd: -1,
   typeOfNote: 'e',
 
   resetVariables() {
@@ -97,22 +96,22 @@ const AppManager = {
         case 'x':
           break;
         case 'w':
-          menuHandler.noteLengthSelect('#wholeNote', pressedValue);
+          EventBus.emit("menu.noteLengthSelect", {name: '#wholeNote', value: pressedValue})
           break;
         case 'h':
-          menuHandler.noteLengthSelect('#halfNote', pressedValue);
+          EventBus.emit("menu.noteLengthSelect", {name: '#halfNote', value: pressedValue})
           break;
         case 'q':
-          menuHandler.noteLengthSelect('#4thNote', pressedValue);
+          EventBus.emit("menu.noteLengthSelect", {name: '#4thNote', value: pressedValue})
           break;
         case 'e':
-          menuHandler.noteLengthSelect('#8thNote', pressedValue);
+          EventBus.emit("menu.noteLengthSelect", {name: '#8thNote', value: pressedValue})
           break;
         case 's':
-          menuHandler.noteLengthSelect('#16thNote', pressedValue);
+          EventBus.emit("menu.noteLengthSelect", {name: '#16thNote', value: pressedValue})
           break;
         case 't':
-          menuHandler.noteLengthSelect('#32ndNote', pressedValue);
+          EventBus.emit("menu.noteLengthSelect", {name: '#32ndNote', value: pressedValue})
           break;
         default:
           break;
@@ -148,7 +147,7 @@ const AppManager = {
           }
           svgDrawer.rerenderBlocks(trackId, blocks, voiceId);
         }
-        menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
+        EventBus.emit("menu.activateEffectsForPos", {trackId, blockId, voiceId, beatId, string});
       }
     });
     // left = 37, up = 38, right = 39, down = 40
@@ -285,20 +284,6 @@ const AppManager = {
         trackTitelDom!.classList.remove('isTooBright');
       }
     }
-  },
-
-  addNewInstrument(instrumentChannel: number, instrumentName: string) {
-    const numTracks = Song.measures.length;
-    const instrObj = {
-      name: instrumentName,
-      channel: instrumentChannel,
-      numStrings: 6,
-      strings: [40, 45, 50, 55, 59, 64],
-    };
-    tab.createNewTrack(numTracks, instrObj);
-    tab.createTakte(numTracks, 0);
-    tab.fillMeasures(numTracks, 0);
-    sequencer.drawBeat();
   },
 
   createGuitarTab(trackId: number) {
@@ -480,120 +465,6 @@ const AppManager = {
   setTracks(trackId: number) {
     this.setPlayBackInstrument(trackId);
     audioEngine.updateBusses(Song.playBackInstrument);
-  },
-
-  changeInstrumentForTrack(
-    numberOfTrackToAdd: number, instrumentChannel: number, instrumentName: string,
-  ) {
-    const instrObj: Track = {
-      channel: { index: instrumentChannel, effectChannel: 0 },
-      numStrings: 6,
-      strings: [40, 45, 50, 55, 59, 64],
-      name: instrumentName,
-      capo: 0,
-      volume: 127,
-      balance: 127,
-      color: { red: 1, green: 0, blue: 0 },
-      reverb: 0,
-      program: 0,
-      primaryChannel: 0,
-      letItRing: false,
-    };
-    Song.tracks[numberOfTrackToAdd] = instrObj;
-
-    // change all other infos
-    let channelId = (numberOfTrackToAdd >= 9)
-      ? numberOfTrackToAdd + 1
-      : numberOfTrackToAdd;
-    if (instrObj.name === 'Drums') {
-      channelId = 9;
-    }
-    Song.allChannels[channelId] = {
-      cInstrument: instrObj.channel.index,
-      volume: 127,
-      balance: 63,
-      chorus: 0,
-      reverb: 0,
-      phaser: 0,
-      tremolo: 0,
-    };
-    Song.tracks[numberOfTrackToAdd] = {
-      numStrings: instrObj.numStrings,
-      strings: instrObj.strings,
-      capo: 0,
-      name: instrObj.name,
-      color: { red: 0, blue: 127, green: 0 },
-      channel: { index: channelId, effectChannel: 0 },
-      volume: 127,
-      balance: 63,
-      reverb: 0,
-      program: 0,
-      primaryChannel: 0,
-      letItRing: false,
-    };
-    Song.playBackInstrument[numberOfTrackToAdd] = {
-      volume: 127,
-      balance: 63,
-      chorus: 0,
-      reverb: 0,
-      phaser: 0,
-      tremolo: 0,
-      instrument: instrObj.name,
-      solo: false,
-      mute: false,
-    };
-    this.setTracks(numberOfTrackToAdd);
-    // todo only change icon
-    sequencer.drawBeat();
-    // TODO only change clef
-    tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-  },
-
-  createAllInstruments() {
-    const instrumentContainer = document.getElementById('instrumentContainer');
-    for (let i = 0; i < instrumentGroups.length; i += 1) {
-      const trackDrop = document.createElement('div');
-      trackDrop.setAttribute('class', 'addTrackDropDown');
-      // eslint-disable-next-line prefer-destructuring
-      trackDrop.textContent = instrumentGroups[i].title;
-      const innerRowParent = document.createElement('div');
-      innerRowParent.setAttribute('class', 'addTrackRowCapsule');
-      trackDrop.appendChild(innerRowParent);
-
-      trackDrop.addEventListener('click', (e) => {
-        if (e.target !== trackDrop) {
-          return;
-        }
-        e.stopPropagation();
-        const capsuleDom = trackDrop.querySelector('.addTrackRowCapsule');
-        capsuleDom?.classList.toggle('visible');
-      });
-
-      for (let j = 0; j < instrumentGroups[i].choices.length; j += 1) {
-        const instrument = instrumentList[instrumentGroups[i].choices[j]];
-        const innerRow = document.createElement('div');
-        innerRow.setAttribute('class', 'addTrackInnerRow');
-        const trackImg = document.createElement('img');
-        trackImg.setAttribute('class', 'addTrackIcon');
-        trackImg.setAttribute('src', instrument[0]);
-        const trackTitle = document.createElement('div');
-        trackTitle.setAttribute('class', 'addTrackTitle');
-        // eslint-disable-next-line prefer-destructuring
-        trackTitle.textContent = instrument[1];
-        innerRow.appendChild(trackImg);
-        innerRow.appendChild(trackTitle);
-
-        innerRow.addEventListener('click', () => {
-          if (this.numberOfTrackToAdd < 0) {
-            this.addNewInstrument(instrument[2], instrument[1]);
-          } else {
-            this.changeInstrumentForTrack(this.numberOfTrackToAdd, instrument[2], instrument[1]);
-          }
-        });
-        innerRowParent.appendChild(innerRow);
-      }
-      instrumentContainer!.appendChild(trackDrop);
-    }
   },
 
   setTimeMeterToAllTracks() {

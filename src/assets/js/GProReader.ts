@@ -1,7 +1,6 @@
 import LZString from 'lz-string';
 import Duration from './duration';
 import Song from './songData';
-import menuHandler from './menuHandler';
 import { gpxReader } from './GPXReader';
 import { audioEngine } from './audioEngine';
 import { sequencer } from './sequencer';
@@ -52,7 +51,7 @@ class GProReader {
       Song.playBackInstrument = JSON.parse(arr[4]);
       sequencer.drawBeat();
       audioEngine.noteToDrum = JSON.parse(arr[5]);
-      menuHandler.applyStyleMode();
+      // menuHandler.applyStyleMode();
     }
   }
 
@@ -155,7 +154,7 @@ class GProReader {
       AppManager.resetVariables();
       GProReader.writeNoteInfoToBeat();
       AppManager.createGuitarTab(0);
-      menuHandler.applyStyleMode();
+      // menuHandler.applyStyleMode();
     }
   }
 

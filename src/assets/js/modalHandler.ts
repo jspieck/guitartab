@@ -5,16 +5,12 @@ import Song, {
   Measure, Note, Marker, SongDescription, Chord, TremoloBar, Stroke, Grace,
 } from './songData';
 import { sequencer, Sequencer } from './sequencer';
-import { audioEngine } from './audioEngine';
-import knobFactory from './knob';
-import { menuHandler, MenuHandler } from './menuHandler';
-import Settings from './settingManager';
+import EventBus from './eventBus';
 import { tab } from './tab';
 import Helper from './helper';
 import AppManager from './appManager';
 import { revertHandler } from './revertHandler';
 import { svgDrawer, SvgDrawer } from './svgDrawer';
-import { classicalNotation } from './vexflowClassical';
 
 interface InteractEvent {
   target: HTMLElement,
@@ -42,8 +38,6 @@ class ModalHandler {
   markerModalData: Marker;
 
   chordModalData: ChordModal;
-
-  graceModalData: GraceModal;
 
   tremoloBarModalData: { bound: boolean };
 
@@ -144,18 +138,7 @@ class ModalHandler {
     this.chordModalData = {
       name: '', capo: 0, frets: [], chordRoot: '', chordType: '', fingers: [], display: false, bound: false,
     };
-    this.graceModalData = {
-      duration: 'e',
-      setOnBeat: 'before',
-      dynamic: 'mf',
-      transition: '',
-      fret: -1,
-      bound: false,
-      string: 0,
-      height: 0,
-      dead: false,
-    };
-
+    
     this.tremoloBarModalData = { bound: false };
     this.tremoloPointsOnLine = [];
     this.NUM_ROWS_TREMOLO = 24;
@@ -479,6 +462,7 @@ class ModalHandler {
           }
         }
         const notesBefore = menuHandler.handleEffectGroupCollision(arr.notes, 'bend', isVariableSet);
+        // const notesBefore = EventBus.emit("menu.handleEffectGroupCollision", {notes: arr.notes, isBend: 'bend', isVariableSet})
         for (const no of arr.notes) {
           const {
             trackId, blockId, voiceId, beatId, string,
@@ -492,7 +476,7 @@ class ModalHandler {
           if (!note.bendPresent) {
             note.bendPresent = true;
             if (tab.markedNoteObj.blockId === blockId && tab.markedNoteObj.beatId === beatId) {
-              menuHandler.activateEffectsForNote(note);
+              EventBus.emit("menu.activateEffectsForNote", note);
             }
           }
           note.bendObj = bendObjs;
@@ -758,6 +742,10 @@ class ModalHandler {
     this.constructTuningArea(trackId, false);
   }
 
+  openInfoModal() {
+   this.displayModal('trackInfoModal', 'Info');
+  }
+
   openInstrumentSettings(trackId: number) {
     this.setInstrumentSettingsState(trackId);
 
@@ -919,94 +907,6 @@ class ModalHandler {
     this.displayModal('reallyDeleteModal', 'Delete');
   }
 
-  openInfoModal() {
-    if (this.infoModalData.bound == null) {
-      const songTitleInputDom = document.getElementById('songTitleInput') as HTMLInputElement;
-      const songSubtitleInputDom = document.getElementById('songSubtitleInput') as HTMLInputElement;
-      const songArtistInputDom = document.getElementById('songArtistInput') as HTMLInputElement;
-      const songAlbumInputDom = document.getElementById('songAlbumInput') as HTMLInputElement;
-      const songAuthorInputDom = document.getElementById('songAuthorInput') as HTMLInputElement;
-      const songMusicInputDom = document.getElementById('songMusicInput') as HTMLInputElement;
-      const songCopyrightInputDom = document.getElementById('songCopyrightInput') as HTMLInputElement;
-      const songWriterInputDom = document.getElementById('songWriterInput') as HTMLInputElement;
-      const songInstructionInputDom = document.getElementById('songInstructionInput') as HTMLInputElement;
-      const songCommentsInputDom = document.getElementById('songCommentsInput') as HTMLInputElement;
-      songTitleInputDom.oninput = () => {
-        this.infoModalData.title = songTitleInputDom.value;
-      };
-      songSubtitleInputDom.oninput = () => {
-        this.infoModalData.subtitle = songSubtitleInputDom.value;
-      };
-      songArtistInputDom.oninput = () => {
-        this.infoModalData.artist = songArtistInputDom.value;
-      };
-      songAlbumInputDom.oninput = () => {
-        this.infoModalData.album = songAlbumInputDom.value;
-      };
-      songAuthorInputDom.oninput = () => {
-        this.infoModalData.author = songAuthorInputDom.value;
-      };
-      songMusicInputDom.oninput = () => {
-        this.infoModalData.music = songMusicInputDom.value;
-      };
-      songCopyrightInputDom.oninput = () => {
-        this.infoModalData.copyright = songCopyrightInputDom.value;
-      };
-      songWriterInputDom.oninput = () => {
-        this.infoModalData.writer = songWriterInputDom.value;
-      };
-      songInstructionInputDom.oninput = () => {
-        this.infoModalData.instructions = songInstructionInputDom.value;
-      };
-      songCommentsInputDom.oninput = () => {
-        this.infoModalData.comments = [];
-        this.infoModalData.comments[0] = songCommentsInputDom.value;
-      };
-
-      document.getElementById('infoSelectButton')!.onclick = () => {
-        this.closeModal('trackInfoModal');
-        if (this.infoModalData.title != null) {
-          Song.songDescription.title = this.infoModalData.title;
-        }
-        if (this.infoModalData.subtitle != null) {
-          Song.songDescription.subtitle = this.infoModalData.subtitle;
-        }
-        if (this.infoModalData.artist != null) {
-          Song.songDescription.artist = this.infoModalData.artist;
-        }
-        if (this.infoModalData.album != null) {
-          Song.songDescription.album = this.infoModalData.album;
-        }
-        if (this.infoModalData.author != null) {
-          Song.songDescription.author = this.infoModalData.author;
-        }
-        if (this.infoModalData.music != null) {
-          Song.songDescription.music = this.infoModalData.music;
-        }
-        if (this.infoModalData.copyright != null) {
-          Song.songDescription.copyright = this.infoModalData.copyright;
-        }
-        if (this.infoModalData.writer != null) {
-          Song.songDescription.writer = this.infoModalData.writer;
-        }
-        if (this.infoModalData.instructions != null) {
-          Song.songDescription.instructions = this.infoModalData.instructions;
-        }
-        if (this.infoModalData.comments != null) {
-          // eslint-disable-next-line prefer-destructuring
-          Song.songDescription.comments[0] = this.infoModalData.comments[0];
-        }
-        fastdom.mutate(() => {
-          // last set info in tab
-          document.getElementById('tabTitle')!.textContent = Song.songDescription.title;
-          document.getElementById('tabAuthor')!.textContent = Song.songDescription.author;
-        });
-      };
-      this.infoModalData.bound = true;
-    }
-    this.displayModal('trackInfoModal', 'Info');
-  }
-
   setArtificialState(note: Note) {
     this.artificialModalData.artificial = this.artificialDefault;
     if (note.artificialStyle != null) {
@@ -1051,7 +951,7 @@ class ModalHandler {
           const artificialBefore = noteInArr.artificialStyle;
           if (!noteInArr.artificialPresent) {
             noteInArr.artificialPresent = true;
-            menuHandler.activateEffectsForNote(noteInArr);
+            EventBus.emit("menu.activateEffectsForNote", noteInArr);
           }
           console.log('AT', this.artificialModalData.artificial);
           noteInArr.artificialStyle = this.artificialModalData.artificial;
@@ -1091,7 +991,7 @@ class ModalHandler {
         const repeatAlternativeBefore = Song.measureMeta[blockId].repeatAlternative;
         if (!Song.measureMeta[blockId].repeatAlternativePresent) {
           Song.measureMeta[blockId].repeatAlternativePresent = true;
-          menuHandler.activateEffectsForMarkedPos();
+          EventBus.emit("menu.activateEffectsForMarkedPos");
         }
         let raChecked = 0;
         for (let i = 0; i < 7; i += 1) {
@@ -1156,7 +1056,7 @@ class ModalHandler {
             note.tremoloPicking = true;
             if (no.blockId === tab.markedNoteObj.blockId
               && no.beatId === tab.markedNoteObj.beatId) {
-              menuHandler.activateEffectsForNote(note);
+              EventBus.emit("menu.activateEffectsForNote", note);
             }
           }
           const pickingLengthBefore = note.tremoloPickingLength;
@@ -1232,7 +1132,7 @@ class ModalHandler {
 
           if (!beat.effects.strokePresent) {
             beat.effects.strokePresent = true;
-            MenuHandler.activateEffectsForBeat(beat);
+            EventBus.emit("menu.activateEffectsForBeat", beat);
           }
           revertHandler.addStroke(be.trackId, be.blockId, be.voiceId, be.beatId, strokeBefore,
             beat.effects.stroke, strokePresentBefore[beatStr], beat.effects.strokePresent);
@@ -1270,7 +1170,7 @@ class ModalHandler {
         const textBefore = beat.text;
         if (!beat.textPresent) {
           beat.textPresent = true;
-          MenuHandler.activateEffectsForBeat(beat);
+          EventBus.emit("menu.activateEffectsForBeat", beat);
         }
 
         this.closeModal('addTextModal');
@@ -1308,7 +1208,7 @@ class ModalHandler {
       const repeatClosePresentBefore = Song.measureMeta[blockId].repeatClosePresent;
       if (!repeatClosePresentBefore) {
         Song.measureMeta[blockId].repeatClosePresent = true;
-        MenuHandler.activateEffectsForBlock();
+        EventBus.emit("menu.activateEffectsForBlock")
       }
       this.closeModal('numberOfRepititionsModal');
       const repeatCloseBefore = Song.measureMeta[blockId].repeatClose;
@@ -1321,66 +1221,7 @@ class ModalHandler {
     this.displayModal('numberOfRepititionsModal', 'Repitition');
   }
 
-  setTimeMeterState(blockId: number) {
-    this.timeMeterData.denominator = 4;
-    this.timeMeterData.numerator = 4;
-    if (Song.measureMeta[blockId].denominator != null) {
-      this.timeMeterData.denominator = Song.measureMeta[blockId].denominator;
-    }
-    if (Song.measureMeta[blockId].numerator != null) {
-      this.timeMeterData.numerator = Song.measureMeta[blockId].numerator;
-    }
-    const denominatorSelectionDom = document.getElementById('denominatorSelection') as HTMLInputElement;
-    const numeratorSelectionDom = document.getElementById('numeratorSelection') as HTMLInputElement;
-    denominatorSelectionDom.value = this.timeMeterData.denominator.toString();
-    numeratorSelectionDom.value = this.timeMeterData.numerator.toString();
-  }
-
-  openTimeMeterModal(trackId: number, blockId: number, voiceId: number) {
-    this.setTimeMeterState(blockId);
-
-    const denominatorSelectionDom = document.getElementById('denominatorSelection') as HTMLInputElement;
-    const numeratorSelectionDom = document.getElementById('numeratorSelection') as HTMLInputElement;
-    numeratorSelectionDom.onchange = null;
-    numeratorSelectionDom.onchange = () => {
-      this.timeMeterData.numerator = parseInt(numeratorSelectionDom.value, 10);
-    };
-    denominatorSelectionDom.onchange = null;
-    denominatorSelectionDom.onchange = () => {
-      this.timeMeterData.denominator = parseInt(denominatorSelectionDom.value, 10);
-    };
-
-    document.getElementById('timeMeterSelectButton')!.onclick = null;
-    document.getElementById('timeMeterSelectButton')!.onclick = () => {
-      Song.measureMeta[blockId].timeMeterPresent = true;
-      this.closeModal('timeMeterModal');
-      // TODO arrays
-      const numeratorBefore = Song.measureMeta[blockId].numerator;
-      const denominatorBefore = Song.measureMeta[blockId].denominator;
-
-      Song.measureMeta[blockId].numerator = this.timeMeterData.numerator;
-      Song.measureMeta[blockId].denominator = this.timeMeterData.denominator;
-
-      const notesBefore = AppManager.checkAndAdaptTimeMeter(blockId);
-      if (notesBefore == null) {
-        Song.measureMeta[blockId].numerator = numeratorBefore;
-        Song.measureMeta[blockId].denominator = denominatorBefore;
-        Song.measureMeta[blockId].timeMeterPresent = false;
-        return;
-      }
-      // Set until the end of track/ next timeMeter
-      for (let bId = blockId + 1; bId < Song.measureMeta.length; bId += 1) {
-        if (Song.measureMeta[bId].timeMeterPresent) break;
-        Song.measureMeta[bId].numerator = Song.measureMeta[blockId].numerator;
-        Song.measureMeta[bId].denominator = Song.measureMeta[blockId].denominator;
-      }
-
-      const { numerator, denominator } = Song.measureMeta[blockId];
-      revertHandler.addTimeMeter(trackId, blockId, voiceId, numeratorBefore,
-        numerator, denominatorBefore, denominator, false, true, notesBefore);
-
-      tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    };
+  openTimeMeterModal() {
     this.displayModal('timeMeterModal', 'Time Meter');
   }
 
@@ -1423,7 +1264,7 @@ class ModalHandler {
       const { bpmPresent } = Song.measureMeta[blockId];
       if (!bpmPresent) {
         Song.measureMeta[blockId].bpmPresent = true;
-        MenuHandler.activateEffectsForBlock();
+        EventBus.emit("menu.activateEffectsForBlock")
       }
       this.closeModal('bpmModal');
       const bpmBefore = Song.measureMeta[blockId].bpm;
@@ -1476,7 +1317,7 @@ class ModalHandler {
         && Song.measureMeta[blockId].markerPresent;
       if (!Song.measureMeta[blockId].markerPresent) {
         Song.measureMeta[blockId].markerPresent = true;
-        MenuHandler.activateEffectsForBlock();
+        EventBus.emit("menu.activateEffectsForBlock")
       }
       this.closeModal('addMarkerModal');
       const markerBefore = Song.measureMeta[blockId].marker;
@@ -1680,7 +1521,7 @@ class ModalHandler {
 
       if (!beat.chordPresent) {
         beat.chordPresent = true;
-        MenuHandler.activateEffectsForBeat(beat);
+        EventBus.emit("menu.activateEffectsForBeat", beat);
       }
       // transfer
       chordObj.frets = ModalHandler.computeFretsFromNotesAndCapo(this.chordProperties.currentNotes,
@@ -1711,117 +1552,6 @@ class ModalHandler {
       }
     };
     this.displayModal('addChordModal', 'Chord');
-  }
-
-  setGraceState(note: Note) {
-    // standard values
-    this.graceModalData.fret = 0;
-    this.graceModalData.duration = 's';
-    this.graceModalData.dynamic = 'f';
-    this.graceModalData.transition = 'none';
-    this.graceModalData.setOnBeat = 'before';
-
-    const grace = note.graceObj;
-    if (grace != null) {
-      this.graceModalData.fret = grace.fret;
-      this.graceModalData.duration = grace.duration;
-      this.graceModalData.dynamic = grace.dynamic;
-      this.graceModalData.transition = grace.transition;
-      this.graceModalData.setOnBeat = grace.setOnBeat;
-    }
-    const graceLengthSelectionDom = document.getElementById('graceLengthSelection') as HTMLSelectElement;
-    const graceTimeSelectionDom = document.getElementById('graceTimeSelection') as HTMLSelectElement;
-    const graceDynamicSelectionDom = document.getElementById('graceDynamicSelection') as HTMLSelectElement;
-    const graceTransitionSelectionDom = document.getElementById('graceTransitionSelection') as HTMLSelectElement;
-    const graceFretInputDom = document.getElementById('graceFretInput') as HTMLSelectElement;
-    graceLengthSelectionDom.value = this.graceModalData.duration;
-    graceTimeSelectionDom.value = this.graceModalData.setOnBeat ? 'with' : 'before';
-    graceDynamicSelectionDom.value = this.graceModalData.dynamic;
-    graceTransitionSelectionDom.value = this.graceModalData.transition;
-    graceFretInputDom.value = this.graceModalData.fret.toString();
-  }
-
-  openGraceModal(arr: {
-    notes: {trackId: number, blockId: number, voiceId: number, beatId: number,
-      string: number, note: Note}[],
-    blocks: number[],
-    beats: {trackId: number, blockId: number, voiceId: number, beatId: number,
-      beat: Measure}[]
-  }) {
-    const { note } = arr.notes[0];
-    const gracePresentBefore: {[n: string]: boolean} = {};
-    for (const no of arr.notes) {
-      const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-      gracePresentBefore[noteStr] = no.note.gracePresent;
-    }
-    this.setGraceState(note);
-    const graceLengthSelectionDom = document.getElementById('graceLengthSelection') as HTMLSelectElement;
-    const graceTimeSelectionDom = document.getElementById('graceTimeSelection') as HTMLSelectElement;
-    const graceDynamicSelectionDom = document.getElementById('graceDynamicSelection') as HTMLSelectElement;
-    const graceTransitionSelectionDom = document.getElementById('graceTransitionSelection') as HTMLSelectElement;
-    const graceFretInputDom = document.getElementById('graceFretInput') as HTMLInputElement;
-    if (this.graceModalData.bound == null) {
-      graceLengthSelectionDom.onchange = () => {
-        this.graceModalData.duration = graceLengthSelectionDom.options[
-          graceLengthSelectionDom.selectedIndex].value;
-      };
-      graceTimeSelectionDom.onchange = () => {
-        this.graceModalData.setOnBeat = graceTimeSelectionDom.options[
-          graceTimeSelectionDom.selectedIndex].value;
-      };
-      graceDynamicSelectionDom.onchange = () => {
-        this.graceModalData.dynamic = graceDynamicSelectionDom.options[
-          graceDynamicSelectionDom.selectedIndex].value;
-      };
-      graceTransitionSelectionDom.onchange = () => {
-        this.graceModalData.transition = graceTransitionSelectionDom.options[
-          graceTransitionSelectionDom.selectedIndex].value;
-      };
-      graceFretInputDom.onchange = () => {
-        const fretIn = graceFretInputDom.value;
-        if (Helper.isInt(fretIn)) {
-          this.graceModalData.fret = parseInt(fretIn, 10);
-        }
-      };
-      this.graceModalData.bound = true;
-    }
-    document.getElementById('graceSelectButton')!.onclick = null;
-    document.getElementById('graceSelectButton')!.onclick = () => {
-      fastdom.mutate(() => {
-        this.closeModal('addGraceModal');
-        for (const no of arr.notes) {
-          const noteInArr = no.note;
-          const graceObjBefore = noteInArr.graceObj;
-
-          const graceObj = {
-            duration: this.graceModalData.duration,
-            setOnBeat: this.graceModalData.setOnBeat,
-            dynamic: this.graceModalData.dynamic,
-            transition: this.graceModalData.transition,
-            fret: this.graceModalData.fret,
-            string: 0,
-            height: 0,
-            dead: false,
-          };
-          noteInArr.graceObj = graceObj;
-
-          if (!noteInArr.gracePresent) {
-            noteInArr.gracePresent = true;
-            menuHandler.activateEffectsForNote(noteInArr);
-          }
-          const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-          revertHandler.addGrace(no.trackId, no.blockId, no.voiceId, no.beatId, no.string,
-            // TODO turned undefined grace into noteInArr.grace. Is that correct?
-            graceObjBefore, noteInArr.graceObj, gracePresentBefore[noteStr],
-            noteInArr.gracePresent);
-        }
-        const { trackId } = arr.notes[0];
-        const { voiceId } = arr.notes[0];
-        classicalNotation.computeVexFlowDataStructures(trackId, voiceId);
-        svgDrawer.rerenderBlocks(trackId, arr.blocks, voiceId);
-      });
-    };
-    this.displayModal('addGraceModal', 'Grace');
   }
 
   openTremoloBarModal(arr: {
@@ -1985,7 +1715,7 @@ class ModalHandler {
 
               if (!beatInner.effects.tremoloBarPresent) {
                 beatInner.effects.tremoloBarPresent = true;
-                MenuHandler.activateEffectsForBeat(beatInner);
+                EventBus.emit("menu.activateEffectsForBeat", beatInner);
               }
               const beatStrInner = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
               revertHandler.addTremoloBar(
