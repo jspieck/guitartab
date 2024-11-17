@@ -1,18 +1,98 @@
-# Vue 3 + TypeScript + Vite
+# Guitar Tab Editor
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A modern web-based guitar tablature editor built with Vue 3, TypeScript, and Vite. Create, edit, and play guitar tabs with an intuitive interface and professional audio features.
 
-## Recommended IDE Setup
+## Features
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+- 🎸 Interactive guitar tab creation and editing
+- 🎵 Real-time audio playback with high-quality guitar samples
+- 🎹 Multi-instrument support (Guitar, Bass, Drums, Piano)
+- 🎛️ Professional audio tools:
+  - Equalizer
+  - Mixer
+  - Compressor
+  - Effects
+- 📝 Music notation features:
+  - Chord diagrams
+  - Time signatures
+  - Tempo markers
+  - Repeats
+  - Grace notes
+- 🎮 MIDI device support
+- 🌓 Light/Dark mode
+- 💾 Import/Export capabilities
 
-## Type Support For `.vue` Imports in TS
+## Development Setup
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
+### Prerequisites
 
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
-1. Disable the built-in TypeScript Extension
-   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+### Recommended IDE Setup
+
+- [VS Code](https://code.visualstudio.com/) with the following extensions:
+  - [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)
+  - [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin)
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone [repository-url]
+```
+2. Install dependencies
+```bash
+npm install
+```
+or
+```bash
+yarn install
+```
+3. Start the development server
+```bash
+npm run dev
+```
+or
+```bash
+yarn dev
+```
+## Building for Production
+```bash
+npm run build
+```
+or
+```bash
+yarn build
+```
+## Type Support
+
+This project uses TypeScript for type safety. For `.vue` imports, we use `vue-tsc` for type checking. The TypeScript configuration is set up to work with Vue 3's `<script setup>` syntax.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License
+
+Copyright (c) 2024 Jan Spieck
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
