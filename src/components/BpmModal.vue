@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.TEMPO.id">
     <template #title>Bpm</template>
     <div class="bpmSelectCapsule">
       <div id="tempoMeterModal" class="disable-select">90</div>
@@ -22,4 +22,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

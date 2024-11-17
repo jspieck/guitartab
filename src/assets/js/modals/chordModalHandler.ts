@@ -6,6 +6,7 @@ import Helper from '../helper';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { ModalState } from './baseModalHandler';
+import { MODALS } from './modalTypes';
 
 interface ChordModalState extends ModalState {
     chordModalData: {
@@ -99,7 +100,7 @@ interface ChordModalParams {
 
 export class ChordModalHandler extends BaseModalHandler {
     constructor() {
-        super('ChordModal', 'Chord');
+        super(MODALS.CHORD.id, MODALS.CHORD.name);
         this.modalState = {
             ...this.modalState,
             chordModalData: {

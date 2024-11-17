@@ -1,6 +1,7 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
 import Helper from '../helper';
+import { MODALS } from './modalTypes';
 
 interface TuningModalState extends ModalState {
     instrumentSettingData: {
@@ -15,8 +16,6 @@ interface TuningModalState extends ModalState {
 }
 
 export class TuningModalHandler extends BaseModalHandler {
-    readonly modalType = 'TuningModal' as const;
-
     private readonly defaultStringConfiguration: {
         [a: number]: string[],
     } = {
@@ -29,7 +28,7 @@ export class TuningModalHandler extends BaseModalHandler {
     };
 
     constructor() {
-        super('tuningModal', 'Tuning');
+        super(MODALS.TUNING.id, MODALS.TUNING.name);
         this.modalState = {
             ...this.modalState,
             instrumentSettingData: {

@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.STROKE.id">
     <template #title>Stroke</template>
     <div class="strokeSelect">
       <label class="labelTopMargin">Stroke Direction</label>
@@ -41,4 +41,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

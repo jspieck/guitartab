@@ -1,5 +1,5 @@
 <template>
-    <div class="modal" role="alert">
+    <div class="modal" role="alert" :id="modalId">
       <div class="modalTopBar">
         <label class="modalTopBarLabel"><slot name="title"></slot></label>
         <div class="modal_close">
@@ -19,6 +19,12 @@
   <script lang="ts">
   export default {
     name: "BaseModal",
+    props: {
+        modalId: {
+            type: String,
+            required: true
+        }
+    }
   };
   </script>
   

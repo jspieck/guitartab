@@ -4,6 +4,7 @@ import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import { classicalNotation } from '../vexflowClassical';
 import EventBus from '../eventBus';
+import { MODALS } from './modalTypes';
 
 interface GraceModalState extends ModalState {
     graceData: {
@@ -29,10 +30,8 @@ interface GraceModalState extends ModalState {
 }
 
 export class GraceModalHandler extends BaseModalHandler {
-    readonly modalType = 'GraceModal' as const;
-
     constructor() {
-        super('addGraceModal', 'Grace');
+        super(MODALS.GRACE.id, MODALS.GRACE.name);
         this.modalState = {
             ...this.modalState,
             graceData: {

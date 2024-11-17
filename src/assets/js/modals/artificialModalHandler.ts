@@ -4,6 +4,7 @@ import fastdom from 'fastdom';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
+import { MODALS } from './modalTypes';
 
 interface NoteData {
     trackId: number;
@@ -34,7 +35,7 @@ export class ArtificialModalHandler extends BaseModalHandler {
     private currentState?: ArtificialState;
 
     constructor() {
-        super('addHarmonicModal', 'Artificial');
+        super(MODALS.ARTIFICIAL.id, MODALS.ARTIFICIAL.name);
     }
 
     openModal(params: { 

@@ -1,12 +1,12 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Song, SongDescription } from '../songData';
+import { MODALS } from './modalTypes';
 
 interface SongDescriptionModal extends SongDescription {
     bound: boolean;
 }
 
 export class InfoModalHandler extends BaseModalHandler {
-    readonly modalType = 'InfoModal' as const;
     private infoModalData: SongDescriptionModal = {
         title: '',
         subtitle: '',
@@ -23,7 +23,7 @@ export class InfoModalHandler extends BaseModalHandler {
     };
 
     constructor() {
-        super('info', 'Info');
+        super(MODALS.INFO.id, MODALS.INFO.name);
     }
 
     openModal() {

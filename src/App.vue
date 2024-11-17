@@ -114,7 +114,7 @@
     <Mixer />
     <Compressor id="compressorModal" class="modal" role="alert"/>
     <Equalizer id="equalizerModal" class="modal" role="alert" ref="equalizer"/>
-    <InstrumentSettingsModal id="isntrumentSettingsModal" class="modal" role="alert" />
+    <InstrumentSettingsModal class="modal" role="alert" />
   </div>
 </template>
 

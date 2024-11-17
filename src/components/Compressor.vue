@@ -1,5 +1,5 @@
 <template>
-    <BaseModal>
+    <BaseModal :modal-id="MODALS.COMPRESSOR.id">
         <template #title>Compressor</template>
             <KnobBox v-for="(setting, index) in settings" :key="index" :label="setting.label"
                 :containerId="setting.containerId" :knobId="setting.knobId" :dataId="index"
@@ -13,6 +13,7 @@ import { reactive } from 'vue';
 import { audioEngine } from '../assets/js/audioEngine';
 import KnobBox from './KnobBox.vue';
 import BaseModal from './BaseModal.vue';
+import { MODALS } from '../assets/js/modals/modalTypes';
 
 const settings = [
     { label: 'Attack', containerId: 'attackKnobContainer', knobId: 'attackKnob', start: 5, min: 0, max: 100, valueId: 'compAttValue', unit: 'ms' },

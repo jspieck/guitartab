@@ -1,10 +1,9 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { ref, computed } from 'vue';
 import midiEngine from '../midiReceiver';
+import { MODALS } from './modalTypes';
 
-export class PianoModalHandler extends BaseModalHandler {
-    readonly modalType = 'PianoModal' as const;
-    
+export class PianoModalHandler extends BaseModalHandler {    
     // State
     public numTasten = ref(56);
     public clickedKeyOnPiano = ref(0);
@@ -23,7 +22,7 @@ export class PianoModalHandler extends BaseModalHandler {
     });
     
     constructor() {
-        super('pianoModal', 'Piano');
+        super(MODALS.PIANO.id, MODALS.PIANO.name);
     }
 
     openModal() {

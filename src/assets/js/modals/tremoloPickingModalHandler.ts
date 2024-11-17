@@ -6,6 +6,7 @@ import { menuHandler } from '../menuHandler';
 import { tab } from '../tab';
 import EventBus from '../eventBus';
 import fastdom from 'fastdom';
+import { MODALS } from './modalTypes';
 
 interface NoteInfo {
     trackId: number;
@@ -28,7 +29,7 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
     readonly modalType = 'TremoloPickingModal' as const;
 
     constructor() {
-        super('addTremoloPickingModal', 'Tremolo Picking');
+        super(MODALS.TREMOLO_PICKING.id, MODALS.TREMOLO_PICKING.name);
         this.modalState = {
             ...this.modalState,
             tremoloPickingLength: 'e',

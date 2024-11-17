@@ -1,5 +1,5 @@
 <template>
-    <BaseModal>
+    <BaseModal :modalId="MODALS.INSTRUMENT_SETTINGS.id">
         <template #title>Instrument Settings</template>
         <label>Name:</label>
         <input id="instrumentNameInput" />
@@ -43,4 +43,5 @@
 
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue';
+import { MODALS } from '../assets/js/modals/modalTypes';
 </script>

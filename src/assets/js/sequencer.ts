@@ -8,11 +8,10 @@ import Helper from './helper';
 import playBackLogic from './playBackLogicNew';
 import AppManager from './appManager';
 import { svgDrawer, SvgDrawer } from './svgDrawer';
-import { modalHandler } from './modalHandler';
 import { AddTrackModalHandler } from './modals/addTrackModalHandler';
 import { modalManager } from './modals/modalManager';
 import { DeleteTrackModalHandler } from './modals/deleteTrackModalHandler';
-import { InstrumentSettingsModalHandler } from './modals/instrumentSettingsModalHandler';
+import { MODALS } from './modals/modalTypes';
 
 interface SliderOptions {
   min: number;
@@ -194,7 +193,7 @@ class Sequencer {
     eqButtonCircle.textContent = 'EQ';
     eqButton.appendChild(eqButtonCircle);
     eqButton.addEventListener('click', () => {
-      modalManager.getHandler('EqualizerModal').openModal();
+      modalManager.getHandler(MODALS.EQUALIZER.id).openModal();
     });
     return eqButton;
   }
@@ -207,7 +206,7 @@ class Sequencer {
     compButtonCircle.textContent = 'C';
     compButton.appendChild(compButtonCircle);
     compButton.addEventListener('click', () => {
-      modalManager.getHandler('CompressorModal').openModal();
+      modalManager.getHandler(MODALS.COMPRESSOR.id).openModal();
     });
     return compButton;
   }
@@ -297,9 +296,9 @@ class Sequencer {
       changeButton.src = './src/assets/images/change.svg';
     }
     changeButton.addEventListener('click', () => {
-      const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+      const handler = modalManager.getHandler(MODALS.ADD_TRACK.id) as AddTrackModalHandler;
       handler.setNumberOfTrackToAdd(trackId);
-      modalManager.getHandler('InstrumentSettingsModal').openModal();
+      modalManager.getHandler(MODALS.INSTRUMENT_SETTINGS.id).openModal();
     });
     return changeButton;
   }
@@ -315,7 +314,7 @@ class Sequencer {
     }
     trashButton.addEventListener('click', () => {
       if (Song.measures.length > 1) {
-        const handler = modalManager.getHandler('DeleteTrackModal') as DeleteTrackModalHandler;
+        const handler = modalManager.getHandler(MODALS.DELETE_TRACK.id) as DeleteTrackModalHandler;
         handler.openModal({trackId});
       } else {
         alert('At least one track must be available!');
@@ -405,7 +404,7 @@ class Sequencer {
       img.style.borderLeft = `3px solid rgb(${red}, ${green}, ${blue})`;
     }
     img.addEventListener('click', () => {
-      const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+      const handler = modalManager.getHandler(MODALS.ADD_TRACK.id) as AddTrackModalHandler;
       handler.setNumberOfTrackToAdd(trackId);
       handler.openModal();
     });
@@ -565,7 +564,7 @@ class Sequencer {
     sequencerAddInstrument.setAttribute('data-tooltip', 'Add Instrument');
     sequencerAddInstrument.src = './src/assets/images/addInstrument.svg';
     sequencerAddInstrument.addEventListener('click', () => {
-      const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+      const handler = modalManager.getHandler(MODALS.ADD_TRACK.id) as AddTrackModalHandler;
       handler.setNumberOfTrackToAdd(-1);
       handler.openModal();
     }, false);

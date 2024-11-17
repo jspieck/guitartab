@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.MARKER.id">
     <template #title>Add Marker</template>
     <div class="strokeSelect">
       <label class="labelTopMargin">Title:</label>
@@ -25,4 +25,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

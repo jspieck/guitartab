@@ -1,10 +1,9 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { ref, computed } from 'vue';
 import Song from '../songData';
+import { MODALS } from './modalTypes';
 
 export class GuitarModalHandler extends BaseModalHandler {
-    readonly modalType = 'GuitarModal' as const;
-    
     // State
     public numStrings = ref(6);
     public numFrets = ref(25);
@@ -23,7 +22,7 @@ export class GuitarModalHandler extends BaseModalHandler {
     });
     
     constructor() {
-        super('guitarModal', 'Guitar');
+        super(MODALS.GUITAR.id, MODALS.GUITAR.name);
     }
 
     openModal(params?: { capo?: number }) {

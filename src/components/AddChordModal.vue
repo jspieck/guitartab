@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.CHORD.id">
     <template #title>Chord</template>
     <div class="strokeSelect">
       <label>Choose chord:</label>
@@ -42,6 +42,8 @@ import { ref, onMounted } from 'vue';
 import BaseModal from "./BaseModal.vue";
 import { ChordModalHandler } from "../assets/js/modals/chordModalHandler";
 import { Chord } from '../assets/js/songData';
+import { MODALS } from "../assets/js/modals/modalTypes";
+
 const props = defineProps({
   trackId: {
     type: Number,

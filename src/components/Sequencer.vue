@@ -201,26 +201,26 @@ const getBorderStyle = (trackId: number) => {
 };
 
 const handleClick = (trackId: number) => {
-    const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+    const handler = modalManager.getHandler(MODALS.ADD_TRACK.id) as AddTrackModalHandler;
     handler.setNumberOfTrackToAdd(trackId);
     handler.openModal();
 };
 
 function openInstrumentSettings(trackId: number) {
-    const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+    const handler = modalManager.getHandler(MODALS.ADD_TRACK.id) as AddTrackModalHandler;
     handler.setNumberOfTrackToAdd(trackId);
-    modalManager.getHandler('InstrumentSettingsModal').openModal({trackId});
+    modalManager.getHandler(MODALS.INSTRUMENT_SETTINGS.id).openModal({trackId});
 }
 
 function openAddTrack() {
-    const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+    const handler = modalManager.getHandler(MODALS.ADD_TRACK.id) as AddTrackModalHandler;
     handler.setNumberOfTrackToAdd(-1);
     handler.openModal();
 }
 
 function deleteTrack(trackId: number) {
     if (Song.measures.length > 1) {
-        modalManager.getHandler('DeleteTrackModal').openModal({trackId});
+        modalManager.getHandler(MODALS.DELETE_TRACK.id).openModal({trackId});
     } else {
         alert('At least one track must be available!');
     }

@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.CHORD_MANAGER.id">
     <template #title>Chord Manager</template>
         <label>Chord diagrams to display:</label>
         <div id="chordOverviewContainer">
@@ -16,4 +16,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

@@ -4,9 +4,9 @@ import { gProReader } from './GProReader';
 import Song, {
   Note, Chord, MeasureEffects, Stroke, Bend, Grace, TremoloBar,
 } from './songData';
-import { modalHandler } from './modalHandler';
 import { modalManager } from './modals/modalManager';
 import { ChordModalHandler } from './modals/chordModalHandler';
+import { MODALS } from './modals/modalTypes';
 
 class Gp3Reader {
   static read() {
@@ -96,7 +96,7 @@ class Gp3Reader {
       chordPresent = true;
       chord = Gp3Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler('chord') as ChordModalHandler).fillChordsPresets(trackId);
+      (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
     let textPresent = false;
     let text = '';

@@ -5,6 +5,7 @@ import Song, {
 import AppManager from './appManager';
 import { ChordModalHandler } from './modals/chordModalHandler';
 import { modalManager } from './modals/modalManager';
+import { MODALS } from './modals/modalTypes';
 
 class Gp5Reader {
   static read() {
@@ -335,7 +336,7 @@ class Gp5Reader {
     if (chordPresent) {
       chord = Gp5Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler('chord') as ChordModalHandler).fillChordsPresets(trackId);
+      (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
     textPresent = (flags & 0x04) !== 0;
     if (textPresent) {

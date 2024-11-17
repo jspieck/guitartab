@@ -4,6 +4,7 @@ import fastdom from 'fastdom';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
+import { MODALS } from './modalTypes';
 
 interface StrokeModalState extends ModalState {
     strokeData: Stroke;
@@ -41,7 +42,7 @@ export class StrokeModalHandler extends BaseModalHandler {
     readonly modalType = 'StrokeModal' as const;
 
     constructor() {
-        super('addStrokeModal', 'Stroke');
+        super(MODALS.STROKE.id, MODALS.STROKE.name);
         this.modalState = {
             ...this.modalState,
             strokeData: { strokeLength: 8, strokeType: 'down' },

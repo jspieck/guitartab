@@ -6,6 +6,7 @@ import { revertHandler } from '../revertHandler';
 import { svgDrawer, SvgDrawer } from '../svgDrawer';
 import Helper from '../helper';
 import menuHandler from '../menuHandler';
+import { MODALS } from './modalTypes';
 
 interface TremoloBarModalState extends ModalState {
     tremoloEditorClientWidth: number;
@@ -31,7 +32,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
     private readonly padding: number = 20;
 
     constructor() {
-        super('tremoloModalEditor', 'Tremolo');
+        super(MODALS.TREMOLO_BAR.id, MODALS.TREMOLO_BAR.name);
         this.modalState = {
             ...this.modalState,
             tremoloEditorClientWidth: 0,

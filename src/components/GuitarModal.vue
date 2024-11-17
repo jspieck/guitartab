@@ -1,5 +1,5 @@
 <template>
-    <BaseModal>
+    <BaseModal :modal-id="MODALS.GUITAR.id">
         <template #title>Guitar</template>
         <div id="guitar" class="guitar">
             <ul ref="stringsList" class="strings">
@@ -47,8 +47,9 @@ import interact from 'interactjs';
 import BaseModal from './BaseModal.vue';
 import { modalManager } from '../assets/js/modals/modalManager';
 import { GuitarModalHandler } from '../assets/js/modals/guitarModalHandler';
+import { MODALS } from '../assets/js/modals/modalTypes';
 
-const handler = modalManager.getHandler<GuitarModalHandler>('guitarModal');
+const handler = modalManager.getHandler<GuitarModalHandler>(MODALS.GUITAR.id);
 const stringsList = ref<HTMLElement | null>(null);
 
 onUpdated(() => {

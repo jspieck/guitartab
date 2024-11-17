@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modalId="MODALS.ADD_TRACK.id">
     <template #title>New Instrument</template>
     <div class="instrumentContainer">
       <div
@@ -30,6 +30,7 @@ import BaseModal from "./BaseModal.vue";
 import { instrumentList } from "../assets/js/instrumentData";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { AddTrackModalHandler } from "../assets/js/modals/addTrackModalHandler";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
-const handler = modalManager.getHandler<AddTrackModalHandler>('addTrack');
+const handler = modalManager.getHandler<AddTrackModalHandler>(MODALS.ADD_TRACK.id);
 </script>

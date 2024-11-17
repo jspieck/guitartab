@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.TEXT.id">
     <template #title>Add Text</template>
     <div class="strokeSelect">
       <label>Enter text:</label>
@@ -23,4 +23,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

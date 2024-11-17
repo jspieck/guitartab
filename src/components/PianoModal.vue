@@ -1,5 +1,5 @@
 <template>
-    <BaseModal>
+    <BaseModal :modal-id="MODALS.PIANO.id">
         <template #title>Piano</template>
         <div id="piano" class="piano">
             <ul id="pianoList">
@@ -26,8 +26,9 @@
 import BaseModal from './BaseModal.vue';
 import { modalManager } from '../assets/js/modals/modalManager';
 import { PianoModalHandler } from '../assets/js/modals/pianoModalHandler';
+import { MODALS } from '../assets/js/modals/modalTypes';
 
-const handler = modalManager.getHandler<PianoModalHandler>('pianoModal');
+const handler = modalManager.getHandler<PianoModalHandler>(MODALS.PIANO.id);
 
 defineExpose({
     numTasten: handler.numTasten,

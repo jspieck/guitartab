@@ -1,24 +1,7 @@
 import { BaseModalHandler } from './baseModalHandler';
-import { RepeatModalHandler } from './repeatModalHandler';
-import { TextModalHandler } from './textModalHandler';
-import { TempoModalHandler } from './tempoModalHandler';
-import { TuningModalHandler } from './tuningModalHandler';
-import { ChordModalHandler } from './chordModalHandler';
-import { MarkerModalHandler } from './markerModalHandler';
-import { StrokeModalHandler } from './strokeModalHandler';
-import { ArtificialModalHandler } from './artificialModalHandler';
-import { TimeMeterModalHandler } from './timeMeterModalHandler';
-import { GuitarModalHandler } from './guitarModalHandler';
-import { GraceModalHandler } from './graceModalHandler';
-import { EqualizerModalHandler } from './equalizerModalHandler';
-import { MixerModalHandler } from './mixerModalHandler';
-import { CompressorModalHandler } from './compressorModalHandler';
+import { MODALS, ModalDefinition } from './modalTypes';
 import fastdom from 'fastdom';
 import interact from 'interactjs';
-import { PianoModalHandler } from './pianoModalHandler';
-import { InstrumentSettingsModalHandler } from './instrumentSettingsModalHandler';
-import { AddTrackModalHandler } from './addTrackModalHandler';
-import { InfoModalHandler } from './infoModalHandler';
 
 interface ResizeOptions {
     left: boolean;
@@ -33,68 +16,18 @@ export interface InteractEvent {
     dy: number;
 }
 
-interface ModalConfig {
-    id: string;
-    name: string;
-}
-
-type ModalTypeMap = {
-    'InfoModal': { id: 'info', name: 'Info' };
-    'TrackInfoModal': { id: 'trackInfo', name: 'Track Info' };
-    'ChordModal': { id: 'chord', name: 'Chord' };
-    'MarkerModal': { id: 'marker', name: 'Marker' };
-    'RepeatModal': { id: 'repeat', name: 'Repeat' };
-    'GuitarModal': { id: 'guitarModal', name: 'Guitar' };
-    'PianoModal': { id: 'pianoModal', name: 'Piano' };
-    'GraceModal': { id: 'grace', name: 'Grace' };
-    'MidiModal': { id: 'midiModal', name: 'Midi' };
-    'EqualizerModal': { id: 'equalizerModal', name: 'Equalizer' };
-    'MixerModal': { id: 'mixerModal', name: 'Mixer' };
-    'CompressorModal': { id: 'compressorModal', name: 'Compressor' };
-}
-
-const MODAL_CONFIGS: Record<keyof ModalTypeMap, ModalConfig> = {
-    'InfoModal': { id: 'info', name: 'Info' },
-    'TrackInfoModal': { id: 'trackInfo', name: 'Track Info' },
-    'ChordModal': { id: 'chord', name: 'Chord' },
-    'MarkerModal': { id: 'marker', name: 'Marker' },
-    'RepeatModal': { id: 'repeat', name: 'Repeat' },
-    'GuitarModal': { id: 'guitarModal', name: 'Guitar' },
-    'PianoModal': { id: 'pianoModal', name: 'Piano' },
-    'GraceModal': { id: 'grace', name: 'Grace' },
-    'MidiModal': { id: 'midiModal', name: 'Midi' },
-    'EqualizerModal': { id: 'equalizerModal', name: 'Equalizer' },
-    'MixerModal': { id: 'mixerModal', name: 'Mixer' },
-    'CompressorModal': { id: 'compressorModal', name: 'Compressor' },
-};
-
 export class ModalManager {
     private windows: Map<string, number> = new Map();
     private handlers: Map<string, BaseModalHandler>;
 
     constructor() {
-        // Initialize handlers
-        this.handlers = new Map([
-            ['repeat', new RepeatModalHandler() as BaseModalHandler],
-            ['text', new TextModalHandler() as BaseModalHandler],
-            ['tempo', new TempoModalHandler() as BaseModalHandler],
-            ['tuning', new TuningModalHandler() as BaseModalHandler],
-            ['chord', new ChordModalHandler() as BaseModalHandler],
-            ['marker', new MarkerModalHandler() as BaseModalHandler],
-            ['stroke', new StrokeModalHandler() as BaseModalHandler],
-            ['artificial', new ArtificialModalHandler() as BaseModalHandler],
-            ['timeMeter', new TimeMeterModalHandler() as BaseModalHandler],
-            ['guitarModal', new GuitarModalHandler() as BaseModalHandler],
-            ['grace', new GraceModalHandler() as BaseModalHandler],
-            ['equalizer', new EqualizerModalHandler() as BaseModalHandler],
-            ['mixer', new MixerModalHandler() as BaseModalHandler],
-            ['compressor', new CompressorModalHandler() as BaseModalHandler],
-            ['pianoModal', new PianoModalHandler() as BaseModalHandler],
-            ['instrumentSettings', new InstrumentSettingsModalHandler() as BaseModalHandler],
-            ['addTrack', new AddTrackModalHandler() as BaseModalHandler],
-            ['info', new InfoModalHandler() as BaseModalHandler],
-        ]);
-
+        // Initialize handlers using modal definitions
+        this.handlers = new Map(
+            Object.values(MODALS).map(modal => {
+                return [modal.id, new modal.handlerClass()];
+            })
+        );
+        
         this.setupTopBarHandlers();
     }
 
@@ -121,6 +54,7 @@ export class ModalManager {
         document.getElementById('content')?.classList.add('blurFilter');
 
         const modal = document.getElementById(id);
+        console.log(modal, id);
         if (modal) {
             modal.classList.add('active');
             this.setupModalPosition(modal);
@@ -304,21 +238,21 @@ export class ModalManager {
         modal.querySelector('.hideTopBar')?.classList.toggle('active');
     }
 
-    toggleModalByType<T extends keyof ModalTypeMap>(type: T) {
+    toggleModalByType<T extends keyof typeof MODALS>(type: T) {
         const config = this.getModalConfig(type);
         this.toggleModal(config.id, config.name);
     }
 
-    private getModalConfig<T extends keyof ModalTypeMap>(type: T): ModalConfig {
-        return MODAL_CONFIGS[type];
+    private getModalConfig<T extends keyof typeof MODALS>(type: T): ModalDefinition {
+        return MODALS[type];
     }
 
-    toggleByClass<T extends BaseModalHandler>(type: string, params?: any) {
-        const handler = this.getHandler<T>(type) as BaseModalHandler;
-        if (this.windows.has(handler.modalId)) {
-            this.closeModal(handler.modalId);
+    toggleByModal(modal: ModalDefinition, params?: any) {
+        const handler = this.getHandler(modal.id);
+        if (this.windows.has(modal.id)) {
+            this.closeModal(modal.id);
         } else {
-            this.displayModal(handler.modalId, handler.modalName);
+            this.displayModal(modal.id, modal.name);
             if (params) {
                 handler.openModal(params);
             } else {

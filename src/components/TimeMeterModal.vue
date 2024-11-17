@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.TIME_METER.id">
     <template #title>Time Meter</template>
     <div class="timeMeterSelectCapsule">
       <label class="labelTopMargin">Numerator</label>
@@ -26,6 +26,7 @@ import { ref } from "vue";
 import BaseModal from "./BaseModal.vue";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { TimeMeterModalHandler } from "../assets/js/modals/timeMeterModalHandler";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
 const numerator = ref(4);
 const denominator = ref(4);
