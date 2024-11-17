@@ -9,11 +9,12 @@ import Helper from './helper';
 import Settings from './settingManager';
 import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
+import { menuHandler } from './menuHandler';
 
 import Menu from '../../components/Menu.vue';
 
 class Tab {
-  menu: typeof Menu;
+  menu: typeof Menu | null;
 
   currentZoom: number;
 
@@ -50,9 +51,8 @@ class Tab {
 
   drawTrackCall: [number, number, boolean, (() => void) | null] | null;
 
-  constructor(menu: typeof Menu) {
-    this.menu = menu;
-
+  constructor() {
+    this.menu = null;
     this.currentZoom = 1.0;
     this.ZOOM_STEP = 0.05;
     this.ZOOM_MAX = 1.5;
@@ -76,6 +76,10 @@ class Tab {
     this.allWidths = [];
     this.blockToRow = [];
     this.finalBlockWidths = [];
+  }
+
+  setMenu(menu: typeof Menu) {
+    this.menu = menu;
   }
 
   scaleCompleteTab(up: boolean) {
@@ -263,7 +267,7 @@ class Tab {
 
     // only draw when current track is visible
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-      this.menu.enableNoteEffectButtons();
+      menuHandler.enableNoteEffectButtons();
       svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
       svgDrawer.rerenderBlock(trackId, blockId, voiceId);
     }
@@ -450,7 +454,7 @@ class Tab {
       this.tupletManager[nextBeat.tupletId] = { originalDuration: '' };
       this.markedNoteObj.beatId = beatId;
     }
-    this.menu.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
+    this.menu!.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
 
     const tupletDom = document.getElementById('tuplet');
     tupletDom?.classList.toggle('pressed');
@@ -1080,7 +1084,7 @@ class Tab {
       trackId, blockId, voiceId, beatId, string, newDuration, previousDuration, noteLength,
     );
     svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-    this.menu.showAvailableTupletSizes(newDuration);
+    this.menu!.showAvailableTupletSizes(newDuration);
 
     if (this.trackRerenderNecessary(trackId, blockId, voiceId)) {
       this.drawTrack(trackId, voiceId, true, null);
@@ -1416,5 +1420,6 @@ class Tab {
   }
 }
 
-export { Tab };
+const tab = new Tab();
+export { tab, Tab };
 export default Tab;

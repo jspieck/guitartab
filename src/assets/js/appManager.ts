@@ -6,7 +6,7 @@ import { overlayHandler } from './overlayHandler';
 import {
   Song, PlayBackInstrument, Note,
 } from './songData';
-import { modalHandler } from './modalHandler';
+import { modalManager } from './modals/modalManager';
 import EventBus from "./eventBus";
 import { svgDrawer } from './svgDrawer';
 import { visualInstruments } from './visualInstruments';
@@ -201,7 +201,7 @@ const AppManager = {
       /* if ((e.metaKey || e.ctrlKey) && ( String.fromCharCode(e.which).toLowerCase() === 'Z') ) {
               revertHandler.revertState();
           } */
-      if (!modalHandler.isAModalOpen()) {
+      if (!modalManager.isAnyModalOpen()) {
         if ((e.metaKey || e.ctrlKey)
         && (String.fromCharCode(e.which).toLowerCase() === 'c')) {
           overlayHandler.copyHandler();
@@ -229,27 +229,35 @@ const AppManager = {
 
   setTrackInfo() {
     const tabTitleDom = document.getElementById('tabTitle');
-    tabTitleDom!.textContent = Song.songDescription.title;
+    if (tabTitleDom) tabTitleDom.textContent = Song.songDescription.title;
+    
     const tabAuthorDom = document.getElementById('tabAuthor');
-    tabAuthorDom!.textContent = Song.songDescription.author;
-    (document.getElementById('songTitleInput') as HTMLInputElement).value = Song.songDescription.title;
-    (document.getElementById('songSubtitleInput') as HTMLInputElement).value = Song.songDescription.subtitle;
-    (document.getElementById('songArtistInput') as HTMLInputElement).value = Song.songDescription.artist;
-    (document.getElementById('songAlbumInput') as HTMLInputElement).value = Song.songDescription.album;
-    (document.getElementById('songAuthorInput') as HTMLInputElement).value = Song.songDescription.author;
-    if (Song.songDescription.music != null) {
-      (document.getElementById('songMusicInput') as HTMLInputElement).value = Song.songDescription.music;
-    }
-    (document.getElementById('songCopyrightInput') as HTMLInputElement).value = Song.songDescription.copyright;
-    (document.getElementById('songWriterInput') as HTMLInputElement).value = Song.songDescription.writer;
-    (document.getElementById('songInstructionInput') as HTMLInputElement).value = Song.songDescription.instructions;
+    if (tabAuthorDom) tabAuthorDom.textContent = Song.songDescription.author;
 
-    if (Song.songDescription.comments != null) {
-      let commentStr = '';
-      for (let i = 0; i < Song.songDescription.comments.length; i += 1) {
-        commentStr += `${Song.songDescription.comments[i]}\n`;
+    const inputs = {
+      'songTitleInput': Song.songDescription.title,
+      'songSubtitleInput': Song.songDescription.subtitle,
+      'songArtistInput': Song.songDescription.artist,
+      'songAlbumInput': Song.songDescription.album,
+      'songAuthorInput': Song.songDescription.author,
+      'songMusicInput': Song.songDescription.music,
+      'songCopyrightInput': Song.songDescription.copyright,
+      'songWriterInput': Song.songDescription.writer,
+      'songInstructionInput': Song.songDescription.instructions
+    };
+
+    Object.entries(inputs).forEach(([id, value]) => {
+      const element = document.getElementById(id) as HTMLInputElement;
+      if (element && value !== undefined) {
+        element.value = value;
       }
-      (document.getElementById('songCommentsInput') as HTMLInputElement).value = commentStr;
+    });
+
+    if (Song.songDescription.comments) {
+      const commentElement = document.getElementById('songCommentsInput') as HTMLInputElement;
+      if (commentElement) {
+        commentElement.value = Song.songDescription.comments.join('\n');
+      }
     }
   },
 
@@ -343,7 +351,7 @@ const AppManager = {
     // draw suitable sequencer
     sequencer.drawBeat();
     sequencer.setIndicator(0, 0);
-    modalHandler.closeAllModals();
+    modalManager.closeAllModals();
   },
 
   changeTrack(trackId: number, voiceId: number, force: boolean, callback: (() => void) | null) {

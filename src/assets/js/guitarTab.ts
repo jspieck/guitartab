@@ -10,6 +10,7 @@ import { gp5Writer } from './GP5Writ';
 import { gProReader } from './GProReader';
 import Equalizer from '../../components/Equalizer.vue';
 import Menu from '../../components/Menu.vue';
+import { menuHandler } from './menuHandler';
 // import { svgDrawer } from './svgDrawer';
 
 console.log('File is called!!!!!!');
@@ -56,9 +57,9 @@ if (!inBrowser) {
 
     Song.initEmptySong();
     AppManager.createGuitarTab(0);
-    Menu.applyStyleMode();
+    menuHandler.applyStyleMode();
     // TODO AppManager.createAllInstruments();
-    Menu.activateEffectsForPos(0, 0, 0, 0, 0);
+    menuHandler.activateEffectsForPos(0, 0, 0, 0, 0);
   });
   window.api.response('saved', () => {
     AppManager.showNotification('Saved!');
@@ -74,7 +75,7 @@ const startUp = function startUp(equalizer: typeof Equalizer, menu: typeof Menu)
   // audioEngine.initSound();
   midiEngine.init();
   // document.getElementById('files').addEventListener('change', handleFileSelect, false);
-  Menu.initMenuButtons();
+  // menuHandler.initMenuButtons();
 
   document.addEventListener('mousewheel', (e: Event) => {
     AppManager.scrollTabEvent(e as WheelEvent);
@@ -102,7 +103,7 @@ const startUp = function startUp(equalizer: typeof Equalizer, menu: typeof Menu)
         normalize: true
     });
     waveSurfer.load('./audio/strings/tremoloStringsC4.ogg'); */
-  Menu.applyStyleMode();
+  menuHandler.applyStyleMode();
 
   audioEngine.loadSF2();
 

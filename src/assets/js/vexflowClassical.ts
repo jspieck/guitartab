@@ -1,4 +1,4 @@
-import Vex, { IRenderContext } from 'vexflow';
+import Vex, { IRenderContext, Flow } from 'vexflow';
 import { Song, Measure, Note } from './songData';
 import Settings from './settingManager';
 import playBackLogic from './playBackLogicNew';
@@ -220,7 +220,7 @@ class ClassicalNotation {
 
   static generateStave(
     xPos: number, yPos: number, width: number, blockId: number,
-  ) {
+  ): Vex.Flow.Stave {
     const stave = new Vex.Flow.Stave(xPos, yPos, width);
     if (blockId === 0) {
       if (Song.playBackInstrument[Song.currentTrackId].instrument === 'drums') {
@@ -328,7 +328,7 @@ class ClassicalNotation {
       for (let u = 0; u < keys.length; u += 1) {
         // e#/4
         if (keys[u].length > 3) {
-          staveNote.addAccidental(u, new Vex.Flow.Accidental('#'));
+          staveNote.addModifier(new Vex.Flow.Accidental('#'), u);
         }
         if (realNotes[u] != null) {
         /* Do we really want to display these?
@@ -382,7 +382,7 @@ class ClassicalNotation {
               duration: graceDuration,
             });
             // console.log(graceNote);
-            staveNote.addModifier(u, new Vex.Flow.GraceNoteGroup([graceNote]));
+            staveNote.addModifier(new Vex.Flow.GraceNoteGroup([graceNote]), u);
           }
           /* if(realNotes[u].trill){
             note.addModifier(u, new Vex.Flow.Ornament('tr'));
@@ -390,9 +390,12 @@ class ClassicalNotation {
         }
       }
       if (bar[i].dotted) {
-        staveNote.addDotToAll();
+        // staveNote.addDotToAll();
+        Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
       } else if (bar[i].doubleDotted) {
-        staveNote.addDotToAll().addDotToAll();
+        // staveNote.addDotToAll().addDotToAll();
+        Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
+        // Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
       }
 
       /* if(bar[i].effects !== null && bar[i].effects.strokeType !== null){

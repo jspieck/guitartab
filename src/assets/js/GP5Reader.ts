@@ -2,8 +2,9 @@ import { gProReader } from './GProReader';
 import Song, {
   TremoloBar, Bend, Chord, Track, Note, MeasureEffects, Stroke, Grace,
 } from './songData';
-import { modalHandler } from './modalHandler';
 import AppManager from './appManager';
+import { ChordModalHandler } from './modals/chordModalHandler';
+import { modalManager } from './modals/modalManager';
 
 class Gp5Reader {
   static read() {
@@ -334,7 +335,7 @@ class Gp5Reader {
     if (chordPresent) {
       chord = Gp5Reader.readChord();
       Song.addChord(trackId, chord);
-      modalHandler.fillChordsPresets(trackId);
+      (modalManager.getHandler('chord') as ChordModalHandler).fillChordsPresets(trackId);
     }
     textPresent = (flags & 0x04) !== 0;
     if (textPresent) {

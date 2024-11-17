@@ -11,6 +11,7 @@ import { audioEngine } from './audioEngine';
 import { tab } from './tab';
 import { sequencer, Sequencer } from './sequencer';
 import { svgDrawer } from './svgDrawer';
+import { menuHandler } from './menuHandler';
 
 class OverlayHandler {
   startPosOverlay: { trackId: number, blockId: number, voiceId: number,
@@ -266,9 +267,9 @@ class OverlayHandler {
     this.setEndOverlay(trackId, blockId, voiceId, beatId);
     this.redrawOverlays();
     if (this.isNoteSelected()) {
-      EventBus.emit("menu.enableNoteEffectButtons");
+      menuHandler.enableNoteEffectButtons();
     } else {
-      EventBus.emit("menu.disableNoteEffectButtons");
+      menuHandler.disableNoteEffectButtons();
     }
   }
 
