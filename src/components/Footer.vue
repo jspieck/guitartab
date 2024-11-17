@@ -3,14 +3,14 @@
         <div id="openWindowArea">
         </div>
         <div id="footerFiller"></div>
-        <div id="drumInfoFooter" @click="modalHandler.toggleModal('drumInfoModal', 'Drum Info')" class="footerBlock">DrumInfo</div>
+        <div id="drumInfoFooter" @click="modalManager.toggleModal('drumInfoModal', 'Drum Info')" class="footerBlock">DrumInfo</div>
         <!--<div id="samplesOpen" class="footerBlock">Samples</div>-->
-        <div id="drumMixerOpen" @click="modalHandler.toggleModal('mixerModal', 'Mixer')" class="footerBlock">Drum Mixer</div>
+        <div id="drumMixerOpen" @click="modalManager.toggleModal('mixerModal', 'Mixer')" class="footerBlock">Drum Mixer</div>
         <div id="autoScroll" @click="toggleScrolling()" class="footerBlock">Autoscroll: Enabled</div>
-        <div id="tuningFooter" @click="modalHandler.openInstrumentSettings(Song.currentTrackId)" class="footerBlock">Tuning: EADGHE</div>
-        <div id="capoLabel" @click="modalHandler.openInstrumentSettings(Song.currentTrackId)" class="footerBlock">Capo: 0</div>
+        <div id="tuningFooter" @click="modalManager.toggleByClass('tuning', Song.currentTrackId)" class="footerBlock">Tuning: EADGHE</div>
+        <div id="capoLabel" @click="modalManager.toggleByClass('tuning', Song.currentTrackId)" class="footerBlock">Capo: 0</div>
         <div id="modeSwitcher" @click="toggleDarkMode()" class="footerBlock">White Design</div>
-        <div id="midiLabel" @click="modalHandler.toggleModal('midiModal', 'Midi')" class="footerBlock">Midi</div>
+        <div id="midiLabel" @click="modalManager.toggleModal('midiModal', 'Midi')" class="footerBlock">Midi</div>
         <div class="footerBlock">
         <div id="isMidiActive"></div>
         </div>
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { modalHandler } from '../assets/js/modalHandler';
+import { modalManager } from '../assets/js/modals/modalManager';
 import Settings from '../assets/js/settingManager';
 import Song from '../assets/js/songData';
 import Helper from '../assets/js/helper';

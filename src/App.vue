@@ -151,7 +151,7 @@ import DeleteModal from  './components/DeleteModal.vue'
 import BendModal from  './components/BendModal.vue'
 import { startUp } from './assets/js/guitarTab'
 import { overlayHandler } from './assets/js/overlayHandler'
-import Tab from './assets/js/tab'
+import { tab } from './assets/js/tab'
 
 const currentTrackId = ref(0);
 const currentVoiceId = ref(0);
@@ -163,7 +163,7 @@ const menu = ref(null);
 const currentSelection = computed(() => overlayHandler.getNotesInInterval(null));
 
 onMounted(() => {
-  const tab = new Tab(menu.value!);
+  tab.setMenu(menu.value!);
   startUp(equalizer, menu)
 })
 </script>

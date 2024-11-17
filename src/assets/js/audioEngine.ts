@@ -1,7 +1,7 @@
 import Song, { PlayBackInstrument, Measure, Note } from './songData';
 import Settings from './settingManager';
 // import Equalizer from './equalizer';
-import { modalHandler } from './modalHandler';
+import { modalManager } from './modals/modalManager';
 import { sequencer } from './sequencer';
 import Chorus from './chorus';
 import Freeverb from './freeverb';
@@ -368,10 +368,10 @@ class AudioEngine {
         }
       }
       if (this.drumDataArray != null) {
-        if (modalHandler.isDisplayed('mixerModal')) {
+        if (modalManager.isModalOpen('mixerModal')) {
           for (let i = 0; i < this.drumBusses.length; i += 1) {
             this.drawVolumeOf(this.drumBusses[i].analyser, this.drumDataArray,
-              this.drumBufferLength, modalHandler.getMixerVolumeContext(i),
+              this.drumBufferLength, modalManager.getMixerVolumeContext(i),
               20, 82, 'rgba(6, 54, 122, 0.72)', false);
           }
         }
@@ -382,7 +382,7 @@ class AudioEngine {
           this.drawVolumeOf(this.masterAnalyser, this.masterDataArray, this.masterBufferLength,
             canvasContext, 120, 30, color, true);
         }
-        if (modalHandler.isDisplayed('equalizerModal')) {
+        if (modalManager.isModalOpen('equalizerModal')) {
           this.equalizer.value.drawSpectrum(this.masterDataArray);
         }
       }

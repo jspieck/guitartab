@@ -1,89 +1,45 @@
 <template>
-  <BaseModal id="infoModal">
+  <BaseModal>
     <template #title>Track Info</template>
     <label>Title:</label>
-    <input v-model="infoModalData.title" />
+    <input v-model="infoData.title" />
     <label>Subtitle:</label>
-    <input v-model="infoModalData.subtitle" />
+    <input v-model="infoData.subtitle" />
     <label>Artist:</label>
-    <input v-model="infoModalData.artist" />
+    <input v-model="infoData.artist" />
     <label>Album:</label>
-    <input v-model="infoModalData.album" />
+    <input v-model="infoData.album" />
     <label>Author:</label>
-    <input v-model="infoModalData.author" />
+    <input v-model="infoData.author" />
     <label>Music:</label>
-    <input v-model="infoModalData.music" />
+    <input v-model="infoData.music" />
     <label>Copyright:</label>
-    <input v-model="infoModalData.copyright" />
+    <input v-model="infoData.copyright" />
     <label>Writer:</label>
-    <input v-model="infoModalData.writer" />
+    <input v-model="infoData.writer" />
     <label>Instructions:</label>
-    <input v-model="infoModalData.instructions" />
+    <input v-model="infoData.instructions" />
     <label>Comments:</label>
-    <textarea v-model="infoModalData.comments[0]"></textarea>
-    <SubmitButton :submitInfo="submitInfo" />
+    <textarea v-model="infoData.comments[0]"></textarea>
+    <button 
+      class="submitButton" 
+      @click="submitInfo"
+    >
+      Submit
+    </button>
   </BaseModal>
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, onMounted } from "vue";
 import BaseModal from "./BaseModal.vue";
-import SubmitButton from "./SubmitButton.vue";
-import { ref, reactive } from "vue";
-import modalHandler from "../assets/js/modalHandler";
-import Song from "../assets/js/songData";
+import { modalManager } from "../assets/js/modals/modalManager";
+import { InfoModalHandler } from "../assets/js/modals/infoModalHandler";
 
-const infoModalData = reactive({
-  title: "",
-  subtitle: "",
-  artist: "",
-  album: "",
-  author: "",
-  music: "",
-  copyright: "",
-  writer: "",
-  instructions: "",
-  comments: [""],
-  bound: false,
-});
+const handler = modalManager.getHandler<InfoModalHandler>('info');
+const infoData = reactive(handler.getInfoData());
 
 function submitInfo() {
-  modalHandler.closeModal("trackInfoModal");
-  if (infoModalData.title != null) {
-    Song.songDescription.title = infoModalData.title;
-  }
-  if (infoModalData.subtitle != null) {
-    Song.songDescription.subtitle = infoModalData.subtitle;
-  }
-  if (infoModalData.artist != null) {
-    Song.songDescription.artist = infoModalData.artist;
-  }
-  if (infoModalData.album != null) {
-    Song.songDescription.album = infoModalData.album;
-  }
-  if (infoModalData.author != null) {
-    Song.songDescription.author = infoModalData.author;
-  }
-  if (infoModalData.music != null) {
-    Song.songDescription.music = infoModalData.music;
-  }
-  if (infoModalData.copyright != null) {
-    Song.songDescription.copyright = infoModalData.copyright;
-  }
-  if (infoModalData.writer != null) {
-    Song.songDescription.writer = infoModalData.writer;
-  }
-  if (infoModalData.instructions != null) {
-    Song.songDescription.instructions = infoModalData.instructions;
-  }
-  if (infoModalData.comments != null) {
-    // eslint-disable-next-line prefer-destructuring
-    Song.songDescription.comments[0] = infoModalData.comments[0];
-  }
-
-  document.getElementById("tabTitle")!.textContent = Song.songDescription.title;
-  document.getElementById("tabAuthor")!.textContent =
-    Song.songDescription.author;
+    handler.submitInfo(infoData);
 }
-
-// displayModal('trackInfoModal', 'Info');
 </script>

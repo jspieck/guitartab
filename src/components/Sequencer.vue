@@ -21,17 +21,17 @@
                         <div id="instrumentLabelMaster" class="label instrumentLabel">
                             Master
                         </div>
-                        <div class="muteBtn" @click="modalHandler.toggleModal('equalizerModal', 'EQ')">
+                        <div class="muteBtn" @click="modalManager.toggleModal('equalizerModal', 'EQ')">
                             <div class="muteBtnCircle">EQ</div>
                         </div>
-                        <div class="soloBtn" @click="modalHandler.toggleModal('compressorModal', '34')">
+                        <div class="soloBtn" @click="modalManager.toggleModal('compressorModal', '34')">
                             <div class="muteBtnCircle">C</div>
                         </div>
                         <Fader :id="0" />
                     </div>
                     <div v-for="trackId in Song.tracks.length" :key="trackId" class="labelDiv disable-select">
                         <img :id="`labelImg${trackId}`" class="labelImg"
-                            :src="Helper.getIconSrc(Song.playBackInstrument[trackId].instrument)"
+                            :src="Helper.getIconSrc(Song.playBackInstrument[trackId]?.instrument)"
                             @click="handleClick(trackId)" :style="getBorderStyle(trackId)" />
                         <div :id="`instrumentLabel${trackId}`" :class="['label', 'instrumentLabel', { activeInstrument: activeInstrumentIndex === trackId }]"
                             @click="handleTrackLabelClick(trackId)" @keyup="handleKeyUp(trackId)">{{
@@ -107,10 +107,12 @@ import Helper from '../assets/js/helper';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
 import { svgDrawer } from '../assets/js/svgDrawer';
-import { modalHandler } from '../assets/js/modalHandler';
+import { modalManager } from '../assets/js/modals/modalManager';
 import Knob from './Knob.vue';
 import SequenceMarker from './SequenceMarker.vue';
 import Fader from './Fader.vue';
+import { AddTrackModalHandler } from '../assets/js/modals/addTrackModalHandler';
+import { DeleteTrackModalHandler } from '../assets/js/modals/deleteTrackModalHandler';
 
 const colorPalette = ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#99B898', '#FECEAB', '#FF847C', '#E84A5F', '#2A363B'];
 const SEQUENCER_BLOCK_WIDTH = 30;
@@ -199,23 +201,26 @@ const getBorderStyle = (trackId: number) => {
 };
 
 const handleClick = (trackId: number) => {
-    AppManager.numberOfTrackToAdd = trackId;
-    modalHandler.openAddTrack();
+    const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+    handler.setNumberOfTrackToAdd(trackId);
+    handler.openModal();
 };
 
 function openInstrumentSettings(trackId: number) {
-    AppManager.numberOfTrackToAdd = trackId;
-    modalHandler.openInstrumentSettings(trackId);
+    const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+    handler.setNumberOfTrackToAdd(trackId);
+    modalManager.getHandler('InstrumentSettingsModal').openModal({trackId});
 }
 
 function openAddTrack() {
-    AppManager.numberOfTrackToAdd = -1;
-    modalHandler.openAddTrack();
+    const handler = modalManager.getHandler('AddTrackModal') as AddTrackModalHandler;
+    handler.setNumberOfTrackToAdd(-1);
+    handler.openModal();
 }
 
 function deleteTrack(trackId: number) {
     if (Song.measures.length > 1) {
-        modalHandler.openDeleteTrack(trackId);
+        modalManager.getHandler('DeleteTrackModal').openModal({trackId});
     } else {
         alert('At least one track must be available!');
     }

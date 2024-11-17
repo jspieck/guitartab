@@ -10,6 +10,7 @@ import { GpxReader } from './GPXReader';
 import playBackLogic from './playBackLogicNew';
 import { modalHandler } from './modalHandler';
 import { svgDrawer } from './svgDrawer';
+import { modalManager } from './modals/modalManager';
 
 class MidiEngine {
   midi: any;
@@ -73,7 +74,7 @@ class MidiEngine {
       this.midiInputs.push(input.value);
     }
     if (this.midiInputs.length > 0) {
-      modalHandler.toggleModal('midiModal', 'Midi');
+      modalManager.getHandler('MidiModal').openModal();
     } else {
       const tr = document.createElement('tr');
       const notice = document.createElement('td');

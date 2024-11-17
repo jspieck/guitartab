@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/vexflow": "^1.2.42",
     "fastdom": "^1.0.11",
     "interactjs": "^1.10.17",
     "jquery": "^3.6.4",

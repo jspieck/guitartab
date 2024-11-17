@@ -60,11 +60,8 @@ import { ref, watchEffect } from "vue";
 import BaseModal from "./BaseModal.vue";
 import { Note } from "../assets/js/songData";
 import { Measure } from "../assets/js/songData";
-import { revertHandler } from "../assets/js/revertHandler";
-import classicalNotation from "../assets/js/vexflowClassical";
-import { svgDrawer } from "../assets/js/svgDrawer";
-import { modalHandler } from "../assets/js/modalHandler";
-import EventBus from "../assets/js/eventBus";
+import { GraceModalHandler } from "../assets/js/modals/graceModalHandler";
+import { modalManager } from "../assets/js/modals/modalManager";
 
 interface NoteSelection {
   notes: {
@@ -92,38 +89,6 @@ const props = defineProps({
   },
 });
 
-/* let graceModalData = {
-      duration: 'e',
-      setOnBeat: 'before',
-      dynamic: 'mf',
-      transition: '',
-      fret: -1,
-      bound: false,
-      string: 0,
-      height: 0,
-      dead: false,
-    }; */
-
-let gracePresentBefore: { [n: string]: boolean } = {};
-
-function handleArrChange(arr: NoteSelection) {
-  const { note } = arr.notes[0];
-  gracePresentBefore = {};
-  for (const no of arr.notes) {
-    const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-    gracePresentBefore[noteStr] = no.note.gracePresent;
-  }
-  setGraceState(note);
-  modalHandler.displayModal("addGraceModal", "Grace");
-}
-
-watchEffect(() => {
-  if (props.arr) {
-    // Whenever the 'arr' prop changes, this function will be called
-    handleArrChange(props.arr);
-  }
-});
-
 const graceModalDataDefault = {
   fret: 0,
   duration: "s",
@@ -134,45 +99,35 @@ const graceModalDataDefault = {
 
 const graceModalData = ref({ ...graceModalDataDefault });
 
-const onGraceSelectButtonClick = () => {
-  modalHandler.closeModal("addGraceModal");
-  if (!props.arr) return null;
+function handleArrChange(arr: NoteSelection) {
+  const { note } = arr.notes[0];
+  const handler = modalManager.getHandler<GraceModalHandler>('grace');
+  
+  // Update the handler's state
+  handler.openModal({
+    notes: arr.notes,
+    blocks: arr.blocks,
+    beats: arr.beats
+  });
 
-  for (const no of props.arr.notes) {
-    const noteInArr = no.note;
-    const graceObjBefore = noteInArr.graceObj;
+  // Update the local UI state
+  setGraceState(note);
+}
 
-    const graceObj = {
-      ...graceModalData.value,
-      string: 0,
-      height: 0,
-      dead: false,
-    };
-    noteInArr.graceObj = graceObj;
-
-    if (!noteInArr.gracePresent) {
-      noteInArr.gracePresent = true;
-      EventBus.emit("menu.activateEffectsForNote", noteInArr)
-    }
-
-    const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-    revertHandler.addGrace(
-      no.trackId,
-      no.blockId,
-      no.voiceId,
-      no.beatId,
-      no.string,
-      // TODO turned undefined grace into noteInArr.grace. Is that correct?
-      graceObjBefore,
-      noteInArr.graceObj,
-      gracePresentBefore[noteStr],
-      noteInArr.gracePresent
-    );
+watchEffect(() => {
+  if (props.arr) {
+    handleArrChange(props.arr);
   }
-  const { trackId } = props.arr.notes[0];
-  const { voiceId } = props.arr.notes[0];
-  classicalNotation.computeVexFlowDataStructures(trackId, voiceId);
-  svgDrawer.rerenderBlocks(trackId, props.arr.blocks, voiceId);
+});
+
+const onGraceSelectButtonClick = () => {
+  const handler = modalManager.getHandler<GraceModalHandler>('grace');
+  if (handler) {
+    // Update the handler's state with the current UI values
+    handler.updateGraceData(graceModalData.value);
+    handler.applyGrace();
+    modalManager.closeModal(handler.modalId);
+  }
 };
 
 function setGraceState(note: Note) {

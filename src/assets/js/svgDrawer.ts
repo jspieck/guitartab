@@ -8,11 +8,12 @@ import playBackLogic from './playBackLogicNew';
 import { tab } from './tab';
 import Helper from './helper';
 import AppManager from './appManager';
-import { modalHandler } from './modalHandler';
+import { modalManager } from './modals/modalManager';
 import { audioEngine } from './audioEngine';
 import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
+import { ChordModalHandler } from './modals/chordModalHandler';
 
 class SvgDrawer {
   rowsPerPage: { rowStart: number, rowEnd: number }[][][];
@@ -774,14 +775,14 @@ class SvgDrawer {
     title.setAttribute('text-anchor', 'middle');
     author.setAttribute('text-anchor', 'middle');
     trackTitle.setAttribute('text-anchor', 'end');
-    trackTitle.addEventListener('click', () => { modalHandler.openInstrumentSettings(Song.currentTrackId); });
-    capo.addEventListener('click', () => { modalHandler.openInstrumentSettings(Song.currentTrackId); });
-    tuning.addEventListener('click', () => { modalHandler.openInstrumentSettings(Song.currentTrackId); });
+    trackTitle.addEventListener('click', () => { modalManager.getHandler('InstrumentSettingsModal').openModal(); });
+    capo.addEventListener('click', () => { modalManager.getHandler('InstrumentSettingsModal').openModal(); });
+    tuning.addEventListener('click', () => { modalManager.getHandler('InstrumentSettingsModal').openModal(); });
     title.addEventListener('click', () => {
-      modalHandler.openInfoModal();
+      modalManager.getHandler('InfoModal').openModal();
     });
     author.addEventListener('click', () => {
-      modalHandler.openInfoModal();
+      modalManager.getHandler('InfoModal').openModal();
     });
     tabInformationGroup.appendChild(title);
     tabInformationGroup.appendChild(author);
@@ -857,7 +858,7 @@ class SvgDrawer {
             + chordCounter * (this.DIA_WIDTH + this.DIA_SPACING);
           const yPos = chordRowNum * (this.DIA_HEIGHT + 40);
           chordDia.setAttribute('transform', `translate(${xPos},${yPos})`);
-          chordDia.addEventListener('click', () => { modalHandler.openChordManager(trackId); });
+          chordDia.addEventListener('click', () => { (modalManager.getHandler('chord') as ChordModalHandler).openChordManager(Song.currentTrackId); });
           chordInformationGroup.appendChild(chordDia);
           chordCounter += 1;
           chordId += 1;
@@ -2268,7 +2269,7 @@ class SvgDrawer {
     if (Song.measureMeta[blockId].bpmPresent) {
       if (this.svgBlocks[trackId][blockId][voiceId] != null) {
         const group = this.createBpmMeter(trackId, blockId);
-        group.addEventListener('click', () => { modalHandler.openBpmModal(trackId, blockId, voiceId); });
+        group.addEventListener('click', () => { modalManager.getHandler('TempoModal').openModal({ trackId, blockId, voiceId }); });
         const { effectGroup } = this.svgBlocks[trackId][blockId][voiceId];
         if (effectGroup != null) {
           effectGroup.appendChild(group);
@@ -2803,6 +2804,30 @@ class SvgDrawer {
     const pageId = this.blockToPage[tab.blocksPerRow[trackId][voiceId][rowId].start];
     this.svgPagesPlayBackBar[trackId][voiceId][pageId].appendChild(overlay);
     return overlay;
+  }
+
+  static drawPoint(
+    xPos: number, yPos: number, paddingTop: number, paddingLeft: number,
+    radius: number, svgParent: HTMLElement, text: string,
+  ) {
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    svgParent.appendChild(group);
+    const pointElem = SvgDrawer.createCircle(xPos + paddingLeft, yPos + paddingTop, radius, 'none', '1', '#123e74');
+    group.appendChild(pointElem);
+    if (text != null) {
+      group.appendChild(SvgDrawer.createText(xPos - 3, yPos + paddingTop + 4, text, '13px', '#fff', 'Source Sans Pro'));
+    }
+    return group;
+  }
+
+  static connectPoints(
+    pointA: HTMLElement, pointB: HTMLElement, svgElem: HTMLElement,
+  ) {
+    const pathStr = `M${pointA.getAttribute('cx')} ${pointA.getAttribute('cy')}L${pointB.getAttribute('cx')} ${pointB.getAttribute('cy')}`;
+    const pathEl = SvgDrawer.createPath(pathStr, '#123e74', '2', 'none');
+    pathEl.setAttribute('class', 'pointConnectionLine');
+    svgElem.appendChild(pathEl);
+    return pathEl;
   }
 }
 
