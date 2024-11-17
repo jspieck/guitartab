@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.TREMOLO_BAR.id">
     <template #title>Tremolo Bar</template>
     <div class="tremoloEditorContainer">
       <svg id="tremoloEditor" width="100%" height="300"></svg>
@@ -24,6 +24,7 @@ import { onMounted } from "vue";
 import BaseModal from "./BaseModal.vue";
 import { TremoloBarModalHandler } from "../assets/js/modals/tremoloBarModalHandler";
 import { Note, Measure } from "../assets/js/songData";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
 const props = defineProps({
   notes: {

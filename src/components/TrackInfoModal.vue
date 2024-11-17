@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modalId="MODALS.INFO.id">
     <template #title>Track Info</template>
     <label>Title:</label>
     <input v-model="infoData.title" />
@@ -35,8 +35,9 @@ import { ref, reactive, onMounted } from "vue";
 import BaseModal from "./BaseModal.vue";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { InfoModalHandler } from "../assets/js/modals/infoModalHandler";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
-const handler = modalManager.getHandler<InfoModalHandler>('info');
+const handler = modalManager.getHandler<InfoModalHandler>(MODALS.INFO.id);
 const infoData = reactive(handler.getInfoData());
 
 function submitInfo() {

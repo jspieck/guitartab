@@ -3,6 +3,7 @@ import { Song } from '../songData';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
+import { MODALS } from './modalTypes';
 
 interface TempoModalState extends ModalState {
     bpm: number;
@@ -14,12 +15,11 @@ interface TempoModalState extends ModalState {
 }
 
 export class TempoModalHandler extends BaseModalHandler {
-    readonly modalType = 'TempoModal' as const;
     private tempoFuncBinded: (e: MouseEvent) => void;
     private remTempoBinded: (e: MouseEvent) => void;
 
     constructor() {
-        super('bpmModal', 'BPM');
+        super(MODALS.TEMPO.id, MODALS.TEMPO.name);
         this.modalState = {
             ...this.modalState,
             bpm: 90,

@@ -7,6 +7,7 @@ import { modalHandler } from './modalHandler';
 import AppManager from './appManager';
 import { ChordModalHandler } from './modals/chordModalHandler';
 import { modalManager } from './modals/modalManager';
+import { MODALS } from './modals/modalTypes';
 
 class Gp4Reader {
   static read() {
@@ -183,7 +184,7 @@ class Gp4Reader {
       chordPresent = true;
       chord = Gp4Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler('chord') as ChordModalHandler).fillChordsPresets(trackId);
+      (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
     let textPresent = false;
     let text = '';

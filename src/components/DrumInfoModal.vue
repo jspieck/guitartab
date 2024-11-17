@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.DRUM_INFO.id">
     <template #title>Drum Info</template>
     <div id="drumInfo">
       <div
@@ -20,6 +20,7 @@ import BaseModal from "./BaseModal.vue";
 import audioEngine from "../assets/js/audioEngine";
 import AppManager from "../assets/js/appManager";
 import { tab } from "../assets/js/tab";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
 const {
   trackId, blockId, voiceId, beatId, string,

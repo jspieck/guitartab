@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.DELETE_TRACK.id">
     <template #title>Delete</template>
     <h4 class="modalCaption">Do you really want to delete the instrument?</h4>
     <button id="yesDelete" class="deleteButton">
@@ -11,4 +11,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

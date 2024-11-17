@@ -4,6 +4,7 @@ import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
 import fastdom from 'fastdom';
+import { MODALS } from './modalTypes';
 
 interface TextModalState extends ModalState {
     text: string;
@@ -15,10 +16,8 @@ interface TextModalState extends ModalState {
 }
 
 export class TextModalHandler extends BaseModalHandler {
-    readonly modalType = 'TextModal' as const;
-
     constructor() {
-        super('addTextModal', 'Text');
+        super(MODALS.TEXT.id, MODALS.TEXT.name);
         this.modalState = {
             ...this.modalState,
             text: '',

@@ -8,6 +8,7 @@ import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
 import { Song } from '../songData';
 import { tab } from '../tab';
+import { MODALS } from './modalTypes';
 
 interface BendEditorProps {
     HORIZONTAL_STEPS: number;
@@ -60,7 +61,7 @@ export class BendModalHandler extends BaseModalHandler {
     private bendPresentBefore: { [a: string]: boolean } = {};
 
     constructor() {
-        super('modalEditor', 'Bend Editor');
+        super(MODALS.BEND.id, MODALS.BEND.name);
     }
 
     openModal(params: BendModalParams) {

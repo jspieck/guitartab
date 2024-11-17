@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.TREMOLO_PICKING.id">
     <template #title>Tremolo Picking</template>
     <label>Choose note length</label>
     <div class="tremoloPickingSelect">
@@ -20,7 +20,7 @@
 import { onMounted } from 'vue';
 import BaseModal from "./BaseModal.vue";
 import { TremoloPickingModalHandler } from "../assets/js/modals/tremoloPickingModalHandler";
-import { Measure, Note } from "../assets/js/songData";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
 const props = defineProps({
   notes: {

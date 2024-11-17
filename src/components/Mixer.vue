@@ -1,5 +1,5 @@
 <template>
-    <BaseModal>
+    <BaseModal :modal-id="MODALS.MIXER.id">
         <template #title>Mixer</template>
         <div id="mixerMain">
             <div v-for="(drumInfo, number) in drumInfos" :key="number" class="mixerColumn" :style="{ order: number }">
@@ -30,6 +30,8 @@ import { ref, Ref } from 'vue';
 import BaseModal from './BaseModal.vue';
 import audioEngine from '../assets/js/audioEngine';
 import Knob from './Knob.vue';
+import { MODALS } from '../assets/js/modals/modalTypes';
+
 
 const drumInfos = ref(Array.from(audioEngine.noteToDrum.values()));
 const slotVolume: Ref<Array<HTMLCanvasElement> | null> = ref(null);

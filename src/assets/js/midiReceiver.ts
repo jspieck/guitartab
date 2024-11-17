@@ -11,6 +11,7 @@ import playBackLogic from './playBackLogicNew';
 import { modalHandler } from './modalHandler';
 import { svgDrawer } from './svgDrawer';
 import { modalManager } from './modals/modalManager';
+import { MODALS } from './modals/modalTypes';
 
 class MidiEngine {
   midi: any;
@@ -74,7 +75,7 @@ class MidiEngine {
       this.midiInputs.push(input.value);
     }
     if (this.midiInputs.length > 0) {
-      modalManager.getHandler('MidiModal').openModal();
+      modalManager.getHandler(MODALS.MIDI.id).openModal();
     } else {
       const tr = document.createElement('tr');
       const notice = document.createElement('td');

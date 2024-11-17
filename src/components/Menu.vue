@@ -64,7 +64,7 @@
                         <button id="tied" @click="noteLengthSpecialSelect('tied')" data-tooltip="Tied" class="checkBoxNote"><img id="tiedImg"
                                 src="../assets/images/articulations/tied.svg" /></button>
 
-                        <button id="info" @click="modalManager.toggleModalByType('InfoModal')" class="checkBoxNote playButton"><img id="infoImg"
+                        <button id="info" @click="modalManager.toggleByModal(MODALS.INFO)" class="checkBoxNote playButton"><img id="infoImg"
                                 src="../assets/images/info.svg" /></button>
 
                         <!--<button id="download" data-tooltip="Download XML" onclick="downloadXML()" class="checkBoxNote playButton"><img id="downloadID" src="../assets/images/download.svg"/></button>-->
@@ -193,7 +193,7 @@
         <button id="classicalToggleButton" @click="classicalNotation.toggleClassicalVisibility()" data-tooltip="Piano Note View" class="classicalButton"><img id="classicalToggle"
                 src="../assets/images/classicalToggle.svg" /></button>
         <button data-tooltip="Chords Menu" class="classicalButton">
-            <img id="chordSection" @click="(modalManager.getHandler('chord') as ChordModalHandler).openChordManager(Song.currentTrackId)" class="classicalButton"
+            <img id="chordSection" @click="(modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).openChordManager(Song.currentTrackId)" class="classicalButton"
                 src="../assets/images/chordSection.svg" />
         </button>
         <button id="zoomIn" @click="tab.scaleCompleteTab(true)" data-tooltip="Zoom In" class="classicalButton"><img id="zoomInImg"
@@ -203,10 +203,10 @@
         <button id="fullscreen" @click="svgDrawer.disablePageMode()" data-tooltip="Fullscreen" class="classicalButton"><img id="fullscreenImg"
                 src="../assets/images/fullscreen.svg" /></button>
 
-        <button id="guitarEyeToggle" @click="modalManager.toggleModalByType('GuitarModal')" data-tooltip="Virtual Guitar" class="classicalButton">
+        <button id="guitarEyeToggle" @click="modalManager.toggleByModal(MODALS.GUITAR)" data-tooltip="Virtual Guitar" class="classicalButton">
             <img src="../assets/images/guitarIconBorder.svg" />
         </button>
-        <button id="pianoEyeToggle" @click="modalManager.toggleModalByType('PianoModal')" data-tooltip="Virtual Piano" class="classicalButton">
+        <button id="pianoEyeToggle" @click="modalManager.toggleByModal(MODALS.PIANO)" data-tooltip="Virtual Piano" class="classicalButton">
             <img src="../assets/images/pianoIconBorder.svg" />
         </button>
 
@@ -240,18 +240,8 @@ import { overlayHandler } from '../assets/js/overlayHandler';
 import { onMounted, onBeforeUnmount } from 'vue';
 import EventBus from "../assets/js/eventBus";
 import { menuHandler } from '../assets/js/menuHandler';
-import { TimeMeterModalHandler } from '../assets/js/modals/timeMeterModalHandler';
-import { RepeatModalHandler } from '../assets/js/modals/repeatModalHandler';
-import { MarkerModalHandler } from '../assets/js/modals/markerModalHandler';
+import { MODALS } from '../assets/js/modals/modalTypes';
 import { ChordModalHandler } from '../assets/js/modals/chordModalHandler';
-import { TextModalHandler } from '../assets/js/modals/textModalHandler';
-import { BendModalHandler } from '../assets/js/modals/bendModalHandler';
-import { ArtificialModalHandler } from '../assets/js/modals/artificialModalHandler';
-import { TremoloBarModalHandler } from '../assets/js/modals/tremoloBarModalHandler';
-import { TremoloPickingModalHandler } from '../assets/js/modals/tremoloPickingModalHandler';
-import { StrokeModalHandler } from '../assets/js/modals/strokeModalHandler';
-import { TempoModalHandler } from '../assets/js/modals/tempoModalHandler';
-import { GraceModalHandler } from '../assets/js/modals/graceModalHandler';
 
 type NoteDuration = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o';
 
@@ -514,21 +504,22 @@ function processNotationSelect(
     trackId: number, blockId: number, voiceId: number, beatId: number,
     id: string, isRevert: boolean,
 ) {
+    console.log('Process Notation Select', id, isRevert);
     const beat = Song.measures[trackId][blockId][voiceId][beatId];
-    if (id === 'addText' && isRevert == null && !beat.textPresent) {
-        modalManager.toggleByClass<TextModalHandler>('text', { trackId, blockId, voiceId, beatId });
-    } else if (id === 'addChord' && isRevert == null && !beat.chordPresent) {
-        modalManager.toggleByClass<ChordModalHandler>('chord', { trackId, blockId, voiceId, beatId });
-    } else if (id === 'addMarker' && isRevert == null && !Song.measureMeta[blockId].markerPresent) {
-        modalManager.toggleByClass<MarkerModalHandler>('marker', { trackId, blockId, voiceId });
-    } else if (id === 'repeatAlternative' && isRevert == null && !Song.measureMeta[blockId].repeatAlternativePresent) {
-        modalManager.toggleByClass<RepeatModalHandler>('repeat', { trackId, blockId, voiceId });
-    } else if (id === 'closeBar' && isRevert == null && !Song.measureMeta[blockId].repeatClosePresent) {
-        modalManager.toggleByClass<RepeatModalHandler>('repeat', { trackId, blockId, voiceId, isRepetition: true });
-    } else if (id === 'timeMeter' && isRevert == null && (blockId === 0 || !Song.measureMeta[blockId].timeMeterPresent)) {
-        modalManager.toggleByClass<TimeMeterModalHandler>('timeMeter');
-    } else if (id === 'bpmMeter' && isRevert == null && !Song.measureMeta[blockId].bpmPresent) {
-        modalManager.toggleByClass<TempoModalHandler>('tempo', { trackId, blockId, voiceId });
+    if (id === 'addText' && !isRevert && !beat.textPresent) {
+        modalManager.toggleByModal(MODALS.TEXT, { trackId, blockId, voiceId, beatId });
+    } else if (id === 'addChord' && !isRevert && !beat.chordPresent) {
+        modalManager.toggleByModal(MODALS.CHORD, { trackId, blockId, voiceId, beatId });
+    } else if (id === 'addMarker' && !isRevert && !Song.measureMeta[blockId].markerPresent) {
+        modalManager.toggleByModal(MODALS.MARKER, { trackId, blockId, voiceId });
+    } else if (id === 'repeatAlternative' && !isRevert && !Song.measureMeta[blockId].repeatAlternativePresent) {
+        modalManager.toggleByModal(MODALS.REPEAT, { trackId, blockId, voiceId });
+    } else if (id === 'closeBar' && !isRevert && !Song.measureMeta[blockId].repeatClosePresent) {
+        modalManager.toggleByModal(MODALS.REPEAT, { trackId, blockId, voiceId, isRepetition: true });
+    } else if (id === 'timeMeter' && !isRevert && (blockId === 0 || !Song.measureMeta[blockId].timeMeterPresent)) {
+        modalManager.toggleByModal(MODALS.TIME_METER, { trackId, blockId, voiceId });
+    } else if (id === 'bpmMeter' && !isRevert && !Song.measureMeta[blockId].bpmPresent) {
+        modalManager.toggleByModal(MODALS.TEMPO, { trackId, blockId, voiceId });
     } else {
         if (isRevert == null && id !== 'timeMeter' && id !== 'addMarker') {
             revertHandler.addNotationSelect(trackId, blockId, voiceId, beatId, id);
@@ -612,40 +603,40 @@ function processEffectSelect(
     }
     console.log('PE', id, isVariableSet, isRevert);
     if (id === 'bend' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByClass<BendModalHandler>('bend', {
+        modalManager.toggleByModal(MODALS.BEND, {
             notes: arr.notes,
             blocks: arr.blocks,
             beats: arr.beats,
             isVariableSet
         });
     } else if (id === 'artificial' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByClass<ArtificialModalHandler>('artificial', {
+        modalManager.toggleByModal(MODALS.ARTIFICIAL, {
             notes: arr.notes,
             blocks: arr.blocks,
             beats: arr.beats
         });
     } else if (id === 'tremoloBar' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByClass<TremoloBarModalHandler>('tremoloBar', {
+        modalManager.toggleByModal(MODALS.TREMOLO_BAR, {
             notes: arr.notes,
             blocks: arr.blocks,
             beats: arr.beats,
             isVariableSet
         });
     } else if (id === 'tremoloPicking' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByClass<TremoloPickingModalHandler>('tremoloPicking', {
+        modalManager.toggleByModal(MODALS.TREMOLO_PICKING, {
             notes: arr.notes,
             blocks: arr.blocks,
             beats: arr.beats,
             isVariableSet
         });
     } else if (id === 'grace' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByClass<GraceModalHandler>('grace', {
+        modalManager.toggleByModal(MODALS.GRACE, {
             notes: arr.notes,
             blocks: arr.blocks,
             beats: arr.beats
         });
     } else if (id === 'stroke' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByClass<StrokeModalHandler>('stroke', {
+        modalManager.toggleByModal(MODALS.STROKE, {
             notes: arr.notes,
             blocks: arr.blocks,
             beats: arr.beats

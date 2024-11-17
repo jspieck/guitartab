@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.ARTIFICIAL.id">
     <template #title>Harmonic</template>
     <div class="harmonicSelect">
       <div class="select">
@@ -31,4 +31,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

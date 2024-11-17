@@ -14,6 +14,7 @@ import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
 import { ChordModalHandler } from './modals/chordModalHandler';
+import { MODALS } from './modals/modalTypes';
 
 class SvgDrawer {
   rowsPerPage: { rowStart: number, rowEnd: number }[][][];
@@ -775,14 +776,14 @@ class SvgDrawer {
     title.setAttribute('text-anchor', 'middle');
     author.setAttribute('text-anchor', 'middle');
     trackTitle.setAttribute('text-anchor', 'end');
-    trackTitle.addEventListener('click', () => { modalManager.getHandler('InstrumentSettingsModal').openModal(); });
-    capo.addEventListener('click', () => { modalManager.getHandler('InstrumentSettingsModal').openModal(); });
-    tuning.addEventListener('click', () => { modalManager.getHandler('InstrumentSettingsModal').openModal(); });
+    trackTitle.addEventListener('click', () => { modalManager.getHandler(MODALS.INSTRUMENT_SETTINGS.id).openModal(); });
+    capo.addEventListener('click', () => { modalManager.getHandler(MODALS.INSTRUMENT_SETTINGS.id).openModal(); });
+    tuning.addEventListener('click', () => { modalManager.getHandler(MODALS.INSTRUMENT_SETTINGS.id).openModal(); });
     title.addEventListener('click', () => {
-      modalManager.getHandler('InfoModal').openModal();
+      modalManager.getHandler(MODALS.INFO.id).openModal();
     });
     author.addEventListener('click', () => {
-      modalManager.getHandler('InfoModal').openModal();
+      modalManager.getHandler(MODALS.INFO.id).openModal();
     });
     tabInformationGroup.appendChild(title);
     tabInformationGroup.appendChild(author);
@@ -858,7 +859,7 @@ class SvgDrawer {
             + chordCounter * (this.DIA_WIDTH + this.DIA_SPACING);
           const yPos = chordRowNum * (this.DIA_HEIGHT + 40);
           chordDia.setAttribute('transform', `translate(${xPos},${yPos})`);
-          chordDia.addEventListener('click', () => { (modalManager.getHandler('chord') as ChordModalHandler).openChordManager(Song.currentTrackId); });
+          chordDia.addEventListener('click', () => { (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).openChordManager(Song.currentTrackId); });
           chordInformationGroup.appendChild(chordDia);
           chordCounter += 1;
           chordId += 1;
@@ -2269,7 +2270,7 @@ class SvgDrawer {
     if (Song.measureMeta[blockId].bpmPresent) {
       if (this.svgBlocks[trackId][blockId][voiceId] != null) {
         const group = this.createBpmMeter(trackId, blockId);
-        group.addEventListener('click', () => { modalManager.getHandler('TempoModal').openModal({ trackId, blockId, voiceId }); });
+        group.addEventListener('click', () => { modalManager.getHandler(MODALS.TEMPO.id).openModal({ trackId, blockId, voiceId }); });
         const { effectGroup } = this.svgBlocks[trackId][blockId][voiceId];
         if (effectGroup != null) {
           effectGroup.appendChild(group);

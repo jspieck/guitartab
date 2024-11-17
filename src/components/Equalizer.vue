@@ -1,5 +1,5 @@
 <template>
-    <BaseModal>
+    <BaseModal :modal-id="MODALS.EQUALIZER.id">
         <template #title>Equalizer</template>
         <div id="equalizerContainer">
             <canvas id="equalizerCanvas" ref="canvasRef" :width="CANVAS_WIDTH + DECIBEL_WIDTH"
@@ -119,7 +119,8 @@ import {
     Ref
 } from 'vue';
 import Knob from './Knob.vue';
-import BaseModal from './BaseModal.vue'
+import BaseModal from './BaseModal.vue';
+import { MODALS } from '../assets/js/modals/modalTypes';
 
 import interact from 'interactjs';
 import Settings from '../assets/js/settingManager';

@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.GRACE.id">
     <template #title>Grace</template>
     <div id="graceSelect">
       <label class="labelTopMargin">Fret</label>
@@ -62,6 +62,7 @@ import { Note } from "../assets/js/songData";
 import { Measure } from "../assets/js/songData";
 import { GraceModalHandler } from "../assets/js/modals/graceModalHandler";
 import { modalManager } from "../assets/js/modals/modalManager";
+import { MODALS } from "../assets/js/modals/modalTypes";
 
 interface NoteSelection {
   notes: {

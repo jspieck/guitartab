@@ -7,6 +7,7 @@ import Settings from '../settingManager';
 import AppManager from '../appManager';
 import { modalManager } from './modalManager';
 import { TuningModalHandler } from './tuningModalHandler';
+import { MODALS } from './modalTypes';
 
 interface InstrumentSettingsState extends ModalState {
     instrumentSettingData: {
@@ -20,10 +21,8 @@ interface InstrumentSettingsState extends ModalState {
 }
 
 export class InstrumentSettingsModalHandler extends BaseModalHandler {
-    readonly modalType = 'InstrumentSettingsModal' as const;
-
     constructor() {
-        super('instrumentSettingsModal', 'Settings');
+        super(MODALS.INSTRUMENT_SETTINGS.id, MODALS.INSTRUMENT_SETTINGS.name);
         this.modalState = {
             ...this.modalState,
             instrumentSettingData: {
@@ -38,7 +37,8 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
     }
 
     openModal(params: { trackId: number }) {
-        this.modalState.trackId = params.trackId;
+        const trackId = params ? params.trackId : Song.currentTrackId;
+        this.modalState.trackId = trackId;
         this.showModal();
     }
 
@@ -70,7 +70,7 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
         capoSelect.value = instrumentSettingData.capo.toString();
 
         this.setupColorPicker();
-        modalManager.getHandler<TuningModalHandler>('tuning').constructTuningArea(trackId, false, instrumentSettingData.numStrings);
+        modalManager.getHandler<TuningModalHandler>(MODALS.TUNING.id).constructTuningArea(trackId, false, instrumentSettingData.numStrings);
     }
 
     private setupColorPicker() {
