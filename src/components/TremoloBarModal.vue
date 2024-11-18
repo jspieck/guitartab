@@ -2,9 +2,17 @@
   <BaseModal :modal-id="MODALS.TREMOLO_BAR.id">
     <template #title>Tremolo Bar</template>
     <div class="tremoloEditorContainer">
-      <svg id="tremoloEditor" width="100%" height="300"></svg>
+      <svg 
+        ref="tremoloEditorRef" 
+        width="300" 
+        height="300"
+        @mousedown="handleMouseDown"
+      ></svg>
       <div class="select tremoloSelect">
-        <select id="tremoloSelection">
+        <select 
+          v-model="selectedPreset"
+          @change="(e) => handler.applyTremoloPreset(Number((e.target as HTMLSelectElement).value))"
+        >
           <option value="0">Dive</option>
           <option value="1">Dip</option>
           <option value="2">Release Up</option>
@@ -15,49 +23,35 @@
         <div class="select__arrow"></div>
       </div>
     </div>
-    <SubmitButton :submitInfo="onSelectButtonClick" />
+    <SubmitButton @submitInfo="handleSubmit" />
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { ref, onMounted } from "vue";
 import BaseModal from "./BaseModal.vue";
-import { TremoloBarModalHandler } from "../assets/js/modals/tremoloBarModalHandler";
-import { Note, Measure } from "../assets/js/songData";
+import SubmitButton from "./SubmitButton.vue";
 import { MODALS } from "../assets/js/modals/modalTypes";
+import { TremoloBarModalHandler } from "../assets/js/modals/tremoloBarModalHandler";
+import { modalManager } from "../assets/js/modals/modalManager";
 
-const props = defineProps({
-  notes: {
-    type: Array,
-    required: true
-  },
-  blocks: {
-    type: Array,
-    required: true
-  },
-  beats: {
-    type: Array,
-    required: true
-  },
-  isVariableSet: {
-    type: Boolean,
-    required: true
-  }
-});
+const tremoloEditorRef = ref<SVGElement | null>(null);
+const selectedPreset = ref("0");
+const handler = modalManager.getHandler(MODALS.TREMOLO_BAR.id) as TremoloBarModalHandler;
 
-const handler = new TremoloBarModalHandler();
+const handleMouseDown = (e: MouseEvent) => {
+  handler.handleMouseDown(e, tremoloEditorRef.value!);
+};
 
-function onSelectButtonClick() {
+const handleSubmit = () => {
   handler.applyTremoloChanges();
-}
+  handler.closeModal();
+};
 
 onMounted(() => {
-  /* handler.openModal({
-    notes: props.notes as { trackId: number; blockId: number; voiceId: number; beatId: number; string: number; note: Note }[],
-    blocks: props.blocks as number[],
-    beats: props.beats as { trackId: number; blockId: number; voiceId: number; beatId: number; beat: Measure }[],
-    isVariableSet: props.isVariableSet
-  }); */
+  if (tremoloEditorRef.value) {
+    handler.initializeTremoloEditor(tremoloEditorRef.value);
+  }
 });
 </script>
 
@@ -70,6 +64,29 @@ onMounted(() => {
 }
 
 .tremoloSelect {
+  position: relative;
   width: 200px;
+}
+
+.select select {
+  width: 100%;
+  padding: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.select__arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #333;
+  pointer-events: none;
 }
 </style>

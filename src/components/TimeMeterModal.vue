@@ -4,58 +4,86 @@
     <div class="timeMeterSelectCapsule">
       <label class="labelTopMargin">Numerator</label>
       <div class="select">
-        <select v-model="numerator">
+        <select 
+          :value="handler.getModalState().numerator"
+          @change="(e) => handler.updateNumerator(Number((e.target as HTMLSelectElement).value))"
+        >
           <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
         </select>
         <div class="select__arrow"></div>
       </div>
       <label class="labelTopMargin">Denominator</label>
       <div class="select timeMeterSelect">
-        <select v-model="denominator">
+        <select 
+          :value="handler.getModalState().denominator"
+          @change="(e) => handler.updateDenominator(Number((e.target as HTMLSelectElement).value))"
+        >
           <option v-for="n in denominators" :key="n" :value="n">{{ n }}</option>
         </select>
         <div class="select__arrow"></div>
       </div>
     </div>
-    <SubmitButton :submitInfo="onSelectButtonClick" />
+    <SubmitButton @submitInfo="handleSubmit" />
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted } from "vue";
 import BaseModal from "./BaseModal.vue";
-import { modalManager } from "../assets/js/modals/modalManager";
-import { TimeMeterModalHandler } from "../assets/js/modals/timeMeterModalHandler";
 import { MODALS } from "../assets/js/modals/modalTypes";
+import { TimeMeterModalHandler } from "../assets/js/modals/timeMeterModalHandler";
+import SubmitButton from "./SubmitButton.vue";
+import { modalManager } from "../assets/js/modals/modalManager";
 
-const numerator = ref(4);
-const denominator = ref(4);
 const denominators = [1, 2, 4, 8, 16, 32];
+const handler = modalManager.getHandler(MODALS.TIME_METER.id) as TimeMeterModalHandler;
 
-const props = defineProps({
-  trackId: {
-    type: Number,
-    required: true,
-  },
-  blockId: {
-    type: Number,
-    required: true,
-  },
-  voiceId: {
-    type: Number,
-    required: true,
-  },
-});
-
-const handler = new TimeMeterModalHandler();
-
-function onSelectButtonClick() {
-  const success = handler.handleSubmit(numerator.value, denominator.value);
-  if (success) {
-    modalManager.closeModal("timeMeterModal");
-  }
+function handleSubmit() {
+  handler.handleSubmit();
+  handler.closeModal();
 }
 
-// Initialize state
-// handler.openModal({ trackId: props.trackId, blockId: props.blockId, voiceId: props.voiceId });
+onMounted(() => {
+  handler.setTimeMeterState();
+});
 </script>
+
+<style scoped>
+.timeMeterSelectCapsule {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  position: relative;
+  width: 100%;
+}
+
+.select select {
+  width: 100%;
+  padding: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.select__arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #333;
+  pointer-events: none;
+}
+
+.labelTopMargin {
+  margin-top: 0.5rem;
+}
+</style>

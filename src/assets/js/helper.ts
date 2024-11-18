@@ -10,7 +10,7 @@ class Helper {
     return 10;
   }
 
-  static removeAllChildren(box: HTMLElement | SVGGElement | null): void {
+  static removeAllChildren(box: HTMLElement | SVGElement | null): void {
     if (box != null) {
       while (box.lastChild) {
         box.removeChild(box.lastChild);

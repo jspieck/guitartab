@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <SubmitButton :submitInfo="onGraceSelectButtonClick" />
+    <SubmitButton @submitInfo="onGraceSelectButtonClick" />
   </BaseModal>
 </template>
 
@@ -63,6 +63,7 @@ import { Measure } from "../assets/js/songData";
 import { GraceModalHandler } from "../assets/js/modals/graceModalHandler";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { MODALS } from "../assets/js/modals/modalTypes";
+import SubmitButton from "./SubmitButton.vue";
 
 interface NoteSelection {
   notes: {
@@ -83,13 +84,6 @@ interface NoteSelection {
   }[];
 }
 
-const props = defineProps({
-  arr: {
-    type: Object as () => NoteSelection | null,
-    required: true,
-  },
-});
-
 const graceModalDataDefault = {
   fret: 0,
   duration: "s",
@@ -99,11 +93,10 @@ const graceModalDataDefault = {
 };
 
 const graceModalData = ref({ ...graceModalDataDefault });
+const handler = modalManager.getHandler<GraceModalHandler>(MODALS.GRACE.id);
 
 function handleArrChange(arr: NoteSelection) {
   const { note } = arr.notes[0];
-  const handler = modalManager.getHandler<GraceModalHandler>('grace');
-  
   // Update the handler's state
   handler.openModal({
     notes: arr.notes,
@@ -115,14 +108,7 @@ function handleArrChange(arr: NoteSelection) {
   setGraceState(note);
 }
 
-watchEffect(() => {
-  if (props.arr) {
-    handleArrChange(props.arr);
-  }
-});
-
 const onGraceSelectButtonClick = () => {
-  const handler = modalManager.getHandler<GraceModalHandler>('grace');
   if (handler) {
     // Update the handler's state with the current UI values
     handler.updateGraceData(graceModalData.value);

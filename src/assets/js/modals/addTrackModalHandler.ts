@@ -3,23 +3,24 @@ import { Track, Song } from '../songData';
 import { tab } from '../tab';
 import AppManager from '../appManager';
 import { instrumentGroups, instrumentList } from '../instrumentData';
+import { sequencer } from '../sequencer';
 
 interface InstrumentGroup {
     title: string;
     choices: string[];
-    visible: boolean;
 }
 
 export class AddTrackModalHandler extends BaseModalHandler {
     private numberOfTrackToAdd: number = -1;
-    public instrumentGroups: InstrumentGroup[];
+    private readonly instrumentGroups: InstrumentGroup[];
 
     constructor() {
         super('addTrackModal', 'New Instrument');
-        this.instrumentGroups = instrumentGroups.map(group => ({
-            ...group,
-            visible: false
-        }));
+        this.instrumentGroups = instrumentGroups;
+    }
+
+    protected setupModalContent(): void {
+        
     }
 
     openModal(trackNumber?: number) {
@@ -27,15 +28,11 @@ export class AddTrackModalHandler extends BaseModalHandler {
         this.showModal();
     }
 
-    protected setupModalContent(): void {
-        // The actual setup is handled by the Vue component
+    public getInstrumentGroups(): InstrumentGroup[] {
+        return this.instrumentGroups;
     }
 
-    toggleVisibility(index: number) {
-        this.instrumentGroups[index].visible = !this.instrumentGroups[index].visible;
-    }
-
-    selectInstrument(choice: string) {
+    public selectInstrument(choice: string) {
         const instrument = instrumentList[choice];
         if (this.numberOfTrackToAdd < 0) {
             this.addNewInstrument(instrument[2], instrument[1]);
@@ -46,6 +43,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
     }
 
     private addNewInstrument(instrumentChannel: number, instrumentName: string) {
+        console.log('addNewInstrument', instrumentChannel, instrumentName);
         const numTracks = Song.measures.length;
         const instrObj = {
             name: instrumentName,
@@ -53,10 +51,11 @@ export class AddTrackModalHandler extends BaseModalHandler {
             numStrings: 6,
             strings: [40, 45, 50, 55, 59, 64],
         };
-        
+        console.log('numTracks', numTracks);
         tab.createNewTrack(numTracks, instrObj);
         tab.createTakte(numTracks, 0);
         tab.fillMeasures(numTracks, 0);
+        sequencer.drawBeat();
     }
 
     private changeInstrumentForTrack(
@@ -117,6 +116,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
         };
 
         AppManager.setTracks(trackNumber);
+        sequencer.drawBeat();
         tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
     }
 

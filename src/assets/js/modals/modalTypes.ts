@@ -12,11 +12,10 @@ import { GuitarModalHandler } from './guitarModalHandler';
 import { InfoModalHandler } from './infoModalHandler';
 import { InstrumentSettingsModalHandler } from './instrumentSettingsModalHandler';
 import { MarkerModalHandler } from './markerModalHandler';
-import { MidiModalHandler } from './MidiModalHandler';
+import { MidiModalHandler } from './midiModalHandler';
 import { MixerModalHandler } from './mixerModalHandler';
 import { PianoModalHandler } from './pianoModalHandler';
 import { RepeatAlternativeModalHandler } from './repeatAlternativeModalHandler';
-import { RepeatModalHandler } from './repeatModalHandler';
 import { RepetitionModalHandler } from './repetitionModalHandler';
 import { StrokeModalHandler } from './strokeModalHandler';
 import { TempoModalHandler } from './tempoModalHandler';
@@ -27,6 +26,7 @@ import { TremoloPickingModalHandler } from './tremoloPickingModalHandler';
 import { TuningModalHandler } from './tuningModalHandler';
 import { AddChordModalHandler } from './addChordModalHandler';
 import { ChordManagerModalHandler } from './chordManagerModalHandler';
+import { CopyrightModalHandler } from './copyRightModalHandler';
 
 export interface ModalDefinition {
     id: string;
@@ -112,12 +112,6 @@ export class AddTrackModal implements ModalDefinition {
     readonly handlerClass = AddTrackModalHandler;
 }
 
-export class ChordModal implements ModalDefinition {
-    readonly id = 'chordModal';
-    readonly name = 'Chord';
-    readonly handlerClass = ChordModalHandler;
-}
-
 export class GraceModal implements ModalDefinition {
     readonly id = 'graceModal';
     readonly name = 'Grace';
@@ -196,11 +190,16 @@ export class ChordManagerModal implements ModalDefinition {
     readonly handlerClass = ChordManagerModalHandler;
 }
 
+export class CopyrightModal implements ModalDefinition {
+    readonly id = 'copyrightModal';
+    readonly name = 'Copyright';
+    readonly handlerClass = CopyrightModalHandler;
+}
+
 export const MODALS = {
     INSTRUMENT_SETTINGS: new InstrumentSettingsModal(),
     MIXER: new MixerModal(),
     ADD_TRACK: new AddTrackModal(),
-    CHORD: new ChordModal(),
     GRACE: new GraceModal(),
     MARKER: new MarkerModal(),
     TEXT: new TextModal(),
@@ -224,4 +223,5 @@ export const MODALS = {
     REPEAT_ALTERNATIVE: new RepeatAlternativeModal(),   
     ADD_CHORD: new AddChordModal(),
     CHORD_MANAGER: new ChordManagerModal(),
+    COPYRIGHT: new CopyrightModal(),
 } as const; 

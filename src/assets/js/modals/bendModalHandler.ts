@@ -322,7 +322,7 @@ export class BendModalHandler extends BaseModalHandler {
             [{ x: 0, y: 4 }, { x: 12, y: 4 }],
             [{ x: 0, y: 4 }, { x: 4, y: 4 }, { x: 8, y: 0 }, { x: 12, y: 0 }],
         ];
-        const bendEditor = document.getElementById('bendEditor')!;
+        const bendEditor = document.getElementById('bendEditor')! as unknown as SVGElement;
 
         let bendPreset = bendPresets[index];
         if (preset != null && preset.length > 0) {
@@ -349,7 +349,7 @@ export class BendModalHandler extends BaseModalHandler {
         this.connectAllBendPoints(bendEditor);
     }
 
-    private connectAllBendPoints(svgElem: HTMLElement) {
+    private connectAllBendPoints(svgElem: SVGElement) {
         for (let i = 0; i < this.editorProps.bendPointsArr.length; i += 1) {
             const bendPointDom = this.editorProps.bendPointsArr[i];
             if (bendPointDom != null && bendPointDom.parentNode != null) {
@@ -364,8 +364,8 @@ export class BendModalHandler extends BaseModalHandler {
                     firstPoint = this.editorProps.pointsOnLine[i];
                 } else {
                     this.editorProps.bendPointsArr.push(SvgDrawer.connectPoints(
-                        firstPoint[0].childNodes[0] as HTMLElement,
-                        this.editorProps.pointsOnLine[i]![0].childNodes[0] as HTMLElement,
+                        firstPoint[0].childNodes[0] as SVGElement,
+                        this.editorProps.pointsOnLine[i]![0].childNodes[0] as SVGElement,
                         svgElem,
                     ));
                     firstPoint = this.editorProps.pointsOnLine[i];

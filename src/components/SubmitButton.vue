@@ -1,6 +1,6 @@
 <template>
   <svg
-    @click="submitInfo"
+    @click="handleSubmit"
     class="checkmark selectButton"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 52 52"
@@ -14,21 +14,12 @@
   </svg>
 </template>
 
-<script lang="ts">
-import { defineComponent } from "vue";
+<script setup lang="ts">
+const emit = defineEmits<{
+  (e: 'submitInfo', event: MouseEvent): void
+}>();
 
-export default defineComponent({
-  props: {
-    submitInfo: {
-      type: Function,
-      required: true,
-    },
-  },
-  emits: ['submitInfo'],
-  methods: {
-    submitInfo(event: MouseEvent) {
-      this.$emit('submitInfo', event);
-    },
-  },
-});
+const handleSubmit = (event: MouseEvent) => {
+  emit('submitInfo', event);
+};
 </script>

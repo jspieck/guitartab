@@ -11,11 +11,7 @@ import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
 import { menuHandler } from './menuHandler';
 
-import Menu from '../../components/Menu.vue';
-
 class Tab {
-  menu: typeof Menu | null;
-
   currentZoom: number;
 
   ZOOM_STEP: number;
@@ -52,7 +48,6 @@ class Tab {
   drawTrackCall: [number, number, boolean, (() => void) | null] | null;
 
   constructor() {
-    this.menu = null;
     this.currentZoom = 1.0;
     this.ZOOM_STEP = 0.05;
     this.ZOOM_MAX = 1.5;
@@ -76,10 +71,6 @@ class Tab {
     this.allWidths = [];
     this.blockToRow = [];
     this.finalBlockWidths = [];
-  }
-
-  setMenu(menu: typeof Menu) {
-    this.menu = menu;
   }
 
   scaleCompleteTab(up: boolean) {
@@ -454,7 +445,7 @@ class Tab {
       this.tupletManager[nextBeat.tupletId] = { originalDuration: '' };
       this.markedNoteObj.beatId = beatId;
     }
-    this.menu!.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
+    menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
 
     const tupletDom = document.getElementById('tuplet');
     tupletDom?.classList.toggle('pressed');

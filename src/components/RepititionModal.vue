@@ -1,17 +1,59 @@
 <template>
   <BaseModal :modal-id="MODALS.REPETITION.id">
-    <template #title>Number Repititions</template>
-        <input id="numberOfRepititionsInput" />
-
-        <svg id="repititionSelectButton" class="checkmark selectButton" xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 52 52">
-          <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-          <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-        </svg>
+    <template #title>Number Repetitions</template>
+    <div class="repetition-input">
+      <label>Number of Repetitions:</label>
+      <input 
+        type="number"
+        v-model="handler.getModalState().numRepetitions"
+        @input="(e) => handler.updateRepetitions(Number((e.target as HTMLInputElement).value))"
+        min="1"
+        :placeholder="handler.getModalState().numRepetitions.toString()"
+      />
+    </div>
+    <SubmitButton @submitInfo="handleSubmit" />
   </BaseModal>
 </template>
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import SubmitButton from "./SubmitButton.vue";
 import { MODALS } from "../assets/js/modals/modalTypes";
+import { RepetitionModalHandler } from "../assets/js/modals/repetitionModalHandler";
+import { modalManager } from "../assets/js/modals/modalManager";
+
+const handler = modalManager.getHandler(MODALS.REPETITION.id) as RepetitionModalHandler;
+
+const handleSubmit = () => {
+  handler.applyRepetitions();
+  handler.closeModal();
+};
 </script>
+
+<style scoped>
+.repetition-input {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+</style>

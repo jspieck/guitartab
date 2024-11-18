@@ -26,8 +26,6 @@ interface TremoloPickingModalState extends ModalState {
 }
 
 export class TremoloPickingModalHandler extends BaseModalHandler {
-    readonly modalType = 'TremoloPickingModal' as const;
-
     constructor() {
         super(MODALS.TREMOLO_PICKING.id, MODALS.TREMOLO_PICKING.name);
         this.modalState = {
@@ -39,6 +37,8 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
             isVariableSet: false
         } as TremoloPickingModalState;
     }
+
+    setupModalContent(): void {}
 
     openModal(params: {
         notes: Note[];
@@ -54,13 +54,8 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
         this.showModal();
     }
 
-    protected setupModalContent(): void {
-        this.setupEventListeners();
-    }
-
     private recordPresentState() {
         this.modalState.presentBefore = {};
-        console.log(this.modalState.notes);
         for (const noteInfo of this.modalState.notes) {
             const noteStr = this.getNoteString(noteInfo);
             this.modalState.presentBefore[noteStr] = noteInfo.note.tremoloPicking;
@@ -72,24 +67,17 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
         if (firstNote?.tremoloPickingLength) {
             this.modalState.tremoloPickingLength = firstNote.tremoloPickingLength;
         }
-        
-        const selection = document.getElementById('tremoloPickingSelection') as HTMLSelectElement;
-        if (selection) {
-            selection.value = this.modalState.tremoloPickingLength;
-        }
     }
 
-    private setupEventListeners() {
-        this.setupSelect('tremoloPickingSelection', (value) => {
-            this.modalState.tremoloPickingLength = value;
-        });
-
-        this.setupSelectButton('tremoloPickingSelectButton', () => {
-            this.applyTremoloPicking();
-        });
+    public updateTremoloPickingLength(length: string): void {
+        this.modalState.tremoloPickingLength = length;
     }
 
-    public applyTremoloPicking() {
+    public getModalState(): TremoloPickingModalState {
+        return this.modalState as TremoloPickingModalState;
+    }
+
+    public applyTremoloPicking(): void {
         const { notes, blocks, isVariableSet } = this.modalState;
         const notesBefore = menuHandler.handleEffectGroupCollision(notes, 'tremoloPicking', isVariableSet);
 

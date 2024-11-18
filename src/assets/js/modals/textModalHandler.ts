@@ -46,27 +46,19 @@ export class TextModalHandler extends BaseModalHandler {
         this.showModal();
     }
 
-    protected setupModalContent(): void {
-        this.updateTextInput();
-        this.setupEventListeners();
+    public updateText(text: string): void {
+        this.modalState.text = text;
     }
 
-    private updateTextInput() {
-        const textSelection = document.getElementById('textSelection') as HTMLInputElement;
-        textSelection.value = this.modalState.text;
+    public getText(): string {
+        return this.modalState.text;
     }
 
-    private setupEventListeners() {
-        this.setupSelect('textSelection', (value) => {
-            this.modalState.text = value;
-        });
-
-        this.setupSelectButton('textSelectButton', () => {
-            this.applyText();
-        });
+    public getModalState(): TextModalState {
+        return this.modalState as TextModalState;
     }
 
-    private applyText() {
+    public applyText(): void {
         const { trackId, blockId, voiceId, beatId, beat, text } = this.modalState;
         
         if (!beat) return;
@@ -95,4 +87,6 @@ export class TextModalHandler extends BaseModalHandler {
             );
         });
     }
+
+    setupModalContent(): void {}
 } 

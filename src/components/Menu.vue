@@ -20,24 +20,24 @@
             <div id="statusBars">
                 <div id="statusBar1" class="statusBar statusBarSelected">
                     <div class="checkBoxBar">
-                        <button @click="noteLengthSelect('wholeNote', 'w')" id="wholeNote" data-tooltip="Whole"
+                        <button @click="menuHandler.noteLengthSelect('wholeNote', 'w')" id="wholeNote" data-tooltip="Whole"
                             class="checkBoxNote"><img id="wholeNoteImg" src="../assets/images/notes/wholeNote.svg" /></button>
-                        <button @click="noteLengthSelect('halfNote', 'h')" id="halfNote" data-tooltip="Half"
+                        <button @click="menuHandler.noteLengthSelect('halfNote', 'h')" id="halfNote" data-tooltip="Half"
                             class="checkBoxNote"><img id="halfNoteImg" width="15" height="25"
                                 src="../assets/images/notes/halfNote.svg" /></button>
-                        <button @click="noteLengthSelect('quarterNote', 'q')" id="quarterNote" data-tooltip="Quarter"
+                        <button @click="menuHandler.noteLengthSelect('quarterNote', 'q')" id="quarterNote" data-tooltip="Quarter"
                             class="checkBoxNote"><img id="quarterNoteImg" width="15" height="25"
                                 src="../assets/images/notes/quarterNote.svg" /></button>
-                        <button @click="noteLengthSelect('8thNote', 'e')" id="8thNote" data-tooltip="Eighth"
+                        <button @click="menuHandler.noteLengthSelect('8thNote', 'e')" id="8thNote" data-tooltip="Eighth"
                             class="checkBoxNote pressed"><img id="8thNoteImg" class="noteImg"
                                 src="../assets/images/notes/eighthNote.svg" /></button>
-                        <button @click="noteLengthSelect('16thNote', 's')" id="16thNote" data-tooltip="16th"
+                        <button @click="menuHandler.noteLengthSelect('16thNote', 's')" id="16thNote" data-tooltip="16th"
                             class="checkBoxNote"><img id="16thNoteImg" class="noteImg"
                                 src="../assets/images/notes/16thNote.svg" /></button>
-                        <button @click="noteLengthSelect('32ndNote', 't')" id="32ndNote" data-tooltip="32nd"
+                        <button @click="menuHandler.noteLengthSelect('32ndNote', 't')" id="32ndNote" data-tooltip="32nd"
                             class="checkBoxNote"><img id="32ndNoteImg" class="noteImg"
                                 src="../assets/images/notes/32ndNote.svg" /></button>
-                        <button @click="noteLengthSelect('64thNote', 'z')" id="64thNote" data-tooltip="64th"
+                        <button @click="menuHandler.noteLengthSelect('64thNote', 'z')" id="64thNote" data-tooltip="64th"
                             class="checkBoxNote"><img id="64thNoteImg" class="noteImg"
                                 src="../assets/images/notes/64thNote.svg" /></button>
                         <div class="or-spacer-vertical left">
@@ -193,7 +193,7 @@
         <button id="classicalToggleButton" @click="classicalNotation.toggleClassicalVisibility()" data-tooltip="Piano Note View" class="classicalButton"><img id="classicalToggle"
                 src="../assets/images/classicalToggle.svg" /></button>
         <button data-tooltip="Chords Menu" class="classicalButton">
-            <img id="chordSection" @click="(modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).openChordManager(Song.currentTrackId)" class="classicalButton"
+            <img id="chordSection" @click="modalManager.toggleByModal(MODALS.CHORD_MANAGER, {trackId: Song.currentTrackId})" class="classicalButton"
                 src="../assets/images/chordSection.svg" />
         </button>
         <button id="zoomIn" @click="tab.scaleCompleteTab(true)" data-tooltip="Zoom In" class="classicalButton"><img id="zoomInImg"
@@ -232,7 +232,6 @@ import Settings from '../assets/js/settingManager';
 import Song, { Note, Measure } from '../assets/js/songData';
 import { tab, Tab } from '../assets/js/tab';
 import playBackLogic from '../assets/js/playBackLogicNew';
-import Helper from '../assets/js/helper';
 import AppManager from '../assets/js/appManager';
 import { classicalNotation } from '../assets/js/vexflowClassical';
 import { Sequencer } from '../assets/js/sequencer';
@@ -241,25 +240,11 @@ import { onMounted, onBeforeUnmount } from 'vue';
 import EventBus from "../assets/js/eventBus";
 import { menuHandler } from '../assets/js/menuHandler';
 import { MODALS } from '../assets/js/modals/modalTypes';
-import { ChordModalHandler } from '../assets/js/modals/chordModalHandler';
-
-type NoteDuration = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o';
-
-const noteToBeat: Record<NoteDuration, string> = {
-    w: 'wholeNote',
-    h: 'halfNote',
-    q: 'quarterNote',
-    e: '8thNote',
-    s: '16thNote',
-    t: '32ndNote',
-    z: '64thNote',
-    o: '128thNote',
-};
 
 function clickedOnPos(position: {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}) {
     const {trackId, blockId, voiceId, beatId, string} = position;
     menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
-    setNoteLengthForMark(trackId, blockId, voiceId, beatId, string);
+    menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, string);
 }
 
 onMounted(() => {
@@ -270,9 +255,6 @@ onMounted(() => {
     EventBus.on("menu.activateEffectsForBeat", beat => menuHandler.activateEffectsForBeat(beat as Measure));
     EventBus.on("menu.disableNoteEffectButtons", () => menuHandler.disableNoteEffectButtons);
     EventBus.on("menu.activateEffectsForBlock", () => menuHandler.activateEffectsForBlock)
-    EventBus.on("menu.noteLengthSelect", (info: {name: string, value: NoteDuration}) => 
-        noteLengthSelect(info.name, info.value)
-    );
     EventBus.on("menu.activateEffectsForPos", () => (trackId: number, blockId: number, voiceId: number, beatId: number, string: number) => menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string));
     EventBus.on("menu.activateEffectsForNote", note => menuHandler.activateEffectsForNote(note as Note));
     EventBus.on("menu.clickedOnPos", position => clickedOnPos(position as {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}));
@@ -507,15 +489,15 @@ function processNotationSelect(
     console.log('Process Notation Select', id, isRevert);
     const beat = Song.measures[trackId][blockId][voiceId][beatId];
     if (id === 'addText' && !isRevert && !beat.textPresent) {
-        modalManager.toggleByModal(MODALS.TEXT, { trackId, blockId, voiceId, beatId });
+        modalManager.toggleByModal(MODALS.TEXT, { trackId, blockId, voiceId, beatId, beat });
     } else if (id === 'addChord' && !isRevert && !beat.chordPresent) {
-        modalManager.toggleByModal(MODALS.CHORD, { trackId, blockId, voiceId, beatId });
+        modalManager.toggleByModal(MODALS.ADD_CHORD, { trackId, blockId, voiceId, beatId });
     } else if (id === 'addMarker' && !isRevert && !Song.measureMeta[blockId].markerPresent) {
         modalManager.toggleByModal(MODALS.MARKER, { trackId, blockId, voiceId });
     } else if (id === 'repeatAlternative' && !isRevert && !Song.measureMeta[blockId].repeatAlternativePresent) {
-        modalManager.toggleByModal(MODALS.REPEAT, { trackId, blockId, voiceId });
+        modalManager.toggleByModal(MODALS.REPEAT_ALTERNATIVE, { trackId, blockId, voiceId });
     } else if (id === 'closeBar' && !isRevert && !Song.measureMeta[blockId].repeatClosePresent) {
-        modalManager.toggleByModal(MODALS.REPEAT, { trackId, blockId, voiceId, isRepetition: true });
+        modalManager.toggleByModal(MODALS.REPETITION, { trackId, blockId, voiceId, isRepetition: true });
     } else if (id === 'timeMeter' && !isRevert && (blockId === 0 || !Song.measureMeta[blockId].timeMeterPresent)) {
         modalManager.toggleByModal(MODALS.TIME_METER, { trackId, blockId, voiceId });
     } else if (id === 'bpmMeter' && !isRevert && !Song.measureMeta[blockId].bpmPresent) {
@@ -663,107 +645,6 @@ function noteEffectSelect(id: string): void {
     }
     const arr = overlayHandler.getNotesInInterval(null);
     processEffectSelect(arr!, id, false);
-}
-
-// TODO buffer infos in array for speedup
-function checkForNoteToTie(
-    trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-) {
-    let noteToTie = null;
-    for (let i = blockId; i >= 0; i -= 1) {
-        const startBeatId = (i === blockId)
-            ? (beatId - 1)
-            : Song.measures[trackId][i][voiceId].length - 1;
-        for (let j = startBeatId; j >= 0; j -= 1) {
-            const { notes } = Song.measures[trackId][i][voiceId][j];
-            if (notes != null) {
-                if (notes[string] != null) {
-                    noteToTie = { blockId: i, beatId: j };
-                    break;
-                }
-            }
-        }
-        if (noteToTie != null) {
-            break;
-        }
-    }
-    return noteToTie;
-}
-
-function setNoteLengthForMark(
-    trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-) {
-    // TODO where is activate effects called???
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
-    const duration = beat.duration[0];
-    chooseNoteLength(duration as keyof typeof noteToBeat);
-
-    document.getElementById('doubleDotted')?.classList.remove('pressed');
-    document.getElementById('dotted')?.classList.remove('pressed');
-    document.getElementById('tied')?.classList.remove('pressed');
-
-    if (beat.dotted) {
-        document.getElementById('dotted')?.classList.add('pressed');
-    }
-    if (beat.doubleDotted) {
-        document.getElementById('doubleDotted')?.classList.add('pressed');
-    }
-    // check if the note is tied
-    const note = beat.notes[string];
-    // TODO make this more performant
-    const tiedDom = document.getElementById('tied') as HTMLButtonElement;
-    if (note != null && note.tied) {
-        noteTiedTo = note.tiedTo;
-        tiedDom.disabled = false;
-        tiedDom?.classList.add('pressed');
-    } else {
-        noteTiedTo = checkForNoteToTie(trackId, blockId, voiceId, beatId, string);
-        if (noteTiedTo == null) {
-            tiedDom.disabled = true;
-        } else {
-            tiedDom.disabled = false;
-        }
-    }
-    const tupletDom = document.getElementById('tuplet') as HTMLButtonElement;
-    if (beat.tuplet != null) {
-        tupletDom.classList.add('pressed');
-    } else {
-        tupletDom.classList.remove('pressed');
-    }
-    // no tuplets of 128ths
-    if (duration === 'z' && beat.tuplet == null) {
-        tupletDom.disabled = true;
-    } else {
-        tupletDom.disabled = false;
-    }
-    showAvailableTupletSizes(Duration.getDurationOfType(duration));
-    // check if setting a dot is possible
-}
-
-function chooseNoteLength(duration: keyof typeof noteToBeat) {
-    if (lastNoteLengthButton === noteToBeat[duration]) {
-        return;
-    }
-    fastdom.mutate(() => {
-        document.getElementById(lastNoteLengthButton)?.classList.toggle('pressed');
-        lastNoteLengthButton = noteToBeat[duration];
-        AppManager.typeOfNote = duration;
-        document.getElementById(noteToBeat[duration])?.classList.toggle('pressed');
-    });
-}
-
-function noteLengthSelect(id: string, noteLength: NoteDuration) {
-    if (AppManager.duringTrackCreation) {
-        return;
-    }
-    if (
-        tab.changeNoteDuration(
-            tab.markedNoteObj.trackId, tab.markedNoteObj.blockId, tab.markedNoteObj.voiceId,
-            tab.markedNoteObj.beatId, tab.markedNoteObj.string, noteLength, false,
-        )
-    ) {
-        chooseNoteLength(noteLength);
-    }
 }
 
 function processSpecialSelect(
@@ -919,35 +800,6 @@ function setNotesTied(
                 selectedNote.fret = fret;
             }
         }
-    }
-}
-
-function addTupletDropdownOption(num: number) {
-    const tDrop = document.getElementById('tupletDropDown');
-    const option = document.createElement('option');
-    option.setAttribute('value', num.toString());
-    option.textContent = num.toString();
-    tDrop?.appendChild(option);
-}
-
-function showAvailableTupletSizes(noteDuration: number) {
-    const tDrop = document.getElementById('tupletDropDown');
-    Helper.removeAllChildren(tDrop);
-    // 3 5 6 7 9 11 12 13
-    if (noteDuration >= 2) {
-        addTupletDropdownOption(3);
-    }
-    if (noteDuration >= 4) {
-        addTupletDropdownOption(5);
-        addTupletDropdownOption(6);
-        addTupletDropdownOption(7);
-    }
-    if (noteDuration >= 8) {
-        addTupletDropdownOption(9);
-        addTupletDropdownOption(10);
-        addTupletDropdownOption(11);
-        addTupletDropdownOption(12);
-        addTupletDropdownOption(13);
     }
 }
 

@@ -31,16 +31,15 @@ import BaseModal from './BaseModal.vue';
 import audioEngine from '../assets/js/audioEngine';
 import Knob from './Knob.vue';
 import { MODALS } from '../assets/js/modals/modalTypes';
-
+import { modalManager } from '../assets/js/modals/modalManager';
+import { MixerModalHandler } from '../assets/js/modals/mixerModalHandler';
 
 const drumInfos = ref(Array.from(audioEngine.noteToDrum.values()));
 const slotVolume: Ref<Array<HTMLCanvasElement> | null> = ref(null);
 const lastColumnClicked = ref(-1);
 
-const getMixerVolumeContext = (number: number) => {
-    if (!slotVolume) return null;
-    return slotVolume.value![number].getContext('2d');
-}
+const handler = modalManager.getHandler(MODALS.MIXER.id) as MixerModalHandler;
+handler.setSlotVolume(slotVolume);
 
 function mixerPanFunc(angle: number, id: string) {
     const scaled = (angle - 180) / 180;

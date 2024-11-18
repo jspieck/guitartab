@@ -2809,7 +2809,7 @@ class SvgDrawer {
 
   static drawPoint(
     xPos: number, yPos: number, paddingTop: number, paddingLeft: number,
-    radius: number, svgParent: HTMLElement, text: string,
+    radius: number, svgParent: SVGElement, text: string,
   ) {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     svgParent.appendChild(group);
@@ -2822,7 +2822,7 @@ class SvgDrawer {
   }
 
   static connectPoints(
-    pointA: HTMLElement, pointB: HTMLElement, svgElem: HTMLElement,
+    pointA: SVGElement, pointB: SVGElement, svgElem: SVGElement,
   ) {
     const pathStr = `M${pointA.getAttribute('cx')} ${pointA.getAttribute('cy')}L${pointB.getAttribute('cx')} ${pointB.getAttribute('cy')}`;
     const pathEl = SvgDrawer.createPath(pathStr, '#123e74', '2', 'none');
