@@ -1,5 +1,5 @@
 <template>
-  <BaseModal>
+  <BaseModal :modal-id="MODALS.COPYRIGHT.id">
     <template #title>Copyright</template>
     <label>
       Copyright 201823 Jan Spieck The samples that were used for the instruments
@@ -108,4 +108,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
+import { MODALS } from "../assets/js/modals/modalTypes";
 </script>

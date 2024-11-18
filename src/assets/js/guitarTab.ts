@@ -11,6 +11,8 @@ import { gProReader } from './GProReader';
 import Equalizer from '../../components/Equalizer.vue';
 import Menu from '../../components/Menu.vue';
 import { menuHandler } from './menuHandler';
+import { modalManager } from './modals/modalManager';
+import { EqualizerModalHandler } from './modals/equalizerModalHandler';
 // import { svgDrawer } from './svgDrawer';
 
 console.log('File is called!!!!!!');
@@ -68,7 +70,7 @@ if (!inBrowser) {
 
 // let waveSurfer;
 // let wml;
-const startUp = function startUp(equalizer: typeof Equalizer, menu: typeof Menu) {
+const startUp = function startUp() {
   document.fonts.load('10pt "musicFont"');
   document.fonts.load('10pt "notesFont"');
   Settings.darkMode = Settings.load('darkMode') === 'true';
@@ -91,7 +93,7 @@ const startUp = function startUp(equalizer: typeof Equalizer, menu: typeof Menu)
   Song.initEmptySong();
 
   // visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
-  audioEngine.createBusses(equalizer);
+  audioEngine.createBusses();
 
   AppManager.createGuitarTab(0);
   /* test: draw audio audioWaveForm

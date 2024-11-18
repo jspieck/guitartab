@@ -18,6 +18,7 @@ import { audioEngine } from './audioEngine';
 import { sequencer } from './sequencer';
 import Duration from './duration';
 import Tuning from './tuning';
+import { menuHandler } from './menuHandler';
 
 const AppManager = {
   notificationTimeOut: null as ReturnType<typeof setTimeout> | null,
@@ -96,22 +97,22 @@ const AppManager = {
         case 'x':
           break;
         case 'w':
-          EventBus.emit("menu.noteLengthSelect", {name: '#wholeNote', value: pressedValue})
+          menuHandler.noteLengthSelect('#wholeNote', pressedValue);
           break;
         case 'h':
-          EventBus.emit("menu.noteLengthSelect", {name: '#halfNote', value: pressedValue})
+          menuHandler.noteLengthSelect('#halfNote', pressedValue);
           break;
         case 'q':
-          EventBus.emit("menu.noteLengthSelect", {name: '#4thNote', value: pressedValue})
+          menuHandler.noteLengthSelect('#4thNote', pressedValue);
           break;
         case 'e':
-          EventBus.emit("menu.noteLengthSelect", {name: '#8thNote', value: pressedValue})
+          menuHandler.noteLengthSelect('#8thNote', pressedValue);
           break;
         case 's':
-          EventBus.emit("menu.noteLengthSelect", {name: '#16thNote', value: pressedValue})
+          menuHandler.noteLengthSelect('#16thNote', pressedValue);
           break;
         case 't':
-          EventBus.emit("menu.noteLengthSelect", {name: '#32ndNote', value: pressedValue})
+          menuHandler.noteLengthSelect('#32ndNote', pressedValue);
           break;
         default:
           break;

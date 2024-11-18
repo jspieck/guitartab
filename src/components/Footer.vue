@@ -7,8 +7,8 @@
         <!--<div id="samplesOpen" class="footerBlock">Samples</div>-->
         <div id="drumMixerOpen" @click="modalManager.toggleByModal(MODALS.MIXER, {})" class="footerBlock">Drum Mixer</div>
         <div id="autoScroll" @click="toggleScrolling()" class="footerBlock">Autoscroll: Enabled</div>
-        <div id="tuningFooter" @click="modalManager.toggleByModal(MODALS.TUNING, { trackId: Song.currentTrackId })" class="footerBlock">Tuning: EADGHE</div>
-        <div id="capoLabel" @click="modalManager.toggleByModal(MODALS.TUNING, { trackId: Song.currentTrackId })" class="footerBlock">Capo: 0</div>
+        <div id="tuningFooter" @click="modalManager.toggleByModal(MODALS.INSTRUMENT_SETTINGS, { trackId: Song.currentTrackId })" class="footerBlock">Tuning: EADGHE</div>
+        <div id="capoLabel" @click="modalManager.toggleByModal(MODALS.INSTRUMENT_SETTINGS, { trackId: Song.currentTrackId })" class="footerBlock">Capo: 0</div>
         <div id="modeSwitcher" @click="toggleDarkMode()" class="footerBlock">White Design</div>
         <div id="midiLabel" @click="modalManager.toggleByModal(MODALS.MIDI, {})" class="footerBlock">Midi</div>
         <div class="footerBlock">

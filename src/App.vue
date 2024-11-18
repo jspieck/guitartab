@@ -104,9 +104,9 @@
     <StrokeModal />
     <AddTextModal />
     <AddMarkerModal />
-    <AddChordModal />
+    <AddChordModal :trackId="currentTrackId" />
     <ChordManagerModal />
-    <GraceModal :arr="currentSelection" />
+    <GraceModal />
     <TremoloBarModal />
     <TrackInfoModal />
     <MidiModal />
@@ -158,13 +158,10 @@ const currentVoiceId = ref(0);
 const currentBlockId = ref(0);
 const currentBeatId = ref(0);
 
-const equalizer = ref(null);
-const menu = ref(null);
 const currentSelection = computed(() => overlayHandler.getNotesInInterval(null));
 
 onMounted(() => {
-  tab.setMenu(menu.value!);
-  startUp(equalizer, menu)
+  startUp();
 })
 </script>
 

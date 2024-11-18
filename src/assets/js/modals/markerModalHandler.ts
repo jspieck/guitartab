@@ -1,10 +1,10 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song, Marker } from '../songData';
-import Picker from 'vanilla-picker';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
 import { Sequencer } from '../sequencer';
+import { MODALS } from './modalTypes';
 
 interface MarkerModalState extends ModalState {
     markerData: Marker;
@@ -14,10 +14,8 @@ interface MarkerModalState extends ModalState {
 }
 
 export class MarkerModalHandler extends BaseModalHandler {
-    readonly modalType = 'MarkerModal' as const;
-
     constructor() {
-        super('markerModal', 'Marker');
+        super(MODALS.MARKER.id, MODALS.MARKER.name);
         this.modalState = {
             ...this.modalState,
             markerData: {
@@ -30,6 +28,8 @@ export class MarkerModalHandler extends BaseModalHandler {
         } as MarkerModalState;
     }
 
+    setupModalContent(): void {}
+
     openModal(params: { trackId: number; blockId: number; voiceId: number }) {
         const { trackId, blockId, voiceId } = params;
         this.modalState.trackId = trackId;
@@ -37,12 +37,6 @@ export class MarkerModalHandler extends BaseModalHandler {
         this.modalState.voiceId = voiceId;
         this.setMarkerState();
         this.showModal();
-    }
-
-    protected setupModalContent(): void {
-        this.updateMarkerInput();
-        this.setupMarkerColorPicker();
-        this.setupEventListeners();
     }
 
     private setMarkerState() {
@@ -61,63 +55,45 @@ export class MarkerModalHandler extends BaseModalHandler {
         };
     }
 
-    private updateMarkerInput() {
-        const input = document.getElementById('markerSelection') as HTMLInputElement;
-        input.value = this.modalState.markerData.text;
+    public updateMarkerText(text: string): void {
+        this.modalState.markerData.text = text;
     }
 
-    private setupMarkerColorPicker() {
-        const { color } = this.modalState.markerData;
-        const pickerParent = document.getElementById('markerColorPicker')!;
-        
-        const picker = new Picker({
-            parent: pickerParent,
-            color: `rgb(${color.red},${color.green},${color.blue})`,
-            popup: false
-        });
+    public updateMarkerColor(color: { red: number; green: number; blue: number }): void {
+        this.modalState.markerData.color = color;
+    }
 
-        picker.onChange = (color: {rgba: number[]}) => {
-            this.modalState.markerData.color = {
-                red: color.rgba[0],
-                green: color.rgba[1],
-                blue: color.rgba[2]
-            };
+    public getModalState(): MarkerModalState {
+        return this.modalState as MarkerModalState;
+    }
+
+    public applyMarker(): void {
+        const { blockId, trackId, voiceId, markerData } = this.modalState;
+
+        const markerPresentBefore = Song.measureMeta[blockId].markerPresent != null
+            && Song.measureMeta[blockId].markerPresent;
+
+        if (!Song.measureMeta[blockId].markerPresent) {
+            Song.measureMeta[blockId].markerPresent = true;
+            EventBus.emit("menu.activateEffectsForBlock");
+        }
+
+        const markerBefore = Song.measureMeta[blockId].marker;
+        Song.measureMeta[blockId].marker = {
+            text: markerData.text,
+            color: markerData.color,
         };
-    }
 
-    private setupEventListeners() {
-        const { blockId, trackId, voiceId } = this.modalState;
+        revertHandler.addMarker(
+            trackId, 
+            blockId, 
+            markerBefore, 
+            Song.measureMeta[blockId].marker,
+            markerPresentBefore, 
+            Song.measureMeta[blockId].markerPresent
+        );
 
-        this.setupSelect('markerSelection', (value) => {
-            this.modalState.markerData.text = value;
-        });
-
-        this.setupSelectButton('markerSelectButton', () => {
-            const markerPresentBefore = Song.measureMeta[blockId].markerPresent != null
-                && Song.measureMeta[blockId].markerPresent;
-
-            if (!Song.measureMeta[blockId].markerPresent) {
-                Song.measureMeta[blockId].markerPresent = true;
-                EventBus.emit("menu.activateEffectsForBlock");
-            }
-
-            const markerBefore = Song.measureMeta[blockId].marker;
-            Song.measureMeta[blockId].marker = {
-                text: this.modalState.markerData.text,
-                color: this.modalState.markerData.color,
-            };
-
-            revertHandler.addMarker(
-                trackId, 
-                blockId, 
-                markerBefore, 
-                Song.measureMeta[blockId].marker,
-                markerPresentBefore, 
-                Song.measureMeta[blockId].markerPresent
-            );
-
-            Sequencer.setMarker(blockId);
-            svgDrawer.rerenderBlock(trackId, blockId, voiceId);
-        });
+        Sequencer.setMarker(blockId);
+        svgDrawer.rerenderBlock(trackId, blockId, voiceId);
     }
 } 

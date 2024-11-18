@@ -29,7 +29,7 @@ export abstract class BaseModalHandler {
         modalManager.displayModal(this.modalState.modalId, this.modalState.modalName);
     }
 
-    protected closeModal() {
+    public closeModal() {
         modalManager.closeModal(this.modalState.modalId);
     }
 

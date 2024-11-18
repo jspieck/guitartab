@@ -1,135 +1,32 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
-import { Song } from '../songData';
-import { svgDrawer } from '../svgDrawer';
-import Helper from '../helper';
 import { Chord } from '../songData';
-import { modalManager } from './modalManager';
 
 interface ChordManagerState extends ModalState {
-    trackId?: number;
+    trackId: number;
 }
 
 export class ChordManagerModalHandler extends BaseModalHandler {
     constructor() {
         super(MODALS.CHORD_MANAGER.id, MODALS.CHORD_MANAGER.name);
         this.modalState = {
-            ...this.modalState
+            ...this.modalState,
+            trackId: 0
         } as ChordManagerState;
     }
 
+    protected setupModalContent(): void {}
+
     openModal(params: { trackId: number }): void {
         this.modalState.trackId = params.trackId;
-        this.createChordManager(params.trackId);
-        this.setupChordManagerButton();
         this.showModal();
     }
 
-    protected setupModalContent(): void {
-        if (this.modalState.trackId) {
-            this.createChordManager(this.modalState.trackId);
-        }
+    public getTrackId(): number {
+        return this.modalState.trackId;
     }
 
-    private createChordManager(trackId: number) {
-        const container = document.getElementById('chordsContainer');
-        if (!container) return;
-        
-        Helper.removeAllChildren(container);
-        
-        if (Song.chordsMap[trackId]) {
-            Array.from(Song.chordsMap[trackId].entries())
-                .forEach(([chordName, chord], index) => {
-                    const chordBox = this.createChordBox(trackId, chordName, chord, index);
-                    container.appendChild(chordBox);
-                });
-        }
-
-        document.getElementById('addChordDiagram')?.addEventListener('click', () => {
-            modalManager.toggleByModal(MODALS.ADD_CHORD, { trackId });
-        });
-    }
-
-    private setupChordManagerButton() {
-        this.setupSelectButton('chordDiagramSelectButton', () => {
-            svgDrawer.redrawChordDiagrams();
-            this.closeModal();
-        });
-    }
-
-    private createChordBox(trackId: number, chordName: string, chord: Chord, chordCounter: number): HTMLElement {
-        const chordBox = document.createElement('div');
-        chordBox.className = 'chordBox';
-        
-        // Create chord name label
-        const chordNameLabel = document.createElement('div');
-        chordNameLabel.className = 'chordName';
-        chordNameLabel.textContent = chordName;
-        chordBox.appendChild(chordNameLabel);
-
-        // Create SVG container for chord diagram
-        const svgContainer = document.createElement('div');
-        svgContainer.className = 'chordDiagram';
-        svgContainer.id = `chord_${chordCounter}`;
-        chordBox.appendChild(svgContainer);
-
-        // Create chord diagram
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '100');
-        svg.setAttribute('height', '120');
-        svgContainer.appendChild(svg);
-
-        // Draw chord diagram
-        this.drawChordDiagram(svg, chord);
-
-        // Create button container
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'chordButtons';
-
-        // Edit button
-        const editButton = document.createElement('button');
-        editButton.className = 'editChord';
-        editButton.textContent = 'Edit';
-        editButton.onclick = () => {
-            modalManager.toggleByModal(MODALS.ADD_CHORD, {
-                trackId,
-                existingChord: {
-                    ...chord,
-                    name: chordName
-                }
-            });
-        };
-        buttonContainer.appendChild(editButton);
-
-        // Delete button
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'deleteChord';
-        deleteButton.textContent = 'Delete';
-        deleteButton.onclick = () => {
-            if (confirm(`Delete chord ${chordName}?`)) {
-                Song.chordsMap[trackId].delete(chordName);
-                this.createChordManager(trackId);
-                svgDrawer.redrawChordDiagrams();
-            }
-        };
-        buttonContainer.appendChild(deleteButton);
-
-        // Toggle visibility button
-        const visibilityButton = document.createElement('button');
-        visibilityButton.className = 'toggleChordVisibility';
-        visibilityButton.textContent = chord.display ? 'Hide' : 'Show';
-        visibilityButton.onclick = () => {
-            chord.display = !chord.display;
-            visibilityButton.textContent = chord.display ? 'Hide' : 'Show';
-            svgDrawer.redrawChordDiagrams();
-        };
-        buttonContainer.appendChild(visibilityButton);
-
-        chordBox.appendChild(buttonContainer);
-        return chordBox;
-    }
-
-    private drawChordDiagram(svg: SVGElement, chord: Chord): void {
+    public drawChordDiagram(svg: SVGElement, chord: Chord): void {
         const width = 80;
         const height = 100;
         const stringSpacing = height / 5;

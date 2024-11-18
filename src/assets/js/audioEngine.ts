@@ -1,14 +1,14 @@
 import Song, { PlayBackInstrument, Measure, Note } from './songData';
 import Settings from './settingManager';
-// import Equalizer from './equalizer';
 import { modalManager } from './modals/modalManager';
 import { sequencer } from './sequencer';
 import Chorus from './chorus';
 import Freeverb from './freeverb';
 import sf2Parser from './sf2parser';
 
-import { Ref } from 'vue';
-import Equalizer from '../../components/Equalizer.vue';
+import { MODALS } from './modals/modalTypes';
+import { MixerModalHandler } from './modals/mixerModalHandler';
+import { EqualizerModalHandler } from './modals/equalizerModalHandler';
 
 type EventFunction = (e: Event) => void;
 
@@ -19,7 +19,7 @@ class AudioEngine {
 
   averageVolumeIsNull: boolean;
 
-  equalizer: Ref<typeof Equalizer> | null;
+  equalizerHandler: EqualizerModalHandler | null;
 
   busses: { volume: GainNode, pan: StereoPannerNode, analyser: AnalyserNode,
     convolver: Freeverb, chorus: Chorus }[];
@@ -71,7 +71,6 @@ class AudioEngine {
     this.context = new AudioContext();
     this.averageVolumeIsNull = true;
 
-    // this.equalizer = new Equalizer(this.context);
     this.busses = [];
     this.drumBusses = [];
     this.limiter = null;
@@ -83,7 +82,7 @@ class AudioEngine {
     this.bufferLength = 0;
     this.drumBufferLength = 0;
     this.masterBufferLength = 0;
-    this.equalizer = null;
+    this.equalizerHandler = null;
 
     this.playingInstrumentSet = new Set();
 
@@ -271,7 +270,7 @@ class AudioEngine {
     this.dataArray = new Uint8Array(this.bufferLength);
   }
 
-  createBusses(equalizer: Ref<typeof Equalizer>) {
+  createBusses() {
     // limiter
     const limiter = this.context.createDynamicsCompressor();
     limiter.threshold.value = -1.0; // this is the pitfall, leave some headroom
@@ -285,8 +284,9 @@ class AudioEngine {
     this.masterGain.gain.value = 1.0;
     // this.masterGain.connect(limiter);
     // create equalizer
-    equalizer.value.insertBetween(this.masterGain, limiter);
-    this.equalizer = equalizer;
+    this.equalizerHandler = modalManager.getHandler('equalizerModal') as EqualizerModalHandler;
+    this.equalizerHandler.setAudioContext(this.context);
+    this.equalizerHandler.insertBetween(this.masterGain, limiter);
     limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.context.destination);
     this.masterAnalyser.smoothingTimeConstant = 0.9;
@@ -371,7 +371,7 @@ class AudioEngine {
         if (modalManager.isModalOpen('mixerModal')) {
           for (let i = 0; i < this.drumBusses.length; i += 1) {
             this.drawVolumeOf(this.drumBusses[i].analyser, this.drumDataArray,
-              this.drumBufferLength, modalManager.getMixerVolumeContext(i),
+              this.drumBufferLength, (modalManager.getHandler(MODALS.MIXER.id) as MixerModalHandler).getMixerVolumeContext(i)!,
               20, 82, 'rgba(6, 54, 122, 0.72)', false);
           }
         }
@@ -383,7 +383,7 @@ class AudioEngine {
             canvasContext, 120, 30, color, true);
         }
         if (modalManager.isModalOpen('equalizerModal')) {
-          this.equalizer.value.drawSpectrum(this.masterDataArray);
+          this.equalizerHandler.drawSpectrum(this.masterDataArray);
         }
       }
       requestAnimationFrame(() => {

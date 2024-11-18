@@ -1,10 +1,13 @@
 <template>
   <BaseModal :modal-id="MODALS.TREMOLO_PICKING.id">
     <template #title>Tremolo Picking</template>
-    <label>Choose note length</label>
-    <div class="tremoloPickingSelect">
+    <div class="tremolo-picking-select">
+      <label>Choose note length:</label>
       <div class="select">
-        <select id="tremoloPickingSelection">
+        <select 
+          :value="handler.getModalState().tremoloPickingLength"
+          @change="(e) => handler.updateTremoloPickingLength((e.target as HTMLSelectElement).value)"
+        >
           <option value="e">Eighth</option>
           <option value="s">Sixteenth</option>
           <option value="t">Thirty-Second</option>
@@ -12,53 +15,57 @@
         <div class="select__arrow"></div>
       </div>
     </div>
-    <SubmitButton :submitInfo="onSelectButtonClick" />
+    <SubmitButton @submitInfo="handleSubmit" />
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import BaseModal from "./BaseModal.vue";
-import { TremoloPickingModalHandler } from "../assets/js/modals/tremoloPickingModalHandler";
+import SubmitButton from "./SubmitButton.vue";
 import { MODALS } from "../assets/js/modals/modalTypes";
+import { TremoloPickingModalHandler } from "../assets/js/modals/tremoloPickingModalHandler";
+import { modalManager } from "../assets/js/modals/modalManager";
 
-const props = defineProps({
-  notes: {
-    type: Array,
-    required: true
-  },
-  blocks: {
-    type: Array,
-    required: true
-  },
-  beats: {
-    type: Array,
-    required: true
-  },
-  isVariableSet: {
-    type: Boolean,
-    required: true
-  }
-});
+const handler = modalManager.getHandler(MODALS.TREMOLO_PICKING.id) as TremoloPickingModalHandler;
 
-const handler = new TremoloPickingModalHandler();
-
-function onSelectButtonClick() {
+const handleSubmit = () => {
   handler.applyTremoloPicking();
-}
-
-onMounted(() => {
-  /* handler.openModal({
-    notes: props.notes as Note[],
-    blocks: props.blocks as number[],
-    beats: props.beats as { trackId: number; blockId: number; voiceId: number; beatId: number; beat: Measure }[],
-    isVariableSet: props.isVariableSet
-  }); */
-});
+  handler.closeModal();
+};
 </script>
 
 <style scoped>
-.tremoloPickingSelect {
-  margin: 1rem 0;
+.tremolo-picking-select {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  position: relative;
+  width: 100%;
+}
+
+.select select {
+  width: 100%;
+  padding: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.select__arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #333;
+  pointer-events: none;
 }
 </style>

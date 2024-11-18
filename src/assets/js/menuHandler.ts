@@ -4,68 +4,78 @@ import { tab } from './tab';
 import { overlayHandler } from './overlayHandler';
 import Settings from './settingManager';
 import AppManager from './appManager';
-import { classicalNotation } from './vexflowClassical';
-import { revertHandler } from './revertHandler';
-import { svgDrawer } from './svgDrawer';
 import Duration from './duration';
 import Helper from './helper';
-import { modalHandler } from './modalHandler';
 
 const effectGroups = [
-    ['pullDown', 'slide', 'bend', 'trill', 'tremoloPicking', 'tremoloBar', 'dead'],
-    ['stacatto', 'palmMute'],
-    ['tap', 'slap', 'pop'],
-    ['fadeIn'],
-    ['grace'],
-    ['vibrato'],
-    ['artificial'],
-    ['accentuated', 'heavyAccentuated', 'ghost'],
-    ['stroke'],
-    ['addChord'],
-    ['addText'],
-    ['addMarker'],
-    ['repeatAlternative'],
-    ['pppDynamic', 'ppDynamic', 'pDynamic', 'mpDynamic', 'mfDynamic', 'fDynamic', 'ffDynamic', 'fffDynamic'],
-    ['openBar'],
-    ['closeBar'],
-    ['timeMeter'],
-    ['bpmMeter'],
-    ['letRing'],
+  ['pullDown', 'slide', 'bend', 'trill', 'tremoloPicking', 'tremoloBar', 'dead'],
+  ['stacatto', 'palmMute'],
+  ['tap', 'slap', 'pop'],
+  ['fadeIn'],
+  ['grace'],
+  ['vibrato'],
+  ['artificial'],
+  ['accentuated', 'heavyAccentuated', 'ghost'],
+  ['stroke'],
+  ['addChord'],
+  ['addText'],
+  ['addMarker'],
+  ['repeatAlternative'],
+  ['pppDynamic', 'ppDynamic', 'pDynamic', 'mpDynamic', 'mfDynamic', 'fDynamic', 'ffDynamic', 'fffDynamic'],
+  ['openBar'],
+  ['closeBar'],
+  ['timeMeter'],
+  ['bpmMeter'],
+  ['letRing'],
 ];
 
 const elementToProperty: { [key: string]: string } = {
-    bend: 'bendPresent',
-    artificial: 'artificialPresent',
-    tap: 'tap',
-    slide: 'slide',
-    fadeIn: 'fadeIn',
-    grace: 'grace',
-    pullDown: 'pullDown',
-    stacatto: 'stacatto',
-    accentuated: 'accentuated',
-    trill: 'trillPresent',
-    dead: 'dead',
-    heavyAccentuated: 'heavyAccentuated',
-    palmMute: 'palmMute',
-    vibrato: 'vibrato',
-    slap: 'slap',
-    pop: 'pop',
-    tremoloPicking: 'tremoloPicking',
-    letRing: 'letRing',
-    ghost: 'ghost',
+  bend: 'bendPresent',
+  artificial: 'artificialPresent',
+  tap: 'tap',
+  slide: 'slide',
+  fadeIn: 'fadeIn',
+  grace: 'grace',
+  pullDown: 'pullDown',
+  stacatto: 'stacatto',
+  accentuated: 'accentuated',
+  trill: 'trillPresent',
+  dead: 'dead',
+  heavyAccentuated: 'heavyAccentuated',
+  palmMute: 'palmMute',
+  vibrato: 'vibrato',
+  slap: 'slap',
+  pop: 'pop',
+  tremoloPicking: 'tremoloPicking',
+  letRing: 'letRing',
+  ghost: 'ghost',
 };
 
 const noteEffects = [
-    'tap', 'slide', 'fadeIn', 'grace', 'pullDown', 'stacatto', 'accentuated', 
-    'trill', 'bend', 'artificial', 'heavyAccentuated', 'palmMute', 'vibrato', 
-    'slap', 'pop', 'dead', 'tremoloPicking', 'letRing', 'ghost'
+  'tap', 'slide', 'fadeIn', 'grace', 'pullDown', 'stacatto', 'accentuated',
+  'trill', 'bend', 'artificial', 'heavyAccentuated', 'palmMute', 'vibrato',
+  'slap', 'pop', 'dead', 'tremoloPicking', 'letRing', 'ghost'
 ];
 
 const secondStatusBar = [
-    'pullDown', 'ghost', 'stacatto', 'accentuated', 'heavyAccentuated', 'palmMute',
-    'vibrato', 'tremoloBar', 'artificial', 'trill', 'bend', 'slide', 'tap', 'fadeIn', 
-    'grace', 'slap', 'pop', 'dead', 'tremoloPicking', 'stroke', 'letRing'
+  'pullDown', 'ghost', 'stacatto', 'accentuated', 'heavyAccentuated', 'palmMute',
+  'vibrato', 'tremoloBar', 'artificial', 'trill', 'bend', 'slide', 'tap', 'fadeIn',
+  'grace', 'slap', 'pop', 'dead', 'tremoloPicking', 'stroke', 'letRing'
 ];
+
+type NoteDuration = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o';
+
+const noteToBeat: Record<NoteDuration, string> = {
+  w: 'wholeNote',
+  h: 'halfNote',
+  q: 'quarterNote',
+  e: '8thNote',
+  s: '16thNote',
+  t: '32ndNote',
+  z: '64thNote',
+  o: '128thNote',
+};
+
 
 class MenuHandler {
   private static instance: MenuHandler;
@@ -75,7 +85,7 @@ class MenuHandler {
   private noteTiedTo: { blockId: number; beatId: number } | null = null;
   private previousBar = 1;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): MenuHandler {
     if (!MenuHandler.instance) {
@@ -107,17 +117,17 @@ class MenuHandler {
 
   public activateEffectsForMarkedBeat() {
     const {
-        trackId, blockId, voiceId, beatId,
+      trackId, blockId, voiceId, beatId,
     } = tab.markedNoteObj;
     this.activateEffectsForBeat(
-        Song.measures[trackId][blockId][voiceId][beatId],
+      Song.measures[trackId][blockId][voiceId][beatId],
     );
   }
 
   public activateEffectsForMarkedPos() {
     this.activateEffectsForPos(
-        tab.markedNoteObj.trackId, tab.markedNoteObj.blockId, tab.markedNoteObj.voiceId,
-        tab.markedNoteObj.beatId, tab.markedNoteObj.string,
+      tab.markedNoteObj.trackId, tab.markedNoteObj.blockId, tab.markedNoteObj.voiceId,
+      tab.markedNoteObj.beatId, tab.markedNoteObj.string,
     );
   }
 
@@ -151,16 +161,16 @@ class MenuHandler {
 
   public deactivateEffects(beat: Measure, note: Note | null, effects: string[]) {
     for (const effect of effects) {
-        document.getElementById(effect)?.classList.remove('pressed');
-        this.setEffectVariable(beat, note, effect, false);
+      document.getElementById(effect)?.classList.remove('pressed');
+      this.setEffectVariable(beat, note, effect, false);
     }
   }
 
   public deactivateEffectsForBeat() {
     const beatEffects = ['stroke', 'tremoloBar', 'addText', 'addChord', 'pppDynamic', 'ppDynamic',
-        'pDynamic', 'mpDynamic', 'mfDynamic', 'fDynamic', 'ffDynamic', 'fffDynamic'];
+      'pDynamic', 'mpDynamic', 'mfDynamic', 'fDynamic', 'ffDynamic', 'fffDynamic'];
     for (const effect of beatEffects) {
-        document.getElementById(effect)?.classList.remove('pressed');
+      document.getElementById(effect)?.classList.remove('pressed');
     }
   }
 
@@ -318,19 +328,19 @@ class MenuHandler {
   ): { [s: string]: boolean } {
     const effectGroupValues: { [s: string]: boolean } = {};
     for (const effect of effectGroups[i]) {
-        effectGroupValues[effect] = this.getEffectVariable(beat, note, effect);
+      effectGroupValues[effect] = this.getEffectVariable(beat, note, effect);
     }
     // isVariableSet = getEffectVariable(beat, note, id);
     if (isVariableSet == null || isVariableSet === false) {
-        this.deactivateEffects(beat, note, effectGroups[i]);
-        this.setEffectVariable(beat, note, id, true);
-        // TODO with loopInterval
-        document.getElementById(id)?.classList.toggle('pressed');
+      this.deactivateEffects(beat, note, effectGroups[i]);
+      this.setEffectVariable(beat, note, id, true);
+      // TODO with loopInterval
+      document.getElementById(id)?.classList.toggle('pressed');
     } else {
-        this.setEffectVariable(beat, note, id, false);
+      this.setEffectVariable(beat, note, id, false);
     }
     return effectGroupValues;
-}
+  }
 
   public handleEffectGroupCollision(
     notes: { trackId: number, blockId: number, voiceId: number, beatId: number, string: number }[],
@@ -339,15 +349,15 @@ class MenuHandler {
   ): { [key: string]: { [s: string]: boolean } } {
     const changes: { [key: string]: { [s: string]: boolean } } = {};
     for (const no of notes) {
-        const beat = Song.measures[no.trackId][no.blockId][no.voiceId][no.beatId];
-        const note = beat.notes[no.string];
-        const noStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-        for (let i = 0; i < effectGroups.length; i += 1) {
-            if (effectGroups[i].includes(id)) {
-                changes[noStr] = this.handleEffectCollision(beat, note, i, id, isVariableSet);
-                break;
-            }
+      const beat = Song.measures[no.trackId][no.blockId][no.voiceId][no.beatId];
+      const note = beat.notes[no.string];
+      const noStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
+      for (let i = 0; i < effectGroups.length; i += 1) {
+        if (effectGroups[i].includes(id)) {
+          changes[noStr] = this.handleEffectCollision(beat, note, i, id, isVariableSet);
+          break;
         }
+      }
     }
     return changes;
   }
@@ -359,25 +369,155 @@ class MenuHandler {
   ) {
     const changes: { [m: string]: { string: number, effects: { [s: string]: boolean } }[] } = {};
     for (const be of beats) {
-        const beat = Song.measures[be.trackId][be.blockId][be.voiceId][be.beatId];
-        const beatStr = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
-        for (let i = 0; i < effectGroups.length; i += 1) {
-            if (effectGroups[i].includes(id)) {
-                const changedEffects = [];
-                for (let string = 0; string < beat.notes.length; string += 1) {
-                    if (beat.notes[string] != null) {
-                        changedEffects.push({
-                            string,
-                            effects: this.handleEffectCollision(beat, beat.notes[string], i, id, isVariableSet),
-                        });
-                    }
-                }
-                changes[beatStr] = changedEffects;
-                break;
+      const beat = Song.measures[be.trackId][be.blockId][be.voiceId][be.beatId];
+      const beatStr = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
+      for (let i = 0; i < effectGroups.length; i += 1) {
+        if (effectGroups[i].includes(id)) {
+          const changedEffects = [];
+          for (let string = 0; string < beat.notes.length; string += 1) {
+            if (beat.notes[string] != null) {
+              changedEffects.push({
+                string,
+                effects: this.handleEffectCollision(beat, beat.notes[string], i, id, isVariableSet),
+              });
             }
+          }
+          changes[beatStr] = changedEffects;
+          break;
         }
+      }
     }
     return changes;
+  }
+
+  public setNoteLengthForMark(
+    trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
+  ) {
+    // TODO where is activate effects called???
+    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    const duration = beat.duration[0];
+    this.chooseNoteLength(duration as NoteDuration);
+
+    document.getElementById('doubleDotted')?.classList.remove('pressed');
+    document.getElementById('dotted')?.classList.remove('pressed');
+    document.getElementById('tied')?.classList.remove('pressed');
+
+    if (beat.dotted) {
+      document.getElementById('dotted')?.classList.add('pressed');
+    }
+    if (beat.doubleDotted) {
+      document.getElementById('doubleDotted')?.classList.add('pressed');
+    }
+    // check if the note is tied
+    const note = beat.notes[string];
+    // TODO make this more performant
+    const tiedDom = document.getElementById('tied') as HTMLButtonElement;
+    if (note != null && note.tied) {
+      this.noteTiedTo = note.tiedTo;
+      tiedDom.disabled = false;
+      tiedDom?.classList.add('pressed');
+    } else {
+      this.noteTiedTo = this.checkForNoteToTie(trackId, blockId, voiceId, beatId, string);
+      if (this.noteTiedTo == null) {
+        tiedDom.disabled = true;
+      } else {
+        tiedDom.disabled = false;
+      }
+    }
+    const tupletDom = document.getElementById('tuplet') as HTMLButtonElement;
+    if (beat.tuplet != null) {
+      tupletDom.classList.add('pressed');
+    } else {
+      tupletDom.classList.remove('pressed');
+    }
+    // no tuplets of 128ths
+    if (duration === 'z' && beat.tuplet == null) {
+      tupletDom.disabled = true;
+    } else {
+      tupletDom.disabled = false;
+    }
+    this.showAvailableTupletSizes(Duration.getDurationOfType(duration));
+    // check if setting a dot is possible
+  }
+
+  public showAvailableTupletSizes(noteDuration: number) {
+    const tDrop = document.getElementById('tupletDropDown');
+    Helper.removeAllChildren(tDrop);
+    // 3 5 6 7 9 11 12 13
+    if (noteDuration >= 2) {
+      this.addTupletDropdownOption(3);
+    }
+    if (noteDuration >= 4) {
+      this.addTupletDropdownOption(5);
+      this.addTupletDropdownOption(6);
+      this.addTupletDropdownOption(7);
+    }
+    if (noteDuration >= 8) {
+      this.addTupletDropdownOption(9);
+      this.addTupletDropdownOption(10);
+      this.addTupletDropdownOption(11);
+      this.addTupletDropdownOption(12);
+      this.addTupletDropdownOption(13);
+    }
+  }
+
+  public addTupletDropdownOption(num: number) {
+    const tDrop = document.getElementById('tupletDropDown');
+    const option = document.createElement('option');
+    option.setAttribute('value', num.toString());
+    option.textContent = num.toString();
+    tDrop?.appendChild(option);
+  }
+
+  public chooseNoteLength(duration: keyof typeof noteToBeat) {
+    if (this.lastNoteLengthButton === noteToBeat[duration]) {
+      return;
+    }
+    fastdom.mutate(() => {
+      document.getElementById(this.lastNoteLengthButton)?.classList.toggle('pressed');
+      this.lastNoteLengthButton = noteToBeat[duration];
+      AppManager.typeOfNote = duration;
+      document.getElementById(noteToBeat[duration])?.classList.toggle('pressed');
+    });
+  }
+
+  // TODO buffer infos in array for speedup
+  public checkForNoteToTie(
+    trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
+  ) {
+    let noteToTie = null;
+    for (let i = blockId; i >= 0; i -= 1) {
+      const startBeatId = (i === blockId)
+        ? (beatId - 1)
+        : Song.measures[trackId][i][voiceId].length - 1;
+      for (let j = startBeatId; j >= 0; j -= 1) {
+        const { notes } = Song.measures[trackId][i][voiceId][j];
+        if (notes != null) {
+          if (notes[string] != null) {
+            noteToTie = { blockId: i, beatId: j };
+            break;
+          }
+        }
+      }
+      if (noteToTie != null) {
+        break;
+      }
+    }
+    return noteToTie;
+  }
+
+  public noteLengthSelect(id: string, noteLength: NoteDuration) {
+    if (AppManager.duringTrackCreation) {
+        return;
+    }
+    if (
+        tab.changeNoteDuration(
+            tab.markedNoteObj.trackId, tab.markedNoteObj.blockId, tab.markedNoteObj.voiceId,
+            tab.markedNoteObj.beatId, tab.markedNoteObj.string, noteLength, false,
+        )
+    ) {
+        this.chooseNoteLength(noteLength);
+    }
 }
 }
 
