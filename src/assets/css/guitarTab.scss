@@ -834,6 +834,7 @@ body {
     height: 13px;
     fill: #222;
     stroke: #222;
+    padding-top: 4px;
 }
 .modal_close:hover {
     cursor: pointer;
@@ -877,7 +878,7 @@ body {
 }
 #chordDisplay{
     display: block;
-    height: 200px;
+    margin-bottom: 10px;
 }
 #pianoModal{
     position: fixed;
@@ -936,13 +937,11 @@ body {
 }
 /*SELECT BOXES*/
 .selectButton{
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
     outline: 0;
     color: white;
     border: none;
     cursor: pointer;
+    margin-top: 10px;
 }
 .selectButton:hover{
     background: #2895b5;
@@ -968,6 +967,7 @@ body {
     border: 0;
     background: none;
     -webkit-appearance: none;
+    padding-right: 25px;
     /*user-select: none;*/
 }
 
@@ -1450,10 +1450,7 @@ transform-origin: 11px center 0px;
     cursor: pointer;
 }
 #measureBox{
-    height: 93px;
     margin-top: 15px;
-    width: 75px;
-    display: inline-block;
 }
 #measureBox label{
     display: block;
@@ -1483,15 +1480,13 @@ transform-origin: 11px center 0px;
 }
 .filterNodeSetting{
     position: relative;
-    width: 150px;
     padding: 10px;
-    padding-top: 20px;
+    padding-top: 25px;
     display: grid;
     margin-top: 15px;
     grid-template-rows: auto auto;
     /*grid-template-columns: 65px 35px auto;*/
     grid-template-columns: 65px 85px;
-    background: #d7d7d7;
 
     label{
         margin: auto;
@@ -1499,16 +1494,14 @@ transform-origin: 11px center 0px;
     }
     &::after{
         position: absolute;
-        top: -10px;
         font-size: 14px;
         background: white;
-        width: 40px;
-        left: 61px;
+        width: 50px;
         text-align: center;
         /*New Settings*/
-        top: 2px;
+        top: 0px;
         font-size: 15px;
-        left: 3px;
+        left: 0px;
     }
 }
 .filterNodeContainer{
@@ -2060,6 +2053,8 @@ input, textarea, input[type="number"]{
     background: #eaeaea;
     background: rgba(230, 230, 230, 0.57);
     border: 1px solid #eaeaea;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 select{
     font-family: "Source Sans Pro";
@@ -2099,7 +2094,7 @@ img{
     padding: 5px 2px 2px 5px;
 }
 #content #ghost{
-    padding-left:7px;
+    padding-left: 7px;
     padding-right: 4px;
 }
 #content #fadeIn, #content #pop, #content #slap, #content #tap, #content #stacatto{
@@ -2109,12 +2104,13 @@ img{
     padding: 6px;
 }
 #content #pullDown, #content #slide{
-    padding-left:4px;
+    padding-left: 4px;
     padding-right: 4px;
 }
 #content .noteImg{
-    width:12px;
-    height:22px;
+    width: 12px;
+    height: 22px;
+    margin: auto;
 }
 /*TABLE*/
 table{

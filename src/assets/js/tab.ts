@@ -1075,7 +1075,7 @@ class Tab {
       trackId, blockId, voiceId, beatId, string, newDuration, previousDuration, noteLength,
     );
     svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-    this.menu!.showAvailableTupletSizes(newDuration);
+    menuHandler.showAvailableTupletSizes(newDuration);
 
     if (this.trackRerenderNecessary(trackId, blockId, voiceId)) {
       this.drawTrack(trackId, voiceId, true, null);

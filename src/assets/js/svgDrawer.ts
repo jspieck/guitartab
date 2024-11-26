@@ -15,6 +15,7 @@ import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
 import { ChordModalHandler } from './modals/chordModalHandler';
 import { MODALS } from './modals/modalTypes';
+import { ChordManagerModalHandler } from './modals/chordManagerModalHandler';
 
 class SvgDrawer {
   rowsPerPage: { rowStart: number, rowEnd: number }[][][];
@@ -859,7 +860,7 @@ class SvgDrawer {
             + chordCounter * (this.DIA_WIDTH + this.DIA_SPACING);
           const yPos = chordRowNum * (this.DIA_HEIGHT + 40);
           chordDia.setAttribute('transform', `translate(${xPos},${yPos})`);
-          chordDia.addEventListener('click', () => { (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).openChordManager(Song.currentTrackId); });
+          chordDia.addEventListener('click', () => { (modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler).openModal({trackId: Song.currentTrackId}); });
           chordInformationGroup.appendChild(chordDia);
           chordCounter += 1;
           chordId += 1;
@@ -920,7 +921,9 @@ class SvgDrawer {
         chordDiagram.appendChild(cross);
       } else if (frets[5 - i] - (capo - 1) !== 0) {
         const fret = capo > 1 ? frets[5 - i] - capo + 1 : frets[5 - i] - capo;
-        const circle = SvgDrawer.createCircle(xPos, this.DIA_HEIGHT / (2 * HOSTEPS) + this.DIA_HEIGHT / (HOSTEPS * fret), 4, 'none', '1', 'black');
+        const yPos = this.DIA_HEIGHT / (2 * HOSTEPS) + this.DIA_HEIGHT / (HOSTEPS * fret);
+        console.log(xPos, yPos);
+        const circle = SvgDrawer.createCircle(xPos, yPos, 4, 'none', '1', 'black');
         chordDiagram.appendChild(circle);
       } else {
         const circle = SvgDrawer.createCircle(xPos, -9, 4, '#333333', '1', 'white');

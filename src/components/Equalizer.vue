@@ -7,7 +7,7 @@
                 :height="handler.CANVAS_HEIGHT + handler.FREQUENCY_HEIGHT">
             </canvas>
             <svg id="equalizerOverlay" ref="equalizerOverlayRef" 
-                :width="`${handler.CANVAS_WIDTH + handler.DECIBEL_WIDTH}px`"
+                :width="`${handler.CANVAS_WIDTH + handler.DECIBEL_WIDTH + 10}px`"
                 :height="`${handler.CANVAS_HEIGHT + handler.FREQUENCY_HEIGHT}px`">
                 <g>
                     <g v-for="(freq, i) in handler.frequencyLines" :key="'freq-' + i">
@@ -26,8 +26,8 @@
                     </g>
                     <text :x="handler.CANVAS_WIDTH + 5" 
                         :y="handler.FREQUENCY_HEIGHT + handler.CANVAS_HEIGHT" 
-                        text-anchor="center">
-                        {{ handler.decibelLines[0] }}
+                        text-anchor="center" class="decibelText">
+                        {{ handler.decibelLines[handler.decibelLines.length - 1] }}
                     </text>
                 </g>
                 <g>
@@ -48,40 +48,46 @@
             </svg>
         </div>
 
-        <div v-for="i in 3" :key="i" :id="`fNodeContainer${i}`" class="filterNodeContainer">
-            <div class="filterNodeSetting">
-                <label class="modeLabel">Mode</label>
-                <div class="equalizerModeSelectBox select">
-                    <select :id="`equalizerModeSelect${i}`" 
-                        v-model="handler[`equalizerMode${i}` as keyof EqualizerModalHandler]" 
-                        @change="handleModeChange(i-1)">
-                        <option v-for="mode in filterModes" :key="mode" :value="mode">
-                            {{ mode.charAt(0).toUpperCase() + mode.slice(1) }}
-                        </option>
-                    </select>
-                    <div class="select__arrow"></div>
+        <div class="grid grid-cols-4 gap-2">
+            <div v-for="i in 3" :key="i" :id="`fNodeContainer${i}`" class="filterNodeContainer">
+                <div class="filterNodeSetting bg-gray-100 rounded-lg p-2">
+                    <label class="modeLabel">Mode</label>
+                    <div class="equalizerModeSelectBox select">
+                        <select :id="`equalizerModeSelect${i}`" 
+                            v-model="handler[`equalizerMode${i}` as keyof EqualizerModalHandler]" 
+                            @change="handleModeChange(i-1)">
+                            <option v-for="mode in filterModes" :key="mode" :value="mode">
+                                {{ mode.charAt(0).toUpperCase() + mode.slice(1) }}
+                            </option>
+                        </select>
+                        <div class="select__arrow"></div>
+                    </div>
+                    <label class="qualityLabel">Quality (Q)</label>
+                    <div :id="`qualityContainer${i}`" class="knob qualityKnob" v-if="isMounted">
+                        <Knob :id="`qKnob${i}`" 
+                            :data-id="i" 
+                            :rotate-func="qualityKnobRotate" 
+                            :start="handler.quality.start"
+                            :min="handler.quality.min" 
+                            :max="handler.quality.max" 
+                            :mid-knob="false">
+                        </Knob>
+                    </div>
+                    <label :id="`qualityLabel${i}`">1.0</label>
                 </div>
-                <label class="qualityLabel">Quality (Q)</label>
-                <div :id="`qualityContainer${i}`" class="knob qualityKnob" v-if="isMounted">
-                    <Knob :id="`qKnob${i}`" 
-                        :data-id="i" 
-                        :rotate-func="qualityKnobRotate" 
-                        :start="handler.quality.start"
-                        :min="handler.quality.min" 
-                        :max="handler.quality.max" 
-                        :mid-knob="false">
-                    </Knob>
-                </div>
-                <label :id="`qualityLabel${i}`">1.0</label>
             </div>
-        </div>
 
-        <div id="measureBox">
-            <label>Frequency</label>
-            <label id="eqCurrentFreq">{{ `${handler.eqCurrentFreq.value} Hz` }}</label>
-            <label>Gain</label>
-            <label id="eqCurrentGain">{{ `${handler.eqGain.value} db` }}</label>
-        </div>
+            <div id="measureBox" class="bg-gray-100 rounded-lg p-2 grid grid-cols-2 vertical-align-middle text-justify">
+                <div class="text-center align-middle">
+                    <label>Frequency</label>
+                    <label id="eqCurrentFreq">{{ `${handler.eqCurrentFreq.value} Hz` }}</label>
+                </div>
+                <div class="text-center align-middle">
+                    <label>Gain</label>
+                    <label id="eqCurrentGain">{{ `${handler.eqGain.value} db` }}</label>
+                </div>
+            </div>
+        </div>  
     </BaseModal>
 </template>
 
@@ -114,6 +120,7 @@ onMounted(() => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    handler.setCanvasContext(ctx);
     drawCanvas(ctx);
     nextTick(() => {
         initInteract(ctx);
@@ -193,10 +200,12 @@ function drawCanvas(ctx: CanvasRenderingContext2D) {
 </script>
 <style scoped>
 .frequencyText {
-    color: #fff;
+    fill: #4b5563;
+    font-size: 14px;
 }
 .decibelText {
-    color: #fff;
+    fill: #4b5563;
+    font-size: 14px;
 }
 .equalizerNode {
     cursor: move;

@@ -8,14 +8,14 @@ export class EqualizerModalHandler extends BaseModalHandler {
     private lowshelf!: BiquadFilterNode;
     private mid!: BiquadFilterNode;
     private highshelf!: BiquadFilterNode;
-    
+
     // Constants
-    public readonly CANVAS_WIDTH = 600;
+    public readonly CANVAS_WIDTH = 700;
     public readonly DECIBEL_WIDTH = 20;
-    public readonly CANVAS_HEIGHT = 300;
+    public readonly CANVAS_HEIGHT = 350;
     public readonly FREQUENCY_HEIGHT = 20;
     public readonly SAMPLERATE = 44100;
-    
+
     public readonly frequencyLines = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
     public readonly decibelLines = [-18, -12, -6, 0, 6, 12, 18];
     public readonly circleColors = ['#89ca78', '#ef596f', '#e5c07b'];
@@ -27,16 +27,18 @@ export class EqualizerModalHandler extends BaseModalHandler {
     public readonly equalizerMode3 = ref("lowpass");
     public readonly eqGain = ref(0.0);
     public readonly eqCurrentFreq = ref('0.0');
-    
+
     // Public properties
     public equalizerNodes: BiquadFilterNode[] = [];
     public readonly equalizerNodeFrequencies = ref<number[]>([]);
-    
+
     // Private state
     private currentNode: number = -1;
     private reTimeOut: number | null = null;
     private logarithmicMin: number = 0;
     private logarithmicMax: number = 0;
+
+    private ctx!: CanvasRenderingContext2D;
 
     constructor() {
         super('equalizerModal', 'Equalizer');
@@ -48,18 +50,18 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
     public initializeAudio(): void {
         this.audioCtx = audioEngine.context;
-        
+
         // Initialize filter nodes
         this.lowshelf = this.audioCtx.createBiquadFilter();
         this.mid = this.audioCtx.createBiquadFilter();
         this.highshelf = this.audioCtx.createBiquadFilter();
-        
+
         this.equalizerNodes = [this.lowshelf, this.mid, this.highshelf];
         this.equalizerNodeFrequencies.value = [40, 1000, 15000];
-        
+
         this.logarithmicMin = Math.log(this.frequencyLines[0]) / Math.LN10;
         this.logarithmicMax = Math.log(this.frequencyLines[this.frequencyLines.length - 1]) / Math.LN10;
-        
+
         this.initializeNodes();
     }
 
@@ -136,16 +138,16 @@ export class EqualizerModalHandler extends BaseModalHandler {
     public updateNodePosition(nodeIndex: number, x: number, y: number): void {
         const frequency = this.xPosToFrequency(x);
         const db = this.yPosToDb(y);
-        
+
         this.setNodeFrequencyAndGain(nodeIndex, frequency, db);
-        
+
         let intFreq = Math.round(frequency);
         let intFreqString = intFreq.toString();
         if (intFreq > 1000) {
             intFreq = Math.round(intFreq / 100);
             intFreqString = `${intFreq / 10}k`;
         }
-        
+
         this.eqCurrentFreq.value = intFreqString;
         this.eqGain.value = Number(db.toFixed(2));
     }
@@ -172,7 +174,7 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
     private drawLine(ctx: CanvasRenderingContext2D, xStart: number, yStart: number, xEnd: number, yEnd: number) {
         if (ctx != null) {
-            ctx.strokeStyle = Settings.darkMode ? 'rgb(79, 79, 79)' : 'rgb(179, 179, 179)';
+            ctx.strokeStyle = Settings.darkMode ? 'rgb(79, 79, 79)' : '#e5e7eb';
             ctx.beginPath();
             ctx.moveTo(xStart, yStart);
             ctx.lineTo(xEnd, yEnd);
@@ -194,37 +196,37 @@ export class EqualizerModalHandler extends BaseModalHandler {
     public drawLocalAttenuationCurve(ctx: CanvasRenderingContext2D, id: number) {
         const RESOLUTION = 50;
         const frequencyArray = new Float32Array(RESOLUTION);
-        
+
         for (let i = 0; i < RESOLUTION; i++) {
             frequencyArray[i] = this.xPosToFrequency((i / (RESOLUTION - 1)) * this.CANVAS_WIDTH);
         }
-    
+
         const magResponseOutput = new Float32Array(RESOLUTION);
         const phaseResponseOutput = new Float32Array(RESOLUTION);
         this.equalizerNodes[id].getFrequencyResponse(frequencyArray, magResponseOutput, phaseResponseOutput);
-    
+
         const magAccumulated = new Float32Array(RESOLUTION);
         for (let i = 0; i < RESOLUTION; i++) {
             magAccumulated[i] = 9 * Math.log(magResponseOutput[i]);
         }
-    
+
         ctx.strokeStyle = this.circleColors[id];
         ctx.lineWidth = 3;
         ctx.beginPath();
-        
+
         const points = this.computeAttenuationPoints(frequencyArray, magAccumulated);
         ctx.moveTo(points[0].x, points[0].y);
-        
+
         for (let i = 0; i < RESOLUTION - 1; i++) {
             const xc = (points[i].x + points[i + 1].x) / 2;
             const yc = (points[i].y + points[i + 1].y) / 2;
             ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
         }
-        
+
         ctx.stroke();
         ctx.lineWidth = 1;
     }
-    
+
 
     public clearCanvas(ctx: CanvasRenderingContext2D): void {
         console.log(Settings.darkMode);
@@ -234,7 +236,7 @@ export class EqualizerModalHandler extends BaseModalHandler {
             this.CANVAS_WIDTH + this.DECIBEL_WIDTH,
             this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT
         );
-        
+
         ctx.fillStyle = Settings.darkMode ? '#212121' : '#fff';
         ctx.fillRect(
             0,
@@ -258,36 +260,36 @@ export class EqualizerModalHandler extends BaseModalHandler {
     public drawAttenuationCurve(ctx: CanvasRenderingContext2D): void {
         const RESOLUTION = 200;
         const frequencyArray = new Float32Array(RESOLUTION);
-        
+
         // Set frequencies at given points
         for (let i = 0; i < RESOLUTION; i++) {
             frequencyArray[i] = this.xPosToFrequency((i / (RESOLUTION - 1)) * this.CANVAS_WIDTH);
         }
-    
+
         const magAccumulated = new Float32Array(RESOLUTION);
         this.equalizerNodes.forEach(node => {
             const magResponseOutput = new Float32Array(RESOLUTION);
             const phaseResponseOutput = new Float32Array(RESOLUTION);
             node.getFrequencyResponse(frequencyArray, magResponseOutput, phaseResponseOutput);
-            
+
             for (let i = 0; i < RESOLUTION; i++) {
                 magAccumulated[i] += 9 * Math.log(magResponseOutput[i]);
             }
         });
-    
+
         ctx.strokeStyle = '#2196F3';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        
+
         const points = this.computeAttenuationPoints(frequencyArray, magAccumulated);
         ctx.moveTo(points[0].x, points[0].y);
-        
+
         for (let i = 0; i < RESOLUTION - 1; i++) {
             const xc = (points[i].x + points[i + 1].x) / 2;
             const yc = (points[i].y + points[i + 1].y) / 2;
             ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
         }
-        
+
         ctx.stroke();
         ctx.lineWidth = 1;
     }
@@ -307,7 +309,7 @@ export class EqualizerModalHandler extends BaseModalHandler {
             + this.CANVAS_HEIGHT
             - ((this.CANVAS_HEIGHT / 2) * points[index]) / 256; // set it to 0 db
         let x = (index * this.SAMPLERATE) / fftSize;
-    
+
         if (
             x < this.frequencyLines[0]
             || x > this.frequencyLines[this.frequencyLines.length - 1]
@@ -318,11 +320,17 @@ export class EqualizerModalHandler extends BaseModalHandler {
         x = this.frequencyToXPos(x);
         // console.log(index, x, y);
         return { x, y };
-}
+    }
 
-    public drawSpectrum(ctx: CanvasRenderingContext2D, frequencyArray: Uint8Array) {
-        this.redraw(ctx);
-    
+    public setCanvasContext(ctx: CanvasRenderingContext2D) {
+        this.ctx = ctx;
+    }
+
+    public drawSpectrum(frequencyArray: Uint8Array) {
+        if (this.ctx == null) return;
+        
+        this.redraw(this.ctx);
+
         const points = [];
         for (let i = 0; i < frequencyArray.length; i += 1) {
             const pointValue = this.pointToXY(frequencyArray, i);
@@ -330,29 +338,29 @@ export class EqualizerModalHandler extends BaseModalHandler {
                 points.push(pointValue);
             }
         }
-        ctx.strokeStyle = 'rgba(49, 88, 193, 0.5)';
-        ctx.fillStyle = 'rgba(49, 88, 193, 0.5)';
-        ctx.beginPath();
-        ctx.moveTo(0, points[0].y);
-        ctx.lineTo(points[0].x, points[0].y);
+        this.ctx.strokeStyle = 'rgba(49, 88, 193, 0.5)';
+        this.ctx.fillStyle = 'rgba(49, 88, 193, 0.5)';
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, points[0].y);
+        this.ctx.lineTo(points[0].x, points[0].y);
         let i;
         for (i = 1; i < points.length - 2; i += 1) {
             const xc = (points[i].x + points[i + 1].x) / 2;
             const yc = (points[i].y + points[i + 1].y) / 2;
-            ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+            this.ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
         }
         // curve through the last two points
-        ctx.quadraticCurveTo(
+        this.ctx.quadraticCurveTo(
             points[i].x,
             points[i].y,
             points[i + 1].x,
             points[i + 1].y,
         );
-        ctx.lineTo(this.CANVAS_WIDTH, points[i + 1].y);
-        ctx.lineTo(this.CANVAS_WIDTH, this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT);
-        ctx.lineTo(0, this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT);
-        ctx.stroke();
-        ctx.fill();
+        this.ctx.lineTo(this.CANVAS_WIDTH, points[i + 1].y);
+        this.ctx.lineTo(this.CANVAS_WIDTH, this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT);
+        this.ctx.lineTo(0, this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT);
+        this.ctx.stroke();
+        this.ctx.fill();
     }
 
     openModal(params?: any): void {

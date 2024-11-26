@@ -134,7 +134,7 @@ export class ModalManager {
     }
 
     protected orderWindows() {
-        const sortFunc = (a: [string, number], b: [string, number]) => b[1] - a[1];
+        const sortFunc = (a: [string, number], b: [string, number]) => a[1] - b[1];
         const windowOrder = new Map([...this.windows.entries()].sort(sortFunc));
         let zIndex = 200;
         for (const key of windowOrder.keys()) {
