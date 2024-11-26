@@ -383,7 +383,7 @@ class AudioEngine {
             canvasContext, 120, 30, color, true);
         }
         if (modalManager.isModalOpen('equalizerModal')) {
-          this.equalizerHandler.drawSpectrum(this.masterDataArray);
+          this.equalizerHandler!.drawSpectrum(this.masterDataArray);
         }
       }
       requestAnimationFrame(() => {

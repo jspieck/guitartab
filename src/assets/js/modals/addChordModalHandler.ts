@@ -2,6 +2,7 @@ import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
 import { Song } from '../songData';
 import { svgDrawer } from '../svgDrawer';
+import { reactive } from 'vue';
 
 interface AddChordModalState extends ModalState {
     chordModalData: {
@@ -87,7 +88,7 @@ export class AddChordModalHandler extends BaseModalHandler {
 
     constructor() {
         super(MODALS.ADD_CHORD.id, MODALS.ADD_CHORD.name);
-        this.modalState = {
+        this.modalState = reactive({
             ...this.modalState,
             chordModalData: {
                 chordRoot: 'C',
@@ -99,7 +100,7 @@ export class AddChordModalHandler extends BaseModalHandler {
                 currentNotes: [0, 0, 0, 0, 0, 0],
                 fingers: Array(6).fill(null)
             }
-        } as AddChordModalState;
+        } as AddChordModalState);
     }
 
     getStringY = (index: number) => {
@@ -107,7 +108,7 @@ export class AddChordModalHandler extends BaseModalHandler {
     };
       
     getFretX = (fret: number): number => {
-        return (this.width / this.horizontalSteps) * fret + this.paddingLeft - 12 + this.paddingLeft;
+        return (this.width / this.horizontalSteps) * fret + this.paddingLeft;
     };
 
     public handleChordClick(e: MouseEvent): void {
@@ -116,9 +117,8 @@ export class AddChordModalHandler extends BaseModalHandler {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        const fret = Math.floor((x - this.paddingLeft) / (this.width / this.horizontalSteps)) + 1;
+        const fret = Math.round((x - this.paddingLeft) / (this.width / this.horizontalSteps));
         const string = Math.round(((y - this.paddingRight) - this.stringPadding) / (this.height - 2 * this.stringPadding) * (this.numStrings - 1));
-        
         if (string >= 0 && string < this.numStrings && fret > 0 && fret <= this.horizontalSteps) {
             const stringIndex = this.numStrings - string - 1;
             const currentNote = this.modalState.chordProperties.currentNotes[stringIndex];
@@ -131,7 +131,6 @@ export class AddChordModalHandler extends BaseModalHandler {
             } else {
                 newNote = fret;
             }
-            
             this.modalState.chordProperties.currentNotes[stringIndex] = newNote;
         }
     }
@@ -151,6 +150,7 @@ export class AddChordModalHandler extends BaseModalHandler {
     }
 
     public saveChord(): void {
+        console.log("Saving chord: ", this.modalState);
         const chordObj = {
             capo: this.modalState.chordProperties.capo,
             name: this.modalState.chordProperties.name,
