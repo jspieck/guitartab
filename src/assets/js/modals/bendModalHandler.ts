@@ -134,10 +134,10 @@ export class BendModalHandler extends BaseModalHandler {
         }
         if (!samePoint) {
             const point = SvgDrawer.drawPoint(xNearest, yNearest, paddingTop,
-                paddingLeft, 7, bendEditor, '');
+                paddingLeft, 7, bendEditor as unknown as SVGElement, '');
             this.editorProps.pointsOnLine[xIndex] = [point, this.editorProps.VERTICAL_STEPS - yIndex, xIndex];
         }
-        this.connectAllBendPoints(bendEditor);
+        this.connectAllBendPoints(bendEditor as unknown as SVGElement);
     }
 
     private setupBendSelectionListener(paddingTop: number, paddingLeft: number, width: number, height: number) {
@@ -209,7 +209,7 @@ export class BendModalHandler extends BaseModalHandler {
                 this.applyBendPreset(0, paddingTop, paddingLeft, width, height, preset);
             }
 
-            this.connectAllBendPoints(bendEditor);
+            this.connectAllBendPoints(bendEditor as unknown as SVGElement);
         });
     }
 
@@ -339,14 +339,14 @@ export class BendModalHandler extends BaseModalHandler {
                     paddingTop,
                     paddingLeft,
                     7,
-                    bendEditor,
+                    bendEditor as unknown as SVGElement,
                     '',
                 ),
                 yVal,
                 xVal,
             ];
         }
-        this.connectAllBendPoints(bendEditor);
+        this.connectAllBendPoints(bendEditor as unknown as SVGElement);
     }
 
     private connectAllBendPoints(svgElem: SVGElement) {

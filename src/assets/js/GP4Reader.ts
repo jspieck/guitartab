@@ -3,7 +3,6 @@ import { gProReader } from './GProReader';
 import Song, {
   Grace, Note, Chord, Track,
 } from './songData';
-import { modalHandler } from './modalHandler';
 import AppManager from './appManager';
 import { ChordModalHandler } from './modals/chordModalHandler';
 import { modalManager } from './modals/modalManager';
@@ -184,7 +183,7 @@ class Gp4Reader {
       chordPresent = true;
       chord = Gp4Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
+      (modalManager.getHandler(MODALS.ADD_CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
     let textPresent = false;
     let text = '';

@@ -391,10 +391,10 @@ class ClassicalNotation {
       }
       if (bar[i].dotted) {
         // staveNote.addDotToAll();
-        Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
+        staveNote.addDotToAll();
       } else if (bar[i].doubleDotted) {
         // staveNote.addDotToAll().addDotToAll();
-        Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
+        staveNote.addDotToAll().addDotToAll();
         // Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
       }
 

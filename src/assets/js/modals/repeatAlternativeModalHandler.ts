@@ -1,4 +1,4 @@
-import { BaseModalHandler } from './baseModalHandler';
+import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
 import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
