@@ -15,7 +15,7 @@ import playBackLogic from './playBackLogicNew';
 import Helper from './helper';
 import { numToInstr } from './instrumentData';
 import { audioEngine } from './audioEngine';
-import { sequencer } from './sequencer';
+import { sequencerHandler } from './sequencerHandler';
 import Duration from './duration';
 import Tuning from './tuning';
 import { menuHandler } from './menuHandler';
@@ -350,8 +350,8 @@ const AppManager = {
     console.log(`Track Change: ${performance.now() - t0}ms`);
     // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
     // draw suitable sequencer
-    sequencer.drawBeat();
-    sequencer.setIndicator(0, 0);
+    sequencerHandler.drawBeat();
+    sequencerHandler.setIndicator(0, 0);
     modalManager.closeAllModals();
   },
 

@@ -1,20 +1,22 @@
 <template>
-    <div :id="volumeFaderId" class="volumeFader">
-        <canvas :id="volumeControlId" class="volumeControl" width="90" height="30" ref="volumeControl"></canvas>
+    <div :id="computedVolumeFaderId" class="volumeFader">
+        <canvas :id="computedVolumeControlId" class="volumeControl" width="90" height="30" ref="volumeCanvasRef"></canvas>
         <div id="player">
-            <div class="volume">
-                <!-- Slider component to be created (either MasterSlider or TrackSlider) -->
+            <div class="volume" ref="volumeSliderContainerRef">
+                <!-- Slider component will be created here by script -->
             </div>
         </div>
     </div>
 </template>
   
 <script lang="ts">
-import { defineComponent, ref, onMounted, Ref } from "vue";
+import { defineComponent, ref, onMounted, Ref, computed } from "vue";
 import audioEngine from "../assets/js/audioEngine";
 import Settings from "../assets/js/settingManager";
 import Song from "../assets/js/songData";
 
+// These Slider classes are legacy and ideally should be refactored into Vue components
+// For now, their direct DOM manipulation is kept.
 interface SliderOptions {
     min: number;
     max: number;
@@ -55,12 +57,18 @@ class TrackSlider {
         Slider.create(container, {
             min: 0,
             max: 127,
-            value: Song.playBackInstrument[k].volume,
+            value: Song.playBackInstrument[k] ? Song.playBackInstrument[k].volume : 60,
             range: 'min',
             slide(event: Event) {
                 const value = parseInt((event.target as HTMLInputElement).value);
-                Song.playBackInstrument[k].volume = value;
-                audioEngine.busses[k].volume.gain.value = value / 100.0;
+                if (Song.playBackInstrument[k]) {
+                    Song.playBackInstrument[k].volume = value;
+                }
+                if (audioEngine.busses[k] && audioEngine.busses[k].volume) {
+                    audioEngine.busses[k].volume.gain.value = value / 100.0;
+                } else {
+                    // console.warn(`Audio bus not ready for track ${k}`);
+                }
             },
         });
     }
@@ -68,28 +76,48 @@ class TrackSlider {
 
 export default defineComponent({
     props: {
-        index: {Number, default: 0},
+        // Renaming to 'faderId' to be clear it's an identifier for the fader, not strictly track index
+        // The logic to differentiate master (0) vs tracks (1-based in old system, index here) needs care
+        faderId: { type: Number, required: true },
     },
-    setup(props) {
-        const volumeFaderId = ref(props.index === 0 ? "masterVolume" : "");
-        const volumeControlId = ref(
-        props.index === 0 ? "masterVolumeCanvas" : `volumeControl${props.index - 1}`
+    setup(props, { expose }) {
+        const volumeCanvasRef: Ref<HTMLCanvasElement | null> = ref(null);
+        const volumeSliderContainerRef: Ref<HTMLElement | null> = ref(null);
+        const canvasContext: Ref<CanvasRenderingContext2D | null> = ref(null);
+
+        const computedVolumeFaderId = computed(() => 
+            props.faderId === 0 ? "masterVolume" : `trackVolume-${props.faderId}`
         );
-        const volumeControl: Ref<HTMLCanvasElement | null> = ref(null);
-        const context: Ref<CanvasRenderingContext2D | null> = ref(null);
+        const computedVolumeControlId = computed(() =>
+            props.faderId === 0 ? "masterVolumeCanvas" : `volumeControlCanvas${props.faderId -1}`
+        );
 
         onMounted(() => {
-            context.value = volumeControl.value!.getContext("2d");
-            // Add slider component to volumeDiv (either MasterSlider or TrackSlider)
-            if (props.index === 0) {
-                MasterSlider.create(volumeControl.value!);
-
+            if (volumeCanvasRef.value) {
+                canvasContext.value = volumeCanvasRef.value.getContext("2d");
+            }
+            if (volumeSliderContainerRef.value) {
+                if (props.faderId === 0) {
+                    MasterSlider.create(volumeSliderContainerRef.value);
+                } else {
+                    TrackSlider.create(volumeSliderContainerRef.value, props.faderId - 1); 
+                }
             } else {
-                TrackSlider.create(volumeControl.value!, props.index - 1);
+                console.error('Could not find .volume div for slider creation in Fader.vue');
             }
         });
+        
+        expose({
+            context: canvasContext,
+            id: props.faderId 
+        });
 
-        return { volumeFaderId, volumeControlId, volumeControl, context };
+        return { 
+            computedVolumeFaderId, 
+            computedVolumeControlId, 
+            volumeCanvasRef,
+            volumeSliderContainerRef 
+        };
     },
 });
 </script>

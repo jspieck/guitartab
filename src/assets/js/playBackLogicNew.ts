@@ -10,7 +10,7 @@ import { tab } from './tab';
 import { visualInstruments } from './visualInstruments';
 import Helper from './helper';
 import { overlayHandler } from './overlayHandler';
-import { sequencer } from './sequencer';
+import { sequencerHandler } from './sequencerHandler';
 
 class PlayBackLogic {
   lookahead: number;
@@ -1067,7 +1067,7 @@ class PlayBackLogic {
       nextTime = this.notesInQueue[0].nextTime;
       this.notesInQueue.splice(0, 1); // remove note from queue
     }
-    sequencer.setIndicator(Song.currentTrackId, this.currentBlockPP);
+    sequencerHandler.setIndicator(Song.currentTrackId, this.currentBlockPP);
 
     // only draw on note change
     if (currentNote != null) {

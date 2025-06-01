@@ -23,7 +23,7 @@ import Settings from '../assets/js/settingManager';
 import Song from '../assets/js/songData';
 import Helper from '../assets/js/helper';
 import { audioEngine } from '../assets/js/audioEngine';
-import { sequencer } from '../assets/js/sequencer';
+import { sequencerHandler } from '../assets/js/sequencerHandler';
 import { MODALS } from '../assets/js/modals/modalTypes';
 
 const imagePaths = [
@@ -85,8 +85,8 @@ const imagePaths = [
 ];
 
 function applyStyleMode() {
-    sequencer.drawBeat();
-    audioEngine.equalizer.redraw();
+    sequencerHandler.drawBeat();
+    // audioEngine.equalizerHandler.redraw(); // TODO: Check if this method exists or should be removed
     if (Settings.darkMode) {
         for (let i = 0; i < imagePaths.length; i += 1) {
             document.getElementById(imagePaths[i][0])?.setAttribute('src', imagePaths[i][2]);
