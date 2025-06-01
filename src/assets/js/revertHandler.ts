@@ -6,7 +6,8 @@ import EventBus from './eventBus';
 import { tab, Tab } from './tab';
 import AppManager from './appManager';
 import { svgDrawer } from './svgDrawer';
-import { sequencer, Sequencer } from './sequencer';
+import { sequencerHandler, SequencerHandler } from './sequencerHandler';
+import { menuHandler } from './menuHandler';
 
 class RevertHandler {
   reverStackSize: number;
@@ -603,7 +604,7 @@ class RevertHandler {
       svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
     }
     if (redrawSequencer) {
-      sequencer.redrawSequencerMain();
+      sequencerHandler.redrawSequencerMain();
     }
   }
 
@@ -823,7 +824,7 @@ class RevertHandler {
   ) {
     Song.measureMeta[infoObj.blockId].markerPresent = infoObj.markerPresentBefore;
     Song.measureMeta[infoObj.blockId].marker = infoObj.markerBefore;
-    Sequencer.setMarker(infoObj.blockId);
+    SequencerHandler.setMarker(infoObj.blockId);
   }
 
   static restoreMarker(
@@ -831,26 +832,23 @@ class RevertHandler {
   ) {
     Song.measureMeta[infoObj.blockId].markerPresent = infoObj.markerPresentAfter;
     Song.measureMeta[infoObj.blockId].marker = infoObj.markerAfter;
-    Sequencer.setMarker(infoObj.blockId);
+    SequencerHandler.setMarker(infoObj.blockId);
   }
 
   static setMarker(
     infoObj: {trackId: number, blockId: number, markerPresentBefore: boolean,
       markerPresentAfter: boolean}, reverting: boolean,
   ) {
-    if (infoObj.markerPresentBefore && !infoObj.markerPresentAfter) {
-      if (reverting) {
-        Sequencer.setMarker(infoObj.blockId);
+    if (reverting) {
+      if (!infoObj.markerPresentBefore && infoObj.markerPresentAfter) {
+        SequencerHandler.removeMarker(infoObj.blockId);
       } else {
-        Sequencer.removeMarker(infoObj.blockId);
+        SequencerHandler.setMarker(infoObj.blockId);
       }
-    }
-    if (!infoObj.markerPresentBefore && infoObj.markerPresentAfter) {
-      if (reverting) {
-        Sequencer.removeMarker(infoObj.blockId);
-      } else {
-        Sequencer.setMarker(infoObj.blockId);
-      }
+    } else if (!infoObj.markerPresentAfter && infoObj.markerPresentBefore) {
+      SequencerHandler.removeMarker(infoObj.blockId);
+    } else {
+      SequencerHandler.setMarker(infoObj.blockId);
     }
     svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
@@ -1246,7 +1244,7 @@ class RevertHandler {
     Song.measureMeta.push(info.measureMetaBefore);
     Song.numMeasures += 1;
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    sequencer.redrawSequencerMain();
+    sequencerHandler.redrawSequencerMain();
   }
 
   static restoreRemoveBlock() {

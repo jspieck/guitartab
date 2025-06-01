@@ -1,7 +1,7 @@
 import Song, { PlayBackInstrument, Measure, Note } from './songData';
 import Settings from './settingManager';
 import { modalManager } from './modals/modalManager';
-import { sequencer } from './sequencer';
+import { sequencerHandler } from './sequencerHandler';
 import Chorus from './chorus';
 import Freeverb from './freeverb';
 import sf2Parser from './sf2parser';
@@ -360,7 +360,7 @@ class AudioEngine {
       }
       if (this.dataArray != null) {
         for (let i = 0, n = Song.measures.length; i < n; i += 1) {
-          const canvasContext = sequencer.getVolumeCanvasContext(i + 1);
+          const canvasContext = sequencerHandler.getVolumeCanvasContext(i + 1);
           if (canvasContext != null) {
             this.drawVolumeOf(this.busses[i].analyser, this.dataArray, this.bufferLength,
               canvasContext, 90, 30, color, true);
@@ -377,7 +377,7 @@ class AudioEngine {
         }
       }
       if (this.masterDataArray != null) {
-        const canvasContext = sequencer.getVolumeCanvasContext(0);
+        const canvasContext = sequencerHandler.getVolumeCanvasContext(0);
         if (canvasContext != null) {
           this.drawVolumeOf(this.masterAnalyser, this.masterDataArray, this.masterBufferLength,
             canvasContext, 120, 30, color, true);

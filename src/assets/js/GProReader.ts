@@ -3,7 +3,7 @@ import Duration from './duration';
 import Song from './songData';
 import { gpxReader } from './GPXReader';
 import { audioEngine } from './audioEngine';
-import { sequencer } from './sequencer';
+import { sequencerHandler } from './sequencerHandler';
 import AppManager from './appManager';
 import { Tab } from './tab';
 import { Gp5Reader } from './GP5Reader';
@@ -49,7 +49,7 @@ class GProReader {
       GProReader.writeNoteInfoToBeat();
       AppManager.createGuitarTab(0);
       Song.playBackInstrument = JSON.parse(arr[4]);
-      sequencer.drawBeat();
+      sequencerHandler.drawBeat();
       audioEngine.noteToDrum = JSON.parse(arr[5]);
       // menuHandler.applyStyleMode();
     }

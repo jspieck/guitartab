@@ -1,15 +1,11 @@
-import fastdom from 'fastdom';
-import AppManager from './appManager';
 import Settings from './settingManager';
 import Song, { Measure, Note, Interval } from './songData';
 import { revertHandler } from './revertHandler';
-import EventBus from './eventBus';
 import Duration from './duration';
 import Helper from './helper';
 import playBackLogic from './playBackLogicNew';
-import { audioEngine } from './audioEngine';
 import { tab } from './tab';
-import { sequencer, Sequencer } from './sequencer';
+import { sequencerHandler, SequencerHandler } from './sequencerHandler';
 import { svgDrawer } from './svgDrawer';
 import { menuHandler } from './menuHandler';
 
@@ -232,7 +228,7 @@ class OverlayHandler {
       }
     }
     this.overlaysPerRow.length = 0;
-    Sequencer.removeOverlay();
+    SequencerHandler.removeOverlay();
     // clear triangle pointer
     if (this.lastTriPointer != null) {
       this.lastTriPointer.parentNode?.removeChild(this.lastTriPointer);
@@ -299,7 +295,11 @@ class OverlayHandler {
         endRatio: this.startPosOverlay.abstractTimePos,
       };
     }
-    const { notes } = this.getNotesInInterval(interval);
+    const result = this.getNotesInInterval(interval);
+    if (result == null) {
+      return false;
+    }
+    const { notes } = result;
     return notes.length > 0 && notes[0].note != null;
   }
 
@@ -350,60 +350,57 @@ class OverlayHandler {
     return result;
   }
 
-  pasteHandler() {
+  private validatePasteOperation(): boolean {
     if (this.copyObject.array == null
       || this.startPosOverlay == null
       || this.endPosOverlay == null
     ) {
-      return;
+      return false;
     }
-    const startBlockId = this.startPosOverlay.blockId;
-    const startBeatId = this.startPosOverlay.beatId;
+    return true;
+  }
 
-    const trackId = Song.currentTrackId;
-    const voiceId = Song.currentVoiceId;
-    let endBlockId = this.endPosOverlay.blockId;
-    let endBeatId = this.endPosOverlay.beatId;
-    console.log(startBlockId, startBeatId, endBlockId, endBeatId);
-    /*
-      Deliberation:
-      - if the marked area is smaller than the copied:
-        copy notes as long as they fit and shrink the last note
-      that fits a bit, discard the rest
-      - if the same size -> 1:1, but attention on the corner
-      - if the marked area is bigger: delete until all notes are set and keep the rest
-
-      Transition between two blocks: set beginning to reach the end and tie it to the next block!
-    */
-    const copyArray = this.copyObject.array;
-    console.log(copyArray);
-    // compute duration to reach
+  private computeNoteDurationToReach(copyArray: Measure[]): number {
     let noteDurationToReach = 0;
     for (let i = 0, n = copyArray.length; i < n; i += 1) {
       noteDurationToReach += Duration.getDurationOfNote(copyArray[i], false);
     }
-    console.log(`Duration To Reach: ${noteDurationToReach}`);
+    return noteDurationToReach;
+  }
 
-    // first check if pasting is possible -  each block needs an integer duration
+  private validatePastingPossibility(
+    noteDurationToReach: number,
+    startBlockId: number,
+    startBeatId: number,
+    endBlockId: number,
+    endBeatId: number,
+    trackId: number,
+    voiceId: number
+  ): { valid: boolean; currentBlockId: number; currentBeatId: number } {
     let currentBlockId = startBlockId;
     let currentBeatId = startBeatId;
-    while (noteDurationToReach > 0) {
+    let duration = noteDurationToReach;
+
+    while (duration > 0) {
       const ms = Song.measures[trackId][currentBlockId][voiceId][currentBeatId];
-      noteDurationToReach -= Duration.getDurationOfNote(ms, false);
-      if (noteDurationToReach <= Settings.EPSILON) {
-        noteDurationToReach = 0;
+      duration -= Duration.getDurationOfNote(ms, false);
+      
+      if (duration <= Settings.EPSILON) {
+        duration = 0;
         break;
       }
+      
       if (Song.measures[trackId][currentBlockId][voiceId].length <= currentBeatId + 1) {
-        if (noteDurationToReach - Math.floor(noteDurationToReach) !== 0) {
-          // we have half rests in the block -> we do not allow pasting
+        if (duration - Math.floor(duration) !== 0) {
           alert('Pasting is not allowed with non-integer duration sizes in one block!');
-          return;
+          return { valid: false, currentBlockId, currentBeatId };
         }
+        
         if (Song.measures[trackId].length <= currentBlockId || endBlockId <= currentBlockId) {
           console.log('We only copy a part! 1');
           break;
         }
+        
         currentBlockId += 1;
         currentBeatId = 0;
       } else {
@@ -414,7 +411,11 @@ class OverlayHandler {
         currentBeatId += 1;
       }
     }
-    // easiest variant: we save all copied blocks
+
+    return { valid: true, currentBlockId, currentBeatId };
+  }
+
+  private saveBlocksBefore(startBlockId: number, endBlockId: number, trackId: number): {blockId: number, block: Measure[][]}[] {
     const blocksBefore: {blockId: number, block: Measure[][]}[] = [];
     for (let i = startBlockId; i <= endBlockId; i += 1) {
       blocksBefore.push({
@@ -422,122 +423,227 @@ class OverlayHandler {
         block: JSON.parse(JSON.stringify(Song.measures[trackId][i])),
       });
     }
-    // console.log("Current: "+currentBlockId+" "+currentBeatId);
-    endBlockId = currentBlockId;
-    endBeatId = currentBeatId;
-    let copyArrayIndex = 0;
-    let noteDurationToMoveToTheNextBlock = 0;
-    let noteElemToMoveToTheNextBlock = null;
-    // pasting is possible now delete notes and paste new notes
-    for (let i = startBlockId; i <= endBlockId; i += 1) {
-      const startIndex = (i !== startBlockId) ? 0 : startBeatId;
-      const endIndex = (i !== endBlockId)
-        ? Song.measures[trackId][i][voiceId].length - 1
-        : endBeatId;
-      // console.log("Start: "+startIndex+", End: "+endIndex+ " "+endBeatId);
-      // delete necessary notes and dom objects
-      let availableSpaceInBlock = 0;
-      for (let beatId = startIndex; beatId <= endIndex; beatId += 1) {
-        availableSpaceInBlock += Duration.getDurationOfNote(
-          Song.measures[trackId][i][voiceId][beatId], false,
-        );
-        OverlayHandler.deleteBeatObjects(trackId, i, voiceId, beatId);
-      }
-      // console.log("Delete Splice: ", startIndex, endIndex+1);
-      Song.measures[trackId][i][voiceId].splice(startIndex, endIndex - startIndex + 1);
+    return blocksBefore;
+  }
 
-      let beatId = startIndex;
-      // set note that did not fit in the last block
-      if (noteDurationToMoveToTheNextBlock > 0 && noteElemToMoveToTheNextBlock != null) {
-        // TODO what is when noteDurationToMoveToTheNextBlock > availableSpaceInBlock
-        const foundSize = OverlayHandler.giveMinNumberOfNotesForDuration(
-          noteDurationToMoveToTheNextBlock,
-        );
-        // add each note and tie the later ones
-        for (let k = 0; k < foundSize.length; k += 1) {
-          const noteElem = OverlayHandler.createFreshMeasure(noteElemToMoveToTheNextBlock);
-          noteElem.dotted = foundSize[k].dotted;
-          noteElem.duration = Duration.typeToString(foundSize[k].noteSize);
-          // tie all notes
-          if (noteElem.notes != null) {
-            for (let l = 0; l < noteElem.notes.length; l += 1) {
-              if (noteElem.notes[l] != null) {
-                noteElem.notes[l].tied = true;
-              }
-            }
-          }
-          Song.measures[trackId][i][voiceId].splice(beatId, 0, noteElem);
-          beatId += 1;
-        }
-        noteDurationToMoveToTheNextBlock = 0;
-        noteElemToMoveToTheNextBlock = null;
-      }
+  private processBlock(
+    blockId: number,
+    startBlockId: number,
+    endBlockId: number,
+    startBeatId: number,
+    endBeatId: number,
+    trackId: number,
+    voiceId: number,
+    copyArray: Measure[],
+    copyArrayIndex: { value: number },
+    noteElemToMoveToTheNextBlock: { elem: Measure | null, duration: number }
+  ): void {
+    const startIndex = (blockId !== startBlockId) ? 0 : startBeatId;
+    const endIndex = (blockId !== endBlockId)
+      ? Song.measures[trackId][blockId][voiceId].length - 1
+      : endBeatId;
 
-      while (availableSpaceInBlock > Settings.EPSILON) {
-        if (copyArray.length <= copyArrayIndex) {
-          console.log('No more elems in array');
-          console.log(availableSpaceInBlock);
-          // Fill with rests
-          const foundSize = OverlayHandler.giveMinNumberOfNotesForDuration(availableSpaceInBlock);
-          console.log(foundSize);
-          for (let q = 0; q < foundSize.length; q += 1) {
-            Song.measures[trackId][i][voiceId].splice(beatId, 0, {
-              ...Song.defaultMeasure(),
-              ...{
-                duration: Duration.typeToString(foundSize[q].noteSize),
-                dotted: foundSize[q].dotted,
-                notes: [],
-              },
-            });
-            beatId += 1;
-          }
-          break;
-        }
-
-        // var noteElem = JSON.parse(JSON.stringify(copyArray[copyArrayIndex])); //copyArray[j];
-        const noteElem = OverlayHandler.createFreshMeasure(copyArray[copyArrayIndex]);
-        const noteLength = Duration.getDurationOfNote(noteElem, false);
-        console.log(`${availableSpaceInBlock} ${noteLength}`);
-        if (Math.abs(availableSpaceInBlock - noteLength) >= -Settings.EPSILON) {
-          availableSpaceInBlock -= noteLength;
-          Song.measures[trackId][i][voiceId].splice(beatId, 0, noteElem);
-          beatId += 1;
-        } else {
-          // there is not enough space for the note in this measure
-          // first: set the note to the rest-note-size and then add a tied note in the next measure
-          const foundSize = OverlayHandler.giveMinNumberOfNotesForDuration(availableSpaceInBlock);
-          console.log('FOUND:');
-          console.log(availableSpaceInBlock);
-          console.log(foundSize);
-          // add each note and tie the later ones
-          for (let k = 0; k < foundSize.length; k += 1) {
-            const freshNote = OverlayHandler.createFreshMeasure(copyArray[copyArrayIndex]);
-            freshNote.dotted = foundSize[k].dotted;
-            freshNote.duration = Duration.typeToString(foundSize[k].noteSize);
-            if (k !== 0) {
-              // tie all notes
-              if (freshNote.notes != null) {
-                for (let l = 0; l < freshNote.notes.length; l += 1) {
-                  if (freshNote.notes[l] != null) {
-                    freshNote.notes[l].tied = true;
-                  }
-                }
-              }
-            }
-            Song.measures[trackId][i][voiceId].splice(beatId, 0, freshNote);
-            beatId += 1;
-          }
-          noteDurationToMoveToTheNextBlock = noteLength - availableSpaceInBlock;
-          noteElemToMoveToTheNextBlock = noteElem;
-          // TODO tie in same measure with the num rests
-          availableSpaceInBlock = 0;
-        }
-        copyArrayIndex += 1;
-      }
-      svgDrawer.setDurationsOfBlock(trackId, i, voiceId);
-      tab.fillMeasure(trackId, i, voiceId);
+    // Delete necessary notes and dom objects
+    let availableSpaceInBlock = 0;
+    for (let beatId = startIndex; beatId <= endIndex; beatId += 1) {
+      availableSpaceInBlock += Duration.getDurationOfNote(
+        Song.measures[trackId][blockId][voiceId][beatId], false,
+      );
+      OverlayHandler.deleteBeatObjects(trackId, blockId, voiceId, beatId);
     }
 
+    Song.measures[trackId][blockId][voiceId].splice(startIndex, endIndex - startIndex + 1);
+
+    let beatId = startIndex;
+
+    // Set note that did not fit in the last block
+    if (noteElemToMoveToTheNextBlock.duration > 0 && noteElemToMoveToTheNextBlock.elem != null) {
+      beatId = this.addTiedNotesToBlock(
+        trackId,
+        blockId,
+        voiceId,
+        beatId,
+        noteElemToMoveToTheNextBlock.elem,
+        noteElemToMoveToTheNextBlock.duration
+      );
+      noteElemToMoveToTheNextBlock.duration = 0;
+      noteElemToMoveToTheNextBlock.elem = null;
+    }
+
+    // Fill the rest of the block
+    this.fillBlockWithNotes(
+      trackId,
+      blockId,
+      voiceId,
+      beatId,
+      availableSpaceInBlock,
+      copyArray,
+      copyArrayIndex,
+      noteElemToMoveToTheNextBlock
+    );
+
+    svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+    tab.fillMeasure(trackId, blockId, voiceId);
+  }
+
+  private addTiedNotesToBlock(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    startBeatId: number,
+    noteElem: Measure,
+    noteDuration: number
+  ): number {
+    const foundSize = OverlayHandler.giveMinNumberOfNotesForDuration(noteDuration);
+    let beatId = startBeatId;
+
+    for (let k = 0; k < foundSize.length; k += 1) {
+      const freshNote = OverlayHandler.createFreshMeasure(noteElem);
+      freshNote.dotted = foundSize[k].dotted;
+      freshNote.duration = Duration.typeToString(foundSize[k].noteSize);
+      
+      // Tie all notes
+      if (freshNote.notes != null) {
+        for (let l = 0; l < freshNote.notes.length; l += 1) {
+          if (freshNote.notes[l] != null) {
+            freshNote.notes[l].tied = true;
+          }
+        }
+      }
+      
+      Song.measures[trackId][blockId][voiceId].splice(beatId, 0, freshNote);
+      beatId += 1;
+    }
+
+    return beatId;
+  }
+
+  private fillBlockWithNotes(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    startBeatId: number,
+    availableSpace: number,
+    copyArray: Measure[],
+    copyArrayIndex: { value: number },
+    noteElemToMoveToTheNextBlock: { elem: Measure | null, duration: number }
+  ): void {
+    let beatId = startBeatId;
+    let availableSpaceInBlock = availableSpace;
+
+    while (availableSpaceInBlock > Settings.EPSILON) {
+      if (copyArray.length <= copyArrayIndex.value) {
+        console.log('No more elems in array');
+        this.fillWithRests(trackId, blockId, voiceId, beatId, availableSpaceInBlock);
+        break;
+      }
+
+      const noteElem = OverlayHandler.createFreshMeasure(copyArray[copyArrayIndex.value]);
+      const noteLength = Duration.getDurationOfNote(noteElem, false);
+
+      if (Math.abs(availableSpaceInBlock - noteLength) >= -Settings.EPSILON) {
+        availableSpaceInBlock -= noteLength;
+        Song.measures[trackId][blockId][voiceId].splice(beatId, 0, noteElem);
+        beatId += 1;
+      } else {
+        // Note doesn't fit - split it
+        beatId = this.addTiedNotesToBlock(
+          trackId,
+          blockId,
+          voiceId,
+          beatId,
+          noteElem,
+          availableSpaceInBlock
+        );
+        noteElemToMoveToTheNextBlock.duration = noteLength - availableSpaceInBlock;
+        noteElemToMoveToTheNextBlock.elem = noteElem;
+        availableSpaceInBlock = 0;
+      }
+      copyArrayIndex.value += 1;
+    }
+  }
+
+  private fillWithRests(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    startBeatId: number,
+    availableSpace: number
+  ): void {
+    const foundSize = OverlayHandler.giveMinNumberOfNotesForDuration(availableSpace);
+    let beatId = startBeatId;
+
+    for (let q = 0; q < foundSize.length; q += 1) {
+      Song.measures[trackId][blockId][voiceId].splice(beatId, 0, {
+        ...Song.defaultMeasure(),
+        ...{
+          duration: Duration.typeToString(foundSize[q].noteSize),
+          dotted: foundSize[q].dotted,
+          notes: [],
+        },
+      });
+      beatId += 1;
+    }
+  }
+
+  pasteHandler() {
+    if (!this.validatePasteOperation()) {
+      return;
+    }
+
+    const startBlockId = this.startPosOverlay!.blockId;
+    const startBeatId = this.startPosOverlay!.beatId;
+    const trackId = Song.currentTrackId;
+    const voiceId = Song.currentVoiceId;
+    let endBlockId = this.endPosOverlay!.blockId;
+    let endBeatId = this.endPosOverlay!.beatId;
+
+    const copyArray = this.copyObject.array;
+    const noteDurationToReach = this.computeNoteDurationToReach(copyArray);
+
+    console.log(`Duration To Reach: ${noteDurationToReach}`);
+
+    // Validate if pasting is possible
+    const validation = this.validatePastingPossibility(
+      noteDurationToReach,
+      startBlockId,
+      startBeatId,
+      endBlockId,
+      endBeatId,
+      trackId,
+      voiceId
+    );
+
+    if (!validation.valid) {
+      return;
+    }
+
+    endBlockId = validation.currentBlockId;
+    endBeatId = validation.currentBeatId;
+
+    // Save blocks before modification
+    const blocksBefore = this.saveBlocksBefore(startBlockId, endBlockId, trackId);
+
+    // Process each block
+    const copyArrayIndex = { value: 0 };
+    const noteElemToMoveToTheNextBlock = { elem: null as Measure | null, duration: 0 };
+
+    for (let i = startBlockId; i <= endBlockId; i += 1) {
+      this.processBlock(
+        i,
+        startBlockId,
+        endBlockId,
+        startBeatId,
+        endBeatId,
+        trackId,
+        voiceId,
+        copyArray,
+        copyArrayIndex,
+        noteElemToMoveToTheNextBlock
+      );
+    }
+
+    // Save blocks after modification and add to revert handler
     const blocksAfter = [];
     for (let i = startBlockId; i <= endBlockId; i += 1) {
       blocksAfter.push({
@@ -547,10 +653,8 @@ class OverlayHandler {
     }
 
     revertHandler.addCopyPaste(trackId, voiceId, blocksBefore, blocksAfter);
-    // TODO rerenderBlocks
     tab.drawTrack(trackId, voiceId, true, null);
-    // TODO check if something has changed
-    sequencer.redrawSequencerMain();
+    sequencerHandler.redrawSequencerMain();
   }
 
   static deleteBeatObjects(trackId: number, blockId: number, voiceId: number, beatId: number) {
@@ -579,23 +683,43 @@ class OverlayHandler {
     if (interval == null) {
       loopI = this.getLoopingInterval();
     }
+    
+    // Safety check for tab.markedNoteObj
+    if (!tab.markedNoteObj) {
+      return null;
+    }
+    
     const { trackId } = tab.markedNoteObj;
     const { voiceId } = tab.markedNoteObj;
-    if (!Song.measures[trackId]) return null;
+    
+    // Safety checks for Song.measures structure
+    if (!Song.measures[trackId] || !Song.measures[trackId][tab.markedNoteObj.blockId] 
+        || !Song.measures[trackId][tab.markedNoteObj.blockId][voiceId]) {
+      return null;
+    }
 
     if (loopI == null || loopI.trackId !== Song.currentTrackId) {
-      const note = Song.measures[trackId][tab.markedNoteObj.blockId][voiceId][
-        tab.markedNoteObj.beatId].notes[tab.markedNoteObj.string];
-      if (note != null) {
-        notesToExecuteOn.push({
-          trackId,
-          blockId: tab.markedNoteObj.blockId,
-          voiceId,
-          beatId: tab.markedNoteObj.beatId,
-          string: tab.markedNoteObj.string,
-          note,
-        });
+      // Handle single note case
+      const blockId = tab.markedNoteObj.blockId;
+      const beatId = tab.markedNoteObj.beatId;
+      const stringNum = tab.markedNoteObj.string;
+      
+      if (Song.measures[trackId][blockId][voiceId][beatId] && 
+          Song.measures[trackId][blockId][voiceId][beatId].notes &&
+          Song.measures[trackId][blockId][voiceId][beatId].notes[stringNum]) {
+        const note = Song.measures[trackId][blockId][voiceId][beatId].notes[stringNum];
+        if (note != null) {
+          notesToExecuteOn.push({
+            trackId,
+            blockId,
+            voiceId,
+            beatId,
+            string: stringNum,
+            note,
+          });
+        }
       }
+      
       blocks.push(tab.markedNoteObj.blockId);
       beats.push({
         trackId,
@@ -605,31 +729,42 @@ class OverlayHandler {
         beat: Song.measures[trackId][tab.markedNoteObj.blockId][voiceId][tab.markedNoteObj.beatId],
       });
     } else {
+      // Handle interval case
       for (let blockId = loopI.startBlock; blockId <= loopI.endBlock; blockId += 1) {
-        const startIndex = (blockId !== loopI.startBlock)
-          ? 0
-          : loopI.startBeat;
+        // Safety check for each block
+        if (!Song.measures[trackId][blockId] || !Song.measures[trackId][blockId][voiceId]) {
+          continue;
+        }
+        
+        const startIndex = (blockId !== loopI.startBlock) ? 0 : loopI.startBeat;
         const endIndex = (blockId !== loopI.endBlock)
           ? Song.measures[trackId][blockId][voiceId].length - 1
           : loopI.endBeat;
+          
         for (let beatId = startIndex; beatId <= endIndex; beatId += 1) {
+          // Safety check for each beat
+          if (!Song.measures[trackId][blockId][voiceId][beatId] ||
+              !Song.measures[trackId][blockId][voiceId][beatId].notes) {
+            continue;
+          }
+          
           let noteExists = false;
-          if (Song.measures[trackId][blockId][voiceId][beatId].notes != null) {
-            for (let string = 0, n = Song.measures[trackId][blockId][voiceId][beatId].notes.length;
-              string < n; string += 1) {
-              if (Song.measures[trackId][blockId][voiceId][beatId].notes[string] != null) {
-                noteExists = true;
-                notesToExecuteOn.push({
-                  trackId,
-                  blockId,
-                  voiceId,
-                  beatId,
-                  string,
-                  note: Song.measures[trackId][blockId][voiceId][beatId].notes[string]!,
-                });
-              }
+          const beatNotes = Song.measures[trackId][blockId][voiceId][beatId].notes;
+          
+          for (let string = 0, n = beatNotes.length; string < n; string += 1) {
+            if (beatNotes[string] != null) {
+              noteExists = true;
+              notesToExecuteOn.push({
+                trackId,
+                blockId,
+                voiceId,
+                beatId,
+                string,
+                note: beatNotes[string]!,
+              });
             }
           }
+          
           if (noteExists) {
             beats.push({
               trackId,

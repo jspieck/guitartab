@@ -234,7 +234,7 @@ import { tab, Tab } from '../assets/js/tab';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
 import { classicalNotation } from '../assets/js/vexflowClassical';
-import { Sequencer } from '../assets/js/sequencer';
+import { SequencerHandler } from '../assets/js/sequencerHandler';
 import { overlayHandler } from '../assets/js/overlayHandler';
 import { onMounted, onBeforeUnmount } from 'vue';
 import EventBus from "../assets/js/eventBus";
@@ -268,12 +268,9 @@ onBeforeUnmount(() => {
 
 let tempoMoveTmp = () => { };
 let removeListenersTmp = () => { };
-let previousBar = 1;
 let noteTiedTo: {blockId: number, beatId: number} | null = null;
 let initYPos = 0;
 let oldBpm = 90;
-let lastVoiceId = 0;
-let lastNoteLengthButton = '8thNote';
 let lastMeasureSelectButton = '';
 
 const effectGroups = [
@@ -511,7 +508,7 @@ function processNotationSelect(
                 trackId, blockId, Song.measureMeta[blockId].marker,
                 Song.measureMeta[blockId].marker, true, false,
             );
-            Sequencer.removeMarker(blockId);
+            SequencerHandler.removeMarker(blockId);
         }
         // Extra for time meter
         if (id === 'timeMeter' && isRevert == null && blockId !== 0 && Song.measureMeta[blockId].timeMeterPresent) {

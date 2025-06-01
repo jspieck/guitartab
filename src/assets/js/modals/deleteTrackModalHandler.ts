@@ -1,8 +1,8 @@
 import { BaseModalHandler } from './baseModalHandler';
-import { Song } from '../songData';
+import Song from '../songData';
 import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
-import { sequencer } from '../sequencer';
+import { sequencerHandler } from '../sequencerHandler';
 import { tab } from '../tab';
 import AppManager from '../appManager';
 import fastdom from 'fastdom';
@@ -41,7 +41,7 @@ export class DeleteTrackModalHandler extends BaseModalHandler {
         // Update handlers and UI
         revertHandler.adaptStackToTrackRemove(trackId);
         svgDrawer.deleteTrack(trackId);
-        sequencer.drawBeat();
+        sequencerHandler.drawBeat();
         
         this.updateMarkedNote(trackId);
         this.updateCurrentTrack(trackId);

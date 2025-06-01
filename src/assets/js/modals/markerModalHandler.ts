@@ -3,7 +3,7 @@ import { Song, Marker } from '../songData';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
-import { Sequencer } from '../sequencer';
+import { SequencerHandler } from '../sequencerHandler';
 import { MODALS } from './modalTypes';
 
 interface MarkerModalState extends ModalState {
@@ -93,7 +93,7 @@ export class MarkerModalHandler extends BaseModalHandler {
             Song.measureMeta[blockId].markerPresent
         );
 
-        Sequencer.setMarker(blockId);
+        SequencerHandler.setMarker(blockId);
         svgDrawer.rerenderBlock(trackId, blockId, voiceId);
     }
 } 

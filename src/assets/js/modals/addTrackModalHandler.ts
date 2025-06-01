@@ -3,7 +3,7 @@ import { Track, Song } from '../songData';
 import { tab } from '../tab';
 import AppManager from '../appManager';
 import { instrumentGroups, instrumentList } from '../instrumentData';
-import { sequencer } from '../sequencer';
+import { sequencerHandler } from '../sequencerHandler';
 
 interface InstrumentGroup {
     title: string;
@@ -55,7 +55,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
         tab.createNewTrack(numTracks, instrObj);
         tab.createTakte(numTracks, 0);
         tab.fillMeasures(numTracks, 0);
-        sequencer.drawBeat();
+        sequencerHandler.drawBeat();
     }
 
     private changeInstrumentForTrack(
@@ -116,7 +116,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
         };
 
         AppManager.setTracks(trackNumber);
-        sequencer.drawBeat();
+        sequencerHandler.drawBeat();
         tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
     }
 

@@ -1,6 +1,6 @@
 import fastdom from 'fastdom';
 import Song, { Measure } from './songData';
-import { sequencer } from './sequencer';
+import { sequencerHandler } from './sequencerHandler';
 import { svgDrawer } from './svgDrawer';
 import { revertHandler } from './revertHandler';
 import AppManager from './appManager';
@@ -114,7 +114,7 @@ class Tab {
     Song.measureMeta[blockId].denominator = Song.measureMeta[blockId - 1].denominator;
     Song.numMeasures += 1;
     this.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    sequencer.redrawSequencerMain();
+    sequencerHandler.redrawSequencerMain();
     if (duringRestoration === false) {
       revertHandler.addBlock();
     }
@@ -139,7 +139,7 @@ class Tab {
       }
       const measureMetaBefore = Song.measureMeta.splice(-1)[0];
       this.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-      sequencer.redrawSequencerMain();
+      sequencerHandler.redrawSequencerMain();
       if (duringRestoration === false) {
         revertHandler.removeBlock(blocksBefore, measureMetaBefore);
       }
@@ -263,7 +263,7 @@ class Tab {
       svgDrawer.rerenderBlock(trackId, blockId, voiceId);
     }
     if (redrawSequencer) {
-      sequencer.redrawSequencerMain();
+      sequencerHandler.redrawSequencerMain();
     }
     if (calledDuringRestore == null && this.markedNoteObj != null) {
       revertHandler.addFretNumber(
@@ -987,7 +987,7 @@ class Tab {
       // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
     }
     // draw suitable sequencer
-    sequencer.drawBeat();
+    sequencerHandler.drawBeat();
   }
 
   fillMeasures(trackId: number, voiceId: number) {
@@ -1360,7 +1360,7 @@ class Tab {
       }
     }
     if (Song.isBeatEmpty(trackId, blockId)) {
-      sequencer.redrawSequencerMain();
+      sequencerHandler.redrawSequencerMain();
     }
     if (Settings.vexFlowIsActive && trackId === Song.currentTrackId
       && voiceId === Song.currentVoiceId) {
