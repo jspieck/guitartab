@@ -100,7 +100,7 @@ interface ChordModalParams {
 
 export class ChordModalHandler extends BaseModalHandler {
     constructor() {
-        super(MODALS.CHORD.id, MODALS.CHORD.name);
+        super(MODALS.ADD_CHORD.id, MODALS.ADD_CHORD.name);
         this.modalState = {
             ...this.modalState,
             chordModalData: {
@@ -219,7 +219,7 @@ export class ChordModalHandler extends BaseModalHandler {
         const yPos = ((cP.height - 2 * cP.stringPadding) / (cP.numStrings - 1))
             * (cP.numStrings - string - 1) + cP.stringPadding + cP.paddingRight;
         const fingerText = finger != null ? finger.toString() : '';
-        return SvgDrawer.drawPoint(xPos, yPos, 0, 0, 9, chordDisplay, fingerText);
+        return SvgDrawer.drawPoint(xPos, yPos, 0, 0, 9, chordDisplay as unknown as SVGElement, fingerText);
     }
 
     drawChord(capo: number, chord: number[], fingers: (number | null)[]) {

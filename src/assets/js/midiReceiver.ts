@@ -1,3 +1,44 @@
+// Type declarations for WebMidi
+declare global {
+  namespace WebMidi {
+    interface MIDIAccess {
+      inputs: Map<string, MIDIInput>;
+      outputs: Map<string, MIDIOutput>;
+      onstatechange: ((event: MIDIConnectionEvent) => void) | null;
+    }
+
+    interface MIDIPort {
+      id: string;
+      manufacturer: string;
+      name: string;
+      connection: string;
+      state: string;
+      type: string;
+    }
+
+    interface MIDIInput extends MIDIPort {
+      onmidimessage: ((event: MIDIMessageEvent) => void) | null;
+      close(): void;
+    }
+
+    interface MIDIOutput extends MIDIPort {
+    }
+
+    interface MIDIMessageEvent {
+      data: Uint8Array;
+      timeStamp: number;
+    }
+
+    interface MIDIConnectionEvent {
+      port: MIDIInput | MIDIOutput;
+    }
+  }
+
+  interface Navigator {
+    requestMIDIAccess(options?: { sysex?: boolean }): Promise<WebMidi.MIDIAccess>;
+  }
+}
+
 import fastdom from 'fastdom';
 // import webmidi;
 import Helper from './helper';
@@ -8,7 +49,6 @@ import Settings from './settingManager';
 import { audioEngine } from './audioEngine';
 import { GpxReader } from './GPXReader';
 import playBackLogic from './playBackLogicNew';
-import { modalHandler } from './modalHandler';
 import { svgDrawer } from './svgDrawer';
 import { modalManager } from './modals/modalManager';
 import { MODALS } from './modals/modalTypes';

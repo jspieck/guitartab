@@ -96,7 +96,7 @@ class Gp3Reader {
       chordPresent = true;
       chord = Gp3Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
+      (modalManager.getHandler(MODALS.ADD_CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
     let textPresent = false;
     let text = '';

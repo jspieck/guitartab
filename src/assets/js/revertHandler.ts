@@ -8,6 +8,7 @@ import AppManager from './appManager';
 import { svgDrawer } from './svgDrawer';
 import { sequencerHandler, SequencerHandler } from './sequencerHandler';
 import { menuHandler } from './menuHandler';
+import { processEffectSelect, setEffectVariable, handleEffectGroupCollisionBeat, handleEffectGroupCollision } from './menuHelper';
 
 class RevertHandler {
   reverStackSize: number;
@@ -652,16 +653,30 @@ class RevertHandler {
     infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, noteTiedTo: { blockId: number, beatId: number } },
   ) {
-    menuHandler.processTiedButtonPress(infoObj.trackId, infoObj.blockId, infoObj.voiceId,
-      infoObj.beatId, infoObj.string, infoObj.noteTiedTo);
+    // Handle tied note restoration directly
+    const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+    const note = beat.notes[infoObj.string];
+    if (note != null) {
+      note.tied = !note.tied;
+      note.tiedTo = note.tied ? infoObj.noteTiedTo : { blockId: -1, beatId: -1 };
+      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      EventBus.emit("menu.activateEffectsForMarkedPos");
+    }
   }
 
   static restoreTied(
     infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, noteTiedTo: { blockId: number, beatId: number } },
   ) {
-    menuHandler.processTiedButtonPress(infoObj.trackId, infoObj.blockId, infoObj.voiceId,
-      infoObj.beatId, infoObj.string, infoObj.noteTiedTo);
+    // Handle tied note restoration directly
+    const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+    const note = beat.notes[infoObj.string];
+    if (note != null) {
+      note.tied = !note.tied;
+      note.tiedTo = note.tied ? infoObj.noteTiedTo : { blockId: -1, beatId: -1 };
+      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      EventBus.emit("menu.activateEffectsForMarkedPos");
+    }
   }
 
   // Note placement
@@ -687,13 +702,24 @@ class RevertHandler {
       infoObj.string, infoObj.newFret, true);
   }
 
-  // Special Select effects
+  // Special Select effects - simplified implementation
   static setSpecialSelect(
     infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, tupleSel: number, id: string },
   ) {
-    menuHandler.processSpecialSelect(infoObj.trackId, infoObj.blockId, infoObj.voiceId,
-      infoObj.beatId, infoObj.string, infoObj.tupleSel, infoObj.id, true);
+    // Simplified implementation for special select operations
+    const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+    
+    if (infoObj.id === 'tuplet') {
+      const tupletSet = tab.setTuplet(infoObj.trackId, infoObj.blockId, infoObj.voiceId, infoObj.beatId, infoObj.tupleSel);
+      if (tupletSet) {
+        svgDrawer.setDurationsOfBlock(infoObj.trackId, infoObj.blockId, infoObj.voiceId);
+        tab.drawTrack(infoObj.trackId, infoObj.voiceId, true, null);
+      }
+    }
+    
+    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Zoom
@@ -724,12 +750,12 @@ class RevertHandler {
       for (const effect in infoObj.changes[noteStr]) {
         if (effect !== infoObj.id) {
           console.log(beat, beat.notes[string], effect, infoObj.changes[noteStr][effect]);
-          menuHandler.setEffectVariable(beat, beat.notes[string], effect,
+          setEffectVariable(beat, beat.notes[string], effect,
             infoObj.changes[noteStr][effect]);
         }
       }
     }
-    menuHandler.processEffectSelect(infoObj.arr, infoObj.id, true);
+    processEffectSelect(infoObj.arr, infoObj.id, true);
   }
 
   static restoreNoteEffectSelect(infoObj: {arr: {
@@ -738,37 +764,56 @@ class RevertHandler {
     blocks: number[],
     beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Measure}[]
   }, id: string}) {
-    menuHandler.processEffectSelect(infoObj.arr, infoObj.id, true);
+    processEffectSelect(infoObj.arr, infoObj.id, true);
   }
 
-  // NotationSelect
+  // NotationSelect - simplified implementation
   static revertNotationSelect(
     infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number, id: string },
   ) {
-    menuHandler.processNotationSelect(infoObj.trackId, infoObj.blockId, infoObj.voiceId,
-      infoObj.beatId, infoObj.id, true);
+    const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+    
+    // Toggle the notation effect
+    if (infoObj.id === 'timeMeter') {
+      Song.measureMeta[infoObj.blockId].timeMeterPresent = !Song.measureMeta[infoObj.blockId].timeMeterPresent;
+    } else if (infoObj.id === 'bpmMeter') {
+      Song.measureMeta[infoObj.blockId].bpmPresent = !Song.measureMeta[infoObj.blockId].bpmPresent;
+    }
+    
+    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreNotationSelect(
     infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number, id: string },
   ) {
-    menuHandler.processNotationSelect(infoObj.trackId, infoObj.blockId, infoObj.voiceId,
-      infoObj.beatId, infoObj.id, true);
+    const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+    
+    // Toggle the notation effect
+    if (infoObj.id === 'timeMeter') {
+      Song.measureMeta[infoObj.blockId].timeMeterPresent = !Song.measureMeta[infoObj.blockId].timeMeterPresent;
+    } else if (infoObj.id === 'bpmMeter') {
+      Song.measureMeta[infoObj.blockId].bpmPresent = !Song.measureMeta[infoObj.blockId].bpmPresent;
+    }
+    
+    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
-  // Dynamic Select
+  // Dynamic Select - simplified implementation
   static revertDynamicSelect(
     {
       trackId, blockId, voiceId, beatId, string, id,
     }: { trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, id: string },
   ) {
-    menuHandler.processDynamicSelect({
-      notes: [{
-        trackId, blockId, voiceId, beatId, string,
-      }],
-      blocks: [],
-    }, id, true);
+    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    beat.dynamicPresent = !beat.dynamicPresent;
+    if (beat.dynamicPresent) {
+      beat.dynamic = id.replace('Dynamic', '');
+    }
+    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   static restoreDynamicSelect(
@@ -777,20 +822,24 @@ class RevertHandler {
     }: { trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, id: string },
   ) {
-    menuHandler.processDynamicSelect({
-      notes: [{
-        trackId, blockId, voiceId, beatId, string,
-      }],
-      blocks: [],
-    }, id, true);
+    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    beat.dynamicPresent = !beat.dynamicPresent;
+    if (beat.dynamicPresent) {
+      beat.dynamic = id.replace('Dynamic', '');
+    }
+    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
-  // OpenBar and closeBar
+  // OpenBar and closeBar - simplified implementation
   static toggleMeasureSelect(
     infoObj: { trackId: number, blockId: number, voiceId: number, id: string },
   ) {
-    menuHandler.processMeasureSelect(infoObj.trackId, infoObj.blockId, infoObj.voiceId,
-      infoObj.id, true);
+    if (infoObj.id === 'openBar') {
+      Song.measureMeta[infoObj.blockId].repeatOpen = !Song.measureMeta[infoObj.blockId].repeatOpen;
+    }
+    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
   // Text
@@ -1096,7 +1145,7 @@ class RevertHandler {
     for (const { string, effects } of infoObj.effectsBefore) {
       for (const effect in effects) {
         if (Object.prototype.hasOwnProperty.call(effects, effect)) {
-          menuHandler.setEffectVariable(beat, beat.notes[string], effect, effects[effect]);
+          setEffectVariable(beat, beat.notes[string], effect, effects[effect]);
         }
       }
     }
@@ -1130,7 +1179,7 @@ class RevertHandler {
       note.tremoloPicking = infoObj.tremoloPickingPresentBefore;
       for (const effect in infoObj.effectsBefore) {
         if (Object.prototype.hasOwnProperty.call(infoObj.effectsBefore, effect)) {
-          menuHandler.setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
+          setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
         }
       }
       svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
@@ -1171,7 +1220,7 @@ class RevertHandler {
       note.bendPresent = infoObj.bendPresentBefore;
       for (const effect in infoObj.effectsBefore) {
         if (Object.prototype.hasOwnProperty.call(infoObj.effectsBefore, effect)) {
-          menuHandler.setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
+          setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
         }
       }
       svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);

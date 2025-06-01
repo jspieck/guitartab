@@ -13,66 +13,66 @@ interface AddChordModalState extends ModalState {
         name: string;
         capo: number;
         currentNotes: number[];
-        fingers: number[];
+        fingers: (number | null)[];
     };
 }
 
 export const allChords: {
     [chordName: string]: {
       [chordType: string]: {
-        capo: number,
-        notes: number[],
-        fingers: (number | null)[]
+        capo: number;
+        notes: number[];
+        fingers: (number | null)[];
       }
     }
   } = {
     C: {
-      maj: { capo: 0, notes: [-1, 3, 2, 0, 1, 0], fingers: [null, 3, 2, null, 1, null] },
-      min: { capo: 8, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 0, notes: [-1, 3, 2, 0, 1, 0] as number[], fingers: [null, 3, 2, null, 1, null] as (number | null)[] },
+      min: { capo: 8, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     'C#': {
-      maj: { capo: 9, notes: [0, 2, 2, 1, 0, 0], fingers: [1, 3, 4, 2, 1, 1] },
-      min: { capo: 9, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 9, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [1, 3, 4, 2, 1, 1] as (number | null)[] },
+      min: { capo: 9, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     D: {
-      maj: { capo: 0, notes: [-1, -1, 0, 2, 3, 2], fingers: [null, null, null, 1, 2, 3] },
-      min: { capo: 0, notes: [-1, -1, 0, 2, 3, 1], fingers: [null, null, null, 2, 3, 1] },
+      maj: { capo: 0, notes: [-1, -1, 0, 2, 3, 2] as number[], fingers: [null, null, null, 1, 2, 3] as (number | null)[] },
+      min: { capo: 0, notes: [-1, -1, 0, 2, 3, 1] as number[], fingers: [null, null, null, 2, 3, 1] as (number | null)[] },
     },
     'D#': {
-      maj: { capo: 11, notes: [0, 2, 2, 1, 0, 0], fingers: [1, 3, 4, 2, 1, 1] },
-      min: { capo: 11, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 11, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [1, 3, 4, 2, 1, 1] as (number | null)[] },
+      min: { capo: 11, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     E: {
-      maj: { capo: 0, notes: [0, 2, 2, 1, 0, 0], fingers: [null, 2, 3, 1, null, null] },
-      min: { capo: 0, notes: [0, 2, 2, 0, 0, 0], fingers: [null, 2, 3, null, null, null] },
+      maj: { capo: 0, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [null, 2, 3, 1, null, null] as (number | null)[] },
+      min: { capo: 0, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [null, 2, 3, null, null, null] as (number | null)[] },
     },
     F: {
-      maj: { capo: 1, notes: [0, 2, 2, 1, 0, 0], fingers: [1, 3, 4, 2, 1, 1] },
-      min: { capo: 1, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 1, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [1, 3, 4, 2, 1, 1] as (number | null)[] },
+      min: { capo: 1, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     'F#': {
-      maj: { capo: 2, notes: [0, 2, 2, 1, 0, 0], fingers: [1, 3, 4, 2, 1, 1] },
-      min: { capo: 2, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 2, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [1, 3, 4, 2, 1, 1] as (number | null)[] },
+      min: { capo: 2, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     G: {
-      maj: { capo: 0, notes: [3, 2, 0, 0, 0, 3], fingers: [3, 2, null, null, null, 4] },
-      min: { capo: 3, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 0, notes: [3, 2, 0, 0, 0, 3] as number[], fingers: [3, 2, null, null, null, 4] as (number | null)[] },
+      min: { capo: 3, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     'G#': {
-      maj: { capo: 4, notes: [0, 2, 2, 1, 0, 0], fingers: [1, 3, 4, 2, 1, 1] },
-      min: { capo: 4, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 4, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [1, 3, 4, 2, 1, 1] as (number | null)[] },
+      min: { capo: 4, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     A: {
-      maj: { capo: 0, notes: [0, 0, 2, 2, 2, 0], fingers: [null, null, 1, 2, 3, null] },
-      min: { capo: 0, notes: [0, 0, 2, 2, 1, 0], fingers: [null, null, 2, 3, 1, null] },
+      maj: { capo: 0, notes: [0, 0, 2, 2, 2, 0] as number[], fingers: [null, null, 1, 2, 3, null] as (number | null)[] },
+      min: { capo: 0, notes: [0, 0, 2, 2, 1, 0] as number[], fingers: [null, null, 2, 3, 1, null] as (number | null)[] },
     },
     'A#': {
-      maj: { capo: 6, notes: [0, 2, 2, 1, 0, 0], fingers: [1, 3, 4, 2, 1, 1] },
-      min: { capo: 6, notes: [0, 2, 2, 0, 0, 0], fingers: [1, 3, 4, 1, 1, 1] },
+      maj: { capo: 6, notes: [0, 2, 2, 1, 0, 0] as number[], fingers: [1, 3, 4, 2, 1, 1] as (number | null)[] },
+      min: { capo: 6, notes: [0, 2, 2, 0, 0, 0] as number[], fingers: [1, 3, 4, 1, 1, 1] as (number | null)[] },
     },
     H: {
-      maj: { capo: 2, notes: [-1, 0, 2, 2, 2, 0], fingers: [null, 1, 3, 3, 3, 1] },
-      min: { capo: 2, notes: [-1, 1, 2, 2, 1, 0], fingers: [null, 1, 3, 4, 1, 1] },
+      maj: { capo: 2, notes: [-1, 0, 2, 2, 2, 0] as number[], fingers: [null, 1, 3, 3, 3, 1] as (number | null)[] },
+      min: { capo: 2, notes: [-1, 1, 2, 2, 1, 0] as number[], fingers: [null, 1, 3, 4, 1, 1] as (number | null)[] },
     },
 } as const;
 

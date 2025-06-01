@@ -189,7 +189,7 @@
     </div>
     <div id="sideBarButtons">
         <label class="bpmSidebarLabel">BPM</label>
-        <div id="tempoMeter" @mousedown="(e) => { changeTempoFunc(e) }" class="disable-select">90</div>
+        <div id="tempoMeter" @mousedown="(e: MouseEvent) => { changeTempoFunc(e) }" class="disable-select">90</div>
         <button id="classicalToggleButton" @click="classicalNotation.toggleClassicalVisibility()" data-tooltip="Piano Note View" class="classicalButton"><img id="classicalToggle"
                 src="../assets/images/classicalToggle.svg" /></button>
         <button data-tooltip="Chords Menu" class="classicalButton">
@@ -266,8 +266,8 @@ onBeforeUnmount(() => {
     EventBus.off("menu.clickedOnPos", position => clickedOnPos(position as {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}));
 });
 
-let tempoMoveTmp = () => { };
-let removeListenersTmp = () => { };
+let tempoMoveTmp: (event: MouseEvent) => void = () => { };
+let removeListenersTmp: () => void = () => { };
 let noteTiedTo: {blockId: number, beatId: number} | null = null;
 let initYPos = 0;
 let oldBpm = 90;
@@ -367,8 +367,8 @@ function changeTempoFunc(e: MouseEvent) {
     initYPos = e.pageY;
     oldBpm = Song.bpm;
     // while mousedown if mousemoves then compare the coordinates and rotate the knob accordingly
-    tempoMoveTmp = tempoMeterMouseMove.bind(this);
-    removeListenersTmp = removeEventListenersTempo.bind(this);
+    tempoMoveTmp = tempoMeterMouseMove;
+    removeListenersTmp = removeEventListenersTempo;
     document.addEventListener('mousemove', tempoMoveTmp);
     document.body.classList.add('disableMouseEffects');
     document.addEventListener('mousemove', tempoMoveTmp);

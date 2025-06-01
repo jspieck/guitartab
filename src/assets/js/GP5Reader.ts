@@ -336,7 +336,7 @@ class Gp5Reader {
     if (chordPresent) {
       chord = Gp5Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler(MODALS.CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
+      (modalManager.getHandler(MODALS.ADD_CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
     textPresent = (flags & 0x04) !== 0;
     if (textPresent) {
