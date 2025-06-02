@@ -280,22 +280,28 @@ const Song = {
       letItRing: false,
     }];
     this.measureMoveHelper = [[]];
-    this.measureMeta = [{
-      denominator: 4,
-      numerator: 4,
-      timeMeterPresent: true,
-      bpmPresent: true,
-      bpm: 90,
-      repeatOpen: false,
-      repeatClosePresent: false,
-      repeatClose: 0,
-      repeatAlternativePresent: false,
-      repeatAlternative: 0,
-      markerPresent: false,
-      marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
-      keySignature: 0,
-      automations: [],
-    }];
+    
+    // Initialize measureMeta for all measures
+    this.measureMeta = [];
+    for (let i = 0; i < this.numMeasures; i += 1) {
+      this.measureMeta[i] = {
+        denominator: 4,
+        numerator: 4,
+        timeMeterPresent: i === 0, // Only first measure has time meter present
+        bpmPresent: i === 0,       // Only first measure has BPM present
+        bpm: 90,
+        repeatOpen: false,
+        repeatClosePresent: false,
+        repeatClose: 0,
+        repeatAlternativePresent: false,
+        repeatAlternative: 0,
+        markerPresent: false,
+        marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
+        keySignature: 0,
+        automations: [],
+      };
+    }
+    
     this.measures = [[]];
     for (let i = 0; i < this.numMeasures; i += 1) {
       for (let j = 0; j < this.numVoices; j += 1) {

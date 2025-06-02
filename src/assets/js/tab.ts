@@ -147,11 +147,21 @@ class Tab {
   }
 
   addTakt(trackId: number, blockId: number, voiceId: number) {
+    if (this.measureOffset[trackId] == null) {
+      this.measureOffset[trackId] = [];
+    }
     if (this.measureOffset[trackId][blockId] == null) {
       this.measureOffset[trackId][blockId] = [];
     }
-    // Default value, will be overwritten on change
-    this.measureOffset[trackId][blockId][voiceId] = 20;
+    // Default value, will be overwritten on change - ensure it's a valid number
+    const defaultOffset = 20;
+    this.measureOffset[trackId][blockId][voiceId] = defaultOffset;
+    
+    // Verify the value is finite
+    if (!isFinite(this.measureOffset[trackId][blockId][voiceId])) {
+      console.warn(`Setting invalid measureOffset, using default: ${defaultOffset}`);
+      this.measureOffset[trackId][blockId][voiceId] = defaultOffset;
+    }
   }
 
   /**

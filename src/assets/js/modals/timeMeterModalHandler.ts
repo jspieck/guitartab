@@ -57,18 +57,42 @@ export class TimeMeterModalHandler extends BaseModalHandler {
 
     public setTimeMeterState(): void {
         const { blockId } = this.modalState;
-        if (!Song.measureMeta?.[blockId]) {
-            console.warn(`No measure meta data found for block ${blockId}`);
+        
+        // Ensure measureMeta exists and has proper structure
+        if (!Song.measureMeta || !Array.isArray(Song.measureMeta)) {
+            console.warn(`Song.measureMeta is not properly initialized`);
+            // Set defaults
+            this.modalState.denominator = 4;
+            this.modalState.numerator = 4;
             return;
         }
+        
+        if (!Song.measureMeta[blockId]) {
+            console.warn(`No measure meta data found for block ${blockId}, using defaults`);
+            // Initialize with default values
+            Song.measureMeta[blockId] = {
+                denominator: 4,
+                numerator: 4,
+                timeMeterPresent: false,
+                bpmPresent: false,
+                bpm: 90,
+                repeatClosePresent: false,
+                repeatOpen: false,
+                repeatClose: 0,
+                repeatAlternativePresent: false,
+                repeatAlternative: 0,
+                markerPresent: false,
+                marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
+                keySignature: 0,
+                automations: [],
+            };
+        }
+        
         console.log('Setting time meter state', blockId);
 
-        if (Song.measureMeta[blockId].denominator != null) {
-            this.modalState.denominator = Song.measureMeta[blockId].denominator;
-        }
-        if (Song.measureMeta[blockId].numerator != null) {
-            this.modalState.numerator = Song.measureMeta[blockId].numerator;
-        }
+        // Set the modal state with defaults if values are missing
+        this.modalState.denominator = Song.measureMeta[blockId].denominator ?? 4;
+        this.modalState.numerator = Song.measureMeta[blockId].numerator ?? 4;
     }
 
     public handleSubmit(): boolean {
