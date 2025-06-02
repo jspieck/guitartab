@@ -3,7 +3,7 @@
     <!-- Notes on each string -->
     <text
       v-for="(note, stringIndex) in notesToRender"
-      :key="`note-${stringIndex}`"
+      :key="`note-${beatIndex}-${stringIndex}-${note.fret}-${beatDataHash}`"
       :x="10"
       :y="(numStrings - 1 - note.string) * stringSpacing + 6"
       font-family="Source Sans Pro"
@@ -23,7 +23,7 @@
     <!-- Grace notes -->
     <text
       v-for="(note, stringIndex) in graceNotes"
-      :key="`grace-${stringIndex}`"
+      :key="`grace-${beatIndex}-${stringIndex}-${beatDataHash}`"
       :x="2"
       :y="(numStrings - 1 - note.string) * stringSpacing + 6"
       font-family="Source Sans Pro"
@@ -53,18 +53,35 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// Create a hash of the beat data to force re-rendering when data changes
+const beatDataHash = computed(() => {
+  if (!props.beatData || !props.beatData.notes) return 0
+  
+  // Create a simple hash based on the notes content
+  let hash = 0
+  props.beatData.notes.forEach((note: any, index: number) => {
+    if (note) {
+      hash += (note.fret || 0) * (index + 1) * 17
+      hash += note.string * (index + 1) * 13
+    }
+  })
+  return hash
+})
+
 // Watch for changes in beat data
 watch(() => props.beatData, (newBeatData, oldBeatData) => {
   console.log('Beat data changed:', {
     beatIndex: props.beatIndex,
     old: oldBeatData,
-    new: newBeatData
+    new: newBeatData,
+    hash: beatDataHash.value
   })
 }, { deep: true })
 
 // Computed properties
 const notesToRender = computed(() => {
   console.log('Computing notes to render for beat:', props.beatIndex, props.beatData)
+  console.log('Beat data hash:', beatDataHash.value)
   
   if (!props.beatData || !props.beatData.notes) {
     console.log('No beat data or notes array')
