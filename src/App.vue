@@ -10,11 +10,23 @@
     </svg>
     <div class="entry-content">
       <Menu ref="menu"/>
-      <div id="mainContent" class="mainWrapper" ref="mainContent" tabindex="0" @click="() => { $refs.mainContent.focus() }">
+      <div id="mainContent" class="mainWrapper" ref="mainContent" tabindex="0" @click="focusMainContent">
         <div id="completeTab" class="dinA4Size">
-          <div id="svgTestArea"></div>
-          <div id="tabAreas">
-            <div id="tabArea" tabindex="0"></div>
+          <!-- New Vue-based tab view -->
+          <GuitarTabView
+            v-if="useVueTab"
+            :track-id="currentTrackId"
+            :voice-id="currentVoiceId"
+            :width="1200"
+            :height="1600"
+          />
+          
+          <!-- Legacy SVG tab area -->
+          <div v-else>
+            <div id="svgTestArea"></div>
+            <div id="tabAreas">
+              <div id="tabArea" tabindex="0"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -61,6 +73,17 @@
       <Sequencer/>
     </div>
     <Footer/>
+    
+    <!-- Toggle button to switch between Vue and legacy tab rendering -->
+    <button
+      v-if="showDevControls"
+      @click="toggleTabRenderer"
+      class="dev-toggle-button"
+      :class="{ active: useVueTab }"
+    >
+      {{ useVueTab ? 'Vue Tab' : 'Legacy Tab' }}
+    </button>
+    
     <!-- 2 -->
     <div id="loadingWheel" class="loader loader--style2" title="1">
       <svg version="1.1" id="loader-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -115,6 +138,10 @@
     <Compressor id="compressorModal" class="modal" role="alert"/>
     <Equalizer id="equalizerModal" class="modal" role="alert" ref="equalizer"/>
     <InstrumentSettingsModal class="modal" role="alert" />
+    <TabTransitionStatus 
+      :track-id="currentTrackId" 
+      :voice-id="currentVoiceId" 
+    />
   </div>
 </template>
 
@@ -149,6 +176,8 @@ import AddTrackModal from  './components/AddTrackModal.vue'
 import RepititionModal from  './components/RepititionModal.vue'
 import DeleteModal from  './components/DeleteModal.vue'
 import BendModal from  './components/BendModal.vue'
+import GuitarTabView from './components/tab/GuitarTabView.vue'
+import TabTransitionStatus from './components/tab/TabTransitionStatus.vue'
 import { startUp } from './assets/js/guitarTab'
 import { overlayHandler } from './assets/js/overlayHandler'
 import { tab } from './assets/js/tab'
@@ -158,10 +187,29 @@ const currentVoiceId = ref(0);
 const currentBlockId = ref(0);
 const currentBeatId = ref(0);
 
+// Development controls
+const useVueTab = ref(true) // Start with Vue tab by default
+const showDevControls = ref(true) // Show development toggle
+
 const currentSelection = computed(() => overlayHandler.getNotesInInterval(null));
 
+function toggleTabRenderer() {
+  useVueTab.value = !useVueTab.value
+  console.log('Tab renderer toggled to:', useVueTab.value ? 'Vue' : 'Legacy')
+}
+
+function focusMainContent() {
+  const mainContent = document.getElementById('mainContent')
+  if (mainContent) {
+    mainContent.focus()
+  }
+}
+
 onMounted(() => {
-  startUp();
+  // Only start legacy system if not using Vue tab
+  if (!useVueTab.value) {
+    startUp();
+  }
 })
 </script>
 
@@ -179,5 +227,29 @@ onMounted(() => {
 
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
+}
+
+.dev-toggle-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.dev-toggle-button:hover {
+  background: #e0e0e0;
+}
+
+.dev-toggle-button.active {
+  background: #4CAF50;
+  color: white;
+  border-color: #45a049;
 }
 </style>

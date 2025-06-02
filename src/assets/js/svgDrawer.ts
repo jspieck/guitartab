@@ -1450,6 +1450,16 @@ class SvgDrawer {
   }
 
   static createText(x: number, y: number, text: string, fontSize: string, fill: string, fontFamily = 'Source Sans Pro') {
+    // Safety check to prevent Infinity values
+    if (!isFinite(x)) {
+      console.warn(`Invalid x coordinate for text element: ${x}, using default position`);
+      x = 0;
+    }
+    if (!isFinite(y)) {
+      console.warn(`Invalid y coordinate for text element: ${y}, using default position`);
+      y = 20;
+    }
+    
     const textElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textElem.setAttribute('x', x.toString());
     textElem.setAttribute('y', y.toString());
@@ -1619,6 +1629,13 @@ class SvgDrawer {
       let yPos = (Song.tracks[trackId].numStrings - 1 - string) * this.heightPerString + 6;
       let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId)
         + this.DISTANCE_TO_BEAT_MIDDLE / 2;
+      
+      // Safety check to prevent Infinity values in SVG text elements
+      if (!isFinite(xPos) || xPos < 0) {
+        console.warn(`Invalid xPos for text element: ${xPos}, using default position`);
+        xPos = 50; // Safe default position
+      }
+      
       // console.log(xPos);
       let noteString = `${note.fret}`;
       if (note.dead) {
@@ -1717,10 +1734,24 @@ class SvgDrawer {
   ) {
     let currentX = Helper.getBeatPosX(trackId, blockId, voiceId, beatStartPos)
       + this.DISTANCE_TO_BEAT_MIDDLE;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(currentX) || currentX < 0) {
+      console.warn(`Invalid currentX in buildBeam: ${currentX}, using default position`);
+      currentX = 50; // Safe default position
+    }
+    
     const startX = currentX;
     const { numStrings } = Song.tracks[trackId];
     const startY = this.heightPerString * numStrings + 11;
     const offsetBetweenNotes = tab.measureOffset[trackId][blockId][voiceId];
+
+    // Safety check for offsetBetweenNotes
+    if (!isFinite(offsetBetweenNotes) || offsetBetweenNotes <= 0) {
+      console.warn(`Invalid offsetBetweenNotes in buildBeam: ${offsetBetweenNotes}, using default`);
+      // We can't proceed safely with invalid offset, so return early
+      return;
+    }
 
     if (groupNotes.length === 1) {
       this.drawSingleNoteLength(trackId, blockId, voiceId, groupNotes[0], currentX, startY);
@@ -1770,6 +1801,12 @@ class SvgDrawer {
     trackId: number, blockId: number, voiceId: number, startX: number, endX: number,
     tupletNumber: number,
   ) {
+    // Safety checks for startX and endX
+    if (!isFinite(startX) || !isFinite(endX)) {
+      console.warn(`Invalid coordinates in drawTupletOutline: startX=${startX}, endX=${endX}`);
+      return; // Don't draw tuplet with invalid coordinates
+    }
+    
     const xPos = (endX - startX) / 2 + startX;
     const yPos = this.heightPerString * Song.tracks[trackId].numStrings + 29;
     const tupletText = SvgDrawer.createText(xPos, yPos + 4, tupletNumber.toString(), '15px', this.generalColor, 'Source Sans Pro');
@@ -2133,7 +2170,21 @@ class SvgDrawer {
     const firstNote = beat.notes;
     const noteLength = Duration.getDurationWidth(beat)
       * tab.measureOffset[trackId][blockId][voiceId] - 8;
-    const left = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 14;
+    let left = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 14;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(left) || left < 0) {
+      console.warn(`Invalid left position in drawSlide: ${left}, using default position`);
+      left = 64; // Safe default position (50 + 14)
+    }
+    
+    // Safety check for noteLength
+    if (!isFinite(noteLength) || noteLength <= 0) {
+      console.warn(`Invalid noteLength in drawSlide: ${noteLength}, using default length`);
+      // Can't draw slide with invalid length, so return early
+      return;
+    }
+    
     const startXPos = left;
     const startYPos = this.stringToY(trackId, string);
 
@@ -2171,7 +2222,14 @@ class SvgDrawer {
     trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, graceObj: Grace,
   ) {
-    const xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId);
+    let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId);
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xPos) || xPos < 0) {
+      console.warn(`Invalid xPos in drawGrace: ${xPos}, using default position`);
+      xPos = 50; // Safe default position
+    }
+    
     const yPos = this.stringToY(trackId, string) + 8;
     const grace = SvgDrawer.createText(xPos, yPos, graceObj.fret.toString(), '11px', this.generalColor, 'Source Sans Pro');
     grace.setAttribute('text-anchor', 'middle');
@@ -2188,7 +2246,14 @@ class SvgDrawer {
   drawTremoloPicking(
     trackId: number, blockId: number, voiceId: number, beatId: number, tremoloPickingLength: string,
   ) {
-    const xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 6;
+    let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 6;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xPos) || xPos < 0) {
+      console.warn(`Invalid xPos in drawTremoloPicking: ${xPos}, using default position`);
+      xPos = 56; // Safe default position (50 + 6)
+    }
+    
     const { numStrings } = Song.tracks[trackId];
     const yPos = this.heightPerString * numStrings + 3;
 
@@ -2506,11 +2571,33 @@ class SvgDrawer {
     }
 
     let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xPos) || xPos < 0) {
+      console.warn(`Invalid xPos in placeTextAboveBeat: ${xPos}, using default position`);
+      xPos = 50; // Safe default position
+    }
+    
     if (type === 'hammer') {
       // setting this later at left is slow
-      xPos += (Helper.getBeatPosX(trackId, blockId, voiceId, beatId + 1)
-        - Helper.getBeatPosX(trackId, blockId, voiceId, beatId)) / 2 - 2;
+      const nextBeatPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId + 1);
+      const currentBeatPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId);
+      
+      // Safety checks for hammer position calculation
+      if (isFinite(nextBeatPos) && isFinite(currentBeatPos)) {
+        xPos += (nextBeatPos - currentBeatPos) / 2 - 2;
+      } else {
+        console.warn(`Invalid beat positions for hammer effect: next=${nextBeatPos}, current=${currentBeatPos}`);
+        xPos += 10; // Safe fallback offset
+      }
+      
+      // Final safety check for hammer xPos
+      if (!isFinite(xPos) || xPos < 0) {
+        console.warn(`Invalid hammer xPos: ${xPos}, using default position`);
+        xPos = 60;
+      }
     }
+    
     const yPos = -height;// -35-OVERBAR_ROW_HEIGHT*height;
     let fontSize = '16px';
     if (this.typeToFont[type] != null) {
@@ -2573,7 +2660,14 @@ class SvgDrawer {
     }
     // const lineWidth = 2;
     // console.log(trackId, blockId, voiceId, beatId, noteStartY, noteEndY, minY, maxY);
-    const xPos = left + Helper.getBeatPosX(trackId, blockId, voiceId, beatId);
+    let xPos = left + Helper.getBeatPosX(trackId, blockId, voiceId, beatId);
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xPos) || xPos < 0) {
+      console.warn(`Invalid xPos in drawStroke: ${xPos}, using default position`);
+      xPos = left + 50; // Safe default position
+    }
+    
     const yPos = noteStartY;
     // const padding = 2;
     const heightOfBeam = Math.abs(noteStartY - noteEndY) + 5;
@@ -2599,7 +2693,14 @@ class SvgDrawer {
     tremoloBarObjs: TremoloBar, height: number,
   ) {
     const yStartPos = -10 - height;
-    const xStartPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7;
+    let xStartPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xStartPos) || xStartPos < 0) {
+      console.warn(`Invalid xStartPos in drawTremoloBar: ${xStartPos}, using default position`);
+      xStartPos = 57; // Safe default position (50 + 7)
+    }
+    
     // max width value = 60 60/3 = 20
     const padding = 3;
     const tremoloBarHeight = 20; // 1200/28, 800 negative, 400 positive
@@ -2735,10 +2836,24 @@ class SvgDrawer {
   ) {
     const leftOffset = type === 'trill' ? 17 : 0;
     const yStartPos = -height - 6;
-    const xStartPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7 + leftOffset;
+    let xStartPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7 + leftOffset;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xStartPos) || xStartPos < 0) {
+      console.warn(`Invalid xStartPos in drawVibrato: ${xStartPos}, using default position`);
+      xStartPos = 57 + leftOffset; // Safe default position (50 + 7 + leftOffset)
+    }
+    
     const vibratoWidth = tab.measureOffset[trackId][blockId][voiceId]
       * Duration.getDurationWidth(Song.measures[trackId][blockId][voiceId][beatId])
       - leftOffset;
+    
+    // Safety check for vibratoWidth
+    if (!isFinite(vibratoWidth) || vibratoWidth <= 0) {
+      console.warn(`Invalid vibratoWidth in drawVibrato: ${vibratoWidth}, skipping vibrato`);
+      return; // Don't draw vibrato with invalid width
+    }
+    
     let vibratoPath = `M${xStartPos} ${yStartPos + 3}`;
     for (let i = 3; i < vibratoWidth; i += 3) {
       if (i % 6 === 0) vibratoPath += `L${xStartPos + i} ${yStartPos + 5}`;
@@ -2758,7 +2873,14 @@ class SvgDrawer {
     trackId: number, blockId: number, voiceId: number, beatId: number, height: number,
   ) {
     const yStartPos = -height - 6;
-    const xStartPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7;
+    let xStartPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 7;
+    
+    // Safety check to prevent Infinity values
+    if (!isFinite(xStartPos) || xStartPos < 0) {
+      console.warn(`Invalid xStartPos in drawHeavyAccentuated: ${xStartPos}, using default position`);
+      xStartPos = 57; // Safe default position (50 + 7)
+    }
+    
     const accPath = `M${xStartPos} ${yStartPos + 6}L${xStartPos + 3} ${yStartPos}L${xStartPos + 6} ${yStartPos + 6}`;
     const heavyAccentuated = SvgDrawer.createPath(accPath, '#111', '1', 'none');
     if (this.svgBlocks[trackId][blockId][voiceId] != null) {

@@ -25,6 +25,11 @@ const Duration = {
   },
 
   getDurationWidth(t: Measure): number {
+    if (!t || !t.duration) {
+      console.warn('Invalid measure object in getDurationWidth:', t);
+      return 1; // Safe default
+    }
+    
     let size = 0;
     if (t.duration === 'w' || t.duration === 'wr') size = 8;
     else if (t.duration === 'h' || t.duration === 'hr') size = 4;
@@ -36,9 +41,20 @@ const Duration = {
     else if (t.duration === 'z' || t.duration === 'zr') size = 1;
     // 128th only for grace!
     else if (t.duration === 'o' || t.duration === 'or') size = 0.5;
+    else {
+      console.warn('Unknown duration type:', t.duration);
+      size = 1; // Safe default
+    }
 
     if ((t.dotted || t.doubleDotted) && size >= 2) size += size / 2;
     if (t.doubleDotted && size >= 4) size += size / 4;
+    
+    // Ensure result is finite
+    if (!isFinite(size) || size <= 0) {
+      console.warn('getDurationWidth returned invalid size:', size, 'for measure:', t);
+      return 1; // Safe default
+    }
+    
     /* Tuplets have the same size
       if(t.tuplet != null)
           size *= 2/t.tuplet; */

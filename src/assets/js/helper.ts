@@ -114,6 +114,18 @@ class Helper {
     let positionWeAreAt = 0;
     let noteLengthPosition = 0;
     const QUARTER_DURATION = Duration.getDurationOfType('q');
+    
+    // Initialize measureMoveHelper array if needed
+    if (!Song.measureMoveHelper[trackId]) {
+      Song.measureMoveHelper[trackId] = [];
+    }
+    if (!Song.measureMoveHelper[trackId][blockId]) {
+      Song.measureMoveHelper[trackId][blockId] = [];
+    }
+    if (!Song.measureMoveHelper[trackId][blockId][voiceId]) {
+      Song.measureMoveHelper[trackId][blockId][voiceId] = [];
+    }
+    
     for (let i = 0; i < test.length; i += 1) {
       const currentDuration = Duration.getDurationOfNote(test[i], false);
       groupings[groupIndex] = [];
@@ -129,8 +141,18 @@ class Helper {
           // we add so long the value is not higher than a quarter
           const nextDuration = Duration.getDurationOfNote(test[j], false);
           // const nextWithoutTuple = Duration.getDurationOfNote(test[j], true);
+          
+          // Safety check for position values
+          if (!isFinite(positionWeAreAt)) {
+            console.warn(`Invalid positionWeAreAt in tuplet: ${positionWeAreAt}, resetting to 0`);
+            positionWeAreAt = 0;
+          }
+          
           Song.measureMoveHelper[trackId][blockId][voiceId][j] = positionWeAreAt;
-          positionWeAreAt += Duration.getDurationWidth(test[j]);
+          const durationWidth = Duration.getDurationWidth(test[j]);
+          if (isFinite(durationWidth)) {
+            positionWeAreAt += durationWidth;
+          }
           noteLengthPosition += nextDuration;
           groupings[groupIndex].push(test[j]);
           if (j !== i) {
@@ -140,8 +162,18 @@ class Helper {
         }
       } else if (currentDuration >= QUARTER_DURATION || test[i].duration.length > 1) {
         groupings[groupIndex].push(test[i]);
+        
+        // Safety check for position values
+        if (!isFinite(positionWeAreAt)) {
+          console.warn(`Invalid positionWeAreAt: ${positionWeAreAt}, resetting to 0`);
+          positionWeAreAt = 0;
+        }
+        
         Song.measureMoveHelper[trackId][blockId][voiceId][i] = positionWeAreAt;
-        positionWeAreAt += Duration.getDurationWidth(test[i]);
+        const durationWidth = Duration.getDurationWidth(test[i]);
+        if (isFinite(durationWidth)) {
+          positionWeAreAt += durationWidth;
+        }
         noteLengthPosition += currentDuration;
       } else {
         // TODO: fixme, with tuplets/ with new width
@@ -157,8 +189,18 @@ class Helper {
             break;
           }
           begin += nextDuration;
+          
+          // Safety check for position values
+          if (!isFinite(positionWeAreAt)) {
+            console.warn(`Invalid positionWeAreAt in quarter loop: ${positionWeAreAt}, resetting to 0`);
+            positionWeAreAt = 0;
+          }
+          
           Song.measureMoveHelper[trackId][blockId][voiceId][startPos + j] = positionWeAreAt;
-          positionWeAreAt += Duration.getDurationWidth(test[startPos + j]);
+          const durationWidth = Duration.getDurationWidth(test[startPos + j]);
+          if (isFinite(durationWidth)) {
+            positionWeAreAt += durationWidth;
+          }
           noteLengthPosition += nextDuration;
           groupings[groupIndex].push(test[startPos + j]);
           if (j !== 0) {
@@ -195,16 +237,32 @@ class Helper {
   // returns position in block at 16th beat distance indexX
   static getLeftPos(trackId: number, blockId: number, voiceId: number, indexX: number): number {
     const leftOFF = Helper.getLeftOffset(blockId);
-    return leftOFF + indexX * tab.measureOffset[trackId][blockId][voiceId];
+    const measureOffset = tab.measureOffset[trackId]?.[blockId]?.[voiceId];
+    
+    // Safety check to prevent Infinity values
+    if (measureOffset == null || !isFinite(measureOffset) || measureOffset === 0) {
+      console.warn(`Invalid measureOffset for track ${trackId}, block ${blockId}, voice ${voiceId}:`, measureOffset);
+      return leftOFF; // Return just the left offset
+    }
+    
+    // Safety check for indexX
+    if (!isFinite(indexX)) {
+      console.warn(`Invalid indexX:`, indexX);
+      return leftOFF;
+    }
+    
+    return leftOFF + indexX * measureOffset;
   }
 
   static getBeatPosX(trackId: number, blockId: number, voiceId: number, beatId: number): number {
-    if (Song.measureMoveHelper[trackId][blockId][voiceId][beatId] == null) {
+    const moveHelper = Song.measureMoveHelper[trackId]?.[blockId]?.[voiceId]?.[beatId];
+    
+    if (moveHelper == null || !isFinite(moveHelper)) {
+      console.warn(`Invalid measureMoveHelper for track ${trackId}, block ${blockId}, voice ${voiceId}, beat ${beatId}:`, moveHelper);
       return 0;
     }
-    return Helper.getLeftPos(
-      trackId, blockId, voiceId, Song.measureMoveHelper[trackId][blockId][voiceId][beatId],
-    );
+    
+    return Helper.getLeftPos(trackId, blockId, voiceId, moveHelper);
   }
 
   static getNumberOfOverbarRows(
