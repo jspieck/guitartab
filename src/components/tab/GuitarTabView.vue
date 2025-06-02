@@ -114,7 +114,7 @@
         <!-- Simple tab rows -->
         <TabRow
           v-for="(row, rowIndex) in tabRows"
-          :key="`row-${rowIndex}`"
+          :key="`row-${rowIndex}-${songDataVersion}`"
           :row-data="row"
           :track-id="trackId"
           :voice-id="voiceId"
@@ -140,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import TabRow from './TabRow.vue'
 import Song from '../../assets/js/songData'
 import TabToolbar from './TabToolbar.vue'
@@ -164,6 +164,30 @@ const updateTrigger = ref(0) // Force reactivity updates
 const currentSelection = ref<any>(null)
 const toolbarVisible = ref(false)
 const selectedNote = ref<any>(null)
+const songDataVersion = ref(0) // Track version changes to force re-render
+
+// Create a reactive proxy of Song data for Vue components
+const reactiveSongData = reactive({
+  measures: Song.measures,
+  songDescription: Song.songDescription,
+  tracks: Song.tracks
+})
+
+// Function to sync Song data to reactive proxy
+function syncSongData() {
+  // Deep copy to ensure reactivity detects changes
+  reactiveSongData.measures = JSON.parse(JSON.stringify(Song.measures))
+  reactiveSongData.songDescription = { ...Song.songDescription }
+  reactiveSongData.tracks = [...Song.tracks]
+  songDataVersion.value++
+  console.log('Song data synced to reactive proxy, version:', songDataVersion.value)
+}
+
+// Watch for changes to the original Song data and sync to reactive proxy
+watch(() => Song.measures, (newMeasures) => {
+  console.log('Song.measures changed, syncing...')
+  syncSongData()
+}, { deep: true })
 
 // Constants
 const PAGE_MARGIN_SIDE = computed(() => props.width * (1 / 21))
@@ -176,16 +200,18 @@ const pageHeight = props.height
 const rowHeight = 120
 
 // Computed properties
-const songTitle = computed(() => Song.songDescription?.title || 'Untitled')
-const songAuthor = computed(() => Song.songDescription?.author || 'Unknown Artist')
+const songTitle = computed(() => reactiveSongData.songDescription?.title || 'Untitled')
+const songAuthor = computed(() => reactiveSongData.songDescription?.author || 'Unknown Artist')
 const showTabInfo = computed(() => true)
 
 const tabRows = computed(() => {
   // Add reactivity trigger to force re-computation
   updateTrigger.value // This ensures the computed re-runs when updateTrigger changes
+  songDataVersion.value // Track changes to song data
   
   console.log('=== COMPUTING TAB ROWS ===')
   console.log('Update trigger:', updateTrigger.value)
+  console.log('Song data version:', songDataVersion.value)
   
   interface TabRowData {
     id: number
@@ -200,15 +226,18 @@ const tabRows = computed(() => {
   // Debug logging
   console.log('Song object:', Song)
   console.log('Song.measures:', Song.measures)
+  console.log('Reactive measures:', reactiveSongData.measures)
   console.log('TrackId:', props.trackId, 'VoiceId:', props.voiceId)
   
   // Initialize Song if needed
   if (!Song.measures || Song.measures.length === 0) {
     console.log('Initializing empty song...')
     Song.initEmptySong()
+    // Sync to reactive proxy using the sync function
+    syncSongData()
   }
   
-  // Get measures from Song data
+  // Get measures from Song data - use the original Song object as source of truth
   const measures = Song.measures?.[props.trackId] || []
   console.log('Measures for track:', measures)
   console.log('Number of measures:', measures.length)
@@ -350,6 +379,8 @@ function handleNoteSelection(event: Event) {
     const note = beat?.notes?.[stringIndex]
     selectedNote.value = note || null
     console.log('Selected note for toolbar:', selectedNote.value)
+    console.log('Selection details:', detail)
+    console.log('Current beat data:', beat)
   } else {
     selectedNote.value = null
   }
@@ -494,6 +525,9 @@ function addSampleNotes() {
   }
   
   console.log('Sample notes added to Song')
+  
+  // Sync the changes to reactive proxy
+  syncSongData()
 }
 
 function setNoteAtCurrentSelection(fretNumber: number) {
@@ -551,6 +585,9 @@ function setNoteAtCurrentSelection(fretNumber: number) {
   
   console.log('Beat after modification:', beat)
   console.log('Full measure structure:', Song.measures[trackId][blockId][voiceId])
+  
+  // Sync Song data to reactive proxy to trigger Vue reactivity
+  syncSongData()
   
   // Force reactivity update
   updateTrigger.value++
