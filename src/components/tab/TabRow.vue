@@ -1,36 +1,5 @@
 <template>
   <g class="tab-row" :transform="`translate(0, ${yOffset})`">
-    <!-- Clickable string areas for note placement -->
-    <g class="clickable-strings">
-      <rect
-        v-for="stringIndex in numStrings"
-        :key="`click-area-${stringIndex}`"
-        :x="0"
-        :y="(stringIndex - 1) * stringSpacing - 6"
-        :width="width"
-        :height="12"
-        fill="transparent"
-        class="string-click-area"
-        @click="(event) => handleStringClick(event, stringIndex - 1)"
-        style="cursor: pointer"
-      />
-    </g>
-    
-    <!-- Selection indicators -->
-    <g v-if="selectedPosition" class="selection-indicator">
-      <rect
-        :x="getSelectionX() - 8"
-        :y="getSelectionY() - 8"
-        width="16"
-        height="16"
-        fill="rgba(74, 144, 226, 0.3)"
-        stroke="#4A90E2"
-        stroke-width="2"
-        rx="3"
-        class="selection-highlight"
-      />
-    </g>
-    
     <!-- Guitar strings background -->
     <g class="strings">
       <line
@@ -88,6 +57,39 @@
       :x-offset="getMeasureXOffset(measureIndex) + 10"
       :y-offset="-10"
     />
+    
+    <!-- Selection indicators -->
+    <g v-if="selectedPosition" class="selection-indicator">
+      <rect
+        :x="getSelectionX() - 8"
+        :y="getSelectionY() - 8"
+        width="16"
+        height="16"
+        fill="rgba(74, 144, 226, 0.3)"
+        stroke="#4A90E2"
+        stroke-width="2"
+        rx="3"
+        class="selection-highlight"
+      />
+    </g>
+    
+    <!-- Clickable string areas for note placement - must be last to be on top -->
+    <g class="clickable-strings">
+      <rect
+        v-for="stringIndex in numStrings"
+        :key="`click-area-${stringIndex}`"
+        :x="0"
+        :y="(stringIndex - 1) * stringSpacing - 6"
+        :width="width"
+        :height="12"
+        fill="rgba(0, 0, 255, 0.02)"
+        stroke="rgba(0, 0, 255, 0.1)"
+        stroke-width="0.5"
+        class="string-click-area"
+        @click="(event) => handleStringClick(event, stringIndex - 1)"
+        style="cursor: pointer"
+      />
+    </g>
   </g>
 </template>
 
@@ -122,7 +124,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Constants
 const stringSpacing = 12
-const measureWidth = 200 // Base width per measure
+const measureWidth = 200 // Base width per measure - must match TabMeasure
+const beatWidth = 40 // Width per beat - must match TabMeasure  
 const tabLabelWidth = 32 // Width for the TAB label
 
 // Selection state
@@ -218,17 +221,22 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
   console.log('Relative X calculation:', { 
     relativeX, 
     tabOffset,
-    measureWidth 
+    measureWidth,
+    beatWidth,
+    clickX: event.clientX,
+    clickY: event.clientY
   })
   
   // Find the measure
   const measureIndex = Math.floor(relativeX / measureWidth)
   console.log('Calculated measureIndex:', measureIndex)
+  console.log('Available measures in row:', props.rowData.measures.length)
+  console.log('Row data:', props.rowData)
   
   if (measureIndex >= 0 && measureIndex < props.rowData.measures.length) {
-    // Calculate beat within the measure (4 beats per measure)
+    // Calculate beat within the measure using the same logic as TabMeasure
     const beatX = relativeX % measureWidth
-    const beatIndex = Math.floor(beatX / (measureWidth / 4))
+    const beatIndex = Math.floor(beatX / beatWidth) // Use beatWidth instead of measureWidth/4
     const blockId = props.rowData.startBlockId + measureIndex
     
     console.log('Setting selection:', {
@@ -237,14 +245,19 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       beatIndex,
       blockId,
       beatX,
-      relativeX
+      relativeX,
+      beatWidth,
+      calculatedBeatIndex: beatIndex
     })
+    
+    // Clamp beatIndex to valid range (0-4 for 4 beats per measure, but allow up to 8)
+    const clampedBeatIndex = Math.max(0, Math.min(beatIndex, 7))
     
     // Set the selection
     selectedPosition.value = {
       stringIndex,
       measureIndex,
-      beatIndex, 
+      beatIndex: clampedBeatIndex, 
       blockId
     }
     
@@ -254,13 +267,13 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
         trackId: props.trackId,
         voiceId: props.voiceId,
         blockId,
-        beatIndex,
+        beatIndex: clampedBeatIndex,
         stringIndex
       }
     })
     window.dispatchEvent(selectionEvent)
     
-    console.log('Selection set and event dispatched')
+    console.log('Selection set and event dispatched with beatIndex:', clampedBeatIndex)
     console.log('=== END DEBUG ===')
   } else {
     console.log('Click outside valid measure range, measureIndex:', measureIndex)
@@ -274,7 +287,7 @@ function getSelectionX(): number {
   
   const tabOffset = props.isFirstRow ? tabLabelWidth : 0
   const measureX = selectedPosition.value.measureIndex * measureWidth
-  const beatX = selectedPosition.value.beatIndex * (measureWidth / 4) + (measureWidth / 8) // Center of beat
+  const beatX = selectedPosition.value.beatIndex * beatWidth + (beatWidth / 2) // Center of beat using beatWidth
   
   return tabOffset + measureX + beatX
 }
