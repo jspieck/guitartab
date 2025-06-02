@@ -4,8 +4,8 @@
     <text
       v-for="(note, stringIndex) in notesToRender"
       :key="`note-${beatIndex}-${stringIndex}-${note.fret}-${beatDataHash}`"
-      :x="10"
-      :y="(numStrings - 1 - note.string) * stringSpacing + 6"
+      :x="20"
+      :y="note.string * stringSpacing + 6"
       font-family="Source Sans Pro"
       :font-size="getFontSize(note)"
       fill="#000"
@@ -24,8 +24,8 @@
     <text
       v-for="(note, stringIndex) in graceNotes"
       :key="`grace-${beatIndex}-${stringIndex}-${beatDataHash}`"
-      :x="2"
-      :y="(numStrings - 1 - note.string) * stringSpacing + 6"
+      :x="8"
+      :y="note.string * stringSpacing + 6"
       font-family="Source Sans Pro"
       font-size="11px"
       fill="#666"
