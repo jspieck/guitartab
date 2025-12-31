@@ -35,31 +35,6 @@
             {{ songAuthor }}
           </text>
           
-          <!-- Help text -->
-          <text 
-            :x="tabGroupWidth / 2" 
-            y="75" 
-            font-family="Source Sans Pro" 
-            font-size="12px" 
-            fill="#999"
-            text-anchor="middle"
-          >
-            Click strings to select • Type 0-9 for fret • Delete to remove • Press T for toolbar
-          </text>
-          
-          <!-- Selection indicator -->
-          <text 
-            v-if="currentSelection"
-            :x="tabGroupWidth / 2" 
-            y="90" 
-            font-family="Source Sans Pro" 
-            font-size="10px" 
-            fill="#4A90E2"
-            text-anchor="middle"
-          >
-            Selected: String {{ currentSelection.stringIndex + 1 }}, Measure {{ currentSelection.blockId + 1 }}, Beat {{ currentSelection.beatIndex + 1 }}
-          </text>
-          
           <!-- Debug refresh button -->
           
         </g>
