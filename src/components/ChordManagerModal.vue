@@ -60,11 +60,18 @@ import { MODALS } from "../assets/js/modals/modalTypes";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { ChordManagerModalHandler } from "../assets/js/modals/chordManagerModalHandler";
 import { Song, Chord } from "../assets/js/songData";
-import { svgDrawer } from "../assets/js/svgDrawer";
+import EventBus from "../assets/js/eventBus";
 
 const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler;
 const chordRefs = ref<SVGElement[]>([]);
 const chords = ref<Map<string, Chord>>(new Map());
+
+// Helper to notify the Vue tab view to re-render chords
+const notifyChordChange = () => {
+  EventBus.emit('song-data-changed');
+  // Also dispatch DOM event for Vue components
+  window.dispatchEvent(new CustomEvent('songDataChanged', { detail: { type: 'chords' } }));
+};
 
 const drawChordDiagram = (svg: SVGElement, chord: Chord) => {
   handler.drawChordDiagram(svg, chord);
@@ -93,13 +100,13 @@ const deleteChord = async (name: string) => {
   if (await confirm(`Delete chord ${name}?`)) {
     Song.chordsMap[handler.getTrackId()].delete(name);
     chords.value = new Map(Song.chordsMap[handler.getTrackId()]);
-    svgDrawer.redrawChordDiagrams();
+    notifyChordChange();
   }
 };
 
 const toggleChordVisibility = (chord: Chord) => {
   chord.display = !chord.display;
-  svgDrawer.redrawChordDiagrams();
+  notifyChordChange();
 };
 
 const addNewChord = () => {
@@ -109,7 +116,7 @@ const addNewChord = () => {
 };
 
 const handleSubmit = () => {
-  svgDrawer.redrawChordDiagrams();
+  notifyChordChange();
   handler.closeModal();
 };
 

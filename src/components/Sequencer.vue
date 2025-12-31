@@ -107,7 +107,7 @@ import { overlayHandler } from '../assets/js/overlayHandler';
 import Helper from '../assets/js/helper';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
-import { svgDrawer } from '../assets/js/svgDrawer';
+import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
 import Knob from './Knob.vue';
 import SequenceMarker from './SequenceMarker.vue';
@@ -203,8 +203,8 @@ const handleTrackLabelClick = (trackId: number) => {
             const blockId = playBackLogic.getCurrentBlock();
             setIndicator(trackId, blockId);
             AppManager.changeTrack(trackId, 0, false, () => {
-                svgDrawer.setNewClickedPos(trackId, blockId, Song.currentVoiceId, 0, 1);
-                svgDrawer.scrollToSvgBlock(trackId, Song.currentVoiceId, blockId);
+                typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId: Song.currentVoiceId, beatId: 0, string: 1 });
+                typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId: Song.currentVoiceId, blockId });
                 document.getElementById('loadingWheel')!.style.display = 'none';
             });
         }, 0);
@@ -399,14 +399,14 @@ function sequencerClick(e: MouseEvent, trackId: number, voiceId: number) {
                     AppManager.changeTrack(trackId, 0, false, () => {
                         playBackLogic.jumpToPosition(blockId, 0, 0);
                         // beat and string to 0 and 1 for some value
-                        svgDrawer.setNewClickedPos(trackId, blockId, voiceId, 0, 1);
-                        svgDrawer.scrollToSvgBlock(trackId, voiceId, blockId);
+                        typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId: 0, string: 1 });
+                        typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId, blockId });
                         document.getElementById('loadingWheel')!.style.display = 'none';
                     });
                 });
             } else {
-                svgDrawer.scrollToSvgBlock(trackId, voiceId, blockId);
-                svgDrawer.setNewClickedPos(trackId, blockId, voiceId, 0, 1);
+                typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId, blockId });
+                typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId: 0, string: 1 });
                 playBackLogic.jumpToPosition(blockId, 0, 0);
             }
         }
@@ -427,7 +427,7 @@ function sequencerMouseMove(e: MouseEvent) {
         const trackId = Song.currentTrackId;
         const voiceId = Song.currentVoiceId;
         overlayHandler.initOverlay(trackId, blockIntervalStart.value, voiceId, 0);
-        svgDrawer.setNewClickedPos(trackId, blockIntervalStart.value, voiceId, 0, 0);
+        typedEventBus.emit('navigation.setClickedPos', { trackId, blockId: blockIntervalStart.value, voiceId, beatId: 0, string: 0 });
 
         const lastBeatId = Song.measures[trackId][blockIntervalEnd.value][voiceId].length - 1;
         overlayHandler.selectionMove(e, trackId, blockIntervalEnd.value, voiceId, lastBeatId);

@@ -67,7 +67,16 @@
                         <button id="info" @click="modalManager.toggleByModal(MODALS.INFO)" class="checkBoxNote playButton"><img id="infoImg"
                                 src="../assets/images/info.svg" /></button>
 
-                        <!--<button id="download" data-tooltip="Download XML" onclick="downloadXML()" class="checkBoxNote playButton"><img id="downloadID" src="../assets/images/download.svg"/></button>-->
+                        <button id="openFile" @click="openGuitarProFile" data-tooltip="Open File" class="checkBoxNote playButton">
+                            <span style="font-size: 18px;">📂</span>
+                        </button>
+                        <input 
+                            type="file" 
+                            ref="fileInputRef" 
+                            @change="handleFileSelect" 
+                            accept=".gp3,.gp4,.gp5,.gpx,.mid,.gt"
+                            style="display: none;"
+                        />
                         <button id="downloadGP" data-tooltip="Download File" onclick="saveAsGt()"
                             class="checkBoxNote playButton"><img id="downloadIDGP" src="../assets/images/saveOwn.svg" /></button>
 
@@ -200,7 +209,7 @@
                 src="../assets/images/zoomIn.svg" /></button>
         <button id="zoomOut" @click="tab.scaleCompleteTab(false)" data-tooltip="Zoom Out" class="classicalButton"><img id="zoomOutImg"
                 src="../assets/images/zoomOut.svg" /></button>
-        <button id="fullscreen" @click="svgDrawer.disablePageMode()" data-tooltip="Fullscreen" class="classicalButton"><img id="fullscreenImg"
+        <button id="fullscreen" @click="typedEventBus.emit('ui.disablePageMode')" data-tooltip="Fullscreen" class="classicalButton"><img id="fullscreenImg"
                 src="../assets/images/fullscreen.svg" /></button>
 
         <button id="guitarEyeToggle" @click="modalManager.toggleByModal(MODALS.GUITAR)" data-tooltip="Virtual Guitar" class="classicalButton">
@@ -226,7 +235,7 @@ import fastdom from 'fastdom';
 import Duration from '../assets/js/duration';
 import midiEngine from '../assets/js/midiReceiver';
 import { revertHandler } from '../assets/js/revertHandler';
-import { svgDrawer } from '../assets/js/svgDrawer';
+import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
 import Settings from '../assets/js/settingManager';
 import Song, { Note, Measure } from '../assets/js/songData';
@@ -236,10 +245,30 @@ import AppManager from '../assets/js/appManager';
 import { classicalNotation } from '../assets/js/vexflowClassical';
 import { SequencerHandler } from '../assets/js/sequencerHandler';
 import { overlayHandler } from '../assets/js/overlayHandler';
-import { onMounted, onBeforeUnmount } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 import EventBus from "../assets/js/eventBus";
 import { menuHandler } from '../assets/js/menuHandler';
 import { MODALS } from '../assets/js/modals/modalTypes';
+import { gProReader } from '../assets/js/GProReader';
+
+// File input ref for opening files
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// Open file dialog
+function openGuitarProFile() {
+    fileInputRef.value?.click();
+}
+
+// Handle file selection
+function handleFileSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (files && files.length > 0) {
+        gProReader.handleFiles(files);
+        // Reset the input so the same file can be selected again
+        input.value = '';
+    }
+}
 
 function clickedOnPos(position: {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}) {
     const {trackId, blockId, voiceId, beatId, string} = position;
@@ -446,7 +475,7 @@ function processDynamicSelect(
     }
     const { trackId, voiceId } = arr.notes[0];
     for (const blockId of arr.blocks) {
-        svgDrawer.renderOverBar(trackId, blockId, voiceId, false);
+        typedEventBus.emit('render.overBar', { trackId, blockId, voiceId, rerender: false });
     }
 }
 
@@ -543,9 +572,9 @@ function processNotationSelect(
         }
 
         toggleEffectSelect(id, beat);
-        svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+        typedEventBus.emit('render.block', { trackId, blockId, voiceId });
         // drawTrack(trackId, voiceId, true);
-        // svgDrawer.renderOverBar(trackId, blockId, voiceId);
+        // typedEventBus.emit('render.overBar', { trackId, blockId, voiceId });
     }
 }
 
@@ -631,7 +660,7 @@ function processEffectSelect(
             );
         }
         for (const blockId of arr.blocks) {
-            svgDrawer.rerenderBlock(Song.currentTrackId, blockId, Song.currentVoiceId);
+            typedEventBus.emit('render.block', { trackId: Song.currentTrackId, blockId, voiceId: Song.currentVoiceId });
         }
     }
 }
@@ -692,7 +721,7 @@ function processSpecialSelect(
         } else if (id === 'tuplet') {
             const tupletSet = tab.setTuplet(trackId, blockId, voiceId, beatId, tupleSel);
             if (tupletSet) {
-                svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+                typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
                 tab.drawTrack(trackId, voiceId, true, null);
                 if (duringRestoration === false) {
                     revertHandler.addNoteLengthSpecialSelect(
@@ -719,7 +748,7 @@ function processSpecialSelect(
         if (previousDuration !== newDuration) {
             const rescaleNecessary = tab.changeBeatDuration(trackId, blockId, voiceId, beatId,
                 string, newDuration, previousDuration, beat.duration);
-            svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+            typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
             classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId);
 
             if (rescaleNecessary) {
@@ -756,7 +785,7 @@ function processTiedButtonPress(
     for (let bId = noteTiedTo.blockId; bId <= blockId; bId += 1) {
         blocks.push(bId);
     }
-    svgDrawer.rerenderBlocks(trackId, blocks, voiceId);
+    typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
 }
 
 function setNotesTied(
@@ -831,7 +860,7 @@ function processMeasureSelect(
         if (isRevert == null) {
             revertHandler.addMeasureSelect(trackId, blockId, voiceId, id);
         }
-        svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+        typedEventBus.emit('render.block', { trackId, blockId, voiceId });
     });
 }
 
