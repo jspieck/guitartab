@@ -1042,6 +1042,7 @@ class Tab {
     trackId: number, blockId: number, voiceId: number, newBeatId: number,
     duration: string, isTuplet: boolean, beat: Measure, dotted: boolean, doubleDotted: boolean,
   ) {
+    console.log(`Tab.addNoteToBlock called: trackId=${trackId}, blockId=${blockId}, voiceId=${voiceId}, newBeatId=${newBeatId}, duration=${duration}`);
     const blockObj = Song.measures[trackId][blockId][voiceId];
     Song.setBeat(trackId, blockId, voiceId, newBeatId, duration);
     blockObj[newBeatId].dotted = dotted;

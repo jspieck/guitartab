@@ -100,6 +100,7 @@ import { computed, ref } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
 import Song from '../../assets/js/songData'
+import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Local type definitions to avoid import issues
 interface TabRow {
@@ -124,12 +125,12 @@ const props = withDefaults(defineProps<Props>(), {
   isFirstRow: false
 })
 
-// Constants
-const stringSpacing = 12
-const measureWidth = 200 // Base width per measure - must match TabMeasure
-const beatWidth = 40 // Width per beat - must match TabMeasure  
-const tabLabelWidth = 32 // Width for the TAB label
-const START_PADDING = 15 // Padding at start of measure - must match TabMeasure
+// Constants from centralized layout utilities
+const { STRING_SPACING, MEASURE_WIDTH, BEAT_WIDTH, TAB_LABEL_WIDTH, START_PADDING } = TAB_CONSTANTS
+const stringSpacing = STRING_SPACING
+const measureWidth = MEASURE_WIDTH
+const beatWidth = BEAT_WIDTH
+const tabLabelWidth = TAB_LABEL_WIDTH
 
 // Selection state
 const selectedPosition = ref<{
@@ -190,76 +191,42 @@ function getMeasureMeta(blockId: number) {
 }
 
 function getMeasureContentPadding(blockId: number): number {
-  const meta = getMeasureMeta(blockId);
-  let padding = 10; // Default padding
+  const meta = getMeasureMeta(blockId)
+  let padding = 10 // Default padding
   if (meta.timeMeterPresent) {
-    padding += 25; // Space for time signature
+    padding += 25 // Space for time signature
   }
   if (meta.repeatOpen) {
-    padding += 15;
+    padding += 15
   }
-  return padding;
-}
-
-function getDurationInBeats(duration: string): number {
-  switch (duration) {
-    case 'w': case 'wr': case 'whole': return 4;
-    case 'h': case 'hr': case 'half': return 2;
-    case 'q': case 'qr': case 'quarter': return 1;
-    case 'e': case 'er': case 'eighth': return 0.5;
-    case 's': case 'sr': case 'sixteenth': return 0.25;
-    case 't': case 'tr': case 'thirty-second': return 0.125;
-    default: return 1;
-  }
+  return padding
 }
 
 function handleStringClick(event: MouseEvent, stringIndex: number) {
   event.stopPropagation()
   
-  console.log('=== STRING CLICK DEBUG ===')
-  console.log('String clicked, stringIndex:', stringIndex)
-  
-  // Get the SVG root element, not just the closest svg
+  // Get the SVG root element
   const svgElement = document.querySelector('.tab-svg') as SVGSVGElement
-  if (!svgElement) {
-    console.log('No SVG element found')
-    return
-  }
+  if (!svgElement) return
   
-  // Get the clicked element's position
-  const clickedRect = (event.target as SVGElement)
+  // Get SVG bounding rect for padding calculation
   const svgRect = svgElement.getBoundingClientRect()
   
-  // Calculate the actual click position in SVG coordinates
+  // Calculate the click position in SVG coordinates
   const svgPoint = svgElement.createSVGPoint()
   svgPoint.x = event.clientX
   svgPoint.y = event.clientY
   const transformedPoint = svgPoint.matrixTransform(svgElement.getScreenCTM()?.inverse())
   
-  console.log('SVG coordinates:', { x: transformedPoint.x, y: transformedPoint.y })
-  console.log('Row yOffset:', props.yOffset)
-  console.log('String spacing:', stringSpacing)
-  
   // Adjust for the main SVG padding and row transform
   const paddingLeft = svgRect.width * (1 / 21) // Same as in GuitarTabView
   const adjustedX = transformedPoint.x - paddingLeft
   
-  console.log('Adjusted X after padding:', adjustedX)
-  
-  // Calculate which measure and beat was clicked
+  // Calculate which measure was clicked
   const tabOffset = props.isFirstRow ? tabLabelWidth : 0
   const relativeX = adjustedX - tabOffset
   
-  console.log('Relative X calculation:', { 
-    relativeX, 
-    tabOffset,
-    measureWidth,
-    beatWidth,
-    clickX: event.clientX,
-    clickY: event.clientY
-  })
-  
-  // Find the measure
+  // Find the measure at click position
   let currentX = 0
   let foundMeasureIndex = -1
   let measureRelativeX = 0
@@ -275,10 +242,6 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
     }
     currentX += width
   }
-  
-  console.log('Calculated measureIndex:', foundMeasureIndex)
-  console.log('Available measures in row:', props.rowData.measures.length)
-  console.log('Row data:', props.rowData)
   
   if (foundMeasureIndex !== -1) {
     const measureIndex = foundMeasureIndex
@@ -306,34 +269,18 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       currentBeatX += width
     }
     
-    // If we didn't find a beat (clicked past the end), default to the last one or clamp
+    // If we didn't find a beat, clamp to valid range
     if (foundBeatIndex === -1) {
-      if (beatX < 0) foundBeatIndex = 0
-      else foundBeatIndex = measureData.length - 1
+      foundBeatIndex = beatX < 0 ? 0 : measureData.length - 1
     }
     
-    const beatIndex = foundBeatIndex
-    
-    console.log('Setting selection:', {
-      stringIndex,
-      measureIndex, 
-      beatIndex,
-      blockId,
-      beatX,
-      relativeX,
-      beatWidth,
-      padding,
-      calculatedBeatIndex: beatIndex
-    })
-    
-    // Clamp beatIndex to valid range
-    const clampedBeatIndex = Math.max(0, Math.min(beatIndex, measureData.length - 1))
+    const beatIndex = Math.max(0, Math.min(foundBeatIndex, measureData.length - 1))
     
     // Set the selection
     selectedPosition.value = {
       stringIndex,
       measureIndex,
-      beatIndex: clampedBeatIndex, 
+      beatIndex,
       blockId
     }
     
@@ -343,18 +290,11 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
         trackId: props.trackId,
         voiceId: props.voiceId,
         blockId,
-        beatIndex: clampedBeatIndex,
+        beatIndex,
         stringIndex
       }
     })
     window.dispatchEvent(selectionEvent)
-    
-    console.log('Selection set and event dispatched with beatIndex:', clampedBeatIndex)
-    console.log('=== END DEBUG ===')
-  } else {
-    console.log('Click outside valid measure range, foundMeasureIndex:', foundMeasureIndex)
-    console.log('Available measures:', props.rowData.measures.length)
-    console.log('=== END DEBUG ===')
   }
 }
 
@@ -403,8 +343,6 @@ function setNoteAtSelection(fret: number) {
   const trackId = props.trackId
   const voiceId = props.voiceId
   
-  console.log('Setting note at selection:', { trackId, blockId, voiceId, beatIndex, stringIndex, fret })
-  
   // Ensure the measure structure exists
   if (!Song.measures[trackId]) Song.measures[trackId] = []
   if (!Song.measures[trackId][blockId]) Song.measures[trackId][blockId] = []
@@ -424,17 +362,13 @@ function setNoteAtSelection(fret: number) {
   }
   
   if (fret === -1) {
-    // Remove note
     beat.notes[stringIndex] = null
-    console.log(`Removed note from string ${stringIndex}`)
   } else {
-    // Set note
     beat.notes[stringIndex] = {
       ...Song.defaultNote(),
       fret,
       string: stringIndex
     }
-    console.log(`Set note: fret ${fret} on string ${stringIndex}`)
   }
   
   // Force reactivity update

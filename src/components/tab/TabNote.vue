@@ -41,6 +41,7 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
 interface Props {
@@ -53,24 +54,12 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const beatWidth = 40
-
-function getDurationInBeats(duration: string): number {
-  switch (duration) {
-    case 'w': case 'wr': case 'whole': return 4;
-    case 'h': case 'hr': case 'half': return 2;
-    case 'q': case 'qr': case 'quarter': return 1;
-    case 'e': case 'er': case 'eighth': return 0.5;
-    case 's': case 'sr': case 'sixteenth': return 0.25;
-    case 't': case 'tr': case 'thirty-second': return 0.125;
-    default: return 1;
-  }
-}
+const { BEAT_WIDTH } = TAB_CONSTANTS
 
 const noteX = computed(() => {
   const duration = props.beatData?.duration || 'q'
   const beats = getDurationInBeats(duration)
-  return (beats * beatWidth) / 2
+  return (beats * BEAT_WIDTH) / 2
 })
 
 // Create a hash of the beat data to force re-rendering when data changes
@@ -89,13 +78,8 @@ const beatDataHash = computed(() => {
 })
 
 // Watch for changes in beat data
-watch(() => props.beatData, (newBeatData, oldBeatData) => {
-  console.log('Beat data changed:', {
-    beatIndex: props.beatIndex,
-    old: oldBeatData,
-    new: newBeatData,
-    hash: beatDataHash.value
-  })
+watch(() => props.beatData, () => {
+  // Force re-render when beat data changes
 }, { deep: true })
 
 // Computed properties
@@ -162,29 +146,15 @@ function getNoteClasses(note: any): string {
 // Event handlers
 function handleNoteClick(event: MouseEvent, note: any) {
   event.stopPropagation()
-  console.log('Note clicked:', {
-    fret: note.fret,
-    string: note.string,
-    position: { x: event.clientX, y: event.clientY }
-  })
   // TODO: Emit event to parent for note selection/editing
 }
 
 function handleNoteHover(event: MouseEvent, note: any, isEntering: boolean) {
-  console.log('Note hover:', {
-    fret: note.fret,
-    string: note.string,
-    entering: isEntering
-  })
   // TODO: Add hover effects
 }
 
 function handleGraceClick(event: MouseEvent, note: any) {
   event.stopPropagation()
-  console.log('Grace note clicked:', {
-    fret: note.graceObj.fret,
-    string: note.string
-  })
   // TODO: Emit event for grace note editing
 }
 </script>

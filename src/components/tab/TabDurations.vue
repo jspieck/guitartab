@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
 interface Props {
@@ -92,6 +93,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { BEAT_WIDTH } = TAB_CONSTANTS
 
 // Duration mapping for beams
 const durationBeamCounts = {
@@ -114,11 +117,11 @@ const durationBeams = computed(() => {
   let currentBeatTime = 0;
   
   props.measureData.forEach((beat, beatIndex) => {
-    const durationInBeats = getDurationInBeats(beat?.duration || 'q');
+    const durationInBeats = getDurationInBeats(beat?.duration || 'q')
     
     if (beat && beat.duration) {
       const beamCount = durationBeamCounts[beat.duration as keyof typeof durationBeamCounts] || 0
-      const beatX = props.xOffset + (currentBeatTime * 40) + 10
+      const beatX = props.xOffset + (currentBeatTime * BEAT_WIDTH) + 10
       
       if (beamCount > 0) {
         // Check if this note has actual notes (not empty)
@@ -166,7 +169,7 @@ const noteStems = computed(() => {
     if (beat && beat.notes && beat.notes.some((note: any) => note !== null)) {
       const duration = beat.duration
       if (duration && ['eighth', 'sixteenth', 'thirty-second', 'sixty-fourth'].includes(duration)) {
-        const beatX = props.xOffset + (currentBeatTime * 40) + 10
+        const beatX = props.xOffset + (currentBeatTime * BEAT_WIDTH) + 10
         
         // Find the highest and lowest notes for stem placement
         let highestString = -1
@@ -203,16 +206,16 @@ const noteStems = computed(() => {
 
 const restSymbols = computed(() => {
   const rests: Array<{x: number, y: number, symbol: string}> = []
-  let currentBeatTime = 0; // Track current time in beats
+  let currentBeatTime = 0 // Track current time in beats
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (!beat) return;
+    if (!beat) return
     
-    const durationInBeats = getDurationInBeats(beat.duration);
+    const durationInBeats = getDurationInBeats(beat.duration)
     
     // Check if this is a rest
     if (!beat.notes || beat.notes.every((note: any) => note === null)) {
-      const beatX = props.xOffset + (currentBeatTime * 40) + 10
+      const beatX = props.xOffset + (currentBeatTime * BEAT_WIDTH) + 10
       const restY = ((props.numStrings - 1) * props.stringSpacing) / 2
       
       const symbol = getRestSymbol(beat.duration)
@@ -225,23 +228,11 @@ const restSymbols = computed(() => {
       }
     }
     
-    currentBeatTime += durationInBeats;
+    currentBeatTime += durationInBeats
   })
   
   return rests
 })
-
-function getDurationInBeats(duration: string): number {
-  switch (duration) {
-    case 'w': case 'wr': case 'whole': return 4;
-    case 'h': case 'hr': case 'half': return 2;
-    case 'q': case 'qr': case 'quarter': return 1;
-    case 'e': case 'er': case 'eighth': return 0.5;
-    case 's': case 'sr': case 'sixteenth': return 0.25;
-    case 't': case 'tr': case 'thirty-second': return 0.125;
-    default: return 1;
-  }
-}
 
 const tupletBrackets = computed(() => {
   const tuplets: Array<{
@@ -260,7 +251,7 @@ const tupletBrackets = computed(() => {
     const durationInBeats = getDurationInBeats(beat?.duration || 'q');
     
     if (beat && beat.tuplet && beat.tuplet > 0) {
-      const beatX = props.xOffset + (currentBeatTime * 40) + 10
+      const beatX = props.xOffset + (currentBeatTime * BEAT_WIDTH) + 10
       
       if (tupletValue === 0 || tupletValue === beat.tuplet) {
         tupletValue = beat.tuplet
