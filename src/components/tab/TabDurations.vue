@@ -165,16 +165,23 @@ function stringToY(stringIndex: number): number {
 
 /**
  * Create beam paths for a group of connected notes
+ * Only creates beams if there are 2+ notes to connect
  */
 function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
+  // Need at least 2 notes to form a beam
   if (beamGroup.length < 2) return []
   
   const minBeamCount = Math.min(...beamGroup.map(b => b.beamCount))
+  if (minBeamCount <= 0) return []
+  
   const beams: Beam[] = []
+  const startX = beamGroup[0].x
+  const endX = beamGroup[beamGroup.length - 1].x
+  
+  // Don't create a beam if start and end are the same position
+  if (startX === endX) return []
   
   for (let level = 0; level < minBeamCount; level++) {
-    const startX = beamGroup[0].x
-    const endX = beamGroup[beamGroup.length - 1].x
     const y = BEAM_Y_START - (level * BEAM_Y_SPACING)
     beams.push({ path: `M${startX} ${y}L${endX} ${y}` })
   }
@@ -205,8 +212,14 @@ function createTupletBracket(group: { beatIndex: number; x: number }[], number: 
 
 /**
  * Calculate beam paths for connected eighth/sixteenth/etc notes
+ * Beams connect consecutive notes of the same duration type
+ * TODO: Re-enable when positioning is fixed
  */
 const beams = computed((): Beam[] => {
+  // Disable beams for now - positioning needs work
+  return []
+  
+  /*
   const result: Beam[] = []
   let currentGroup: BeatPosition[] = []
   
@@ -236,12 +249,20 @@ const beams = computed((): Beam[] => {
   }
   
   return result
+  */
 })
 
 /**
  * Calculate stems for notes that need them
+ * In tablature, we typically only show stems when there are beams connecting notes
+ * For now, disable stems as they're not rendering correctly
  */
 const stems = computed((): Stem[] => {
+  // Disable stems for now - they're not essential for tab and cause visual issues
+  // TODO: Re-enable when beaming is working correctly
+  return []
+  
+  /*
   const result: Stem[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
@@ -261,11 +282,14 @@ const stems = computed((): Stem[] => {
   })
   
   return result
+  */
 })
 
 /**
  * Calculate rest symbols to display
- * Only shows rests for beats that are explicitly rests (duration ends with 'r')
+ * Shows rests when:
+ * 1. Duration explicitly ends with 'r' (like 'qr', 'er'), OR
+ * 2. Beat has a duration but NO notes at all
  */
 const rests = computed((): Rest[] => {
   const result: Rest[] = []
@@ -274,9 +298,16 @@ const rests = computed((): Rest[] => {
   props.measureData.forEach((beat, beatIndex) => {
     if (!beat?.duration) return
     
-    // Only show rest if duration explicitly ends with 'r'
-    // This prevents showing rests for empty placeholder beats
-    if (!isRestDuration(beat.duration)) return
+    // Check if this beat has any notes
+    const hasNotes = beatHasNotes(beat)
+    
+    // Show rest if:
+    // - Duration ends with 'r' (explicit rest), OR
+    // - Beat has no notes but has a valid duration
+    const isExplicitRest = isRestDuration(beat.duration)
+    const isEmptyBeat = !hasNotes && beat.duration
+    
+    if (!isExplicitRest && !isEmptyBeat) return
     
     result.push({
       x: calculateBeatX(beatIndex),
