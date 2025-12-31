@@ -208,6 +208,11 @@ const AppManager = {
   },
 
   keyDownEvent(e: KeyboardEvent) {
+    // If another handler (e.g., Vue GuitarTabView) already handled this event, skip
+    if (e.defaultPrevented) {
+      return;
+    }
+    
     const pressedValue = String.fromCharCode(e.which);
     if ([38, 40].indexOf(e.keyCode) > -1) {
       e.preventDefault();
