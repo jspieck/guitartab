@@ -67,6 +67,7 @@ import TabNote from './TabNote.vue'
 import TabEffects from './TabEffects.vue'
 import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
+import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
 interface Props {
@@ -87,9 +88,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Constants
-const beatWidth = 40 // Base width per beat
-const measureWidth = computed(() => props.width) // Use prop width
-const START_PADDING = 15 // Padding at start of measure
+const { BEAT_WIDTH, START_PADDING } = TAB_CONSTANTS
+const measureWidth = computed(() => props.width)
 
 // Computed properties
 const chordsToShow = computed(() => {
@@ -113,25 +113,13 @@ const chordsToShow = computed(() => {
 })
 
 // Methods
-function getDurationInBeats(duration: string): number {
-  switch (duration) {
-    case 'w': case 'wr': case 'whole': return 4;
-    case 'h': case 'hr': case 'half': return 2;
-    case 'q': case 'qr': case 'quarter': return 1;
-    case 'e': case 'er': case 'eighth': return 0.5;
-    case 's': case 'sr': case 'sixteenth': return 0.25;
-    case 't': case 'tr': case 'thirty-second': return 0.125;
-    default: return 1;
-  }
-}
-
 function getBeatXOffset(beatIndex: number): number {
-  let beats = 0;
+  let beats = 0
   for (let i = 0; i < beatIndex; i++) {
-    const beat = props.measureData[i];
-    beats += getDurationInBeats(beat?.duration || 'q');
+    const beat = props.measureData[i]
+    beats += getDurationInBeats(beat?.duration || 'q')
   }
-  return props.contentPadding + START_PADDING + (beats * beatWidth);
+  return props.contentPadding + START_PADDING + (beats * BEAT_WIDTH)
 }
 </script>
 

@@ -84,6 +84,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
 interface Props {
@@ -96,6 +97,8 @@ interface Props {
   numStrings: number
   measureWidth: number
 }
+
+const { BEAT_WIDTH } = TAB_CONSTANTS
 
 interface SlideEffect {
   path: string
@@ -140,7 +143,7 @@ const slides = computed(() => {
     if (beat?.notes) {
       beat.notes.forEach((note: any, stringIndex: number) => {
         if (note?.slide) {
-          const startX = props.xOffset + (beatIndex * 40) + 14
+          const startX = props.xOffset + (beatIndex * BEAT_WIDTH) + 14
           const endX = startX + 30 // Default slide length
           const yPos = (props.numStrings - 1 - stringIndex) * props.stringSpacing
           
@@ -167,16 +170,16 @@ const bends = computed(() => {
     if (beat?.notes) {
       beat.notes.forEach((note: any, stringIndex: number) => {
         if (note?.bendPresent && note?.bendObj) {
-          const startX = props.xOffset + (beatIndex * 40) + 15
-          const startY = (props.numStrings - 1 - stringIndex) * props.stringSpacing - 40
+          const startX = props.xOffset + (beatIndex * BEAT_WIDTH) + 15
+          const startY = (props.numStrings - 1 - stringIndex) * props.stringSpacing - BEAT_WIDTH
           
-          let pathData = `M${startX} ${startY + 40}`
+          let pathData = `M${startX} ${startY + BEAT_WIDTH}`
           let arrowPath = ''
           
           // Simple bend curve
           note.bendObj.forEach((bendPoint: any, index: number) => {
             const x = startX + (bendPoint.bendPosition || 0) / 3
-            const y = startY + 40 - (bendPoint.bendValue || 0) / 7
+            const y = startY + BEAT_WIDTH - (bendPoint.bendValue || 0) / 7
             
             if (index === 0) {
               pathData += `M${x} ${y}`
@@ -211,8 +214,8 @@ const ties = computed(() => {
     if (beat?.notes) {
       beat.notes.forEach((note: any, stringIndex: number) => {
         if (note?.tied || note?.tieBegin) {
-          const startX = props.xOffset + (beatIndex * 40) + 12
-          const endX = startX + 40 // Tie to next beat
+          const startX = props.xOffset + (beatIndex * BEAT_WIDTH) + 12
+          const endX = startX + BEAT_WIDTH // Tie to next beat
           const yPos = (props.numStrings - 1 - stringIndex) * props.stringSpacing
           
           // Create tie curve
@@ -238,7 +241,7 @@ const vibratos = computed(() => {
     if (beat?.notes) {
       beat.notes.forEach((note: any, stringIndex: number) => {
         if (note?.vibrato) {
-          const startX = props.xOffset + (beatIndex * 40) + 7
+          const startX = props.xOffset + (beatIndex * BEAT_WIDTH) + 7
           const yPos = (props.numStrings - 1 - stringIndex) * props.stringSpacing - 20
           const width = 30
           
@@ -287,7 +290,7 @@ const textEffects = computed(() => {
       uniqueEffects.forEach((effectText, index) => {
         effects.push({
           text: effectText,
-          x: props.xOffset + (beatIndex * 40) + 10,
+          x: props.xOffset + (beatIndex * BEAT_WIDTH) + 10,
           y: -30 - (index * 15), // Stack multiple effects
           fontSize: getFontSizeForEffect(effectText),
           beatIndex
