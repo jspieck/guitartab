@@ -7,12 +7,12 @@
         :key="`beam-${index}`"
         :d="beam.path"
         stroke="#333"
-        stroke-width="2"
+        :stroke-width="BEAM_THICKNESS"
         fill="none"
       />
     </g>
     
-    <!-- Note stems -->
+    <!-- Note stems (vertical lines from note to beam/flag) -->
     <g v-if="stems.length > 0" class="note-stems">
       <line
         v-for="(stem, index) in stems"
@@ -24,6 +24,20 @@
         stroke="#333"
         stroke-width="1"
       />
+    </g>
+    
+    <!-- Note flags (tails for single eighth/sixteenth notes) -->
+    <g v-if="flags.length > 0" class="note-flags">
+      <g v-for="(flag, index) in flags" :key="`flag-${index}`">
+        <path
+          v-for="(flagPath, fIndex) in flag.paths"
+          :key="`flag-${index}-${fIndex}`"
+          :d="flagPath"
+          stroke="#333"
+          :stroke-width="BEAM_THICKNESS"
+          fill="none"
+        />
+      </g>
     </g>
     
     <!-- Rest symbols -->
@@ -94,6 +108,11 @@ interface Stem {
   y2: number
 }
 
+interface Flag {
+  x: number
+  paths: string[]  // Multiple paths for multiple flags (16th = 2 flags, etc.)
+}
+
 interface Rest {
   x: number
   y: number
@@ -135,14 +154,24 @@ const props = defineProps<Props>()
 // =============================================================================
 
 const { BEAT_WIDTH } = TAB_CONSTANTS
-const STEM_TOP_OFFSET = 30
-const STEM_BOTTOM_OFFSET = 5
-const BEAM_Y_START = -35
-const BEAM_Y_SPACING = 4
+
+// Beam positioning - positioned below the tab staff
+// numStrings * stringSpacing gives the total height of strings
+// We add an offset below that
+const BEAM_OFFSET_FROM_BOTTOM = 15  // Distance below the last string
+const BEAM_SPACING = 5  // Vertical spacing between multiple beams
+const BEAM_THICKNESS = 2  // Thickness of beam lines
 
 // =============================================================================
 // Helper Functions
 // =============================================================================
+
+/**
+ * Get the Y position for beams (below the tab staff)
+ */
+function getBeamY(): number {
+  return (props.numStrings - 1) * props.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
+}
 
 /**
  * Calculate X position for a beat based on cumulative duration
@@ -157,18 +186,20 @@ function calculateBeatX(beatIndex: number): number {
 }
 
 /**
- * Calculate Y position for a string
+ * Get the center X position of a note in a beat
  */
-function stringToY(stringIndex: number): number {
-  return (props.numStrings - 1 - stringIndex) * props.stringSpacing
+function getNoteCenterX(beatIndex: number): number {
+  const beat = props.measureData[beatIndex]
+  const durationBeats = getDurationBeats(beat?.duration)
+  const beatStartX = calculateBeatX(beatIndex)
+  // Notes are centered in their duration width
+  return beatStartX + (durationBeats * BEAT_WIDTH) / 2 - 5
 }
 
 /**
  * Create beam paths for a group of connected notes
- * Only creates beams if there are 2+ notes to connect
  */
 function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
-  // Need at least 2 notes to form a beam
   if (beamGroup.length < 2) return []
   
   const minBeamCount = Math.min(...beamGroup.map(b => b.beamCount))
@@ -177,12 +208,12 @@ function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
   const beams: Beam[] = []
   const startX = beamGroup[0].x
   const endX = beamGroup[beamGroup.length - 1].x
+  const beamY = getBeamY()
   
-  // Don't create a beam if start and end are the same position
-  if (startX === endX) return []
+  if (Math.abs(endX - startX) < 5) return [] // Too close together
   
   for (let level = 0; level < minBeamCount; level++) {
-    const y = BEAM_Y_START - (level * BEAM_Y_SPACING)
+    const y = beamY + (level * BEAM_SPACING)
     beams.push({ path: `M${startX} ${y}L${endX} ${y}` })
   }
   
@@ -195,13 +226,14 @@ function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
 function createTupletBracket(group: { beatIndex: number; x: number }[], number: number): Tuplet {
   const startX = group[0].x - 5
   const endX = group[group.length - 1].x + 5
-  const y = -50
+  const beamY = getBeamY()
+  const y = beamY + 25
   const bracketHeight = 8
   
   return {
-    bracketPath: `M${startX} ${y}L${startX} ${y - bracketHeight}L${endX} ${y - bracketHeight}L${endX} ${y}`,
+    bracketPath: `M${startX} ${y}L${startX} ${y + bracketHeight}L${endX} ${y + bracketHeight}L${endX} ${y}`,
     textX: (startX + endX) / 2,
-    textY: y - bracketHeight - 5,
+    textY: y + bracketHeight + 12,
     number
   }
 }
@@ -211,15 +243,42 @@ function createTupletBracket(group: { beatIndex: number; x: number }[], number: 
 // =============================================================================
 
 /**
+ * Track which beats are part of a beam group (so they don't need flags)
+ */
+const beamedBeatIndices = computed((): Set<number> => {
+  const indices = new Set<number>()
+  let currentGroup: number[] = []
+  
+  props.measureData.forEach((beat, beatIndex) => {
+    if (!beat) return
+    
+    const beamCount = getBeamCount(beat.duration)
+    const hasNotes = beatHasNotes(beat)
+    
+    if (beamCount > 0 && hasNotes) {
+      currentGroup.push(beatIndex)
+    } else {
+      // Only mark as beamed if there are 2+ notes in the group
+      if (currentGroup.length >= 2) {
+        currentGroup.forEach(idx => indices.add(idx))
+      }
+      currentGroup = []
+    }
+  })
+  
+  // Handle remaining group
+  if (currentGroup.length >= 2) {
+    currentGroup.forEach(idx => indices.add(idx))
+  }
+  
+  return indices
+})
+
+/**
  * Calculate beam paths for connected eighth/sixteenth/etc notes
- * Beams connect consecutive notes of the same duration type
- * TODO: Re-enable when positioning is fixed
+ * Groups consecutive beamable notes and creates beams for groups of 2+
  */
 const beams = computed((): Beam[] => {
-  // Disable beams for now - positioning needs work
-  return []
-  
-  /*
   const result: Beam[] = []
   let currentGroup: BeatPosition[] = []
   
@@ -229,60 +288,104 @@ const beams = computed((): Beam[] => {
     const beamCount = getBeamCount(beat.duration)
     const hasNotes = beatHasNotes(beat)
     
+    // Only beam notes (not rests) with beam count > 0 (eighth notes or shorter)
     if (beamCount > 0 && hasNotes) {
-      // Add to current beam group
       currentGroup.push({
         beatIndex,
-        x: calculateBeatX(beatIndex),
+        x: getNoteCenterX(beatIndex),
         beamCount
       })
-    } else if (currentGroup.length > 0) {
-      // End current beam group
-      result.push(...createBeamPaths(currentGroup))
+    } else {
+      // End current beam group when we hit a non-beamable beat
+      if (currentGroup.length >= 2) {
+        result.push(...createBeamPaths(currentGroup))
+      }
       currentGroup = []
     }
   })
   
-  // Handle remaining group
-  if (currentGroup.length > 0) {
+  // Handle any remaining group at end of measure
+  if (currentGroup.length >= 2) {
     result.push(...createBeamPaths(currentGroup))
   }
   
   return result
-  */
 })
 
 /**
  * Calculate stems for notes that need them
- * In tablature, we typically only show stems when there are beams connecting notes
- * For now, disable stems as they're not rendering correctly
+ * Stems are shown for all notes except whole notes
+ * - Quarter notes get just a stem (no flag)
+ * - Eighth notes get stem + 1 flag/beam
+ * - Sixteenth notes get stem + 2 flags/beams
  */
 const stems = computed((): Stem[] => {
-  // Disable stems for now - they're not essential for tab and cause visual issues
-  // TODO: Re-enable when beaming is working correctly
-  return []
-  
-  /*
   const result: Stem[] = []
+  const beamY = getBeamY()
+  const lastStringY = (props.numStrings - 1) * props.stringSpacing
   
   props.measureData.forEach((beat, beatIndex) => {
     if (!beat) return
     
-    const beamCount = getBeamCount(beat.duration)
-    if (beamCount === 0) return // No stem for quarter notes and longer
+    const hasNotes = beatHasNotes(beat)
+    if (!hasNotes) return
     
-    const positions = getNoteStringPositions(beat)
-    if (!positions) return // No notes
+    // Get base duration (without 'r' suffix)
+    const baseDuration = beat.duration?.replace('r', '') || 'q'
     
-    const x = calculateBeatX(beatIndex)
-    const y1 = stringToY(positions.highest) - STEM_TOP_OFFSET
-    const y2 = stringToY(positions.lowest) + STEM_BOTTOM_OFFSET
+    // Whole notes (w) and half notes (h) don't need stems in tab
+    // Quarter notes (q) and shorter need stems
+    if (baseDuration === 'w' || baseDuration === 'h' || baseDuration === 'whole' || baseDuration === 'half') {
+      return
+    }
+    
+    const x = getNoteCenterX(beatIndex)
+    // Stem goes from just below the last string to the beam line
+    const y1 = lastStringY + 5
+    const y2 = beamY
     
     result.push({ x, y1, y2 })
   })
   
   return result
-  */
+})
+
+/**
+ * Calculate flags for single notes that aren't connected by beams
+ * Flags are the "tails" on eighth/sixteenth notes when not beamed
+ */
+const flags = computed((): Flag[] => {
+  const result: Flag[] = []
+  const FLAG_LENGTH = 10  // Length of the flag curve
+  const beamY = getBeamY()
+  
+  props.measureData.forEach((beat, beatIndex) => {
+    if (!beat) return
+    
+    const beamCount = getBeamCount(beat.duration)
+    const hasNotes = beatHasNotes(beat)
+    
+    // Only add flags for notes that:
+    // 1. Have a beam count > 0 (eighth notes or shorter)
+    // 2. Have notes (not a rest)
+    // 3. Are NOT part of a beam group
+    if (beamCount === 0 || !hasNotes || beamedBeatIndices.value.has(beatIndex)) return
+    
+    const x = getNoteCenterX(beatIndex)
+    const paths: string[] = []
+    
+    // Create curved flag paths (one for each beam level)
+    for (let level = 0; level < beamCount; level++) {
+      const startY = beamY + (level * BEAM_SPACING)
+      // Create a curved flag that goes to the right and down
+      const path = `M${x} ${startY}Q${x + FLAG_LENGTH} ${startY + 3} ${x + FLAG_LENGTH - 2} ${startY + 10}`
+      paths.push(path)
+    }
+    
+    result.push({ x, paths })
+  })
+  
+  return result
 })
 
 /**

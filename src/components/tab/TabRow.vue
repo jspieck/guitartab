@@ -100,6 +100,7 @@ import { computed, ref } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
 import Song from '../../assets/js/songData'
+import EventBus from '../../assets/js/eventBus'
 import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Local type definitions to avoid import issues
@@ -371,11 +372,8 @@ function setNoteAtSelection(fret: number) {
     }
   }
   
-  // Force reactivity update
-  const event = new CustomEvent('songDataChanged', {
-    detail: { trackId, blockId, voiceId, beatIndex, stringIndex }
-  })
-  window.dispatchEvent(event)
+  // Notify via EventBus for syncSongData to update reactive proxy
+  EventBus.emit('song-data-changed')
 }
 
 // Expose the setNoteAtSelection function to parent components
