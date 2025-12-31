@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
 interface Props {
@@ -58,8 +58,7 @@ const { BEAT_WIDTH } = TAB_CONSTANTS
 
 const noteX = computed(() => {
   const duration = props.beatData?.duration || 'q'
-  const beats = getDurationInBeats(duration)
-  return (beats * BEAT_WIDTH) / 2
+  return getDisplayWidth(duration) / 2
 })
 
 // Create a hash of the beat data to force re-rendering when data changes

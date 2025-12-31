@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TAB_CONSTANTS } from '../../utils/tabLayout'
+import { TAB_CONSTANTS, getDisplayWidth } from '../../utils/tabLayout'
 import {
   getDurationBeats,
   getRestSymbol,
@@ -153,13 +153,13 @@ const props = defineProps<Props>()
 // Constants
 // =============================================================================
 
-const { BEAT_WIDTH } = TAB_CONSTANTS
+const { BEAT_WIDTH, MIN_BEAT_DISPLAY_WIDTH } = TAB_CONSTANTS
 
 // Beam positioning - positioned below the tab staff
 // numStrings * stringSpacing gives the total height of strings
 // We add an offset below that
 const BEAM_OFFSET_FROM_BOTTOM = 15  // Distance below the last string
-const BEAM_SPACING = 5  // Vertical spacing between multiple beams
+const BEAM_SPACING = 6  // Vertical spacing between multiple beams (needs room for 2+ beams)
 const BEAM_THICKNESS = 2  // Thickness of beam lines
 
 // =============================================================================
@@ -175,14 +175,15 @@ function getBeamY(): number {
 
 /**
  * Calculate X position for a beat based on cumulative duration
+ * Uses minimum display width to ensure short notes are spaced adequately
  */
 function calculateBeatX(beatIndex: number): number {
-  let cumulativeBeats = 0
+  let cumulativeX = 0
   for (let i = 0; i < beatIndex; i++) {
     const beat = props.measureData[i]
-    cumulativeBeats += getDurationBeats(beat?.duration)
+    cumulativeX += getDisplayWidth(beat?.duration)
   }
-  return props.xOffset + (cumulativeBeats * BEAT_WIDTH) + 10
+  return props.xOffset + cumulativeX + 10
 }
 
 /**
@@ -190,31 +191,67 @@ function calculateBeatX(beatIndex: number): number {
  */
 function getNoteCenterX(beatIndex: number): number {
   const beat = props.measureData[beatIndex]
-  const durationBeats = getDurationBeats(beat?.duration)
+  const displayWidth = getDisplayWidth(beat?.duration)
   const beatStartX = calculateBeatX(beatIndex)
-  // Notes are centered in their duration width
-  return beatStartX + (durationBeats * BEAT_WIDTH) / 2 - 5
+  // Notes are centered in their display width
+  return beatStartX + displayWidth / 2 - 5
 }
 
 /**
  * Create beam paths for a group of connected notes
+ * Properly handles multiple beam levels (8th=1, 16th=2, 32nd=3, 64th=4)
+ * 
+ * Beaming rules:
+ * - Primary beam (level 0) spans all notes in the group
+ * - Secondary beams only connect ADJACENT pairs of notes that share that level
+ * - For a note with fewer beams, secondary beams break at that note
  */
 function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
   if (beamGroup.length < 2) return []
   
-  const minBeamCount = Math.min(...beamGroup.map(b => b.beamCount))
-  if (minBeamCount <= 0) return []
+  const maxBeamCount = Math.max(...beamGroup.map(b => b.beamCount))
+  if (maxBeamCount <= 0) return []
   
   const beams: Beam[] = []
-  const startX = beamGroup[0].x
-  const endX = beamGroup[beamGroup.length - 1].x
   const beamY = getBeamY()
   
-  if (Math.abs(endX - startX) < 5) return [] // Too close together
+  // Primary beam (level 0) always spans the entire group
+  const primaryY = beamY
+  beams.push({ 
+    path: `M${beamGroup[0].x} ${primaryY}L${beamGroup[beamGroup.length - 1].x} ${primaryY}` 
+  })
   
-  for (let level = 0; level < minBeamCount; level++) {
+  // Secondary beams (level 1+) - only connect adjacent notes that BOTH have this level
+  for (let level = 1; level < maxBeamCount; level++) {
     const y = beamY + (level * BEAM_SPACING)
-    beams.push({ path: `M${startX} ${y}L${endX} ${y}` })
+    
+    for (let i = 0; i < beamGroup.length - 1; i++) {
+      const current = beamGroup[i]
+      const next = beamGroup[i + 1]
+      
+      // Both notes must have at least this many beams
+      if (current.beamCount > level && next.beamCount > level) {
+        beams.push({ path: `M${current.x} ${y}L${next.x} ${y}` })
+      } else if (current.beamCount > level) {
+        // Current note has more beams than next - draw a short "flag" beam
+        // This is a partial beam pointing toward the next note
+        const flagLength = Math.min(8, (next.x - current.x) / 3)
+        beams.push({ path: `M${current.x} ${y}L${current.x + flagLength} ${y}` })
+      } else if (next.beamCount > level && i === 0) {
+        // First note doesn't have this level but next does - draw partial beam pointing back
+        const flagLength = Math.min(8, (next.x - current.x) / 3)
+        beams.push({ path: `M${next.x - flagLength} ${y}L${next.x} ${y}` })
+      }
+    }
+    
+    // Handle last note if it has more beams than second-to-last
+    const lastIdx = beamGroup.length - 1
+    const last = beamGroup[lastIdx]
+    const secondLast = beamGroup[lastIdx - 1]
+    if (last.beamCount > level && secondLast.beamCount <= level) {
+      const flagLength = Math.min(8, (last.x - secondLast.x) / 3)
+      beams.push({ path: `M${last.x - flagLength} ${y}L${last.x} ${y}` })
+    }
   }
   
   return beams
@@ -390,9 +427,8 @@ const flags = computed((): Flag[] => {
 
 /**
  * Calculate rest symbols to display
- * Shows rests when:
- * 1. Duration explicitly ends with 'r' (like 'qr', 'er'), OR
- * 2. Beat has a duration but NO notes at all
+ * Shows rests ONLY when beat has no notes at all
+ * Never show rest if any note exists on the beat
  */
 const rests = computed((): Rest[] => {
   const result: Rest[] = []
@@ -401,20 +437,16 @@ const rests = computed((): Rest[] => {
   props.measureData.forEach((beat, beatIndex) => {
     if (!beat?.duration) return
     
-    // Check if this beat has any notes
+    // Check if this beat has any notes - be very thorough
     const hasNotes = beatHasNotes(beat)
     
-    // Show rest if:
-    // - Duration ends with 'r' (explicit rest), OR
-    // - Beat has no notes but has a valid duration
-    const isExplicitRest = isRestDuration(beat.duration)
-    const isEmptyBeat = !hasNotes && beat.duration
+    // Skip if beat has any notes - never show rest over notes
+    if (hasNotes) return
     
-    if (!isExplicitRest && !isEmptyBeat) return
-    
+    // Only show rest for beats with no notes
     result.push({
       x: calculateBeatX(beatIndex),
-      y: centerY + 5, // Slight offset for better centering
+      y: centerY + 5,
       symbol: getRestSymbol(beat.duration)
     })
   })

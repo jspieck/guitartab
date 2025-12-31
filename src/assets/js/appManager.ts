@@ -95,8 +95,16 @@ const AppManager = {
       const {
         trackId, blockId, voiceId, beatId, string,
       } = tab.markedNoteObj;
+      
+      // Only process number keys if user has explicitly clicked to select a position
+      // This prevents accidental note changes when typing without clicking first
+      const hasValidSelection = tab.hasExplicitSelection && 
+        trackId >= 0 && blockId >= 0 && voiceId >= 0 && beatId >= 0 && string >= 0;
+      
       switch (pressedValue) {
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
+          // Only place note if we have a valid explicit selection
+          if (!hasValidSelection) return;
           const pressedNumber = parseInt(pressedValue, 10);
           this.placeNote(trackId, blockId, voiceId, beatId, string, pressedNumber);
           break;
