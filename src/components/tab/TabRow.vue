@@ -37,9 +37,10 @@
     
     <!-- Measures -->
     <TabMeasure
-      v-for="(measure, measureIndex) in rowData.measures"
+      v-for="(measureObj, measureIndex) in rowData.measures"
       :key="`measure-${rowData.startBlockId + measureIndex}`"
-      :measure-data="measure"
+      :measure-data="measureObj.data"
+      :width="measureObj.width"
       :track-id="trackId"
       :voice-id="voiceId"
       :block-id="rowData.startBlockId + measureIndex"
@@ -51,7 +52,7 @@
     
     <!-- Measure metadata (time signatures, BPM, etc.) -->
     <TabMeasureInfo
-      v-for="(measure, measureIndex) in rowData.measures"
+      v-for="(measureObj, measureIndex) in rowData.measures"
       :key="`measure-info-${rowData.startBlockId + measureIndex}`"
       :measure-meta="getMeasureMeta(rowData.startBlockId + measureIndex)"
       :block-id="rowData.startBlockId + measureIndex"
@@ -153,7 +154,8 @@ const measureSeparators = computed(() => {
   
   // Separators between measures
   for (let i = 0; i < props.rowData.measures.length; i++) {
-    currentX += measureWidth
+    const measure = props.rowData.measures[i]
+    currentX += measure.width || measureWidth
     separators.push({ x: currentX })
   }
   
@@ -162,8 +164,12 @@ const measureSeparators = computed(() => {
 
 // Methods
 function getMeasureXOffset(measureIndex: number): number {
-  const tabOffset = props.isFirstRow ? tabLabelWidth : 0
-  return tabOffset + (measureIndex * measureWidth)
+  let offset = props.isFirstRow ? tabLabelWidth : 0
+  for (let i = 0; i < measureIndex; i++) {
+    const measure = props.rowData.measures[i]
+    offset += measure.width || measureWidth
+  }
+  return offset
 }
 
 function getMeasureMeta(blockId: number) {
@@ -254,21 +260,36 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
   })
   
   // Find the measure
-  const measureIndex = Math.floor(relativeX / measureWidth)
-  console.log('Calculated measureIndex:', measureIndex)
+  let currentX = 0
+  let foundMeasureIndex = -1
+  let measureRelativeX = 0
+  
+  for (let i = 0; i < props.rowData.measures.length; i++) {
+    const measure = props.rowData.measures[i]
+    const width = measure.width || measureWidth
+    
+    if (relativeX >= currentX && relativeX < currentX + width) {
+      foundMeasureIndex = i
+      measureRelativeX = relativeX - currentX
+      break
+    }
+    currentX += width
+  }
+  
+  console.log('Calculated measureIndex:', foundMeasureIndex)
   console.log('Available measures in row:', props.rowData.measures.length)
   console.log('Row data:', props.rowData)
   
-  if (measureIndex >= 0 && measureIndex < props.rowData.measures.length) {
-    // Calculate beat within the measure using the same logic as TabMeasure
+  if (foundMeasureIndex !== -1) {
+    const measureIndex = foundMeasureIndex
     const blockId = props.rowData.startBlockId + measureIndex
     const padding = getMeasureContentPadding(blockId) + START_PADDING
     
-    const beatX = (relativeX % measureWidth) - padding
+    const beatX = measureRelativeX - padding
     
     // Find which beat corresponds to this X position
-    const measureData = props.rowData.measures[measureIndex]
-    let currentX = 0
+    const measureData = props.rowData.measures[measureIndex].data
+    let currentBeatX = 0
     let foundBeatIndex = -1
     
     // Iterate through beats to find the one at this position
@@ -277,12 +298,12 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       const duration = getDurationInBeats(beat?.duration || 'q')
       const width = duration * beatWidth
       
-      if (beatX >= currentX && beatX < currentX + width) {
+      if (beatX >= currentBeatX && beatX < currentBeatX + width) {
         foundBeatIndex = i
         break
       }
       
-      currentX += width
+      currentBeatX += width
     }
     
     // If we didn't find a beat (clicked past the end), default to the last one or clamp
@@ -331,7 +352,7 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
     console.log('Selection set and event dispatched with beatIndex:', clampedBeatIndex)
     console.log('=== END DEBUG ===')
   } else {
-    console.log('Click outside valid measure range, measureIndex:', measureIndex)
+    console.log('Click outside valid measure range, foundMeasureIndex:', foundMeasureIndex)
     console.log('Available measures:', props.rowData.measures.length)
     console.log('=== END DEBUG ===')
   }
@@ -341,18 +362,25 @@ function getSelectionX(): number {
   if (!selectedPosition.value) return 0
   
   const tabOffset = props.isFirstRow ? tabLabelWidth : 0
-  const measureX = selectedPosition.value.measureIndex * measureWidth
+  
+  // Calculate X offset for the measure
+  let measureX = 0
+  for (let i = 0; i < selectedPosition.value.measureIndex; i++) {
+    const measure = props.rowData.measures[i]
+    measureX += measure.width || measureWidth
+  }
   
   // Get padding for this specific measure
   const padding = getMeasureContentPadding(selectedPosition.value.blockId) + START_PADDING
   
   // Calculate beat X position based on variable durations
   let beatX = 0
-  const measureData = props.rowData.measures[selectedPosition.value.measureIndex]
+  const measureData = props.rowData.measures[selectedPosition.value.measureIndex].data
   if (measureData) {
     for (let i = 0; i < selectedPosition.value.beatIndex; i++) {
       const beat = measureData[i]
-      beatX += getDurationInBeats(beat?.duration || 'q') * beatWidth
+      const duration = getDurationInBeats(beat?.duration || 'q')
+      beatX += duration * beatWidth
     }
     // Add half of the current beat's width to center the selection
     const currentBeat = measureData[selectedPosition.value.beatIndex]

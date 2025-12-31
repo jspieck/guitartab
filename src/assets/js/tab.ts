@@ -10,6 +10,7 @@ import Settings from './settingManager';
 import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
 import { menuHandler } from './menuHandler';
+import EventBus from './eventBus';
 
 class Tab {
   currentZoom: number;
@@ -470,10 +471,21 @@ class Tab {
     let reachedSpace = 0;
     let beatId = 0;
     let currentDiff = 0;
+    
     for (beatId = startBeatId + 1; beatId < blockObj.length; beatId += 1) {
+      const beat = blockObj[beatId];
+      
+      // Check if it is a rest (no notes)
+      let isRest = true;
+      if (beat.notes) {
+        for (let n of beat.notes) {
+          if (n) { isRest = false; break; }
+        }
+      }
+
       // MOVE NOTES RIGHT
-      if (blockObj[beatId].duration.length !== 1) {
-        if (blockObj[beatId].tuplet != null) {
+      if (isRest) {
+        if (beat.tuplet != null) {
           // only delete if completely empty
           const tupRe = Tab.tupletOnlyRests(beatId, Song.measures[trackId][blockId][voiceId]);
           if (!tupRe.onlyRests) {
@@ -490,7 +502,7 @@ class Tab {
           }
           beatId -= 1;
         } else {
-          reachedSpace += Duration.getDurationOfNote(blockObj[beatId], false);
+          reachedSpace += Duration.getDurationOfNote(beat, false);
           blockObj.splice(beatId, 1);
           beatId -= 1;
         }
@@ -903,8 +915,20 @@ class Tab {
       ) {
         rescaleNecessary = true;
       }
-      console.log('DIFF2: ', diff);
+      
       blockObj[beatId].duration = noteLength;
+      // Fix: Ensure rest status is preserved if it was a rest
+      let isRest = true;
+      for (let i = 0; i < Song.tracks[trackId].numStrings; i += 1) {
+        if (blockObj[beatId].notes[i] != null) {
+          isRest = false;
+          break;
+        }
+      }
+      if (isRest && blockObj[beatId].duration.length < 2) {
+        blockObj[beatId].duration += 'r';
+      }
+      
       this.deleteRestAndFillNote(trackId, blockId, voiceId, beatId, diff);
       rescaleNecessary = true;
     } else {
@@ -1091,6 +1115,8 @@ class Tab {
       this.drawTrack(trackId, voiceId, true, null);
     } else {
       // svgDrawer.rerenderRow(trackId, voiceId, this.blockToRow[trackId][voiceId][blockId].rowId);
+      EventBus.emit('song-data-changed');
+
       if (Settings.vexFlowIsActive) {
         classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId);
       }
@@ -1115,6 +1141,9 @@ class Tab {
     height: number, callback: (() => void) | null,
   ) {
     console.trace('Draw track called');
+    
+    EventBus.emit('song-data-changed');
+    
     /*
     if (AppManager.duringTrackCreation) {
       // Reschedule, we do not want the prior drawing to disturb the new
@@ -1172,6 +1201,9 @@ class Tab {
 
   trackRerenderNecessary(trackId: number, blockId: number, voiceId: number): boolean {
     classicalNotation.convertBlockToNotation(trackId, blockId, voiceId);
+    if (!this.allWidths[blockId]) {
+      return true;
+    }
     let completeRerenderNecessary = Math.abs(this.allWidths[blockId].minWidth
       - Tab.computeWidthOfBlock(trackId, blockId, voiceId).minWidth) > Settings.EPSILON;
     if (completeRerenderNecessary) {
