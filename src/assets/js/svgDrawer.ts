@@ -13,6 +13,7 @@ import { audioEngine } from './audioEngine';
 import { classicalNotation } from './vexflowClassical';
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
+import { typedEventBus } from '../../utils/typedEventBus';
 import { ChordModalHandler } from './modals/chordModalHandler';
 import { MODALS } from './modals/modalTypes';
 import { ChordManagerModalHandler } from './modals/chordManagerModalHandler';
@@ -2960,6 +2961,55 @@ class SvgDrawer {
 }
 
 const svgDrawer = new SvgDrawer();
+
+// Set up navigation event listeners so Vue components can emit events instead of calling methods directly
+typedEventBus.on('navigation.setClickedPos', (pos) => {
+  if (pos) {
+    svgDrawer.setNewClickedPos(pos.trackId, pos.blockId, pos.voiceId, pos.beatId, pos.string);
+  }
+});
+
+typedEventBus.on('navigation.scrollToBlock', (data) => {
+  if (data) {
+    svgDrawer.scrollToSvgBlock(data.trackId, data.voiceId, data.blockId);
+  }
+});
+
+// Rendering event listeners
+typedEventBus.on('render.block', (data) => {
+  if (data) {
+    svgDrawer.rerenderBlock(data.trackId, data.blockId, data.voiceId);
+  }
+});
+
+typedEventBus.on('render.blocks', (data) => {
+  if (data) {
+    svgDrawer.rerenderBlocks(data.trackId, data.blockIds, data.voiceId);
+  }
+});
+
+typedEventBus.on('render.overBar', (data) => {
+  if (data) {
+    svgDrawer.renderOverBar(data.trackId, data.blockId, data.voiceId, data.rerender ?? false);
+  }
+});
+
+typedEventBus.on('render.durations', (data) => {
+  if (data) {
+    svgDrawer.setDurationsOfBlock(data.trackId, data.blockId, data.voiceId);
+  }
+});
+
+typedEventBus.on('ui.disablePageMode', () => {
+  svgDrawer.disablePageMode();
+});
+
+// Also listen for chord diagram redraws
+typedEventBus.on('song-data-changed', () => {
+  // Redraw chord diagrams when song data changes
+  svgDrawer.redrawChordDiagrams();
+});
+
 export { svgDrawer, SvgDrawer };
 
 export default SvgDrawer;

@@ -55,6 +55,78 @@ class GProReader {
     }
   }
 
+  /**
+   * Handle files from a FileList (e.g., from drag-drop or file input)
+   * Supports: gp3, gp4, gp5, gpx, mid, gt formats
+   */
+  handleFiles(files: FileList) {
+    if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
+      alert('The File APIs are not fully supported in this browser.');
+      return;
+    }
+    if (files == null || files.length === 0) {
+      console.error('No files provided');
+      return;
+    }
+    const f = files[0];
+    const ending = f.name.substring(f.name.lastIndexOf('.') + 1).toLowerCase();
+    
+    const supportedFormats = ['gp3', 'gp4', 'gp5', 'gpx', 'mid', 'gt'];
+    if (!supportedFormats.includes(ending)) {
+      alert(`Unsupported format: .${ending}\nSupported formats: ${supportedFormats.map(f => `.${f}`).join(', ')}`);
+      return;
+    }
+    
+    // Show loading indicator
+    const loadingWheel = document.getElementById('loadingWheel');
+    if (loadingWheel) loadingWheel.style.display = 'block';
+    
+    // reset values
+    this.bytePosition = 0;
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      if (e.target != null) {
+        const bufferToConvert = e.target.result as ArrayBuffer;
+        if (bufferToConvert != null) {
+          this.readerBuffer = new Uint8Array(bufferToConvert);
+          
+          if (ending === 'gp5') {
+            Gp5Reader.read();
+          } else if (ending === 'gp4') {
+            Gp4Reader.read();
+          } else if (ending === 'gp3') {
+            Gp3Reader.read();
+          } else if (ending === 'mid') {
+            midiReader.decodeSMF(bufferToConvert);
+          } else if (ending === 'gpx') {
+            gpxReader.read(this.readerBuffer);
+          } else if (ending === 'gt') {
+            this.readGt();
+            // Hide loading for gt format since it handles its own flow
+            if (loadingWheel) loadingWheel.style.display = 'none';
+            return;
+          }
+          
+          // For non-gt formats, complete the loading process
+          AppManager.resetVariables();
+          GProReader.writeNoteInfoToBeat();
+          AppManager.createGuitarTab(0);
+          
+          // Hide loading indicator
+          if (loadingWheel) loadingWheel.style.display = 'none';
+        } else {
+          console.error('Buffer empty');
+          if (loadingWheel) loadingWheel.style.display = 'none';
+        }
+      }
+    };
+    reader.onerror = () => {
+      console.error('Error reading file');
+      if (loadingWheel) loadingWheel.style.display = 'none';
+    };
+    reader.readAsArrayBuffer(f);
+  }
+
   handleFileSelect(evt: Event) {
     if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
       alert('The File APIs are not fully supported in this browser.');
