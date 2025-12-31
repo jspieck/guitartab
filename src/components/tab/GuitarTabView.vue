@@ -97,8 +97,9 @@ import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import TabRow from './TabRow.vue'
 import Song from '../../assets/js/songData'
 import TabToolbar from './TabToolbar.vue'
+import EventBus from '../../assets/js/eventBus'
+import { Tab } from '../../assets/js/tab'
 
-// Props
 interface Props {
   trackId: number
   voiceId: number
@@ -118,6 +119,14 @@ const currentSelection = ref<any>(null)
 const toolbarVisible = ref(false)
 const selectedNote = ref<any>(null)
 const songDataVersion = ref(0) // Track version changes to force re-render
+
+onMounted(() => {
+  EventBus.on('song-data-changed', syncSongData)
+})
+
+onUnmounted(() => {
+  EventBus.off('song-data-changed', syncSongData)
+})
 
 // Create a reactive proxy of Song data for Vue components
 const reactiveSongData = reactive({
@@ -217,32 +226,63 @@ const tabRows = computed(() => {
     return rows
   }
 
-  // Simple implementation - put 4 measures per row
-  const measuresPerRow = 4
-  for (let i = 0; i < measures.length; i += measuresPerRow) {
-    const rowMeasures = measures.slice(i, i + measuresPerRow)
+  // Layout logic using Tab.computeWidthOfBlock
+  const availableWidth = tabGroupWidth.value
+  let currentRowMeasures: any[] = []
+  let currentWidth = 0
+  let startBlockId = 0
+  
+  // Initial offset for the first row (TAB label etc)
+  const START_OFFSET = 32
+  currentWidth = START_OFFSET
+
+  for (let i = 0; i < measures.length; i++) {
+    const measure = measures[i]
     
-    // Get the voice data for each measure - the data structure is [blockId][voiceId][beatId]
-    const measureData = rowMeasures.map((measure, measureIndex) => {
-      const actualBlockId = i + measureIndex
-      console.log(`Processing measure ${actualBlockId}:`, measure)
-      
-      if (measure && measure[props.voiceId]) {
-        const voiceData = measure[props.voiceId] // This gives us the beats for this voice
-        console.log(`Voice ${props.voiceId} data for measure ${actualBlockId}:`, voiceData)
-        return voiceData
-      }
-      return []
+    let measureWidth = 200
+    try {
+      const widthInfo = Tab.computeWidthOfBlock(props.trackId, i, props.voiceId)
+      measureWidth = widthInfo.minWidth
+    } catch (e) {
+      console.error('Error computing measure width:', e)
+    }
+    
+    // Check if adding this measure exceeds available width
+    if (currentWidth + measureWidth > availableWidth && currentRowMeasures.length > 0) {
+      // Start new row
+      rows.push({
+        id: rows.length,
+        measures: currentRowMeasures,
+        startBlockId: startBlockId,
+        endBlockId: i - 1,
+        yOffset: 0
+      })
+      currentRowMeasures = []
+      currentWidth = 0
+      startBlockId = i
+    }
+    
+    // Add measure to current row
+    let voiceData: any[] = []
+    if (measure && measure[props.voiceId]) {
+      voiceData = measure[props.voiceId]
+    }
+    
+    currentRowMeasures.push({
+      data: voiceData,
+      width: measureWidth
     })
-    
-    console.log('Row measure data:', measureData)
-    
+    currentWidth += measureWidth
+  }
+  
+  // Add last row
+  if (currentRowMeasures.length > 0) {
     rows.push({
-      id: Math.floor(i / measuresPerRow),
-      measures: measureData,
-      startBlockId: i,
-      endBlockId: Math.min(i + measuresPerRow - 1, measures.length - 1),
-      yOffset: 0 // Will be calculated in getRowYOffset
+      id: rows.length,
+      measures: currentRowMeasures,
+      startBlockId: startBlockId,
+      endBlockId: measures.length - 1,
+      yOffset: 0
     })
   }
   
@@ -330,7 +370,16 @@ function handleNoteSelection(event: Event) {
     const { trackId, voiceId, blockId, beatIndex, stringIndex } = detail
     const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
     const note = beat?.notes?.[stringIndex]
-    selectedNote.value = note || null
+    
+    // Create a composite object that includes note data AND beat duration
+    // We need this because duration is on the beat, not the note
+    selectedNote.value = {
+      ...(note || {}),
+      duration: beat?.duration || 'quarter',
+      // If it's a rest or empty, we still want to be able to set duration
+      isEmpty: !note
+    }
+    
     console.log('Selected note for toolbar:', selectedNote.value)
     console.log('Selection details:', detail)
     console.log('Current beat data:', beat)
@@ -573,7 +622,31 @@ function handleApplyEffect(effect: string) {
 
 function handleSetDuration(duration: string) {
   console.log('Setting duration:', duration)
-  // Implementation of handleSetDuration
+  
+  if (!currentSelection.value) return
+  
+  const { trackId, voiceId, blockId, beatIndex } = currentSelection.value
+  
+  // Update the beat duration in Song data
+  if (Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatIndex]) {
+    Song.measures[trackId][blockId][voiceId][beatIndex].duration = duration
+    console.log(`Updated beat duration to ${duration}`)
+    
+    // Update selectedNote so toolbar reflects change immediately
+    if (selectedNote.value) {
+      selectedNote.value.duration = duration
+    }
+    
+    // Sync and notify
+    syncSongData()
+    updateTrigger.value++
+    
+    // Dispatch event
+    const event = new CustomEvent('songDataChanged', {
+      detail: { trackId, blockId, voiceId, beatIndex, duration }
+    })
+    window.dispatchEvent(event)
+  }
 }
 
 function handleClearSelection() {

@@ -78,15 +78,17 @@ interface Props {
   stringSpacing: number
   numStrings: number
   contentPadding?: number
+  width?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  contentPadding: 0
+  contentPadding: 0,
+  width: 200
 })
 
 // Constants
 const beatWidth = 40 // Base width per beat
-const measureWidth = 200 // Total measure width
+const measureWidth = computed(() => props.width) // Use prop width
 const START_PADDING = 15 // Padding at start of measure
 
 // Computed properties

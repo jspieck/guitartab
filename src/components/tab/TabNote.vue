@@ -100,11 +100,10 @@ watch(() => props.beatData, (newBeatData, oldBeatData) => {
 
 // Computed properties
 const notesToRender = computed(() => {
-  console.log('Computing notes to render for beat:', props.beatIndex, props.beatData)
-  console.log('Beat data hash:', beatDataHash.value)
+  // console.log('Computing notes to render for beat:', props.beatIndex, props.beatData)
   
   if (!props.beatData || !props.beatData.notes) {
-    console.log('No beat data or notes array')
+    // console.log('No beat data or notes array')
     return []
   }
   
@@ -119,7 +118,7 @@ const notesToRender = computed(() => {
     })
     .filter((note: any) => note !== null && !note.tied) // Don't render tied notes
   
-  console.log('Notes to render:', notes)
+  // console.log('Notes to render:', notes)
   return notes
 })
 
