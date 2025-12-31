@@ -378,8 +378,19 @@ class SvgDrawer {
       }
     }
     const eGroup = this.clickMarkers[pageId];
+    // Guard: SVG elements may not exist yet during initial load
+    if (!eGroup) {
+      console.warn('markClickedPos: clickMarkers not ready yet');
+      return;
+    }
     this.hideClickMarkers();
     eGroup.style.display = 'block';
+    
+    // Guard: blockToRow may not be initialized
+    if (!tab.blockToRow?.[trackId]?.[voiceId]?.[blockId]) {
+      console.warn('markClickedPos: blockToRow not ready yet');
+      return;
+    }
     const { rowId } = tab.blockToRow[trackId][voiceId][blockId];
     let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 3;
     xPos += this.blockToX[trackId][blockId][voiceId];
@@ -419,6 +430,13 @@ class SvgDrawer {
   ) {
     const mGroup = document.getElementById(`markerGroup${pageId}`);
     if (mGroup == null) return;
+    
+    // Guard: blockToRow may not be initialized during initial load
+    if (!tab.blockToRow?.[trackId]?.[voiceId]?.[blockId]) {
+      console.warn('moveMarkerToPosition: blockToRow not ready yet');
+      return;
+    }
+    
     this.hideMarkersExcept(pageId);
     const { rowId } = tab.blockToRow[trackId][voiceId][blockId];
     let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 5;
@@ -3004,9 +3022,20 @@ typedEventBus.on('ui.disablePageMode', () => {
   svgDrawer.disablePageMode();
 });
 
-// Also listen for chord diagram redraws
+typedEventBus.on('navigation.moveMarker', (data) => {
+  if (data) {
+    svgDrawer.moveMarkerToPosition(data.trackId, data.blockId, data.voiceId, data.beatId, data.string, data.pageId);
+  }
+});
+
+// Also listen for chord diagram redraws from both event buses
 typedEventBus.on('song-data-changed', () => {
   // Redraw chord diagrams when song data changes
+  svgDrawer.redrawChordDiagrams();
+});
+
+// Listen on old EventBus too for legacy compatibility
+EventBus.on('song-data-changed', () => {
   svgDrawer.redrawChordDiagrams();
 });
 

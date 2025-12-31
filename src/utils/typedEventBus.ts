@@ -86,6 +86,7 @@ export type AppEvents = {
   // Navigation events - for scrolling/clicking position in tab view
   'navigation.setClickedPos': TabPosition
   'navigation.scrollToBlock': { trackId: number; voiceId: number; blockId: number }
+  'navigation.moveMarker': TabPosition & { pageId: number }
   
   // Rendering events - for triggering re-renders
   'render.block': { trackId: number; blockId: number; voiceId: number }

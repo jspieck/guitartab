@@ -21,8 +21,8 @@
           />
         </div>
       </div>
-  </div>
-  <div class="bottomBars">
+    </div>
+    <div class="bottomBars">
       <EffectsBar :track-id="currentTrackId" />
       <Sequencer/>
     </div>
@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import EffectsBar from './components/EffectsBar.vue'
 import Menu from './components/Menu.vue'
 import { useTabStore } from './stores/tabStore'
@@ -76,6 +76,8 @@ import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
 import { overlayHandler } from './assets/js/overlayHandler'
 import { tab } from './assets/js/tab'
+import EventBus from './assets/js/eventBus'
+import Song from './assets/js/songData'
 
 const currentTrackId = ref(0);
 const currentVoiceId = ref(0);
@@ -96,9 +98,30 @@ function focusMainContent() {
   }
 }
 
+// Handle track changes
+function handleTrackChange(trackId: number) {
+  currentTrackId.value = trackId;
+}
+
+// Handle song data changes (e.g., when loading a new file)
+function handleSongDataChange() {
+  // Update to current track from Song
+  currentTrackId.value = Song.currentTrackId;
+  currentVoiceId.value = Song.currentVoiceId;
+}
+
 onMounted(() => {
   // Initialize legacy system for audio/playback support
   startUp();
+  
+  // Listen for track changes
+  EventBus.on('ui.trackChanged', handleTrackChange as any);
+  EventBus.on('song-data-changed', handleSongDataChange);
+})
+
+onUnmounted(() => {
+  EventBus.off('ui.trackChanged', handleTrackChange as any);
+  EventBus.off('song-data-changed', handleSongDataChange);
 })
 </script>
 
