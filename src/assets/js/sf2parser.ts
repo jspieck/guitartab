@@ -1578,15 +1578,17 @@ const synth = {
     }[] = this.bankSet[channel === 9 ? 128 : this.bank];
 
     /** @type {Object} */
-    const instrument = bankInner[channel];
+    // For drums (channel 9), use preset 0 (Standard Kit); for other channels, use the channel's assigned instrument program
+    const instrumentIndex = channel === 9 ? 0 : this.channelInstrument[channel];
+    const instrument = bankInner?.[instrumentIndex];
     if (channel === 9) {
       // eslint-disable-next-line prefer-destructuring
-      this.instrument = bankInner[0]; // POP DRUMS
+      this.instrument = bankInner?.[0]; // POP DRUMS
     }
     // console.log(instrument);
 
     if (!instrument) {
-      console.log('Instrument not found! ', channel);
+      console.log('Instrument not found! ', channel, 'bank:', channel === 9 ? 128 : this.bank, 'program:', instrumentIndex);
       return null;
     }
 

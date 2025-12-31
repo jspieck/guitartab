@@ -94,8 +94,11 @@ body{
 }
 .bottomBars{
     flex-grow: 0;
-    display: inline-block;
+    flex-shrink: 0;
+    display: block;
     width: 100%;
+    max-height: 250px;
+    overflow: hidden;
 }
 .mainWrapper{
     overflow: auto;

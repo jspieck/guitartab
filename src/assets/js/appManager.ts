@@ -8,7 +8,7 @@ import {
 } from './songData';
 import { modalManager } from './modals/modalManager';
 import EventBus from "./eventBus";
-import { svgDrawer } from './svgDrawer';
+import { typedEventBus } from '../../utils/typedEventBus';
 import { visualInstruments } from './visualInstruments';
 import midiEngine from './midiReceiver';
 import playBackLogic from './playBackLogicNew';
@@ -136,8 +136,8 @@ const AppManager = {
         const loopI = overlayHandler.getLoopingInterval();
         if (loopI == null || loopI.trackId !== Song.currentTrackId) {
           Tab.deleteNote(trackId, blockId, voiceId, beatId, string, false);
-          svgDrawer.rerenderBlock(trackId, blockId, voiceId);
-          svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+          typedEventBus.emit('render.block', { trackId, blockId, voiceId });
+          typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
         } else {
           const blocks = [];
           for (let blockIdIt = loopI.startBlock; blockIdIt <= loopI.endBlock; blockIdIt += 1) {
@@ -159,9 +159,9 @@ const AppManager = {
               }
             }
             blocks.push(blockIdIt);
-            svgDrawer.setDurationsOfBlock(trackId, blockIdIt, voiceId);
+            typedEventBus.emit('render.durations', { trackId, blockId: blockIdIt, voiceId });
           }
-          svgDrawer.rerenderBlocks(trackId, blocks, voiceId);
+          typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
         }
         EventBus.emit("menu.activateEffectsForPos", {trackId, blockId, voiceId, beatId, string});
       }
@@ -202,7 +202,7 @@ const AppManager = {
             string += 1;
           }
         }
-        svgDrawer.setNewClickedPos(trackId, blockId, voiceId, beatId, string);
+        typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId, string });
       }
     }
   },
@@ -358,10 +358,10 @@ const AppManager = {
     tab.markedNoteObj = {
       trackId: 0, blockId: 0, beatId: 0, voiceId: 0, string: 0,
     };
-    tab.drawTrack(trackId, voiceId, false, () => {
-      svgDrawer.setNewClickedPos(0, 0, 0, 0, 0);
-      svgDrawer.moveMarkerToPosition(0, 0, 0, 0, 0, 0);
-    });
+    // Note: The callback for drawTrack is called immediately since the actual 
+    // SVG drawing code is commented out. Don't emit navigation events here
+    // as the SVG elements don't exist yet.
+    tab.drawTrack(trackId, voiceId, false, null);
 
     const img = document.getElementById('trackSignImg') as HTMLImageElement;
     img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
@@ -605,10 +605,13 @@ const AppManager = {
     }
     // adapt marked pos
     if (blockObj != null && tab.markedNoteObj.beatId >= blockObj.length) {
-      svgDrawer.setNewClickedPos(
-        tab.markedNoteObj.trackId, tab.markedNoteObj.blockId,
-        tab.markedNoteObj.voiceId, 0, tab.markedNoteObj.string,
-      );
+      typedEventBus.emit('navigation.setClickedPos', {
+        trackId: tab.markedNoteObj.trackId, 
+        blockId: tab.markedNoteObj.blockId,
+        voiceId: tab.markedNoteObj.voiceId, 
+        beatId: 0, 
+        string: tab.markedNoteObj.string
+      });
     }
     return revertObj;
   },

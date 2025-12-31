@@ -1149,6 +1149,12 @@ class Tab {
     
     EventBus.emit('song-data-changed');
     
+    // Call the callback since the actual drawing code is commented out
+    // This prevents the loading wheel from spinning forever
+    if (callback != null) {
+      callback();
+    }
+    
     /*
     if (AppManager.duringTrackCreation) {
       // Reschedule, we do not want the prior drawing to disturb the new
