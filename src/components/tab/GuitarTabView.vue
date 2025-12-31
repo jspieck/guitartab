@@ -240,6 +240,7 @@ function handleKeyDown(event: KeyboardEvent) {
   if (event.key >= '0' && event.key <= '9' && currentSelection.value) {
     setNoteAtCurrentSelection(parseInt(event.key, 10))
     event.preventDefault()
+    event.stopPropagation()  // Prevent AppManager from also handling this
     return
   }
   
@@ -249,6 +250,7 @@ function handleKeyDown(event: KeyboardEvent) {
       if (currentSelection.value) {
         setNoteAtCurrentSelection(-1)
         event.preventDefault()
+        event.stopPropagation()
       }
       break
     case 't':
