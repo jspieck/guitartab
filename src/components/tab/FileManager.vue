@@ -397,7 +397,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 
 // File interface
 interface TabFile {
@@ -807,7 +807,6 @@ function showRecentContextMenu(file: TabFile, event: MouseEvent) {
 }
 
 // Lifecycle
-import { onMounted } from 'vue'
 onMounted(() => {
   loadRecentFiles()
 })

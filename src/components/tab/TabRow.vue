@@ -86,7 +86,7 @@
         stroke="rgba(0, 0, 255, 0.1)"
         stroke-width="0.5"
         class="string-click-area"
-        @click="(event) => handleStringClick(event, stringIndex - 1)"
+        @click="(event: MouseEvent) => handleStringClick(event, stringIndex - 1)"
         style="cursor: pointer"
       />
     </g>

@@ -6,7 +6,7 @@
       <div class="select">
         <select 
           :value="handler.getModalState().numerator"
-          @change="(e) => handler.updateNumerator(Number((e.target as HTMLSelectElement).value))"
+          @change="(e: Event) => handler.updateNumerator(Number((e.target as HTMLSelectElement).value))"
         >
           <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
         </select>
@@ -16,7 +16,7 @@
       <div class="select timeMeterSelect">
         <select 
           :value="handler.getModalState().denominator"
-          @change="(e) => handler.updateDenominator(Number((e.target as HTMLSelectElement).value))"
+          @change="(e: Event) => handler.updateDenominator(Number((e.target as HTMLSelectElement).value))"
         >
           <option v-for="n in denominators" :key="n" :value="n">{{ n }}</option>
         </select>

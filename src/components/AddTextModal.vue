@@ -5,7 +5,7 @@
       <label>Enter text:</label>
       <textarea 
         v-model="handler.getModalState().text"
-        @input="(e) => handler.updateText((e.target as HTMLTextAreaElement).value)"
+        @input="(e: Event) => handler.updateText((e.target as HTMLTextAreaElement).value)"
         placeholder="Enter your text here"
       ></textarea>
     </div>

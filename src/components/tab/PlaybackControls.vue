@@ -263,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 
 // Props
 interface Props {
@@ -536,7 +536,6 @@ onUnmounted(() => {
 })
 
 // Watch for BPM changes to update metronome
-import { watch } from 'vue'
 watch(bpm, () => {
   if (metronomeEnabled.value) {
     startMetronomeVisual()

@@ -6,7 +6,7 @@
       <input 
         type="number"
         v-model="handler.getModalState().numRepetitions"
-        @input="(e) => handler.updateRepetitions(Number((e.target as HTMLInputElement).value))"
+        @input="(e: Event) => handler.updateRepetitions(Number((e.target as HTMLInputElement).value))"
         min="1"
         :placeholder="handler.getModalState().numRepetitions.toString()"
       />

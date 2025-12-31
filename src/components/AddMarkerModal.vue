@@ -5,7 +5,7 @@
       <label class="labelTopMargin">Title:</label>
       <input 
         v-model="handler.getModalState().markerData.text"
-        @input="(e) => handler.updateMarkerText((e.target as HTMLInputElement).value)"
+        @input="(e: Event) => handler.updateMarkerText((e.target as HTMLInputElement).value)"
         type="text"
         placeholder="Enter marker title"
       />

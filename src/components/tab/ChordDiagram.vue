@@ -56,21 +56,21 @@
       />
       
       <!-- Finger numbers -->
-      <text
-        v-for="(position, index) in fingerPositions"
-        :key="`finger-num-${index}`"
-        :x="position.x"
-        :y="position.y + 4"
-        font-family="Source Sans Pro"
-        font-size="10px"
-        font-weight="bold"
-        fill="#fff"
-        text-anchor="middle"
-        class="finger-number"
-        v-if="position.finger > 0"
-      >
-        {{ position.finger }}
-      </text>
+      <template v-for="(position, index) in fingerPositions" :key="`finger-num-${index}`">
+        <text
+          :x="position.x"
+          :y="position.y + 4"
+          font-family="Source Sans Pro"
+          font-size="10px"
+          font-weight="bold"
+          fill="#fff"
+          text-anchor="middle"
+          class="finger-number"
+          v-if="position.finger > 0"
+        >
+          {{ position.finger }}
+        </text>
+      </template>
     </g>
     
     <!-- Muted/Open string indicators -->

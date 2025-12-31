@@ -32,44 +32,7 @@
       </div>
   </div>
   <div class="bottomBars">
-      <div id="effectBar">
-        <div id="effectBarLayout">
-          <label id="effectsLabel">Effects</label>
-          <div class="knobWrapper">
-            <span class="knobTitle">PAN</span>
-            <span class="minKnob" style="left:-18px;">LEFT</span>
-            <span class="maxKnob" style="right: -24px;">RIGHT</span>
-            <div class="knob-inset">
-              <div id="panKnob" data-effect="pan" class="knob"></div>
-            </div>
-          </div>
-          <div class="knobWrapper">
-            <span class="knobTitle">REVERB</span>
-            <span class="minKnob">MIN</span>
-            <span class="maxKnob">MAX</span>
-            <div class="knob-inset">
-              <div id="reverbKnob" data-effect="reverb" class="knob"></div>
-            </div>
-          </div>
-          <div class="knobWrapper">
-            <span class="knobTitle">CHORUS</span>
-            <span class="minKnob">MIN</span>
-            <span class="maxKnob">MAX</span>
-            <div class="knob-inset">
-              <div id="chorusKnob" data-effect="chorus" class="knob"></div>
-            </div>
-          </div>
-          <div class="knobWrapper">
-            <span class="knobTitle">PHASER</span>
-            <span class="minKnob">MIN</span>
-            <span class="maxKnob">MAX</span>
-            <div class="knob-inset">
-              <div id="phaserKnob" data-effect="phaser" class="knob"></div>
-            </div>
-          </div>
-        </div>
-        <img id="effectEye" class="visibleEye" src="./assets/images/eyeInverted.svg" />
-      </div>
+      <EffectsBar :track-id="currentTrackId" />
       <Sequencer/>
     </div>
     <Footer/>
@@ -112,32 +75,11 @@
 
     <div class="mask" role="dialog"></div>
 
-    <BendModal />
-    <PianoModal id="pianoModal" class="modal" role="alert"></PianoModal>
-    <DrumInfoModal />
-    <GuitarModal id="guitarModal" class="modal" role="alert"/>
-    <DeleteModal />
-    <RepititionModal />
-    <AddTrackModal />
-    <RepeatAlternativeModal />
-    <HarmonicModal />
-    <TremoloPickingModal />
-    <TimeMeterModal :trackId="currentTrackId" :blockId="currentBlockId" :voiceId="currentVoiceId" id="timeMeterModal" class="modal" role="alert"/>
-    <BpmModal />
-    <StrokeModal />
-    <AddTextModal />
-    <AddMarkerModal />
-    <AddChordModal :trackId="currentTrackId" />
-    <ChordManagerModal />
-    <GraceModal />
-    <TremoloBarModal />
-    <TrackInfoModal />
-    <MidiModal />
-    <CopyrightModal />
-    <Mixer />
-    <Compressor id="compressorModal" class="modal" role="alert"/>
-    <Equalizer id="equalizerModal" class="modal" role="alert" ref="equalizer"/>
-    <InstrumentSettingsModal class="modal" role="alert" />
+    <ModalsContainer 
+      :trackId="currentTrackId" 
+      :voiceId="currentVoiceId" 
+      :blockId="currentBlockId" 
+    />
     <TabTransitionStatus 
       :track-id="currentTrackId" 
       :voice-id="currentVoiceId" 
@@ -147,35 +89,12 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
+import EffectsBar from './components/EffectsBar.vue'
 import Menu from './components/Menu.vue'
+import { useTabStore } from './stores/tabStore'
 import Footer from './components/Footer.vue'
-import Compressor from './components/Compressor.vue'
-import Equalizer from './components/Equalizer.vue'
 import Sequencer from './components/Sequencer.vue'
-import PianoModal from './components/PianoModal.vue'
-import TimeMeterModal from './components/TimeMeterModal.vue'
-import InstrumentSettingsModal from './components/InstrumentSettingModal.vue';
-import Mixer from './components/Mixer.vue'
-import CopyrightModal from './components/CopyrightModal.vue'
-import MidiModal from './components/MidiModal.vue'
-import TrackInfoModal from './components/TrackInfoModal.vue'
-import TremoloBarModal from './components/TremoloBarModal.vue'
-import GuitarModal from './components/GuitarModal.vue'
-import GraceModal from './components/GraceModal.vue'
-import ChordManagerModal from './components/ChordManagerModal.vue'
-import AddChordModal from './components/AddChordModal.vue'
-import AddMarkerModal from './components/AddMarkerModal.vue'
-import AddTextModal from './components/AddTextModal.vue'
-import BpmModal from './components/BpmModal.vue'
-import StrokeModal from './components/StrokeModal.vue'
-import DrumInfoModal from  './components/DrumInfoModal.vue'
-import TremoloPickingModal from  './components/TremoloPickingModal.vue'
-import HarmonicModal from  './components/HarmonicModal.vue'
-import RepeatAlternativeModal from  './components/RepeatAlternativeModal.vue'
-import AddTrackModal from  './components/AddTrackModal.vue'
-import RepititionModal from  './components/RepititionModal.vue'
-import DeleteModal from  './components/DeleteModal.vue'
-import BendModal from  './components/BendModal.vue'
+import ModalsContainer from './components/ModalsContainer.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import TabTransitionStatus from './components/tab/TabTransitionStatus.vue'
 import { startUp } from './assets/js/guitarTab'
@@ -191,7 +110,12 @@ const currentBeatId = ref(0);
 const useVueTab = ref(true) // Start with Vue tab by default
 const showDevControls = ref(true) // Show development toggle
 
-const currentSelection = computed(() => overlayHandler.getNotesInInterval(null));
+const store = useTabStore();
+const currentSelection = computed(() => {
+  // Trigger dependency
+  store.selectionVersion;
+  return overlayHandler.getNotesInInterval(null);
+});
 
 function toggleTabRenderer() {
   useVueTab.value = !useVueTab.value

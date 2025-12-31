@@ -10,7 +10,7 @@
 </template>
   
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import Knob from './Knob.vue';
 
 export default defineComponent({
@@ -19,12 +19,15 @@ export default defineComponent({
     props: {
         label: String,
         containerId: String,
-        knobId: String,
-        dataId: Number,
-        rotateFunc: Function,
-        start: Number,
-        min: Number,
-        max: Number,
+        knobId: { type: String, required: true },
+        dataId: { type: Number, required: true },
+        rotateFunc: { 
+            type: Function as PropType<(angle: number, dataIdFunc: string, targetId: string) => void>, 
+            required: true 
+        },
+        start: { type: Number, required: true },
+        min: { type: Number, required: true },
+        max: { type: Number, required: true },
         valueId: String,
         knobValue: { type: Number, default: 0 },
         unit: String,

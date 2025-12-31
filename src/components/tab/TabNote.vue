@@ -12,9 +12,9 @@
       text-anchor="middle"
       class="note-text"
       :class="getNoteClasses(note)"
-      @click="(event) => handleNoteClick(event, note)"
-      @mouseover="(event) => handleNoteHover(event, note, true)"
-      @mouseout="(event) => handleNoteHover(event, note, false)"
+      @click="(event: MouseEvent) => handleNoteClick(event, note)"
+      @mouseover="(event: MouseEvent) => handleNoteHover(event, note, true)"
+      @mouseout="(event: MouseEvent) => handleNoteHover(event, note, false)"
       style="cursor: pointer"
     >
       {{ getNoteDisplay(note) }}
@@ -31,7 +31,7 @@
       fill="#666"
       text-anchor="middle"
       class="grace-note"
-      @click="(event) => handleGraceClick(event, note)"
+      @click="(event: MouseEvent) => handleGraceClick(event, note)"
       style="cursor: pointer"
     >
       {{ note.graceObj.fret }}
