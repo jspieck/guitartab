@@ -31,12 +31,12 @@
     <!-- BPM marking -->
     <g v-if="showBpm" class="bpm-marking">
       <text
-        x="30"
-        y="0"
+        x="0"
+        :y="-yOffset - 45"
         font-family="Source Sans Pro"
         font-size="14px"
         fill="#000"
-        text-anchor="start"
+        text-anchor="middle"
         class="bpm-text"
       >
         ♩ = {{ bpm }}
@@ -86,7 +86,7 @@
     <g v-if="measureMeta.markerPresent" class="marker">
       <rect
         x="-15"
-        y="-40"
+        :y="-yOffset - 25"
         width="30"
         height="15"
         :fill="`rgb(${measureMeta.marker.color.red}, ${measureMeta.marker.color.green}, ${measureMeta.marker.color.blue})`"
@@ -96,7 +96,7 @@
       />
       <text
         x="0"
-        y="-30"
+        :y="-yOffset - 14"
         font-family="Source Sans Pro"
         font-size="10px"
         fill="#fff"

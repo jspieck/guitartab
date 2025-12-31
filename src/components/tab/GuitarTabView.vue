@@ -61,54 +61,7 @@
           </text>
           
           <!-- Debug refresh button -->
-          <rect 
-            x="50" 
-            y="85" 
-            width="80" 
-            height="20" 
-            fill="#f0f0f0" 
-            stroke="#ccc" 
-            rx="3"
-            style="cursor: pointer"
-            @click="forceRefresh"
-          />
-          <text 
-            x="90" 
-            y="98" 
-            font-family="Source Sans Pro" 
-            font-size="10px" 
-            fill="#333"
-            text-anchor="middle"
-            style="cursor: pointer; user-select: none"
-            @click="forceRefresh"
-          >
-            Force Refresh
-          </text>
           
-          <!-- Debug data button -->
-          <rect 
-            x="140" 
-            y="85" 
-            width="80" 
-            height="20" 
-            fill="#e8f4fd" 
-            stroke="#4A90E2" 
-            rx="3"
-            style="cursor: pointer"
-            @click="debugSongData"
-          />
-          <text 
-            x="180" 
-            y="98" 
-            font-family="Source Sans Pro" 
-            font-size="10px" 
-            fill="#4A90E2"
-            text-anchor="middle"
-            style="cursor: pointer; user-select: none"
-            @click="debugSongData"
-          >
-            Show Data
-          </text>
         </g>
         
         <!-- Simple tab rows -->
@@ -237,8 +190,8 @@ const tabRows = computed(() => {
     syncSongData()
   }
   
-  // Get measures from Song data - use the original Song object as source of truth
-  const measures = Song.measures?.[props.trackId] || []
+  // Get measures from Song data - use the reactive proxy to ensure updates propagate
+  const measures = reactiveSongData.measures?.[props.trackId] || []
   console.log('Measures for track:', measures)
   console.log('Number of measures:', measures.length)
   
@@ -423,6 +376,7 @@ onUnmounted(() => {
 // Handle Song data changes
 function handleSongDataChange(event: Event) {
   console.log('Song data changed:', (event as CustomEvent).detail)
+  syncSongData() // Sync the new data to the reactive proxy
   updateTrigger.value++ // Force Vue to re-render
 }
 

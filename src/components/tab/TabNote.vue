@@ -4,7 +4,7 @@
     <text
       v-for="(note, stringIndex) in notesToRender"
       :key="`note-${beatIndex}-${stringIndex}-${note.fret}-${beatDataHash}`"
-      :x="20"
+      :x="noteX"
       :y="note.string * stringSpacing + 6"
       font-family="Source Sans Pro"
       :font-size="getFontSize(note)"
@@ -24,7 +24,7 @@
     <text
       v-for="(note, stringIndex) in graceNotes"
       :key="`grace-${beatIndex}-${stringIndex}-${beatDataHash}`"
-      :x="8"
+      :x="noteX - 12"
       :y="note.string * stringSpacing + 6"
       font-family="Source Sans Pro"
       font-size="11px"
@@ -52,6 +52,26 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const beatWidth = 40
+
+function getDurationInBeats(duration: string): number {
+  switch (duration) {
+    case 'w': case 'wr': case 'whole': return 4;
+    case 'h': case 'hr': case 'half': return 2;
+    case 'q': case 'qr': case 'quarter': return 1;
+    case 'e': case 'er': case 'eighth': return 0.5;
+    case 's': case 'sr': case 'sixteenth': return 0.25;
+    case 't': case 'tr': case 'thirty-second': return 0.125;
+    default: return 1;
+  }
+}
+
+const noteX = computed(() => {
+  const duration = props.beatData?.duration || 'q'
+  const beats = getDurationInBeats(duration)
+  return (beats * beatWidth) / 2
+})
 
 // Create a hash of the beat data to force re-rendering when data changes
 const beatDataHash = computed(() => {

@@ -53,7 +53,7 @@
       :track-id="trackId"
       :voice-id="voiceId"
       :block-id="blockId"
-      :x-offset="0"
+      :x-offset="contentPadding + START_PADDING"
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :measure-width="measureWidth"
@@ -77,13 +77,17 @@ interface Props {
   xOffset: number
   stringSpacing: number
   numStrings: number
+  contentPadding?: number
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  contentPadding: 0
+})
 
 // Constants
 const beatWidth = 40 // Base width per beat
 const measureWidth = 200 // Total measure width
+const START_PADDING = 15 // Padding at start of measure
 
 // Computed properties
 const chordsToShow = computed(() => {
@@ -107,8 +111,25 @@ const chordsToShow = computed(() => {
 })
 
 // Methods
+function getDurationInBeats(duration: string): number {
+  switch (duration) {
+    case 'w': case 'wr': case 'whole': return 4;
+    case 'h': case 'hr': case 'half': return 2;
+    case 'q': case 'qr': case 'quarter': return 1;
+    case 'e': case 'er': case 'eighth': return 0.5;
+    case 's': case 'sr': case 'sixteenth': return 0.25;
+    case 't': case 'tr': case 'thirty-second': return 0.125;
+    default: return 1;
+  }
+}
+
 function getBeatXOffset(beatIndex: number): number {
-  return beatIndex * beatWidth
+  let beats = 0;
+  for (let i = 0; i < beatIndex; i++) {
+    const beat = props.measureData[i];
+    beats += getDurationInBeats(beat?.duration || 'q');
+  }
+  return props.contentPadding + START_PADDING + (beats * beatWidth);
 }
 </script>
 

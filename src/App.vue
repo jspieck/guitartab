@@ -14,20 +14,11 @@
         <div id="completeTab" class="dinA4Size">
           <!-- New Vue-based tab view -->
           <GuitarTabView
-            v-if="useVueTab"
             :track-id="currentTrackId"
             :voice-id="currentVoiceId"
             :width="1200"
             :height="1600"
           />
-          
-          <!-- Legacy SVG tab area -->
-          <div v-else>
-            <div id="svgTestArea"></div>
-            <div id="tabAreas">
-              <div id="tabArea" tabindex="0"></div>
-            </div>
-          </div>
         </div>
       </div>
   </div>
@@ -36,16 +27,6 @@
       <Sequencer/>
     </div>
     <Footer/>
-    
-    <!-- Toggle button to switch between Vue and legacy tab rendering -->
-    <button
-      v-if="showDevControls"
-      @click="toggleTabRenderer"
-      class="dev-toggle-button"
-      :class="{ active: useVueTab }"
-    >
-      {{ useVueTab ? 'Vue Tab' : 'Legacy Tab' }}
-    </button>
     
     <!-- 2 -->
     <div id="loadingWheel" class="loader loader--style2" title="1">
@@ -80,10 +61,6 @@
       :voiceId="currentVoiceId" 
       :blockId="currentBlockId" 
     />
-    <TabTransitionStatus 
-      :track-id="currentTrackId" 
-      :voice-id="currentVoiceId" 
-    />
   </div>
 </template>
 
@@ -96,7 +73,6 @@ import Footer from './components/Footer.vue'
 import Sequencer from './components/Sequencer.vue'
 import ModalsContainer from './components/ModalsContainer.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
-import TabTransitionStatus from './components/tab/TabTransitionStatus.vue'
 import { startUp } from './assets/js/guitarTab'
 import { overlayHandler } from './assets/js/overlayHandler'
 import { tab } from './assets/js/tab'
@@ -106,21 +82,12 @@ const currentVoiceId = ref(0);
 const currentBlockId = ref(0);
 const currentBeatId = ref(0);
 
-// Development controls
-const useVueTab = ref(true) // Start with Vue tab by default
-const showDevControls = ref(true) // Show development toggle
-
 const store = useTabStore();
 const currentSelection = computed(() => {
   // Trigger dependency
   store.selectionVersion;
   return overlayHandler.getNotesInInterval(null);
 });
-
-function toggleTabRenderer() {
-  useVueTab.value = !useVueTab.value
-  console.log('Tab renderer toggled to:', useVueTab.value ? 'Vue' : 'Legacy')
-}
 
 function focusMainContent() {
   const mainContent = document.getElementById('mainContent')
@@ -130,10 +97,8 @@ function focusMainContent() {
 }
 
 onMounted(() => {
-  // Only start legacy system if not using Vue tab
-  if (!useVueTab.value) {
-    startUp();
-  }
+  // Initialize legacy system for audio/playback support
+  startUp();
 })
 </script>
 

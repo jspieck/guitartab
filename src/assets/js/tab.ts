@@ -269,8 +269,8 @@ class Tab {
     // only draw when current track is visible
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
       menuHandler.enableNoteEffectButtons();
-      svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-      svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+      // svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+      // svgDrawer.rerenderBlock(trackId, blockId, voiceId);
     }
     if (redrawSequencer) {
       sequencerHandler.redrawSequencerMain();
@@ -1084,17 +1084,17 @@ class Tab {
     this.changeBeatDuration(
       trackId, blockId, voiceId, beatId, string, newDuration, previousDuration, noteLength,
     );
-    svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+    // svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
     menuHandler.showAvailableTupletSizes(newDuration);
 
     if (this.trackRerenderNecessary(trackId, blockId, voiceId)) {
       this.drawTrack(trackId, voiceId, true, null);
     } else {
-      svgDrawer.rerenderRow(trackId, voiceId, this.blockToRow[trackId][voiceId][blockId].rowId);
+      // svgDrawer.rerenderRow(trackId, voiceId, this.blockToRow[trackId][voiceId][blockId].rowId);
       if (Settings.vexFlowIsActive) {
         classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId);
       }
-      svgDrawer.renderOverBar(trackId, blockId, voiceId, false);
+      // svgDrawer.renderOverBar(trackId, blockId, voiceId, false);
     }
 
     if (duringRevert === false) {
@@ -1115,6 +1115,7 @@ class Tab {
     height: number, callback: (() => void) | null,
   ) {
     console.trace('Draw track called');
+    /*
     if (AppManager.duringTrackCreation) {
       // Reschedule, we do not want the prior drawing to disturb the new
       console.log('During creation');
@@ -1124,7 +1125,9 @@ class Tab {
     console.log('Draw track');
     AppManager.duringTrackCreation = true;
     const classicalToggleButton = document.getElementById('classicalToggleButton') as HTMLButtonElement;
-    classicalToggleButton.disabled = true;
+    if (classicalToggleButton) {
+      classicalToggleButton.disabled = true;
+    }
     this.initRowArrays(trackId, voiceId);
     // even compute if not shown, so switching is quicker
     if (Settings.vexFlowIsActive) {
@@ -1144,6 +1147,7 @@ class Tab {
       svgDrawer.heightOfRow[trackId][voiceId][rowId] = maxHeight + BLOCK_HEIGHT;
     }
     svgDrawer.createTrack(trackId, voiceId, width, height, callback);
+    */
   }
 
   initRowArrays(trackId: number, voiceId: number) {

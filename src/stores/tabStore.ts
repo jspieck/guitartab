@@ -22,6 +22,7 @@ export const useTabStore = defineStore('tab', {
     typeOfNote: 'e', // Default to 8th note
     currentSelection: [] as TabPosition[],
     selectionVersion: 0,
+    songDataVersion: 0,
     isLoading: false,
     error: null as string | null
   }),
@@ -60,11 +61,14 @@ export const useTabStore = defineStore('tab', {
     },
     
     getMeasures: (state) => (trackId: number, voiceId: number): Measure[][] => {
+      // Dependency on songDataVersion to trigger updates
+      const _ = state.songDataVersion;
       if (!Song.measures[trackId]) return [];
       return Song.measures[trackId].map(block => block[voiceId]);
     },
     
     getChordsMap: (state) => (trackId: number): ChordsMap => {
+      const _ = state.songDataVersion;
       return Song.chordsMap[trackId] || new Map()
     },
     
@@ -77,10 +81,12 @@ export const useTabStore = defineStore('tab', {
     }),
     
     getMeasure: (state) => (trackId: number, blockId: number, voiceId: number): Measure[] => {
+      const _ = state.songDataVersion;
       return Song.measures[trackId]?.[blockId]?.[voiceId] || []
     },
     
     getNote: (state) => (trackId: number, blockId: number, voiceId: number, beatId: number, string: number) => {
+      const _ = state.songDataVersion;
       return Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatId]?.notes?.[string]
     }
   },
@@ -144,6 +150,7 @@ export const useTabStore = defineStore('tab', {
     updateNote(trackId: number, blockId: number, voiceId: number, beatId: number, string: number, noteData: any) {
       if (Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatId]?.notes) {
         Song.measures[trackId][blockId][voiceId][beatId].notes[string] = noteData
+        this.songDataVersion++
       }
     },
     
@@ -151,6 +158,7 @@ export const useTabStore = defineStore('tab', {
       if (Song.measures[trackId]?.[blockId]) {
         // @ts-ignore - Legacy type mismatch
         Song.measures[trackId][blockId][voiceId] = measureData
+        this.songDataVersion++
       }
     },
     

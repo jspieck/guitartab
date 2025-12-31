@@ -96,8 +96,14 @@ const props = defineProps<Props>()
 // Duration mapping for beams
 const durationBeamCounts = {
   'eighth': 1,
+  'e': 1,
+  // 'er': 1, // Rests should not be beamed
   'sixteenth': 2,
+  's': 2,
+  // 'sr': 2,
   'thirty-second': 3,
+  't': 3,
+  // 'tr': 3,
   'sixty-fourth': 4
 }
 
@@ -105,11 +111,14 @@ const durationBeamCounts = {
 const durationBeams = computed(() => {
   const beams: Array<{path: string, duration: string}> = []
   let currentBeamGroup: Array<{beatIndex: number, x: number, beamCount: number}> = []
+  let currentBeatTime = 0;
   
   props.measureData.forEach((beat, beatIndex) => {
+    const durationInBeats = getDurationInBeats(beat?.duration || 'q');
+    
     if (beat && beat.duration) {
       const beamCount = durationBeamCounts[beat.duration as keyof typeof durationBeamCounts] || 0
-      const beatX = props.xOffset + (beatIndex * 40) + 10
+      const beatX = props.xOffset + (currentBeatTime * 40) + 10
       
       if (beamCount > 0) {
         // Check if this note has actual notes (not empty)
@@ -136,6 +145,7 @@ const durationBeams = computed(() => {
         currentBeamGroup = []
       }
     }
+    currentBeatTime += durationInBeats;
   })
   
   // Handle remaining beam group
@@ -148,12 +158,15 @@ const durationBeams = computed(() => {
 
 const noteStems = computed(() => {
   const stems: Array<{x: number, y1: number, y2: number}> = []
+  let currentBeatTime = 0;
   
   props.measureData.forEach((beat, beatIndex) => {
+    const durationInBeats = getDurationInBeats(beat?.duration || 'q');
+    
     if (beat && beat.notes && beat.notes.some((note: any) => note !== null)) {
       const duration = beat.duration
       if (duration && ['eighth', 'sixteenth', 'thirty-second', 'sixty-fourth'].includes(duration)) {
-        const beatX = props.xOffset + (beatIndex * 40) + 10
+        const beatX = props.xOffset + (currentBeatTime * 40) + 10
         
         // Find the highest and lowest notes for stem placement
         let highestString = -1
@@ -182,6 +195,7 @@ const noteStems = computed(() => {
         }
       }
     }
+    currentBeatTime += durationInBeats;
   })
   
   return stems
@@ -189,11 +203,16 @@ const noteStems = computed(() => {
 
 const restSymbols = computed(() => {
   const rests: Array<{x: number, y: number, symbol: string}> = []
+  let currentBeatTime = 0; // Track current time in beats
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat && (!beat.notes || beat.notes.every((note: any) => note === null))) {
-      // This is a rest
-      const beatX = props.xOffset + (beatIndex * 40) + 10
+    if (!beat) return;
+    
+    const durationInBeats = getDurationInBeats(beat.duration);
+    
+    // Check if this is a rest
+    if (!beat.notes || beat.notes.every((note: any) => note === null)) {
+      const beatX = props.xOffset + (currentBeatTime * 40) + 10
       const restY = ((props.numStrings - 1) * props.stringSpacing) / 2
       
       const symbol = getRestSymbol(beat.duration)
@@ -205,10 +224,24 @@ const restSymbols = computed(() => {
         })
       }
     }
+    
+    currentBeatTime += durationInBeats;
   })
   
   return rests
 })
+
+function getDurationInBeats(duration: string): number {
+  switch (duration) {
+    case 'w': case 'wr': case 'whole': return 4;
+    case 'h': case 'hr': case 'half': return 2;
+    case 'q': case 'qr': case 'quarter': return 1;
+    case 'e': case 'er': case 'eighth': return 0.5;
+    case 's': case 'sr': case 'sixteenth': return 0.25;
+    case 't': case 'tr': case 'thirty-second': return 0.125;
+    default: return 1;
+  }
+}
 
 const tupletBrackets = computed(() => {
   const tuplets: Array<{
@@ -221,10 +254,13 @@ const tupletBrackets = computed(() => {
   // Find tuplet groups
   let currentTuplet: Array<{beatIndex: number, x: number}> = []
   let tupletValue = 0
+  let currentBeatTime = 0;
   
   props.measureData.forEach((beat, beatIndex) => {
+    const durationInBeats = getDurationInBeats(beat?.duration || 'q');
+    
     if (beat && beat.tuplet && beat.tuplet > 0) {
-      const beatX = props.xOffset + (beatIndex * 40) + 10
+      const beatX = props.xOffset + (currentBeatTime * 40) + 10
       
       if (tupletValue === 0 || tupletValue === beat.tuplet) {
         tupletValue = beat.tuplet
@@ -245,6 +281,7 @@ const tupletBrackets = computed(() => {
       currentTuplet = []
       tupletValue = 0
     }
+    currentBeatTime += durationInBeats;
   })
   
   // Handle remaining tuplet
@@ -280,11 +317,11 @@ function createBeamPaths(beamGroup: Array<{beatIndex: number, x: number, beamCou
 
 function getRestSymbol(duration: string): string {
   switch (duration) {
-    case 'whole': return '■'
-    case 'half': return '▪'
-    case 'quarter': return '𝄽'
-    case 'eighth': return '𝄾'
-    case 'sixteenth': return '𝄿'
+    case 'whole': case 'w': case 'wr': return '■'
+    case 'half': case 'h': case 'hr': return '▪'
+    case 'quarter': case 'q': case 'qr': return '𝄽'
+    case 'eighth': case 'e': case 'er': return '𝄾'
+    case 'sixteenth': case 's': case 'sr': return '𝄿'
     default: return '𝄽'
   }
 }
