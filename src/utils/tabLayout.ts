@@ -2,17 +2,7 @@
  * Utility functions for calculating positions in the guitar tab layout
  */
 
-/**
- * Duration values in beats
- */
-const DURATION_IN_BEATS: Record<string, number> = {
-  'w': 4, 'wr': 4, 'whole': 4,
-  'h': 2, 'hr': 2, 'half': 2,
-  'q': 1, 'qr': 1, 'quarter': 1,
-  'e': 0.5, 'er': 0.5, 'eighth': 0.5,
-  's': 0.25, 'sr': 0.25, 'sixteenth': 0.25,
-  't': 0.125, 'tr': 0.125, 'thirty-second': 0.125
-}
+import { getDurationBeats } from './durationUtils'
 
 /**
  * Tab layout constants
@@ -27,9 +17,10 @@ export const TAB_CONSTANTS = {
 
 /**
  * Get duration value in beats
+ * @deprecated Use getDurationBeats from durationUtils instead
  */
 export function getDurationInBeats(duration: string): number {
-  return DURATION_IN_BEATS[duration] || 1
+  return getDurationBeats(duration)
 }
 
 /**
