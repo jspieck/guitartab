@@ -8,6 +8,7 @@ import { tab } from './tab';
 import { sequencerHandler, SequencerHandler } from './sequencerHandler';
 import { svgDrawer } from './svgDrawer';
 import { menuHandler } from './menuHandler';
+import { useTabStore } from '../../stores/tabStore';
 
 class OverlayHandler {
   startPosOverlay: { trackId: number, blockId: number, voiceId: number,
@@ -73,6 +74,7 @@ class OverlayHandler {
     this.selectionClicked = false;
     this.lastTriPointer = null;
     this.loopingInterval = null;
+    useTabStore().incrementSelectionVersion();
   }
 
   getLoopingInterval() {
@@ -94,6 +96,7 @@ class OverlayHandler {
       beatId,
       abstractTimePos: timeNeeded / Duration.getDurationOfType('wr'),
     };
+    useTabStore().incrementSelectionVersion();
   }
 
   setEndOverlay(trackId: number, blockId: number, voiceId: number, beatId: number) {
@@ -109,6 +112,7 @@ class OverlayHandler {
       beatId,
       abstractTimePos: timeNeeded / Duration.getDurationOfType('wr'),
     };
+    useTabStore().incrementSelectionVersion();
   }
 
   setLoopingInterval() {

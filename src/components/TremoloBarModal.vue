@@ -11,7 +11,7 @@
       <div class="select tremoloSelect">
         <select 
           v-model="selectedPreset"
-          @change="(e) => handler.applyTremoloPreset(Number((e.target as HTMLSelectElement).value))"
+          @change="(e: Event) => handler.applyTremoloPreset(Number((e.target as HTMLSelectElement).value))"
         >
           <option value="0">Dive</option>
           <option value="1">Dip</option>

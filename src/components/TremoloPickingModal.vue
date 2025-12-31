@@ -6,7 +6,7 @@
       <div class="select">
         <select 
           :value="handler.getModalState().tremoloPickingLength"
-          @change="(e) => handler.updateTremoloPickingLength((e.target as HTMLSelectElement).value)"
+          @change="(e: Event) => handler.updateTremoloPickingLength((e.target as HTMLSelectElement).value)"
         >
           <option value="e">Eighth</option>
           <option value="s">Sixteenth</option>

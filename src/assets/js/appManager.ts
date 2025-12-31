@@ -19,13 +19,20 @@ import { sequencerHandler } from './sequencerHandler';
 import Duration from './duration';
 import Tuning from './tuning';
 import { menuHandler } from './menuHandler';
+import { useTabStore } from '../../stores/tabStore';
 
 const AppManager = {
   notificationTimeOut: null as ReturnType<typeof setTimeout> | null,
   stillMouseDown: false,
   loopIntervalChanged: false,
   duringTrackCreation: false,
-  typeOfNote: 'e',
+  
+  get typeOfNote() {
+    return useTabStore().typeOfNote;
+  },
+  set typeOfNote(value: string) {
+    useTabStore().setTypeOfNote(value);
+  },
 
   resetVariables() {
     playBackLogic.stopSong();

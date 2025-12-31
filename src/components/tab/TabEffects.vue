@@ -25,16 +25,16 @@
         class="bend-path"
       />
       <!-- Bend arrows -->
-      <path
-        v-for="(bend, index) in bends"
-        :key="`bend-arrow-${index}`"
-        :d="bend.arrowPath"
-        stroke="#111"
-        stroke-width="1"
-        fill="#000"
-        class="bend-arrow"
-        v-if="bend.arrowPath"
-      />
+      <template v-for="(bend, index) in bends" :key="`bend-arrow-${index}`">
+        <path
+          :d="bend.arrowPath"
+          stroke="#111"
+          stroke-width="1"
+          fill="#000"
+          class="bend-arrow"
+          v-if="bend.arrowPath"
+        />
+      </template>
     </g>
     
     <!-- Ties/Bows -->
@@ -97,11 +97,44 @@ interface Props {
   measureWidth: number
 }
 
+interface SlideEffect {
+  path: string
+  beatIndex: number
+  stringIndex: number
+}
+
+interface BendEffect {
+  path: string
+  arrowPath: string
+  beatIndex?: number
+  stringIndex?: number
+}
+
+interface TieEffect {
+  path: string
+  beatIndex?: number
+  stringIndex?: number
+}
+
+interface VibratoEffect {
+  path: string
+  beatIndex?: number
+  stringIndex?: number
+}
+
+interface TextEffect {
+  text: string
+  x: number
+  y: number
+  fontSize?: string
+  beatIndex?: number
+}
+
 const props = defineProps<Props>()
 
 // Computed properties for different effect types
 const slides = computed(() => {
-  const slideEffects = []
+  const slideEffects: SlideEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
@@ -128,7 +161,7 @@ const slides = computed(() => {
 })
 
 const bends = computed(() => {
-  const bendEffects = []
+  const bendEffects: BendEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
@@ -172,7 +205,7 @@ const bends = computed(() => {
 })
 
 const ties = computed(() => {
-  const tieEffects = []
+  const tieEffects: TieEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
@@ -199,7 +232,7 @@ const ties = computed(() => {
 })
 
 const vibratos = computed(() => {
-  const vibratoEffects = []
+  const vibratoEffects: VibratoEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
@@ -233,11 +266,11 @@ const vibratos = computed(() => {
 })
 
 const textEffects = computed(() => {
-  const effects = []
+  const effects: TextEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
-      const beatEffects = []
+      const beatEffects: string[] = []
       
       beat.notes.forEach((note: any) => {
         if (note?.palmMute) beatEffects.push('P.M.')

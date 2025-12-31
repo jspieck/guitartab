@@ -24,8 +24,17 @@ export interface Note {
   bendObj?: Bend
   tremoloPicking: boolean
   tremoloPickingLength?: string
-  noteDrawn?: SVGTextElement | null
+  noteDrawn?: SVGTextElement | SVGGElement | null
   tieBegin: boolean
+  // Legacy properties
+  string: number
+  height: number
+  tiedTo?: any
+  velocity?: number
+  element?: number
+  octave?: number
+  tone?: number
+  trill?: { fret: number, period: number }
 }
 
 export interface Grace {
@@ -61,17 +70,26 @@ export interface Measure {
   duration: string
   dotted: boolean
   doubleDotted: boolean
-  tuplet?: number
+  tuplet?: number | null
   notes: (Note | null)[]
   textPresent: boolean
   text?: string
   chordPresent: boolean
   chord?: {
     name: string
-  }
+  } | any
   dynamicPresent: boolean
   dynamic?: string
-  effects?: BeatEffects
+  effects?: BeatEffects | any
+  // Legacy properties
+  otherNotes?: Note[]
+  tupletId?: number
+  empty?: boolean
+  keySignature?: string
+  noteIds?: number[]
+  rhythmId?: number
+  gracePresent?: boolean
+  graceObj?: any
 }
 
 export interface MeasureMeta {
@@ -106,7 +124,16 @@ export interface Track {
   }
   capo: number
   tuning: number[]
-  instrument: string
+  strings?: number[] // Legacy alias for tuning
+  instrument?: string | number
+  // Legacy properties
+  volume?: number
+  balance?: number
+  reverb?: number
+  channel?: any
+  program?: number
+  primaryChannel?: number
+  letItRing?: boolean
 }
 
 export interface SongDescription {
@@ -121,6 +148,9 @@ export interface ChordDiagram {
   frets: number[]
   capo: number
   display: boolean
+  chordType?: string
+  chordRoot?: string
+  fingers?: number[]
 }
 
 export type ChordsMap = Map<string, ChordDiagram>

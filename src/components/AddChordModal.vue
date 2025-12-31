@@ -68,7 +68,7 @@
             </label>
             <div class="select">
               <select :value="handler.getChordRoot()"
-                @change="(e) => handler.updateChordRoot((e.target as HTMLSelectElement).value)">
+                @change="(e: Event) => handler.updateChordRoot((e.target as HTMLSelectElement).value)">
                 <option v-for="note in chordNotes" :key="note" :value="note">
                   {{ note }}
                 </option>
@@ -83,7 +83,7 @@
             </label>
             <div class="select">
               <select :value="handler.getChordType()"
-                @change="(e) => handler.updateChordType((e.target as HTMLSelectElement).value)">
+                @change="(e: Event) => handler.updateChordType((e.target as HTMLSelectElement).value)">
                 <option value="maj">Major</option>
                 <option value="min">Minor</option>
               </select>
@@ -95,7 +95,7 @@
                 Capo Position
             </label>
             <input class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" type="number" :value="handler.getCapo()"
-              @input="(e) => handler.updateCapo(parseInt((e.target as HTMLInputElement).value) || 0)" min="0" />
+              @input="(e: Event) => handler.updateCapo(parseInt((e.target as HTMLInputElement).value) || 0)" min="0" />
           </div>
           <div class="space-y-2">
             <label for="name" class="block text-sm font-medium text-gray-700">

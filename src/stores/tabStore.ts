@@ -19,23 +19,49 @@ export const useTabStore = defineStore('tab', {
     currentBlockId: 0,
     currentBeatId: 0,
     currentString: 0,
+    typeOfNote: 'e', // Default to 8th note
     currentSelection: [] as TabPosition[],
+    selectionVersion: 0,
     isLoading: false,
     error: null as string | null
   }),
 
   getters: {
     // Bridge to existing Song data
-    tracks: (): Track[] => Song.tracks,
+    tracks: (): Track[] => {
+      return Song.tracks.map((t: any) => {
+        // Alias strings to tuning
+        if (!t.tuning && t.strings) {
+          t.tuning = t.strings;
+        }
+        // Alias program to instrument if instrument is missing
+        if (t.instrument === undefined && t.program !== undefined) {
+          t.instrument = t.program;
+        }
+        return t;
+      });
+    },
     songDescription: (): SongDescription => Song.songDescription,
     measureMeta: (): MeasureMeta[] => Song.measureMeta,
     
     getTrack: (state) => (trackId: number): Track | undefined => {
-      return Song.tracks[trackId]
+      const t: any = Song.tracks[trackId]
+      if (!t) return undefined
+      
+      // Alias strings to tuning
+      if (!t.tuning && t.strings) {
+        t.tuning = t.strings;
+      }
+      // Alias program to instrument if instrument is missing
+      if (t.instrument === undefined && t.program !== undefined) {
+        t.instrument = t.program;
+      }
+      return t
     },
     
     getMeasures: (state) => (trackId: number, voiceId: number): Measure[][] => {
-      return Song.measures[trackId] || []
+      if (!Song.measures[trackId]) return [];
+      return Song.measures[trackId].map(block => block[voiceId]);
     },
     
     getChordsMap: (state) => (trackId: number): ChordsMap => {
@@ -60,6 +86,10 @@ export const useTabStore = defineStore('tab', {
   },
 
   actions: {
+    setTypeOfNote(type: string) {
+      this.typeOfNote = type
+    },
+
     setCurrentPosition(position: TabPosition) {
       this.currentTrackId = position.trackId
       this.currentVoiceId = position.voiceId
@@ -82,6 +112,11 @@ export const useTabStore = defineStore('tab', {
     
     setSelection(selection: TabPosition[]) {
       this.currentSelection = selection
+      this.selectionVersion++
+    },
+
+    incrementSelectionVersion() {
+      this.selectionVersion++
     },
     
     clearSelection() {
@@ -114,6 +149,7 @@ export const useTabStore = defineStore('tab', {
     
     updateMeasure(trackId: number, blockId: number, voiceId: number, measureData: Measure[]) {
       if (Song.measures[trackId]?.[blockId]) {
+        // @ts-ignore - Legacy type mismatch
         Song.measures[trackId][blockId][voiceId] = measureData
       }
     },
@@ -122,7 +158,13 @@ export const useTabStore = defineStore('tab', {
       if (!Song.chordsMap[trackId]) {
         Song.chordsMap[trackId] = new Map()
       }
-      Song.chordsMap[trackId].set(chordName, chord)
+      const songChord: any = {
+        ...chord,
+        chordType: chord.chordType || '',
+        chordRoot: chord.chordRoot || '',
+        fingers: chord.fingers || []
+      }
+      Song.chordsMap[trackId].set(chordName, songChord)
     },
     
     removeChord(trackId: number, chordName: string) {
