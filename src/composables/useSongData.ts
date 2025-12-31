@@ -124,10 +124,9 @@ export function useSongData() {
     EventBus.off('song-data-changed', syncSongData)
   }
   
-  // Watch for changes to the original Song data
-  watch(() => Song.measures, () => {
-    syncSongData()
-  }, { deep: true })
+  // Note: We cannot use Vue watch on Song.measures because it's a plain object
+  // outside of Vue's reactivity system. All changes to Song.measures must
+  // explicitly call syncSongData() or emit 'song-data-changed' via EventBus.
   
   return {
     reactiveSongData,

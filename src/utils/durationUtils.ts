@@ -83,11 +83,27 @@ export function getBeamCount(duration: string | undefined): number {
 }
 
 /**
- * Check if a beat has any actual notes (not all null)
+ * Check if a beat has any actual notes (not all null/undefined/empty)
+ * This is critical for determining whether to show rests
  */
 export function beatHasNotes(beat: any): boolean {
-  if (!beat?.notes) return false
-  return beat.notes.some((note: any) => note !== null)
+  if (!beat) return false
+  if (!beat.notes) return false
+  if (!Array.isArray(beat.notes)) return false
+  if (beat.notes.length === 0) return false
+  
+  // Check each position in the notes array
+  for (let i = 0; i < beat.notes.length; i++) {
+    const note = beat.notes[i]
+    // Skip null/undefined
+    if (note === null || note === undefined) continue
+    // Check if it's an actual note object with a fret
+    if (typeof note === 'object' && note.fret !== undefined) {
+      return true
+    }
+  }
+  
+  return false
 }
 
 /**

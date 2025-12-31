@@ -37,22 +37,19 @@ const CODE_TO_DURATION: Record<string, string> = {
   't': 'thirty-second', 'tr': 'thirty-second'
 }
 
+// SINGLETON STATE - shared across all components using this composable
+// This ensures all components see the same selection state
+const currentSelection = ref<TabSelection | null>(null)
+const clipboard = ref<any>(null)
+const toolbarVisible = ref(false)
+const selectedNote = ref<any>(null)
+
 /**
  * Composable for managing tab selection state
+ * 
+ * NOTE: This uses singleton state - all components share the same selection
  */
 export function useTabSelection() {
-  // Current selection
-  const currentSelection = ref<TabSelection | null>(null)
-  
-  // Clipboard for copy/paste
-  const clipboard = ref<any>(null)
-  
-  // Toolbar visibility
-  const toolbarVisible = ref(false)
-  
-  // Selected note data (for toolbar display)
-  const selectedNote = ref<any>(null)
-  
   /**
    * Check if there's an active selection
    */
@@ -75,6 +72,8 @@ export function useTabSelection() {
         beatId: beatIndex,
         string: stringIndex
       }
+      // Mark that user has explicitly clicked to select a position
+      tab.hasExplicitSelection = true
       
       // Update selected note data for toolbar
       const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
@@ -101,6 +100,8 @@ export function useTabSelection() {
   function clearSelection() {
     setSelection(null)
     toolbarVisible.value = false
+    // Clear explicit selection flag to prevent accidental note entry
+    tab.hasExplicitSelection = false
   }
   
   /**

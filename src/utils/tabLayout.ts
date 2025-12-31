@@ -12,7 +12,17 @@ export const TAB_CONSTANTS = {
   MEASURE_WIDTH: 200,
   BEAT_WIDTH: 40,
   TAB_LABEL_WIDTH: 32,
-  START_PADDING: 15
+  START_PADDING: 15,
+  MIN_BEAT_DISPLAY_WIDTH: 20  // Minimum width for short notes (ensures clickability)
+}
+
+/**
+ * Calculate the display width of a beat (with minimum for clickability)
+ */
+export function getDisplayWidth(duration: string | undefined): number {
+  const beats = getDurationBeats(duration || 'q')
+  const naturalWidth = beats * TAB_CONSTANTS.BEAT_WIDTH
+  return Math.max(naturalWidth, TAB_CONSTANTS.MIN_BEAT_DISPLAY_WIDTH)
 }
 
 /**

@@ -101,7 +101,7 @@ import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
 import Song from '../../assets/js/songData'
 import EventBus from '../../assets/js/eventBus'
-import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Local type definitions to avoid import issues
 interface TabRow {
@@ -259,8 +259,7 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
     // Iterate through beats to find the one at this position
     for (let i = 0; i < measureData.length; i++) {
       const beat = measureData[i]
-      const duration = getDurationInBeats(beat?.duration || 'q')
-      const width = duration * beatWidth
+      const width = getDisplayWidth(beat?.duration)
       
       if (beatX >= currentBeatX && beatX < currentBeatX + width) {
         foundBeatIndex = i
@@ -320,13 +319,11 @@ function getSelectionX(): number {
   if (measureData) {
     for (let i = 0; i < selectedPosition.value.beatIndex; i++) {
       const beat = measureData[i]
-      const duration = getDurationInBeats(beat?.duration || 'q')
-      beatX += duration * beatWidth
+      beatX += getDisplayWidth(beat?.duration)
     }
-    // Add half of the current beat's width to center the selection
+    // Add half of the current beat's display width to center the selection
     const currentBeat = measureData[selectedPosition.value.beatIndex]
-    const currentDuration = getDurationInBeats(currentBeat?.duration || 'q')
-    beatX += (currentDuration * beatWidth) / 2
+    beatX += getDisplayWidth(currentBeat?.duration) / 2
   }
   
   return tabOffset + measureX + padding + beatX
@@ -374,6 +371,11 @@ function setNoteAtSelection(fret: number) {
   
   // Notify via EventBus for syncSongData to update reactive proxy
   EventBus.emit('song-data-changed')
+  
+  // Also dispatch DOM event for GuitarTabView
+  window.dispatchEvent(new CustomEvent('songDataChanged', {
+    detail: { trackId, blockId: selectedPosition.value.blockId, voiceId, beatIndex, stringIndex }
+  }))
 }
 
 // Expose the setNoteAtSelection function to parent components

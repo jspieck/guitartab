@@ -33,6 +33,9 @@ class Tab {
 
   markedNoteObj: {trackId: number, voiceId: number, blockId: number,
     beatId: number, string: number};
+  
+  // Flag to track if user has explicitly clicked to select a note position
+  hasExplicitSelection: boolean;
 
   tupletManager: {originalDuration: string}[];
 
@@ -61,6 +64,7 @@ class Tab {
       beatId: 0,
       string: 0,
     };
+    this.hasExplicitSelection = false;
     this.isDinA4 = false;
     this.tupletManager = [];
     this.tupletIdCounter = 0;

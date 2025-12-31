@@ -67,7 +67,7 @@ import TabNote from './TabNote.vue'
 import TabEffects from './TabEffects.vue'
 import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
-import { getDurationInBeats, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
 interface Props {
@@ -114,12 +114,12 @@ const chordsToShow = computed(() => {
 
 // Methods
 function getBeatXOffset(beatIndex: number): number {
-  let beats = 0
+  let x = 0
   for (let i = 0; i < beatIndex; i++) {
     const beat = props.measureData[i]
-    beats += getDurationInBeats(beat?.duration || 'q')
+    x += getDisplayWidth(beat?.duration)
   }
-  return props.contentPadding + START_PADDING + (beats * BEAT_WIDTH)
+  return props.contentPadding + START_PADDING + x
 }
 </script>
 
