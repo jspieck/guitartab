@@ -30,9 +30,9 @@
     
     <!-- TAB label for first row -->
     <g v-if="isFirstRow" class="tab-label">
-      <text x="15" :y="-stringSpacing" font-family="Source Sans Pro" font-size="16px" fill="#000">T</text>
-      <text x="15" y="0" font-family="Source Sans Pro" font-size="16px" fill="#000">A</text>
-      <text x="15" :y="stringSpacing" font-family="Source Sans Pro" font-size="16px" fill="#000">B</text>
+      <text x="15" :y="stringSpacing * 1.5" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">T</text>
+      <text x="15" :y="stringSpacing * 3.0" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">A</text>
+      <text x="15" :y="stringSpacing * 4.5" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">B</text>
     </g>
     
     <!-- Measures -->
@@ -46,6 +46,7 @@
       :x-offset="getMeasureXOffset(measureIndex)"
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
+      :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
     />
     
     <!-- Measure metadata (time signatures, BPM, etc.) -->
@@ -55,7 +56,7 @@
       :measure-meta="getMeasureMeta(rowData.startBlockId + measureIndex)"
       :block-id="rowData.startBlockId + measureIndex"
       :x-offset="getMeasureXOffset(measureIndex) + 10"
-      :y-offset="-10"
+      :y-offset="(numStrings - 1) * stringSpacing / 2"
     />
     
     <!-- Selection indicators -->
@@ -127,6 +128,7 @@ const stringSpacing = 12
 const measureWidth = 200 // Base width per measure - must match TabMeasure
 const beatWidth = 40 // Width per beat - must match TabMeasure  
 const tabLabelWidth = 32 // Width for the TAB label
+const START_PADDING = 15 // Padding at start of measure - must match TabMeasure
 
 // Selection state
 const selectedPosition = ref<{
@@ -178,6 +180,30 @@ function getMeasureMeta(blockId: number) {
     repeatAlternative: 0,
     markerPresent: false,
     marker: { text: '', color: { red: 0, green: 0, blue: 0 } }
+  }
+}
+
+function getMeasureContentPadding(blockId: number): number {
+  const meta = getMeasureMeta(blockId);
+  let padding = 10; // Default padding
+  if (meta.timeMeterPresent) {
+    padding += 25; // Space for time signature
+  }
+  if (meta.repeatOpen) {
+    padding += 15;
+  }
+  return padding;
+}
+
+function getDurationInBeats(duration: string): number {
+  switch (duration) {
+    case 'w': case 'wr': case 'whole': return 4;
+    case 'h': case 'hr': case 'half': return 2;
+    case 'q': case 'qr': case 'quarter': return 1;
+    case 'e': case 'er': case 'eighth': return 0.5;
+    case 's': case 'sr': case 'sixteenth': return 0.25;
+    case 't': case 'tr': case 'thirty-second': return 0.125;
+    default: return 1;
   }
 }
 
@@ -235,9 +261,37 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
   
   if (measureIndex >= 0 && measureIndex < props.rowData.measures.length) {
     // Calculate beat within the measure using the same logic as TabMeasure
-    const beatX = relativeX % measureWidth
-    const beatIndex = Math.floor(beatX / beatWidth) // Use beatWidth instead of measureWidth/4
     const blockId = props.rowData.startBlockId + measureIndex
+    const padding = getMeasureContentPadding(blockId) + START_PADDING
+    
+    const beatX = (relativeX % measureWidth) - padding
+    
+    // Find which beat corresponds to this X position
+    const measureData = props.rowData.measures[measureIndex]
+    let currentX = 0
+    let foundBeatIndex = -1
+    
+    // Iterate through beats to find the one at this position
+    for (let i = 0; i < measureData.length; i++) {
+      const beat = measureData[i]
+      const duration = getDurationInBeats(beat?.duration || 'q')
+      const width = duration * beatWidth
+      
+      if (beatX >= currentX && beatX < currentX + width) {
+        foundBeatIndex = i
+        break
+      }
+      
+      currentX += width
+    }
+    
+    // If we didn't find a beat (clicked past the end), default to the last one or clamp
+    if (foundBeatIndex === -1) {
+      if (beatX < 0) foundBeatIndex = 0
+      else foundBeatIndex = measureData.length - 1
+    }
+    
+    const beatIndex = foundBeatIndex
     
     console.log('Setting selection:', {
       stringIndex,
@@ -247,11 +301,12 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       beatX,
       relativeX,
       beatWidth,
+      padding,
       calculatedBeatIndex: beatIndex
     })
     
-    // Clamp beatIndex to valid range (0-4 for 4 beats per measure, but allow up to 8)
-    const clampedBeatIndex = Math.max(0, Math.min(beatIndex, 7))
+    // Clamp beatIndex to valid range
+    const clampedBeatIndex = Math.max(0, Math.min(beatIndex, measureData.length - 1))
     
     // Set the selection
     selectedPosition.value = {
@@ -287,9 +342,25 @@ function getSelectionX(): number {
   
   const tabOffset = props.isFirstRow ? tabLabelWidth : 0
   const measureX = selectedPosition.value.measureIndex * measureWidth
-  const beatX = selectedPosition.value.beatIndex * beatWidth + (beatWidth / 2) // Center of beat using beatWidth
   
-  return tabOffset + measureX + beatX
+  // Get padding for this specific measure
+  const padding = getMeasureContentPadding(selectedPosition.value.blockId) + START_PADDING
+  
+  // Calculate beat X position based on variable durations
+  let beatX = 0
+  const measureData = props.rowData.measures[selectedPosition.value.measureIndex]
+  if (measureData) {
+    for (let i = 0; i < selectedPosition.value.beatIndex; i++) {
+      const beat = measureData[i]
+      beatX += getDurationInBeats(beat?.duration || 'q') * beatWidth
+    }
+    // Add half of the current beat's width to center the selection
+    const currentBeat = measureData[selectedPosition.value.beatIndex]
+    const currentDuration = getDurationInBeats(currentBeat?.duration || 'q')
+    beatX += (currentDuration * beatWidth) / 2
+  }
+  
+  return tabOffset + measureX + padding + beatX
 }
 
 function getSelectionY(): number {

@@ -455,7 +455,9 @@ class SvgDrawer {
       / Song.measureMeta[blockId].denominator;
     const posPercentage = posInBlock / (64 * timeQuotient);
 
-    xPos += (tab.finalBlockWidths[trackId][voiceId][blockId] - leftOffset) * posPercentage;
+    if (tab.finalBlockWidths[trackId] && tab.finalBlockWidths[trackId][voiceId]) {
+      xPos += (tab.finalBlockWidths[trackId][voiceId][blockId] - leftOffset) * posPercentage;
+    }
     // console.log(xPos + " "+posPercentage);
     this.movePlayBackBarToXPos(trackId, blockId, voiceId, pageId, xPos, timing);
   }
