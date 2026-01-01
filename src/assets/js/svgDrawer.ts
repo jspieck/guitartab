@@ -361,7 +361,7 @@ class SvgDrawer {
   }
 
   hidePlayBackBars() {
-    for (let i = 0, n = this.playBackBarObjects.length; i < n; i = 1) {
+    for (let i = 0, n = this.playBackBarObjects.length; i < n; i += 1) {
       this.playBackBarObjects[i].style.display = 'none';
     }
   }
@@ -454,9 +454,11 @@ class SvgDrawer {
     }
     
     if (mGroup.childNodes && mGroup.childNodes.length > 0) {
-      (mGroup.childNodes[0] as HTMLElement).style.height = (
-        this.getPositionMarkerHeight(trackId) - staveBegin
-      ).toString();
+      if (mGroup.childNodes && mGroup.childNodes.length > 0) {
+        (mGroup.childNodes[0] as SVGElement).setAttribute('height', (
+          this.getPositionMarkerHeight(trackId) - staveBegin
+        ).toString());
+      }
     }
     
     // console.log(trackId, blockId, voiceId, beatId);
@@ -470,7 +472,7 @@ class SvgDrawer {
     timing: number,
   ) {
     // Guard against uninitialized data
-    if (!this.blockToX?.[trackId]?.[blockId]?.[voiceId] === undefined) {
+    if (this.blockToX?.[trackId]?.[blockId]?.[voiceId] === undefined) {
       return;
     }
     const pageId = this.blockToPage[blockId];
@@ -520,6 +522,11 @@ class SvgDrawer {
         mGroup.style.display = 'block';
         this.lastPlayBackBarPageId = pageId;
       }
+
+      if (!this.rowToY[trackId] || !this.rowToY[trackId][voiceId] || this.rowToY[trackId][voiceId][rowId] === undefined) {
+        return;
+      }
+
       let yPos = this.rowToY[trackId][voiceId][rowId];
       let staveBegin = 0;
       if (Settings.vexFlowIsActive) {
@@ -528,9 +535,9 @@ class SvgDrawer {
       }
       
       if (mGroup.childNodes && mGroup.childNodes.length > 0) {
-        (mGroup.childNodes[0] as HTMLElement).style.height = (
+        (mGroup.childNodes[0] as SVGElement).setAttribute('height', (
           this.getPositionMarkerHeight(trackId) - staveBegin + 10
-        ).toString();
+        ).toString());
       }
 
       // console.log("R1 ", xPos, yPos, timing);
@@ -574,6 +581,9 @@ class SvgDrawer {
 
     let currentPos = 0;
     if (this.jumpToNewPos) { // After end of row was reached
+      if (this.blockToX?.[trackId]?.[currentBlockId]?.[voiceId] === undefined) {
+        return;
+      }
       currentPos = Helper.getBeatPosX(trackId, currentBlockId, voiceId, currentBeatId)
         + this.blockToX[trackId][currentBlockId][voiceId];
       this.jumpToNewPos = false;
@@ -761,7 +771,7 @@ class SvgDrawer {
      * at the top of the page (triggered when playing the song)
      */
     if (!AppManager.duringTrackCreation) {
-      const pageId = this.blockToPage[blockId];
+      const pageId = this.blockToPage[blockId] || 0;
       const PAGE_POSITION = this.FIRST_PAGE_TOP_MARGIN
         + this.getYPosOfPage(pageId) * Settings.currentZoom;
 
@@ -772,17 +782,25 @@ class SvgDrawer {
       }
       TAB_GROUP_OFFSET *= Settings.currentZoom;
 
-      const SCROLL_TOP_MARGIN = this.getOverBarHeight(Song.currentTrackId,
-        Song.currentVoiceId, rowId) * Settings.currentZoom;
+      const trackId = Song.currentTrackId;
+      const voiceId = Song.currentVoiceId;
+
+      if (!this.rowToY[trackId] || !this.rowToY[trackId][voiceId] || this.rowToY[trackId][voiceId][rowId] === undefined) {
+        return;
+      }
+
+      const SCROLL_TOP_MARGIN = this.getOverBarHeight(trackId, voiceId, rowId) * Settings.currentZoom;
 
       const newScrollPos = PAGE_POSITION + TAB_GROUP_OFFSET
-        + this.rowToY[Song.currentTrackId][Song.currentVoiceId][rowId]
+        + this.rowToY[trackId][voiceId][rowId]
         * Settings.currentZoom - SCROLL_TOP_MARGIN;
 
       const mainContentDiv = document.getElementById('mainContent')!;
-      Helper.scrollToPure(mainContentDiv, this.scrollTopMC, newScrollPos, 800);
-      console.log('Scroll to', rowId, blockId, this.scrollTopMC, newScrollPos);
-      this.scrollTopMC = newScrollPos;
+      if (mainContentDiv) {
+        Helper.scrollToPure(mainContentDiv, this.scrollTopMC, newScrollPos, 800);
+        console.log('Scroll to', rowId, blockId, this.scrollTopMC, newScrollPos);
+        this.scrollTopMC = newScrollPos;
+      }
     }
   }
 
@@ -1286,6 +1304,11 @@ class SvgDrawer {
   }
 
   getOverBarHeight(trackId: number, voiceId: number, rowId: number) {
+    if (!this.heightOfRow[trackId] || 
+        !this.heightOfRow[trackId][voiceId] || 
+        this.heightOfRow[trackId][voiceId][rowId] === undefined) {
+      return 0;
+    }
     return this.heightOfRow[trackId][voiceId][rowId] - this.getBlockHeight(trackId);
   }
 
