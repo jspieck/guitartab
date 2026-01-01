@@ -642,7 +642,8 @@ class AudioEngine {
       return null;
     }
     // console.log(instrumentId, note);
-    const res = this.theSynth.noteOn(instrumentId, note, velocity);
+    const channelIndex = Song.tracks[trackId].channel?.index || 0;
+    const res = this.theSynth.noteOn(instrumentId, note, velocity, channelIndex);
     const source = this.context.createBufferSource();
 
     if (Song.tracks[trackId].letItRing

@@ -323,7 +323,6 @@ const layoutPresets = [
 const availablePanels = [
   { id: 'track-selector', name: 'Track Selector', icon: '🎸', component: 'TabTrackSelector' },
   { id: 'tab-view', name: 'Tab View', icon: '🎼', component: 'GuitarTabView' },
-  { id: 'toolbar', name: 'Toolbar', icon: '🔧', component: 'TabToolbar' },
   { id: 'chord-library', name: 'Chord Library', icon: '📚', component: 'ChordLibrary' },
   { id: 'playback-controls', name: 'Playback', icon: '▶️', component: 'PlaybackControls' },
   { id: 'properties', name: 'Properties', icon: '⚙️', component: 'PropertiesPanel' },

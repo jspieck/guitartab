@@ -1074,11 +1074,17 @@ class PlayBackLogic {
       svgDrawer.markCurrentNotes(currentNote);
       visualInstruments.updatePianoAndGuitar(currentNote);
 
-      // change row if necessary
+      // change row if necessary - guard against uninitialized data
+      if (!tab.blockToRow?.[Song.currentTrackId]?.[voiceId]?.[this.currentBlockPP]) {
+        return;
+      }
       const currentRow = tab.blockToRow[Song.currentTrackId][voiceId][this.currentBlockPP].rowId;
       if (this.lastRow !== currentRow || this.wasTrackChanged) {
         if (this.lastRow !== -1 && !this.wasTrackChanged) {
-          document.getElementById(`songFader_${Song.currentTrackId}_${voiceId}_${this.lastRow}`)!.style.display = "none";
+          const faderEl = document.getElementById(`songFader_${Song.currentTrackId}_${voiceId}_${this.lastRow}`);
+          if (faderEl) {
+            faderEl.style.display = "none";
+          }
         }
         if (Settings.scrollingEnabled) {
           svgDrawer.scrollToSvgPos(currentRow, this.currentBlockPP);

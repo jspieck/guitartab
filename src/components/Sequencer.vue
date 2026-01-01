@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, Ref, onMounted, onUpdated, onBeforeUnmount } from 'vue';
+import { computed, reactive, ref, Ref, onMounted, onUpdated, onBeforeUnmount, watch } from 'vue';
 import fastdom from 'fastdom';
 import Settings from '../assets/js/settingManager';
 import { audioEngine } from '../assets/js/audioEngine';
@@ -116,6 +116,7 @@ import { AddTrackModalHandler } from '../assets/js/modals/addTrackModalHandler';
 import { DeleteTrackModalHandler } from '../assets/js/modals/deleteTrackModalHandler';
 import { MODALS } from "../assets/js/modals/modalTypes";
 import { sequencerHandler } from '../assets/js/sequencerHandler';
+import EventBus from '../assets/js/eventBus';
 
 const colorPalette = ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#99B898', '#FECEAB', '#FF847C', '#E84A5F', '#2A363B'];
 const SEQUENCER_BLOCK_WIDTH = 30;
@@ -136,8 +137,15 @@ const indicatorLineHeight = ref(0);
 const indicatorLeft = ref(0);
 const indicatorCellTop = ref(0);
 
-const instrumentLabelName = reactive(Song.tracks?.map(track => track?.name || '') || []);
+// Track names - use a ref that we update when song changes
+const instrumentLabelName = ref<string[]>(Song.tracks?.map(track => track?.name || '') || []);
 const activeInstrumentIndex = ref(Song.currentTrackId);
+
+// Update track names when song data changes
+const updateTrackNames = () => {
+    instrumentLabelName.value = Song.tracks?.map(track => track?.name || '') || [];
+    activeInstrumentIndex.value = Song.currentTrackId;
+};
 
 // Register with SequencerHandler
 sequencerHandler.registerEditModeActiveRef(editModeActive);
@@ -181,6 +189,12 @@ onMounted(() => {
     // Initialize scroll positions
     sequencerScrollTop.value = 0;
     sequencerScrollLeft.value = 0;
+    // Initialize track names
+    updateTrackNames();
+    
+    // Listen for song data changes to update track names
+    EventBus.on('song-data-changed', updateTrackNames);
+    EventBus.on('ui.trackChanged', updateTrackNames);
 });
 
 onUpdated(() => {
@@ -188,6 +202,10 @@ onUpdated(() => {
 });
 
 onBeforeUnmount(() => {
+    // Cleanup event listeners
+    EventBus.off('song-data-changed', updateTrackNames);
+    EventBus.off('ui.trackChanged', updateTrackNames);
+    
     // Cleanup: unregister all fader contexts
     sequencerHandler.unregisterFaderContext(0); // Master
     for (let i = 1; i <= Song.tracks.length; i++) {
@@ -222,10 +240,10 @@ const numBlocks = computed(() => {
 })
 
 const handleKeyUp = (trackId: number) => {
-    if (!Song.tracks || !Song.tracks[trackId] || !instrumentLabelName[trackId]) {
+    if (!Song.tracks || !Song.tracks[trackId] || !instrumentLabelName.value[trackId]) {
         return;
     }
-    Song.tracks[trackId].name = instrumentLabelName[trackId];
+    Song.tracks[trackId].name = instrumentLabelName.value[trackId];
 }
 
 const beatStyle = (trackId: number, index: number) => {
