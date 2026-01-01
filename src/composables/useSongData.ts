@@ -2,36 +2,38 @@ import { reactive, ref, watch } from 'vue'
 import Song from '../assets/js/songData'
 import EventBus from '../assets/js/eventBus'
 
+// SINGLETON STATE
+const songDataVersion = ref(0)
+const reactiveSongData = reactive({
+  measures: Song.measures,
+  songDescription: Song.songDescription,
+  tracks: Song.tracks,
+  measureMeta: Song.measureMeta,
+  playBackInstrument: Song.playBackInstrument,
+  currentTrackId: Song.currentTrackId,
+  currentVoiceId: Song.currentVoiceId
+})
+
 /**
  * Composable for managing reactive song data
  * Bridges the gap between Vue reactivity and the legacy Song object
  */
 export function useSongData() {
-  // Version tracker for forcing re-renders
-  const songDataVersion = ref(0)
-  
-  // Create a reactive proxy of Song data for Vue components
-  const reactiveSongData = reactive({
-    measures: Song.measures,
-    songDescription: Song.songDescription,
-    tracks: Song.tracks,
-    measureMeta: Song.measureMeta,
-    playBackInstrument: Song.playBackInstrument
-  })
-  
   /**
    * Sync Song data to reactive proxy
    * Creates a deep copy to ensure Vue reactivity detects changes
    */
   function syncSongData() {
     reactiveSongData.measures = JSON.parse(JSON.stringify(Song.measures))
-    reactiveSongData.songDescription = { ...Song.songDescription }
-    reactiveSongData.tracks = [...Song.tracks]
-    reactiveSongData.measureMeta = [...Song.measureMeta]
-    reactiveSongData.playBackInstrument = [...Song.playBackInstrument]
+    reactiveSongData.songDescription = JSON.parse(JSON.stringify(Song.songDescription))
+    reactiveSongData.tracks = JSON.parse(JSON.stringify(Song.tracks))
+    reactiveSongData.measureMeta = JSON.parse(JSON.stringify(Song.measureMeta))
+    reactiveSongData.playBackInstrument = JSON.parse(JSON.stringify(Song.playBackInstrument))
+    reactiveSongData.currentTrackId = Song.currentTrackId
+    reactiveSongData.currentVoiceId = Song.currentVoiceId
     songDataVersion.value++
   }
-  
+
   /**
    * Get measures for a specific track and voice
    */
@@ -112,24 +114,6 @@ export function useSongData() {
     window.dispatchEvent(event)
   }
   
-  /**
-   * Initialize song data event listeners
-   */
-  function initEventListeners() {
-    EventBus.on('song-data-changed', syncSongData)
-  }
-  
-  /**
-   * Clean up event listeners
-   */
-  function cleanupEventListeners() {
-    EventBus.off('song-data-changed', syncSongData)
-  }
-  
-  // Note: We cannot use Vue watch on Song.measures because it's a plain object
-  // outside of Vue's reactivity system. All changes to Song.measures must
-  // explicitly call syncSongData() or emit 'song-data-changed' via EventBus.
-  
   return {
     reactiveSongData,
     songDataVersion,
@@ -137,8 +121,12 @@ export function useSongData() {
     getMeasures,
     getBeat,
     getNote,
-    setNote,
-    initEventListeners,
-    cleanupEventListeners
+    setNote
   }
 }
+
+// Initialize listener once for the singleton
+EventBus.on('song-data-changed', () => {
+  const { syncSongData } = useSongData()
+  syncSongData()
+})

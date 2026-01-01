@@ -6,6 +6,7 @@ import { sequencerHandler } from '../sequencerHandler';
 import { tab } from '../tab';
 import AppManager from '../appManager';
 import fastdom from 'fastdom';
+import EventBus from '../eventBus';
 
 export class DeleteTrackModalHandler extends BaseModalHandler {
     readonly modalType = 'DeleteTrackModal' as const;
@@ -45,6 +46,7 @@ export class DeleteTrackModalHandler extends BaseModalHandler {
         
         this.updateMarkedNote(trackId);
         this.updateCurrentTrack(trackId);
+        EventBus.emit('song-data-changed');
     }
 
     private updateMarkedNote(trackId: number) {

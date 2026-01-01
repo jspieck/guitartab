@@ -105,9 +105,7 @@ const {
   reactiveSongData, 
   songDataVersion, 
   syncSongData, 
-  setNote,
-  initEventListeners,
-  cleanupEventListeners 
+  setNote
 } = useSongData()
 
 const {
@@ -563,7 +561,6 @@ function addSampleNotes() {
 
 // Lifecycle
 onMounted(() => {
-  initEventListeners()
   addSampleNotes()
   
   // Initialize playback bar for legacy svgDrawer support
@@ -584,7 +581,6 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  cleanupEventListeners()
   window.removeEventListener('songDataChanged', handleSongDataChange)
   window.removeEventListener('noteSelected', handleNoteSelection)
   window.removeEventListener('mousedown', handleGlobalClick)
