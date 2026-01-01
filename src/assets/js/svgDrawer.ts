@@ -857,6 +857,9 @@ class SvgDrawer {
 
   static getNumChords(trackId: number) {
     let numChords = 0;
+    if (!Song.chordsMap[trackId]) {
+      return 0;
+    }
     for (const chord of Song.chordsMap[trackId].values()) {
       if (chord.display) {
         numChords += 1;
@@ -882,9 +885,11 @@ class SvgDrawer {
   redrawChordDiagrams() {
     let trackRerendered = false;
     if (this.NUM_CHORD_DIAGRAM_ROWS === this.getNumChordDiagramRows(Song.currentTrackId)) {
-      const cGroup = document.getElementById('chordInformationGroup')!;
-      Helper.removeAllChildren(cGroup);
-      this.drawChordDiagrams(Song.currentTrackId, cGroup as unknown as SVGGElement);
+      const cGroup = document.getElementById('chordInformationGroup');
+      if (cGroup) {
+        Helper.removeAllChildren(cGroup);
+        this.drawChordDiagrams(Song.currentTrackId, cGroup as unknown as SVGGElement);
+      }
     } else {
       tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
       trackRerendered = true;
@@ -893,6 +898,7 @@ class SvgDrawer {
   }
 
   drawChordDiagrams(trackId: number, chordInformationGroup: SVGGElement) {
+    if (!chordInformationGroup) return null;
     let chordCounter = 0;
     let chordId = 0;
     let chordRowNum = 0;
@@ -968,13 +974,14 @@ class SvgDrawer {
 
     for (let i = 0; i < NUMSTRINGS; i += 1) {
       const xPos = (i * this.DIA_WIDTH) / (NUMSTRINGS - 1);
-      if (frets[5 - i] === -1) {
+      const fretVal = frets[5 - i];
+      if (fretVal === -1 || fretVal === undefined) {
         const cross = SvgDrawer.createPath(`M${xPos - 3} -13L${xPos + 3} -5M${xPos + 3} -13L${xPos - 3} -5`, '#333', '1', 'none');
         cross.setAttribute('class', 'chordCross');
         chordDiagram.appendChild(cross);
-      } else if (frets[5 - i] - (capo - 1) !== 0) {
-        const fret = capo > 1 ? frets[5 - i] - capo + 1 : frets[5 - i] - capo;
-        const yPos = this.DIA_HEIGHT / (2 * HOSTEPS) + this.DIA_HEIGHT / (HOSTEPS * fret);
+      } else if (fretVal - (capo - 1) !== 0) {
+        const fret = capo > 1 ? fretVal - capo + 1 : fretVal - capo;
+        const yPos = this.DIA_HEIGHT / (2 * HOSTEPS) + (this.DIA_HEIGHT / HOSTEPS) * (fret - 1);
         console.log(xPos, yPos);
         const circle = SvgDrawer.createCircle(xPos, yPos, 4, 'none', '1', 'black');
         chordDiagram.appendChild(circle);

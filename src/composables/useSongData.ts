@@ -24,6 +24,11 @@ export function useSongData() {
    * Creates a deep copy to ensure Vue reactivity detects changes
    */
   function syncSongData() {
+    console.log('Syncing song data...', {
+      tracks: Song.tracks.length,
+      measures: Song.measures.length,
+      currentTrackId: Song.currentTrackId
+    });
     reactiveSongData.measures = JSON.parse(JSON.stringify(Song.measures))
     reactiveSongData.songDescription = JSON.parse(JSON.stringify(Song.songDescription))
     reactiveSongData.tracks = JSON.parse(JSON.stringify(Song.tracks))
