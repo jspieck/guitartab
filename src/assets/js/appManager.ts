@@ -373,6 +373,9 @@ const AppManager = {
     sequencerHandler.drawBeat();
     sequencerHandler.setIndicator(0, 0);
     modalManager.closeAllModals();
+    
+    // Notify that song data has changed to update reactive components
+    EventBus.emit('song-data-changed');
   },
 
   changeTrack(trackId: number, voiceId: number, force: boolean, callback: (() => void) | null) {
@@ -398,6 +401,8 @@ const AppManager = {
     tab.markedNoteObj.beatId = 0;
     tab.markedNoteObj.string = 0;
     tab.drawTrack(trackId, voiceId, true, callback);
+    
+    EventBus.emit('song-data-changed');
   },
 
   saveAsGt(promptDialog: boolean) {
@@ -494,6 +499,7 @@ const AppManager = {
   setTracks(trackId: number) {
     this.setPlayBackInstrument(trackId);
     audioEngine.updateBusses(Song.playBackInstrument);
+    EventBus.emit('song-data-changed');
   },
 
   setTimeMeterToAllTracks() {

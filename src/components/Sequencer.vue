@@ -60,7 +60,7 @@
                 <div id="sequencerMain">
                     <div id="sequencerMainHeader" :style="{ scrollLeft: sequencerScrollLeft + 'px' }">
                         <div class="sequencerOneBlock"
-                            @click="sequencerClick($event, Song.currentTrackId, Song.currentVoiceId)"
+                            @click="sequencerClick($event, reactiveSongData.currentTrackId, reactiveSongData.currentVoiceId)"
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                             <span v-for="blockId in numBlocks" :key="blockId" class="beat beatNumber">
                                 {{ blockId - 1 }}
@@ -71,7 +71,7 @@
                     </div>
                     <div id="sequencerMainBody" @scroll="sequencerScrollEvent">
                         <div id="masterRow" class="sequencerOneBlock"
-                            @click="sequencerClick($event, Song.currentTrackId, Song.currentVoiceId)"
+                            @click="sequencerClick($event, reactiveSongData.currentTrackId, reactiveSongData.currentVoiceId)"
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                             <div v-for="blockId in numBlocks" :key="blockId"
                                 :id="`sequenceMaster_${blockId - 1}`" class="beat masterBeat">
@@ -80,7 +80,7 @@
                             </div>
                         </div>
                         <template v-for="(track, trackId) in reactiveSongData.tracks" :key="trackId">
-                            <div class="sequencerOneBlock" @click="sequencerClick($event, trackId, Song.currentVoiceId)"
+                            <div class="sequencerOneBlock" @click="sequencerClick($event, trackId, reactiveSongData.currentVoiceId)"
                                 @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                                 <span v-for="blockId in numBlocks" :key="blockId"
                                     :id="`sequence_${trackId}_${blockId - 1}`" class="beat"
@@ -89,7 +89,7 @@
                         </template>
                         <span id="indicator" :style="{ height: indicatorLineHeight + 'px', left: indicatorLeft + 'px' }"></span>
                         <span id="indicatorCell" :style="{ left: indicatorLeft + 'px', top: indicatorCellTop + 'px' }"></span>
-                        <SequenceMarker :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="Song.tracks.length * 30 + 30" />
+                        <SequenceMarker :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="reactiveSongData.tracks.length * 30 + 30" />
                     </div>
                 </div>
             </div>
@@ -119,7 +119,7 @@ import { sequencerHandler } from '../assets/js/sequencerHandler';
 import EventBus from '../assets/js/eventBus';
 import { useSongData } from '../composables/useSongData';
 
-const { reactiveSongData } = useSongData();
+const { reactiveSongData, syncSongData } = useSongData();
 
 const colorPalette = ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#99B898', '#FECEAB', '#FF847C', '#E84A5F', '#2A363B'];
 const SEQUENCER_BLOCK_WIDTH = 30;
@@ -142,13 +142,18 @@ const indicatorCellTop = ref(0);
 
 // Track names - use a ref that we update when song changes
 const instrumentLabelName = ref<string[]>(reactiveSongData.tracks?.map(track => track?.name || '') || []);
-const activeInstrumentIndex = ref(Song.currentTrackId);
+const activeInstrumentIndex = ref(reactiveSongData.currentTrackId);
 
 // Update track names when song data changes
 const updateTrackNames = () => {
     instrumentLabelName.value = reactiveSongData.tracks?.map(track => track?.name || '') || [];
-    activeInstrumentIndex.value = Song.currentTrackId;
+    activeInstrumentIndex.value = reactiveSongData.currentTrackId;
 };
+
+watch(() => reactiveSongData.tracks, updateTrackNames, { deep: true });
+watch(() => reactiveSongData.currentTrackId, (newId) => {
+    activeInstrumentIndex.value = newId;
+});
 
 // Register with SequencerHandler
 sequencerHandler.registerEditModeActiveRef(editModeActive);
@@ -188,16 +193,12 @@ const registerFaderContexts = () => {
 onMounted(() => {
     registerFaderContexts();
     // Initialize indicator position
-    setIndicator(Song.currentTrackId || 0, 0);
+    setIndicator(reactiveSongData.currentTrackId || 0, 0);
     // Initialize scroll positions
     sequencerScrollTop.value = 0;
     sequencerScrollLeft.value = 0;
     // Initialize track names
     updateTrackNames();
-    
-    // Listen for song data changes to update track names
-    EventBus.on('song-data-changed', updateTrackNames);
-    EventBus.on('ui.trackChanged', updateTrackNames);
 });
 
 onUpdated(() => {
@@ -205,10 +206,6 @@ onUpdated(() => {
 });
 
 onBeforeUnmount(() => {
-    // Cleanup event listeners
-    EventBus.off('song-data-changed', updateTrackNames);
-    EventBus.off('ui.trackChanged', updateTrackNames);
-    
     // Cleanup: unregister all fader contexts
     sequencerHandler.unregisterFaderContext(0); // Master
     for (let i = 1; i <= reactiveSongData.tracks.length; i++) {
@@ -217,15 +214,15 @@ onBeforeUnmount(() => {
 });
 
 const handleTrackLabelClick = (trackId: number) => {
-    if (Song.currentTrackId !== trackId) {
+    if (reactiveSongData.currentTrackId !== trackId) {
         document.getElementById('loadingWheel')!.style.display = 'block';
         setTimeout(() => {
             activeInstrumentIndex.value = trackId;
             const blockId = playBackLogic.getCurrentBlock();
             setIndicator(trackId, blockId);
             AppManager.changeTrack(trackId, 0, false, () => {
-                typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId: Song.currentVoiceId, beatId: 0, string: 1 });
-                typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId: Song.currentVoiceId, blockId });
+                typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId: reactiveSongData.currentVoiceId, beatId: 0, string: 1 });
+                typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId: reactiveSongData.currentVoiceId, blockId });
                 document.getElementById('loadingWheel')!.style.display = 'none';
             });
         }, 0);
@@ -247,6 +244,7 @@ const handleKeyUp = (trackId: number) => {
         return;
     }
     Song.tracks[trackId].name = instrumentLabelName.value[trackId];
+    syncSongData();
 }
 
 const beatStyle = (trackId: number, index: number) => {
@@ -330,6 +328,7 @@ function soloButtonClickEvent(e: Event, k: number) {
         circleBtn.classList.remove('muted');
     }
     Song.playBackInstrument[k].solo = !Song.playBackInstrument[k].solo;
+    syncSongData();
 }
 
 function muteButtonClickEvent(e: Event, k: number) {
@@ -350,6 +349,7 @@ function muteButtonClickEvent(e: Event, k: number) {
         }
     }
     Song.playBackInstrument[k].mute = !Song.playBackInstrument[k].mute;
+    syncSongData();
 }
 
 function panKnobRotate(angle: number, dataId: string) {
@@ -360,6 +360,7 @@ function panKnobRotate(angle: number, dataId: string) {
     const scaled = (angle / 360) * 127; // scale value to the range of 0 to 127
     Song.playBackInstrument[trackId].balance = scaled;
     audioEngine.setEffectGain(trackId, scaled, 'pan');
+    syncSongData();
 }
 
 function reverbKnobRotate(angle: number, dataId: string) {
@@ -370,6 +371,7 @@ function reverbKnobRotate(angle: number, dataId: string) {
     const scaled = (angle / 360) * 127; // scale value from 0 to 127
     Song.playBackInstrument[trackId].reverb = scaled;
     audioEngine.setEffectGain(trackId, scaled, 'reverb');
+    syncSongData();
 }
 
 function chorusKnobRotate(angle: number, dataId: string) {
@@ -380,6 +382,7 @@ function chorusKnobRotate(angle: number, dataId: string) {
     const scaled = (angle / 360) * 127; // scale value from 0 to 127
     Song.playBackInstrument[trackId].chorus = scaled;
     audioEngine.setEffectGain(trackId, scaled, 'chorus');
+    syncSongData();
 }
 
 const sequencerScrollEvent = (event: UIEvent) => {
@@ -413,7 +416,7 @@ function sequencerClick(e: MouseEvent, trackId: number, voiceId: number) {
             const blockId = Math.floor((target.scrollLeft + e.clientX - left) / 30);
             playBackLogic.clearQueueAndSetNewBlock(blockId);
             setIndicator(trackId, blockId);
-            if (Song.currentTrackId !== trackId) {
+            if (reactiveSongData.currentTrackId !== trackId) {
                 setTimeout(() => {
                     document.getElementById('loadingWheel')!.style.display = 'block';
                     activeInstrumentIndex.value = trackId;
@@ -445,12 +448,12 @@ function sequencerMouseMove(e: MouseEvent) {
         const endX = Math.max(sequencerMouseDownClientX, e.clientX);
         blockIntervalStart.value = Math.floor((target.scrollLeft + startX - left) / 30);
         blockIntervalEnd.value = Math.floor((target.scrollLeft + endX - left) / 30);
-        const trackId = Song.currentTrackId;
-        const voiceId = Song.currentVoiceId;
+        const trackId = reactiveSongData.currentTrackId;
+        const voiceId = reactiveSongData.currentVoiceId;
         overlayHandler.initOverlay(trackId, blockIntervalStart.value, voiceId, 0);
         typedEventBus.emit('navigation.setClickedPos', { trackId, blockId: blockIntervalStart.value, voiceId, beatId: 0, string: 0 });
 
-        const lastBeatId = Song.measures[trackId][blockIntervalEnd.value][voiceId].length - 1;
+        const lastBeatId = reactiveSongData.measures[trackId][blockIntervalEnd.value][voiceId].length - 1;
         overlayHandler.selectionMove(e, trackId, blockIntervalEnd.value, voiceId, lastBeatId);
         sequencerIntervalSet = true;
     }
