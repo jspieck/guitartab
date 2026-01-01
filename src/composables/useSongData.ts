@@ -15,7 +15,8 @@ export function useSongData() {
     measures: Song.measures,
     songDescription: Song.songDescription,
     tracks: Song.tracks,
-    measureMeta: Song.measureMeta
+    measureMeta: Song.measureMeta,
+    playBackInstrument: Song.playBackInstrument
   })
   
   /**
@@ -27,6 +28,7 @@ export function useSongData() {
     reactiveSongData.songDescription = { ...Song.songDescription }
     reactiveSongData.tracks = [...Song.tracks]
     reactiveSongData.measureMeta = [...Song.measureMeta]
+    reactiveSongData.playBackInstrument = [...Song.playBackInstrument]
     songDataVersion.value++
   }
   
