@@ -106,7 +106,8 @@ $color-glowingRed: #ef596f;
 }
 
 #composition{
-    width: 100%;
+    flex: 1;
+    min-width: 0;
 
     .sequencerOneBlock{
         background-color: white;

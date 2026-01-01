@@ -2,7 +2,7 @@ import { Gp4Reader } from './GP4Reader';
 import { Gp5Reader } from './GP5Reader';
 import { gProReader } from './GProReader';
 import Song, {
-  Note, Chord, MeasureEffects, Stroke, Bend, Grace, TremoloBar,
+  Note, Chord, MeasureEffects, Stroke, Bend, Grace, TremoloBar, Track,
 } from './songData';
 import { modalManager } from './modals/modalManager';
 import { ChordModalHandler } from './modals/chordModalHandler';
@@ -27,6 +27,12 @@ class Gp3Reader {
 
     const numMeasures = gProReader.readInt();
     const numTracks = gProReader.readInt();
+    
+    if (numMeasures > 10000 || numTracks > 100 || numMeasures === 0) {
+      console.error(`Invalid GP3 header: NM=${numMeasures}, NT=${numTracks}`);
+      return false;
+    }
+    
     // Initialize per track
     for (let t = 0; t < numTracks; t += 1) {
       Song.chordsMap.push(new Map());
@@ -63,11 +69,16 @@ class Gp3Reader {
 
   static readMeasure(trackId: number, blockId: number) {
     Song.measures[trackId][blockId] = [];
+    if (blockId % 10 === 0) console.log(`Reading measure ${blockId}...`);
     // only one single voice
     for (let voiceId = 0; voiceId < 2; voiceId += 1) {
       Song.measures[trackId][blockId][voiceId] = [];
       if (voiceId === 0) {
         const beats = gProReader.readInt();
+        if (beats > 100) {
+            console.error(`Extremely high beat count (${beats}) in measure ${blockId}, aborting measure read.`);
+            return;
+        }
         for (let i = 0; i < beats; i += 1) {
           Gp3Reader.readBeat(trackId, blockId, voiceId, i);
         }

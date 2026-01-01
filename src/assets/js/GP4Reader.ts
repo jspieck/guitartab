@@ -44,6 +44,7 @@ class Gp4Reader {
     Gp4Reader.readTracks(numTracks);
 
     Gp4Reader.readMeasures(numMeasures, numTracks);
+    return true;
   }
 
   static readInfo() {
@@ -109,11 +110,11 @@ class Gp4Reader {
   }
 
   static readTrack(): Track {
-    gProReader.readUnsignedByte();
-    const name = gProReader.readStringByte(40);
-    console.log(name);
+    const trackFlag = gProReader.readUnsignedByte();
+    const name = gProReader.readStringByte(40, true);
     const strings = [];
     const stringCount = gProReader.readInt();
+    console.log("SC", stringCount)
     for (let i = 0; i < 7; i += 1) {
       const tuning = gProReader.readInt();
       if (stringCount > i) {
@@ -122,7 +123,6 @@ class Gp4Reader {
     }
     const numStrings = stringCount;
     const letItRing = false;
-    // console.log(track);
     gProReader.readInt();
     const channel = Gp5Reader.readChannel();
     gProReader.readInt();

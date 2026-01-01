@@ -221,7 +221,7 @@ class Gp5Reader {
       gProReader.skipBytes(1);
     }
     const name = gProReader.readStringByte(40);
-    console.log(name);
+    console.log("Track name:", name);
 
     const strings = [];
     const stringCount = gProReader.readInt();

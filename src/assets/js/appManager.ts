@@ -375,6 +375,7 @@ const AppManager = {
     modalManager.closeAllModals();
     
     // Notify that song data has changed to update reactive components
+    console.log('Song loaded. Tracks:', Song.tracks.map(t => t.name));
     EventBus.emit('song-data-changed');
   },
 

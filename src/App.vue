@@ -78,11 +78,14 @@ import { overlayHandler } from './assets/js/overlayHandler'
 import { tab } from './assets/js/tab'
 import EventBus from './assets/js/eventBus'
 import Song from './assets/js/songData'
+import { useSongData } from './composables/useSongData'
 
-const currentTrackId = ref(0);
-const currentVoiceId = ref(0);
-const currentBlockId = ref(0);
-const currentBeatId = ref(0);
+const { reactiveSongData } = useSongData();
+
+let currentTrackId = computed(() => reactiveSongData.currentTrackId);
+let currentVoiceId = computed(() => reactiveSongData.currentVoiceId);
+let currentBlockId = ref(0);
+let currentBeatId = ref(0);
 
 const store = useTabStore();
 const currentSelection = computed(() => {

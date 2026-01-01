@@ -15,8 +15,8 @@
                     <div id="sequencerRevInstrument" v-if="!editModeActive">Rev</div>
                     <div id="sequencerChoInstrument" v-if="!editModeActive">Cho</div>
                 </div>
-                <div id="sequencerMenuBody" :style="{ scrollTop: sequencerScrollTop + 'px' }">
-                    <div id="masterRow" class="labelDiv disable-select">
+                <div id="sequencerMenuBody" @scroll="sequencerScrollEvent">
+                    <div id="masterRowMenu" class="labelDiv disable-select">
                         <img id="labelImgMaster" class="labelImg" :src="settingsIconSrc" />
                         <div id="instrumentLabelMaster" class="label instrumentLabel">
                             Master
@@ -58,7 +58,7 @@
             </div>
             <div id="composition">
                 <div id="sequencerMain">
-                    <div id="sequencerMainHeader" :style="{ scrollLeft: sequencerScrollLeft + 'px' }">
+                    <div id="sequencerMainHeader">
                         <div class="sequencerOneBlock"
                             @click="sequencerClick($event, reactiveSongData.currentTrackId, reactiveSongData.currentVoiceId)"
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
@@ -70,7 +70,7 @@
                         <SequenceMarker :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="30" />
                     </div>
                     <div id="sequencerMainBody" @scroll="sequencerScrollEvent">
-                        <div id="masterRow" class="sequencerOneBlock"
+                        <div id="masterRowMain" class="sequencerOneBlock"
                             @click="sequencerClick($event, reactiveSongData.currentTrackId, reactiveSongData.currentVoiceId)"
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                             <div v-for="blockId in numBlocks" :key="blockId"
@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, Ref, onMounted, onUpdated, onBeforeUnmount, watch } from 'vue';
+import { computed, reactive, ref, Ref, onMounted, onUpdated, onBeforeUnmount, watch, nextTick } from 'vue';
 import fastdom from 'fastdom';
 import Settings from '../assets/js/settingManager';
 import { audioEngine } from '../assets/js/audioEngine';
@@ -140,13 +140,18 @@ const indicatorLineHeight = ref(0);
 const indicatorLeft = ref(0);
 const indicatorCellTop = ref(0);
 
-// Track names - use a ref that we update when song changes
-const instrumentLabelName = ref<string[]>(reactiveSongData.tracks?.map(track => track?.name || '') || []);
+// Track names - use a computed property for reactivity
+const instrumentLabelName = computed(() => {
+    if (!reactiveSongData.tracks) return [];
+    return reactiveSongData.tracks.map((track, index) => {
+        const name = track?.name?.trim();
+        return name || `Track ${index + 1}`;
+    });
+});
 const activeInstrumentIndex = ref(reactiveSongData.currentTrackId);
 
 // Update track names when song data changes
 const updateTrackNames = () => {
-    instrumentLabelName.value = reactiveSongData.tracks?.map(track => track?.name || '') || [];
     activeInstrumentIndex.value = reactiveSongData.currentTrackId;
 };
 
@@ -221,9 +226,11 @@ const handleTrackLabelClick = (trackId: number) => {
             const blockId = playBackLogic.getCurrentBlock();
             setIndicator(trackId, blockId);
             AppManager.changeTrack(trackId, 0, false, () => {
-                typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId: reactiveSongData.currentVoiceId, beatId: 0, string: 1 });
-                typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId: reactiveSongData.currentVoiceId, blockId });
-                document.getElementById('loadingWheel')!.style.display = 'none';
+                nextTick(() => {
+                    typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId: reactiveSongData.currentVoiceId, beatId: 0, string: 1 });
+                    typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId: reactiveSongData.currentVoiceId, blockId });
+                    document.getElementById('loadingWheel')!.style.display = 'none';
+                });
             });
         }, 0);
     }
@@ -387,19 +394,33 @@ function chorusKnobRotate(angle: number, dataId: string) {
 
 const sequencerScrollEvent = (event: UIEvent) => {
     const target = event.target as HTMLElement;
-    sequencerScrollTop.value = target.scrollTop;
-    sequencerScrollLeft.value = target.scrollLeft;
+    const isMainBody = target.id === 'sequencerMainBody';
+    const isMenuBody = target.id === 'sequencerMenuBody';
+    
+    if (isMainBody) {
+        sequencerScrollTop.value = target.scrollTop;
+        sequencerScrollLeft.value = target.scrollLeft;
+    } else if (isMenuBody) {
+        sequencerScrollTop.value = target.scrollTop;
+    }
     
     // Synchronize scrolling between sidebar and header
     fastdom.mutate(() => {
         const menuBody = document.getElementById('sequencerMenuBody');
+        const mainBody = document.getElementById('sequencerMainBody');
         const mainHeader = document.getElementById('sequencerMainHeader');
         
-        if (menuBody) {
-            menuBody.scrollTop = sequencerScrollTop.value;
-        }
-        if (mainHeader) {
-            mainHeader.scrollLeft = sequencerScrollLeft.value;
+        if (isMainBody) {
+            if (menuBody && menuBody.scrollTop !== target.scrollTop) {
+                menuBody.scrollTop = target.scrollTop;
+            }
+            if (mainHeader && mainHeader.scrollLeft !== target.scrollLeft) {
+                mainHeader.scrollLeft = target.scrollLeft;
+            }
+        } else if (isMenuBody) {
+            if (mainBody && mainBody.scrollTop !== target.scrollTop) {
+                mainBody.scrollTop = target.scrollTop;
+            }
         }
     });
 }

@@ -10,6 +10,7 @@ import { Gp5Reader } from './GP5Reader';
 import { Gp4Reader } from './GP4Reader';
 import { Gp3Reader } from './GP3Reader';
 import midiReader from './MidiReader';
+import EventBus from './eventBus';
 
 class GProReader {
   readerBuffer: Uint8Array | null;
@@ -111,6 +112,7 @@ class GProReader {
           AppManager.resetVariables();
           GProReader.writeNoteInfoToBeat();
           AppManager.createGuitarTab(0);
+          EventBus.emit('song-data-changed');
           
           // Hide loading indicator
           if (loadingWheel) loadingWheel.style.display = 'none';
@@ -330,8 +332,9 @@ class GProReader {
     return this.readBytesToString(length);
   }
 
-  readStringByte(length: number) {
-    const realLength = this.readUnsignedByte();
+  readStringByte(length: number, readAll: boolean = false) {
+    let realLength = this.readUnsignedByte();
+    if (readAll) realLength = length;
     const str = this.readBytesToString(realLength);
     if (length > realLength) this.skipBytes(length - realLength);
     return str;
@@ -347,14 +350,16 @@ class GProReader {
     let currentDenominator = 4;
     for (let i = 0, n = Song.measures.length; i < n; i += 1) {
       for (let j = 0, o = Song.measures[i].length; j < o; j += 1) {
-        if (Song.measureMeta[j].numerator != null) {
-          currentNumerator = Song.measureMeta[j].numerator;
-        }
-        if (Song.measureMeta[j].denominator != null) {
-          currentDenominator = Song.measureMeta[j].denominator;
+        if (Song.measureMeta[j]) {
+          if (Song.measureMeta[j].numerator != null) {
+            currentNumerator = Song.measureMeta[j].numerator;
+          }
+          if (Song.measureMeta[j].denominator != null) {
+            currentDenominator = Song.measureMeta[j].denominator;
+          }
         }
         for (let k = 0, p = Song.measures[i][j].length; k < p; k += 1) {
-          if (Song.measures[i][j][k][0].empty) {
+          if (Song.measures[i][j][k].length > 0 && Song.measures[i][j][k][0] && Song.measures[i][j][k][0].empty) {
             const durationLength = (Duration.getDurationOfType('wr') * currentNumerator) / currentDenominator;
             Song.measures[i][j][k] = [];
             Tab.fillAvailableSpaceWithRests(i, j, k, 0, durationLength);
@@ -367,15 +372,10 @@ class GProReader {
       for (let j = 0, o = Song.measures[i].length; j < o; j += 1) {
         for (let k = 0, p = Song.measures[i][j].length; k < p; k += 1) {
           for (let l = 0, q = Song.measures[i][j][k].length; l < q; l += 1) {
-            // write dynamic from notes to beat
-            // const dynamic = '';
-            for (let s = 0, r = Song.measures[i][j][k][l].notes.length; s < r; s += 1) {
-              const beat = Song.measures[i][j][k][l];
-              /* TODO is this code needed?
-              if (beat.notes[s] != null && beat.notes[s].dynamic != null) {
-                beat.dynamicPresent = true;
-                beat.dynamic = beat.notes[s].dynamic;
-              } */
+            const beat = Song.measures[i][j][k][l];
+            if (!beat || !beat.notes) continue;
+            
+            for (let s = 0, r = beat.notes.length; s < r; s += 1) {
               // look for note to tie to
               if (beat.notes[s] != null && beat.notes[s]!.tied) {
                 let foundFret = null;
@@ -386,7 +386,9 @@ class GProReader {
                     ? l - 1
                     : Song.measures[i][blockId][k].length - 1;
                   for (beatId = startBeatId; beatId >= 0; beatId -= 1) {
-                    const { notes } = Song.measures[i][blockId][k][beatId];
+                    const prevBeat = Song.measures[i][blockId][k][beatId];
+                    if (!prevBeat || !prevBeat.notes) continue;
+                    const { notes } = prevBeat;
                     if (notes[s] != null) {
                       if (!notes[s]!.tied) {
                         notes[s]!.tieBegin = true;
@@ -406,7 +408,9 @@ class GProReader {
                     const startBeatId = bId === blockId ? beatId + 1 : 0;
                     const endBeatId = bId === j ? l : Song.measures[i][bId][k].length - 1;
                     for (let beId = startBeatId; beId <= endBeatId; beId += 1) {
-                      const { notes } = Song.measures[i][bId][k][beId];
+                      const currentBeat = Song.measures[i][bId][k][beId];
+                      if (!currentBeat) continue;
+                      const { notes } = currentBeat;
                       if (notes[s] == null) {
                         notes[s] = Song.defaultNote();
                       }
