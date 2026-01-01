@@ -1,6 +1,7 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Song from '../assets/js/songData'
 import { tab } from '../assets/js/tab'
+import { typedEventBus } from '../utils/typedEventBus'
 
 /**
  * Selection position in the tab
@@ -43,6 +44,16 @@ const currentSelection = ref<TabSelection | null>(null)
 const clipboard = ref<any>(null)
 const toolbarVisible = ref(false)
 const selectedNote = ref<any>(null)
+
+// Context Menu State
+const contextMenuState = ref({
+  visible: false,
+  note: null as any,
+  x: 0,
+  y: 0
+})
+
+let isInitialized = false
 
 /**
  * Composable for managing tab selection state
@@ -91,7 +102,42 @@ export function useTabSelection() {
       }
     } else {
       selectedNote.value = null
+      // Also hide context menu when selection is cleared
+      contextMenuState.value.visible = false
     }
+  }
+
+  /**
+   * Show the note context menu
+   */
+  function showContextMenu(note: any, x: number, y: number) {
+    contextMenuState.value = {
+      visible: true,
+      note,
+      x,
+      y
+    }
+  }
+
+  /**
+   * Hide the note context menu
+   */
+  function hideContextMenu() {
+    contextMenuState.value.visible = false
+  }
+
+  // Initialize global event listeners once
+  if (!isInitialized) {
+    typedEventBus.on('navigation.setClickedPos', (pos) => {
+      setSelection({
+        trackId: pos.trackId,
+        voiceId: pos.voiceId,
+        blockId: pos.blockId,
+        beatIndex: pos.beatId,
+        stringIndex: pos.string
+      })
+    })
+    isInitialized = true
   }
   
   /**
@@ -100,6 +146,7 @@ export function useTabSelection() {
   function clearSelection() {
     setSelection(null)
     toolbarVisible.value = false
+    contextMenuState.value.visible = false
     // Clear explicit selection flag to prevent accidental note entry
     tab.hasExplicitSelection = false
   }
@@ -140,6 +187,16 @@ export function useTabSelection() {
       beat: JSON.parse(JSON.stringify(beat)),
       position: { ...currentSelection.value }
     }
+  }
+
+  /**
+   * Paste from clipboard to current selection
+   */
+  function pasteSelection() {
+    if (!clipboard.value || !currentSelection.value) {
+      return null
+    }
+    return clipboard.value
   }
   
   /**
@@ -187,13 +244,17 @@ export function useTabSelection() {
     selectedNote,
     clipboard,
     toolbarVisible,
+    contextMenuState,
     hasSelection,
     setSelection,
     clearSelection,
     toggleToolbar,
     showToolbar,
     hideToolbar,
+    showContextMenu,
+    hideContextMenu,
     copySelection,
+    pasteSelection,
     getSelection,
     durationToCode,
     codeToDuration,

@@ -93,31 +93,18 @@
       />
     </g>
   </g>
-
-  <!-- Note Context Menu -->
-  <NoteContextMenu
-    :is-visible="contextMenu.visible"
-    :note="contextMenu.note"
-    :x="contextMenu.x"
-    :y="contextMenu.y"
-    @close="closeContextMenu"
-    @toggle-effect="handleToggleEffect"
-    @set-duration="handleSetDuration"
-    @delete-note="handleDeleteNote"
-    @copy-note="handleCopyNote"
-    @paste-note="handlePasteNote"
-  />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
 import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
 import { tab } from '../../assets/js/tab'
 import EventBus from '../../assets/js/eventBus'
-import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { useTabSelection } from '../../composables/useTabSelection'
+import { getDurationInBeats, getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Local type definitions to avoid import issues
 interface TabRow {
@@ -149,21 +136,115 @@ const measureWidth = MEASURE_WIDTH
 const beatWidth = BEAT_WIDTH
 const tabLabelWidth = TAB_LABEL_WIDTH
 
-// Selection state
-const selectedPosition = ref<{
-  stringIndex: number
-  measureIndex: number
-  beatIndex: number
-  blockId: number
-} | null>(null)
+const { 
+  currentSelection, 
+  setSelection, 
+  contextMenuState, 
+  showContextMenu, 
+  hideContextMenu 
+} = useTabSelection()
 
-// Context Menu state
-const contextMenu = ref({
-  visible: false,
-  note: null as any,
-  x: 0,
-  y: 0
+// Selection state - derived from global selection
+const selectedPosition = computed({
+  get() {
+    if (!currentSelection.value) return null
+    
+    const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
+    
+    // Check if this selection belongs to this row
+    if (trackId === props.trackId && 
+        voiceId === props.voiceId && 
+        blockId >= props.rowData.startBlockId && 
+        blockId <= props.rowData.endBlockId) {
+      
+      return {
+        stringIndex,
+        measureIndex: blockId - props.rowData.startBlockId,
+        beatIndex,
+        blockId
+      }
+    }
+    
+    return null
+  },
+  set(val) {
+    if (val) {
+      setSelection({
+        trackId: props.trackId,
+        voiceId: props.voiceId,
+        blockId: val.blockId,
+        beatIndex: val.beatIndex,
+        stringIndex: val.stringIndex
+      })
+    } else {
+      setSelection(null)
+    }
+  }
 })
+
+// Watch for selection changes to show context menu
+watch(() => currentSelection.value, (newSelection) => {
+  if (newSelection && 
+      newSelection.trackId === props.trackId && 
+      newSelection.voiceId === props.voiceId && 
+      newSelection.blockId >= props.rowData.startBlockId && 
+      newSelection.blockId <= props.rowData.endBlockId) {
+    
+    const measureIndex = newSelection.blockId - props.rowData.startBlockId
+    const measureData = props.rowData.measures[measureIndex].data
+    const note = measureData?.[newSelection.beatIndex]?.notes?.[newSelection.stringIndex]
+    
+    if (note) {
+      // Calculate position for the menu
+      // We use a small delay to ensure the DOM has updated if needed
+      setTimeout(() => {
+        const pos = getSelectionScreenPos()
+        console.log('Note selected, showing context menu at:', pos)
+        if (pos) {
+          showContextMenu(note, pos.x, pos.y)
+        }
+      }, 0)
+    } else {
+      hideContextMenu()
+    }
+  } else {
+    // Only hide if the selection moved to a different row entirely
+    // (If it moved within this row but not on a note, hideContextMenu is called above)
+    if (newSelection && (newSelection.trackId !== props.trackId || 
+        newSelection.voiceId !== props.voiceId || 
+        newSelection.blockId < props.rowData.startBlockId || 
+        newSelection.blockId > props.rowData.endBlockId)) {
+      // We don't hide here because another row might be showing it
+    }
+  }
+}, { deep: true })
+
+function getSelectionScreenPos() {
+  if (!selectedPosition.value) return null
+  
+  const x = getSelectionX()
+  const y = getSelectionY()
+  
+  const svgElement = document.querySelector('.tab-svg') as SVGSVGElement
+  if (!svgElement) return null
+  
+  const pt = svgElement.createSVGPoint()
+  
+  // Get the main group transform (paddingLeft, paddingTop)
+  // These should match the calculations in GuitarTabView.vue
+  const margins = getPageMargins()
+  const paddingLeft = margins.left
+  const paddingTop = margins.top
+  
+  pt.x = x + paddingLeft
+  pt.y = y + props.yOffset + paddingTop
+  
+  const ctm = svgElement.getScreenCTM()
+  if (!ctm) return null
+  
+  const screenPos = pt.matrixTransform(ctm)
+  return { x: screenPos.x, y: screenPos.y }
+}
 
 // Computed properties
 const numStrings = computed(() => {
@@ -245,7 +326,8 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
   const transformedPoint = svgPoint.matrixTransform(svgElement.getScreenCTM()?.inverse())
   
   // Adjust for the main SVG padding and row transform
-  const paddingLeft = svgRect.width * (1 / 21) // Same as in GuitarTabView
+  const margins = getPageMargins()
+  const paddingLeft = margins.left // Same as in GuitarTabView
   const adjustedX = transformedPoint.x - paddingLeft
   
   // Calculate which measure was clicked
@@ -301,7 +383,7 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
     
     const beatIndex = Math.max(0, Math.min(foundBeatIndex, measureData.length - 1))
     
-    // Set the selection
+    // Set the selection (this triggers the global state and the watcher)
     selectedPosition.value = {
       stringIndex,
       measureIndex,
@@ -309,28 +391,7 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       blockId
     }
     
-    // Update global tab selection state
-    tab.markedNoteObj.blockId = blockId
-    tab.markedNoteObj.beatId = beatIndex
-    tab.markedNoteObj.string = stringIndex
-    tab.markedNoteObj.voiceId = props.voiceId
-    
-    // Check for note to show context menu
-    const beat = measureData[beatIndex]
-    const note = beat?.notes?.[stringIndex]
-    
-    if (note) {
-      console.log('Found note for context menu:', note)
-      handleNoteContextMenu({
-        note,
-        x: event.clientX,
-        y: event.clientY
-      })
-    } else {
-      closeContextMenu()
-    }
-    
-    // Emit selection event
+    // Emit selection event for legacy compatibility
     const selectionEvent = new CustomEvent('noteSelected', {
       detail: {
         trackId: props.trackId,
@@ -423,127 +484,6 @@ function setNoteAtSelection(fret: number) {
     detail: { trackId, blockId: selectedPosition.value.blockId, voiceId, beatIndex, stringIndex }
   }))
 }
-
-// Context Menu handlers
-function handleNoteContextMenu(data: { note: any; x: number; y: number }) {
-  contextMenu.value = {
-    visible: true,
-    note: data.note,
-    x: data.x,
-    y: data.y
-  }
-}
-
-function closeContextMenu() {
-  contextMenu.value.visible = false
-}
-
-function handleToggleEffect(effectId: string) {
-  if (!contextMenu.value.note) return
-  
-  const note = contextMenu.value.note
-  
-  if (effectId === 'bend') {
-    note.bendPresent = !note.bendPresent
-    if (note.bendPresent && (!note.bendObj || note.bendObj.length === 0)) {
-      note.bendObj = [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 60, bendValue: 4, vibrato: 0 }]
-    }
-  } else if (effectId === 'trill') {
-    note.trillPresent = !note.trillPresent
-    if (note.trillPresent && !note.trill) {
-      note.trill = { fret: note.fret + 1, period: 4 }
-    }
-  } else if (effectId === 'ghost') {
-    note.ghost = !note.ghost
-  } else if (effectId === 'dead') {
-    note.dead = !note.dead
-  } else if (effectId === 'vibrato') {
-    note.vibrato = !note.vibrato
-  } else if (effectId === 'slide') {
-    note.slide = !note.slide
-  } else if (effectId === 'pullDown') {
-    note.pullDown = !note.pullDown
-  } else if (effectId === 'palmMute') {
-    note.palmMute = !note.palmMute
-  } else if (effectId === 'stacatto') {
-    note.stacatto = !note.stacatto
-  }
-  
-  EventBus.emit('song-data-changed')
-  window.dispatchEvent(new CustomEvent('songDataChanged'))
-}
-
-function handleSetDuration(durationId: string) {
-  if (!contextMenu.value.note) return
-  
-  const note = contextMenu.value.note
-  const trackId = props.trackId
-  
-  // Find the beat containing this note
-  // This is a bit simplified, but we'll use the tab.changeNoteDuration logic
-  tab.changeNoteDuration(
-    trackId,
-    selectedPosition.value?.blockId || 0,
-    props.voiceId,
-    selectedPosition.value?.beatIndex || 0,
-    selectedPosition.value?.stringIndex || 0,
-    durationId as any,
-    false
-  )
-  
-  EventBus.emit('song-data-changed')
-  window.dispatchEvent(new CustomEvent('songDataChanged'))
-}
-
-function handleDeleteNote() {
-  if (!contextMenu.value.note) return
-  
-  const note = contextMenu.value.note
-  const stringIndex = note.string
-  
-  if (selectedPosition.value && selectedPosition.value.stringIndex === stringIndex) {
-    setNoteAtSelection(-1)
-  } else {
-    note.fret = -1
-    EventBus.emit('song-data-changed')
-    window.dispatchEvent(new CustomEvent('songDataChanged'))
-  }
-  
-  closeContextMenu()
-}
-
-function handleCopyNote() {
-  if (!contextMenu.value.note) return
-  // Implement copy logic (e.g., to a clipboard store)
-  console.log('Copy note:', contextMenu.value.note)
-}
-
-function handlePasteNote() {
-  // Implement paste logic
-  console.log('Paste note at selection')
-  // We can use the existing paste logic from useTabSelection if we expose it
-  window.dispatchEvent(new CustomEvent('pasteNote'))
-}
-
-// Close context menu on click outside
-function handleGlobalClick(event: MouseEvent) {
-  if (contextMenu.value.visible) {
-    // Check if the click was on a note or the menu itself
-    const target = event.target as HTMLElement
-    if (target.closest('.note-context-menu') || target.closest('.string-click-area')) {
-      return
-    }
-    closeContextMenu()
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('mousedown', handleGlobalClick)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('mousedown', handleGlobalClick)
-})
 
 // Expose the setNoteAtSelection function to parent components
 defineExpose({
