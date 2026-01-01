@@ -29,26 +29,26 @@
                         </div>
                         <Fader :fader-id="0" ref="masterFaderRef" />
                     </div>
-                    <div v-for="(track, trackId) in Song.tracks" :key="trackId" class="labelDiv disable-select">
+                    <div v-for="(track, trackId) in reactiveSongData.tracks" :key="trackId" class="labelDiv disable-select">
                         <img :id="`labelImg${trackId}`" class="labelImg"
-                            :src="Helper.getIconSrc(Song.playBackInstrument[trackId]?.instrument)"
+                            :src="Helper.getIconSrc(reactiveSongData.playBackInstrument[trackId]?.instrument)"
                             @click="handleClick(trackId)" :style="getBorderStyle(trackId)" />
                         <div :id="`instrumentLabel${trackId}`" :class="['label', 'instrumentLabel', { activeInstrument: activeInstrumentIndex === trackId }]"
                             @click="handleTrackLabelClick(trackId)" @keyup="handleKeyUp(trackId)">{{
                                 instrumentLabelName[trackId] }}</div>
                         <div class="muteBtn" v-if="editModeActive" @click="muteButtonClickEvent($event, trackId)">
-                            <div :class="['muteBtnCircle', { muted: Song.playBackInstrument[trackId].mute }]">M</div>
+                            <div :class="['muteBtnCircle', { muted: reactiveSongData.playBackInstrument[trackId].mute }]">M</div>
                         </div>
                         <div class="soloBtn" v-if="editModeActive" @click="soloButtonClickEvent($event, trackId)">
-                            <div :class="['muteBtnCircle', { muted: Song.playBackInstrument[trackId].solo }]">S</div>
+                            <div :class="['muteBtnCircle', { muted: reactiveSongData.playBackInstrument[trackId].solo }]">S</div>
                         </div>
                         <Fader :fader-id="trackId" v-if="editModeActive" :ref="(el: any) => { if (el) setFaderRef(el); }"/>
                         <Knob :id="`panKnob${trackId}`" v-if="!editModeActive" :data-id="trackId" :rotate-func="panKnobRotate"
-                            :start="Song.playBackInstrument[trackId]?.balance || 0" :min="0" :max="127" :mid-knob="true" />
+                            :start="reactiveSongData.playBackInstrument[trackId]?.balance || 0" :min="0" :max="127" :mid-knob="true" />
                         <Knob :id="`reverbKnob${trackId}`" v-if="!editModeActive" :data-id="trackId" :rotate-func="reverbKnobRotate"
-                            :start="Song.playBackInstrument[trackId]?.reverb || 0" :min="0" :max="127" :mid-knob="false" />
+                            :start="reactiveSongData.playBackInstrument[trackId]?.reverb || 0" :min="0" :max="127" :mid-knob="false" />
                         <Knob :id="`chorusKnob${trackId}`" v-if="!editModeActive" :data-id="trackId" :rotate-func="chorusKnobRotate"
-                            :start="Song.playBackInstrument[trackId]?.chorus || 0" :min="0" :max="127" :mid-knob="false" />
+                            :start="reactiveSongData.playBackInstrument[trackId]?.chorus || 0" :min="0" :max="127" :mid-knob="false" />
                         <img :id="`instrumentChange_${trackId}`" v-if="!editModeActive" class="instrumentChange"
                             :src="getChangeButtonImage" @click="openInstrumentSettings(trackId)" />
                         <img :id="`instrumentListDelete_${trackId}`" v-if="!editModeActive" class="instrumentListDelete"
@@ -75,11 +75,11 @@
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                             <div v-for="blockId in numBlocks" :key="blockId"
                                 :id="`sequenceMaster_${blockId - 1}`" class="beat masterBeat">
-                                <div v-if="Song.measureMeta[blockId - 1]?.marker" class="beatText">{{
-                                    Song.measureMeta[blockId - 1].marker.text }}</div>
+                                <div v-if="reactiveSongData.measureMeta[blockId - 1]?.marker" class="beatText">{{
+                                    reactiveSongData.measureMeta[blockId - 1].marker.text }}</div>
                             </div>
                         </div>
-                        <template v-for="(track, trackId) in Song.tracks" :key="trackId">
+                        <template v-for="(track, trackId) in reactiveSongData.tracks" :key="trackId">
                             <div class="sequencerOneBlock" @click="sequencerClick($event, trackId, Song.currentVoiceId)"
                                 @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                                 <span v-for="blockId in numBlocks" :key="blockId"
@@ -117,6 +117,9 @@ import { DeleteTrackModalHandler } from '../assets/js/modals/deleteTrackModalHan
 import { MODALS } from "../assets/js/modals/modalTypes";
 import { sequencerHandler } from '../assets/js/sequencerHandler';
 import EventBus from '../assets/js/eventBus';
+import { useSongData } from '../composables/useSongData';
+
+const { reactiveSongData } = useSongData();
 
 const colorPalette = ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#99B898', '#FECEAB', '#FF847C', '#E84A5F', '#2A363B'];
 const SEQUENCER_BLOCK_WIDTH = 30;
@@ -138,12 +141,12 @@ const indicatorLeft = ref(0);
 const indicatorCellTop = ref(0);
 
 // Track names - use a ref that we update when song changes
-const instrumentLabelName = ref<string[]>(Song.tracks?.map(track => track?.name || '') || []);
+const instrumentLabelName = ref<string[]>(reactiveSongData.tracks?.map(track => track?.name || '') || []);
 const activeInstrumentIndex = ref(Song.currentTrackId);
 
 // Update track names when song data changes
 const updateTrackNames = () => {
-    instrumentLabelName.value = Song.tracks?.map(track => track?.name || '') || [];
+    instrumentLabelName.value = reactiveSongData.tracks?.map(track => track?.name || '') || [];
     activeInstrumentIndex.value = Song.currentTrackId;
 };
 
@@ -208,7 +211,7 @@ onBeforeUnmount(() => {
     
     // Cleanup: unregister all fader contexts
     sequencerHandler.unregisterFaderContext(0); // Master
-    for (let i = 1; i <= Song.tracks.length; i++) {
+    for (let i = 1; i <= reactiveSongData.tracks.length; i++) {
         sequencerHandler.unregisterFaderContext(i);
     }
 });
@@ -234,20 +237,20 @@ function toggleSequencerWrapperMinimize() {
 }
 
 const numBlocks = computed(() => {
-    if (!Song.measures || Song.measures.length === 0 || !Song.measures[0])
+    if (!reactiveSongData.measures || reactiveSongData.measures.length === 0 || !reactiveSongData.measures[0])
         return 0;
-    return Song.measures[0].length;
+    return reactiveSongData.measures[0].length;
 })
 
 const handleKeyUp = (trackId: number) => {
-    if (!Song.tracks || !Song.tracks[trackId] || !instrumentLabelName.value[trackId]) {
+    if (!reactiveSongData.tracks || !reactiveSongData.tracks[trackId] || !instrumentLabelName.value[trackId]) {
         return;
     }
     Song.tracks[trackId].name = instrumentLabelName.value[trackId];
 }
 
 const beatStyle = (trackId: number, index: number) => {
-    if (!Song.measures[trackId] || !Song.measures[trackId][index]) {
+    if (!reactiveSongData.measures[trackId] || !reactiveSongData.measures[trackId][index]) {
         return '';
     }
     return Song.isBeatEmpty(trackId, index)
@@ -276,10 +279,10 @@ const settingsIconSrc = computed(() => {
 });
 
 const getBorderStyle = (trackId: number) => {
-    if (!Settings.sequencerTrackColor || !Song.tracks || !Song.tracks[trackId]) {
+    if (!Settings.sequencerTrackColor || !reactiveSongData.tracks || !reactiveSongData.tracks[trackId]) {
         return "";
     }
-    const { red, green, blue } = Song.tracks[trackId].color;
+    const { red, green, blue } = reactiveSongData.tracks[trackId].color;
     return `border-left: 3px solid rgb(${red}, ${green}, ${blue});`;
 };
 
@@ -314,14 +317,14 @@ function toggleSequencerEditMode() {
 }
 
 function soloButtonClickEvent(e: Event, k: number) {
-    if (!Song.playBackInstrument || !Song.playBackInstrument[k]) {
+    if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[k]) {
         return;
     }
     let circleBtn = e.target as HTMLElement;
     if (circleBtn.classList.contains('soloBtn')) {
         circleBtn = circleBtn.firstChild as HTMLElement;
     }
-    if (!Song.playBackInstrument[k].solo) {
+    if (!reactiveSongData.playBackInstrument[k].solo) {
         circleBtn.classList.add('muted');
     } else {
         circleBtn.classList.remove('muted');
@@ -330,7 +333,7 @@ function soloButtonClickEvent(e: Event, k: number) {
 }
 
 function muteButtonClickEvent(e: Event, k: number) {
-    if (!Song.playBackInstrument || !Song.playBackInstrument[k]) {
+    if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[k]) {
         return;
     }
     let circleBtn = e.target as HTMLElement | null;
@@ -339,7 +342,7 @@ function muteButtonClickEvent(e: Event, k: number) {
             circleBtn = circleBtn.firstChild as HTMLElement | null;
         }
         if (circleBtn != null) {
-            if (!Song.playBackInstrument[k].mute) {
+            if (!reactiveSongData.playBackInstrument[k].mute) {
                 circleBtn.classList.add('muted');
             } else {
                 circleBtn.classList.remove('muted');
@@ -351,7 +354,7 @@ function muteButtonClickEvent(e: Event, k: number) {
 
 function panKnobRotate(angle: number, dataId: string) {
     const trackId = parseInt(dataId, 10);
-    if (!Song.playBackInstrument || !Song.playBackInstrument[trackId]) {
+    if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[trackId]) {
         return;
     }
     const scaled = (angle / 360) * 127; // scale value to the range of 0 to 127
@@ -361,7 +364,7 @@ function panKnobRotate(angle: number, dataId: string) {
 
 function reverbKnobRotate(angle: number, dataId: string) {
     const trackId = parseInt(dataId, 10);
-    if (!Song.playBackInstrument || !Song.playBackInstrument[trackId]) {
+    if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[trackId]) {
         return;
     }
     const scaled = (angle / 360) * 127; // scale value from 0 to 127
@@ -371,7 +374,7 @@ function reverbKnobRotate(angle: number, dataId: string) {
 
 function chorusKnobRotate(angle: number, dataId: string) {
     const trackId = parseInt(dataId, 10);
-    if (!Song.playBackInstrument || !Song.playBackInstrument[trackId]) {
+    if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[trackId]) {
         return;
     }
     const scaled = (angle / 360) * 127; // scale value from 0 to 127
@@ -467,10 +470,10 @@ function sequencerMouseDown(e: MouseEvent) {
 }
 
 function setIndicator(trackId: number, blockId: number) {
-    if (!Song.measures || Song.measures.length === 0) {
+    if (!reactiveSongData.measures || reactiveSongData.measures.length === 0) {
         return;
     }
-    indicatorLineHeight.value = (Song.measures.length + 1) * 30;
+    indicatorLineHeight.value = (reactiveSongData.measures.length + 1) * 30;
     if (trackId !== indicatorPosition.trackId
         || blockId !== indicatorPosition.blockId) {
         indicatorLeft.value = blockId * 30;

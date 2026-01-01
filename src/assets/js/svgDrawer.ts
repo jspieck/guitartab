@@ -777,7 +777,11 @@ class SvgDrawer {
 
       let TAB_GROUP_OFFSET = this.paddingTop;
       if (pageId === 0) {
-        TAB_GROUP_OFFSET += this.tabInformationHeight;
+        // In the new Vue layout, rowToY already includes the header height (tabInformationHeight)
+        // so we only add it if we are NOT in the new track creation mode (legacy support)
+        if (AppManager.duringTrackCreation) {
+          TAB_GROUP_OFFSET += this.tabInformationHeight;
+        }
         TAB_GROUP_OFFSET += this.getChordDiagramRowHeight(Song.currentTrackId);
       }
       TAB_GROUP_OFFSET *= Settings.currentZoom;
