@@ -1562,12 +1562,15 @@ const synth = {
   },
 
   /**
-  * @param {number} channel
+  * @param {number} program - The MIDI program number (0-127 for melodic instruments, 9 for drums)
   * @param {number} key
   * @param {number} velocity
+  * @param {number} channel - The MIDI channel (0-15)
   */
-  noteOn(channel: number, key: number, velocity: number) {
+  noteOn(program: number, key: number, velocity: number, channel: number = 0) {
     /** @type {Object} */
+    // For drums (program 9), use bank 128; otherwise use default bank
+    const isDrums = program === 9;
     const bankInner: { channel: number,
       key: number,
       velocity: number,
@@ -1575,20 +1578,20 @@ const synth = {
       volume: number,
       pitchBend: number,
       pitchBendSensitivity: number,
-    }[] = this.bankSet[channel === 9 ? 128 : this.bank];
+    }[] = this.bankSet[isDrums ? 128 : this.bank];
 
     /** @type {Object} */
-    // For drums (channel 9), use preset 0 (Standard Kit); for other channels, use the channel's assigned instrument program
-    const instrumentIndex = channel === 9 ? 0 : this.channelInstrument[channel];
+    // For drums, use preset 0 (Standard Kit); otherwise use the program number directly
+    const instrumentIndex = isDrums ? 0 : program;
     const instrument = bankInner?.[instrumentIndex];
-    if (channel === 9) {
+    if (isDrums) {
       // eslint-disable-next-line prefer-destructuring
       this.instrument = bankInner?.[0]; // POP DRUMS
     }
     // console.log(instrument);
 
     if (!instrument) {
-      console.log('Instrument not found! ', channel, 'bank:', channel === 9 ? 128 : this.bank, 'program:', instrumentIndex);
+      console.log('Instrument not found! program:', program, 'bank:', isDrums ? 128 : this.bank, 'index:', instrumentIndex);
       return null;
     }
 

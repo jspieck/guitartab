@@ -52,18 +52,6 @@
         />
       </g>
     </svg>
-    
-    <!-- Toolbar -->
-    <TabToolbar
-      :is-visible="toolbarVisible"
-      :selected-note="selectedNote"
-      @apply-effect="handleApplyEffect"
-      @set-duration="handleSetDuration"
-      @clear-selection="handleClearSelection"
-      @copy-selection="handleCopySelection"
-      @paste-selection="handlePasteSelection"
-      @delete-selection="handleDeleteSelection"
-    />
   </div>
 </template>
 
@@ -71,12 +59,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import TabRow from './TabRow.vue'
 import Song from '../../assets/js/songData'
-import TabToolbar from './TabToolbar.vue'
 import { Tab, tab } from '../../assets/js/tab'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { useDurationHandler } from '../../composables/useDurationHandler'
-
+import { typedEventBus } from '../../utils/typedEventBus'
 interface Props {
   trackId: number
   voiceId: number
@@ -281,6 +268,11 @@ function handleSongDataChange() {
   updateTrigger.value++
 }
 
+function handleRenderBlock() {
+  syncSongData()
+  updateTrigger.value++
+}
+
 // Event handlers
 function handleApplyEffect(effect: string) {
   // TODO: Implement effect application
@@ -386,6 +378,9 @@ onMounted(() => {
   window.addEventListener('songDataChanged', handleSongDataChange)
   window.addEventListener('noteSelected', handleNoteSelection)
   
+  typedEventBus.on('render.block', handleRenderBlock)
+  typedEventBus.on('render.all', handleRenderBlock)
+  
   // Focus SVG for keyboard events
   tabContainer.value?.querySelector('svg')?.focus()
 })
@@ -394,6 +389,9 @@ onUnmounted(() => {
   cleanupEventListeners()
   window.removeEventListener('songDataChanged', handleSongDataChange)
   window.removeEventListener('noteSelected', handleNoteSelection)
+  
+  typedEventBus.off('render.block', handleRenderBlock)
+  typedEventBus.off('render.all', handleRenderBlock)
 })
 </script>
 

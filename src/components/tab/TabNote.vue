@@ -12,10 +12,6 @@
       text-anchor="middle"
       class="note-text"
       :class="getNoteClasses(note)"
-      @click="(event: MouseEvent) => handleNoteClick(event, note)"
-      @mouseover="(event: MouseEvent) => handleNoteHover(event, note, true)"
-      @mouseout="(event: MouseEvent) => handleNoteHover(event, note, false)"
-      style="cursor: pointer"
     >
       {{ getNoteDisplay(note) }}
     </text>
@@ -31,8 +27,6 @@
       fill="#666"
       text-anchor="middle"
       class="grace-note"
-      @click="(event: MouseEvent) => handleGraceClick(event, note)"
-      style="cursor: pointer"
     >
       {{ note.graceObj.fret }}
     </text>
@@ -40,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, watch, defineEmits } from 'vue'
 import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 
 // Props
@@ -143,19 +137,6 @@ function getNoteClasses(note: any): string {
 }
 
 // Event handlers
-function handleNoteClick(event: MouseEvent, note: any) {
-  event.stopPropagation()
-  // TODO: Emit event to parent for note selection/editing
-}
-
-function handleNoteHover(event: MouseEvent, note: any, isEntering: boolean) {
-  // TODO: Add hover effects
-}
-
-function handleGraceClick(event: MouseEvent, note: any) {
-  event.stopPropagation()
-  // TODO: Emit event for grace note editing
-}
 </script>
 
 <style scoped>

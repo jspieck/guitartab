@@ -1,7 +1,7 @@
 <template>
   <g class="tab-measure-info" :transform="`translate(${xOffset}, ${yOffset})`">
     <!-- Time signature -->
-    <g v-if="showTimeMeter" class="time-signature">
+    <g v-if="showTimeMeter" class="time-signature" :transform="`translate(${timeMeterX}, 0)`">
       <text
         x="0"
         y="-10"
@@ -29,7 +29,7 @@
     </g>
     
     <!-- BPM marking -->
-    <g v-if="showBpm" class="bpm-marking">
+    <g v-if="showBpm" class="bpm-marking" :transform="`translate(${bpmX}, 0)`">
       <text
         x="0"
         :y="-yOffset - 45"
@@ -118,15 +118,28 @@ interface Props {
   blockId: number
   xOffset: number
   yOffset: number
+  contentPadding?: number
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  contentPadding: 10
+})
 
 // Computed properties
 const timeMeter = computed(() => ({
   numerator: props.measureMeta?.numerator || 4,
   denominator: props.measureMeta?.denominator || 4
 }))
+
+const timeMeterX = computed(() => {
+  // Center in the padding area (usually 25px for time meter)
+  return 15
+})
+
+const bpmX = computed(() => {
+  // BPM is usually centered over the measure or at the start
+  return props.contentPadding || 10
+})
 
 const bpm = computed(() => props.measureMeta?.bpm || 120)
 

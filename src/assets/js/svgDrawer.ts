@@ -449,13 +449,16 @@ class SvgDrawer {
       - 1 - string - 0.5) * this.heightPerString + 1;
     let staveBegin = 0;
     if (Settings.vexFlowIsActive) {
-      staveBegin = classicalNotation.getYForStaveBegin(blockId);
       yPos += staveBegin;
       yPosString += this.VEXFLOW_HEIGHT - staveBegin;
     }
-    (mGroup.childNodes[0] as HTMLElement).style.height = (
-      this.getPositionMarkerHeight(trackId) - staveBegin
-    ).toString();
+    
+    if (mGroup.childNodes && mGroup.childNodes.length > 0) {
+      (mGroup.childNodes[0] as HTMLElement).style.height = (
+        this.getPositionMarkerHeight(trackId) - staveBegin
+      ).toString();
+    }
+    
     // console.log(trackId, blockId, voiceId, beatId);
     mGroup.setAttribute('transform', `translate(${xPos},${yPos})`);
     const eGroup = document.getElementById(`exactPosition${pageId}`);
@@ -466,6 +469,10 @@ class SvgDrawer {
     trackId: number, blockId: number, voiceId: number, posInBlock: number,
     timing: number,
   ) {
+    // Guard against uninitialized data
+    if (!this.blockToX?.[trackId]?.[blockId]?.[voiceId] === undefined) {
+      return;
+    }
     const pageId = this.blockToPage[blockId];
     const leftOffset = Helper.getLeftOffset(blockId);
     let xPos = this.blockToX[trackId][blockId][voiceId] + leftOffset + 5;
@@ -519,9 +526,12 @@ class SvgDrawer {
         staveBegin = classicalNotation.getYForStaveBegin(blockId);
         yPos += staveBegin;
       }
-      (mGroup.childNodes[0] as HTMLElement).style.height = (
-        this.getPositionMarkerHeight(trackId) - staveBegin + 10
-      ).toString();
+      
+      if (mGroup.childNodes && mGroup.childNodes.length > 0) {
+        (mGroup.childNodes[0] as HTMLElement).style.height = (
+          this.getPositionMarkerHeight(trackId) - staveBegin + 10
+        ).toString();
+      }
 
       // console.log("R1 ", xPos, yPos, timing);
       mGroup.setAttribute('transform', `translate(${xPos},${yPos})`);

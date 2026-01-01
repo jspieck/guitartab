@@ -35,7 +35,21 @@
       <text x="15" :y="stringSpacing * 4.5" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">B</text>
     </g>
     
-    <!-- Measures -->
+    <!-- Selection indicator -->
+    <g v-if="selectedPosition" class="selection-indicator" style="pointer-events: none">
+      <rect
+        :x="getSelectionX() - 10"
+        :y="getSelectionY() - 8"
+        width="20"
+        height="16"
+        fill="rgba(74, 144, 226, 0.2)"
+        stroke="#4A90E2"
+        stroke-width="1"
+        rx="2"
+      />
+    </g>
+
+    <!-- Measures (Notes and Effects) -->
     <TabMeasure
       v-for="(measureObj, measureIndex) in rowData.measures"
       :key="`measure-${rowData.startBlockId + measureIndex}`"
@@ -48,34 +62,22 @@
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
+      style="pointer-events: none"
     />
     
     <!-- Measure metadata (time signatures, BPM, etc.) -->
     <TabMeasureInfo
       v-for="(measureObj, measureIndex) in rowData.measures"
-      :key="`measure-info-${rowData.startBlockId + measureIndex}`"
+      :key="`info-${rowData.startBlockId + measureIndex}`"
       :measure-meta="getMeasureMeta(rowData.startBlockId + measureIndex)"
       :block-id="rowData.startBlockId + measureIndex"
-      :x-offset="getMeasureXOffset(measureIndex) + 10"
-      :y-offset="(numStrings - 1) * stringSpacing / 2"
+      :x-offset="getMeasureXOffset(measureIndex)"
+      :y-offset="stringSpacing * 2.5"
+      :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
+      style="pointer-events: none"
     />
-    
-    <!-- Selection indicators -->
-    <g v-if="selectedPosition" class="selection-indicator">
-      <rect
-        :x="getSelectionX() - 8"
-        :y="getSelectionY() - 8"
-        width="16"
-        height="16"
-        fill="rgba(74, 144, 226, 0.3)"
-        stroke="#4A90E2"
-        stroke-width="2"
-        rx="3"
-        class="selection-highlight"
-      />
-    </g>
-    
-    <!-- Clickable string areas for note placement - must be last to be on top -->
+
+    <!-- Clickable string areas for note placement - ON TOP -->
     <g class="clickable-strings">
       <rect
         v-for="stringIndex in numStrings"
@@ -84,22 +86,36 @@
         :y="(stringIndex - 1) * stringSpacing - 6"
         :width="width"
         :height="12"
-        fill="rgba(0, 0, 255, 0.02)"
-        stroke="rgba(0, 0, 255, 0.1)"
-        stroke-width="0.5"
+        fill="rgba(0, 0, 0, 0)"
         class="string-click-area"
         @click="(event: MouseEvent) => handleStringClick(event, stringIndex - 1)"
         style="cursor: pointer"
       />
     </g>
   </g>
+
+  <!-- Note Context Menu -->
+  <NoteContextMenu
+    :is-visible="contextMenu.visible"
+    :note="contextMenu.note"
+    :x="contextMenu.x"
+    :y="contextMenu.y"
+    @close="closeContextMenu"
+    @toggle-effect="handleToggleEffect"
+    @set-duration="handleSetDuration"
+    @delete-note="handleDeleteNote"
+    @copy-note="handleCopyNote"
+    @paste-note="handlePasteNote"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
+import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
+import { tab } from '../../assets/js/tab'
 import EventBus from '../../assets/js/eventBus'
 import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 
@@ -140,6 +156,14 @@ const selectedPosition = ref<{
   beatIndex: number
   blockId: number
 } | null>(null)
+
+// Context Menu state
+const contextMenu = ref({
+  visible: false,
+  note: null as any,
+  x: 0,
+  y: 0
+})
 
 // Computed properties
 const numStrings = computed(() => {
@@ -205,6 +229,7 @@ function getMeasureContentPadding(blockId: number): number {
 
 function handleStringClick(event: MouseEvent, stringIndex: number) {
   event.stopPropagation()
+  console.log('String click:', stringIndex)
   
   // Get the SVG root element
   const svgElement = document.querySelector('.tab-svg') as SVGSVGElement
@@ -282,6 +307,27 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       measureIndex,
       beatIndex,
       blockId
+    }
+    
+    // Update global tab selection state
+    tab.markedNoteObj.blockId = blockId
+    tab.markedNoteObj.beatId = beatIndex
+    tab.markedNoteObj.string = stringIndex
+    tab.markedNoteObj.voiceId = props.voiceId
+    
+    // Check for note to show context menu
+    const beat = measureData[beatIndex]
+    const note = beat?.notes?.[stringIndex]
+    
+    if (note) {
+      console.log('Found note for context menu:', note)
+      handleNoteContextMenu({
+        note,
+        x: event.clientX,
+        y: event.clientY
+      })
+    } else {
+      closeContextMenu()
     }
     
     // Emit selection event
@@ -378,10 +424,131 @@ function setNoteAtSelection(fret: number) {
   }))
 }
 
+// Context Menu handlers
+function handleNoteContextMenu(data: { note: any; x: number; y: number }) {
+  contextMenu.value = {
+    visible: true,
+    note: data.note,
+    x: data.x,
+    y: data.y
+  }
+}
+
+function closeContextMenu() {
+  contextMenu.value.visible = false
+}
+
+function handleToggleEffect(effectId: string) {
+  if (!contextMenu.value.note) return
+  
+  const note = contextMenu.value.note
+  
+  if (effectId === 'bend') {
+    note.bendPresent = !note.bendPresent
+    if (note.bendPresent && (!note.bendObj || note.bendObj.length === 0)) {
+      note.bendObj = [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 60, bendValue: 4, vibrato: 0 }]
+    }
+  } else if (effectId === 'trill') {
+    note.trillPresent = !note.trillPresent
+    if (note.trillPresent && !note.trill) {
+      note.trill = { fret: note.fret + 1, period: 4 }
+    }
+  } else if (effectId === 'ghost') {
+    note.ghost = !note.ghost
+  } else if (effectId === 'dead') {
+    note.dead = !note.dead
+  } else if (effectId === 'vibrato') {
+    note.vibrato = !note.vibrato
+  } else if (effectId === 'slide') {
+    note.slide = !note.slide
+  } else if (effectId === 'pullDown') {
+    note.pullDown = !note.pullDown
+  } else if (effectId === 'palmMute') {
+    note.palmMute = !note.palmMute
+  } else if (effectId === 'stacatto') {
+    note.stacatto = !note.stacatto
+  }
+  
+  EventBus.emit('song-data-changed')
+  window.dispatchEvent(new CustomEvent('songDataChanged'))
+}
+
+function handleSetDuration(durationId: string) {
+  if (!contextMenu.value.note) return
+  
+  const note = contextMenu.value.note
+  const trackId = props.trackId
+  
+  // Find the beat containing this note
+  // This is a bit simplified, but we'll use the tab.changeNoteDuration logic
+  tab.changeNoteDuration(
+    trackId,
+    selectedPosition.value?.blockId || 0,
+    props.voiceId,
+    selectedPosition.value?.beatIndex || 0,
+    selectedPosition.value?.stringIndex || 0,
+    durationId as any,
+    false
+  )
+  
+  EventBus.emit('song-data-changed')
+  window.dispatchEvent(new CustomEvent('songDataChanged'))
+}
+
+function handleDeleteNote() {
+  if (!contextMenu.value.note) return
+  
+  const note = contextMenu.value.note
+  const stringIndex = note.string
+  
+  if (selectedPosition.value && selectedPosition.value.stringIndex === stringIndex) {
+    setNoteAtSelection(-1)
+  } else {
+    note.fret = -1
+    EventBus.emit('song-data-changed')
+    window.dispatchEvent(new CustomEvent('songDataChanged'))
+  }
+  
+  closeContextMenu()
+}
+
+function handleCopyNote() {
+  if (!contextMenu.value.note) return
+  // Implement copy logic (e.g., to a clipboard store)
+  console.log('Copy note:', contextMenu.value.note)
+}
+
+function handlePasteNote() {
+  // Implement paste logic
+  console.log('Paste note at selection')
+  // We can use the existing paste logic from useTabSelection if we expose it
+  window.dispatchEvent(new CustomEvent('pasteNote'))
+}
+
+// Close context menu on click outside
+function handleGlobalClick(event: MouseEvent) {
+  if (contextMenu.value.visible) {
+    // Check if the click was on a note or the menu itself
+    const target = event.target as HTMLElement
+    if (target.closest('.note-context-menu') || target.closest('.string-click-area')) {
+      return
+    }
+    closeContextMenu()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousedown', handleGlobalClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleGlobalClick)
+})
+
 // Expose the setNoteAtSelection function to parent components
 defineExpose({
   setNoteAtSelection,
-  selectedPosition: selectedPosition.value
+  selectedPosition
 })
 </script>
 

@@ -21,7 +21,8 @@ $color-glowingRed: #ef596f;
     top:0px;
 }
 #sequencerMenuBody{
-    overflow-y: hidden;
+    overflow-y: auto;
+    flex: 1;
 }
 #composition {
     display: inline-block;
@@ -40,6 +41,8 @@ $color-glowingRed: #ef596f;
     will-change: transform;
     display:flex;
     flex-direction: column;
+    flex: 1;
+    overflow: hidden;
     .beat{
         cursor: pointer;
     }
@@ -48,13 +51,14 @@ $color-glowingRed: #ef596f;
         border-right: 1px solid #dcdada;*/
         overflow-x: hidden;
         height: 30px;
+        min-height: 30px;
         position: relative;
     }
     #sequencerMainBody{
         background: white;
-        flex-grow: 1;
+        flex: 1;
         position:relative;
-        overflow-x: scroll;
+        overflow: auto;
     }
 }
 .minimized #sequencerMain #sequencerMainBody{
@@ -63,7 +67,7 @@ $color-glowingRed: #ef596f;
 #sequencerWrapper{
     display: flex;
     max-height: 220px;
-    overflow-y: auto;
+    overflow: hidden;
     &.minimized{
         max-height: 165px;
         overflow-y: hidden;
@@ -187,14 +191,13 @@ $color-glowingRed: #ef596f;
 #sequencerSideBar{
     font-weight: 300;
     font-size: 13px;
-    display: inline-block;
-    min-width: 108px;
+    display: flex;
+    flex-direction: column;
+    min-width: 258px;
     padding-bottom: 10px;
     border-bottom: 1px solid rgba(0,0,0,0.11);
     background: #e2e2e2;
-    min-width: 258px;
-    display: flex;
-    flex-direction: column;
+    overflow: hidden;
 
     .instrumentLabel{
     	cursor:pointer !important;
