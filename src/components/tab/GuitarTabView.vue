@@ -50,16 +50,23 @@
           :width="tabGroupWidth"
           :is-first-row="rowIndex === 0"
         />
+
+        <!-- Playback Bar (for legacy svgDrawer support) -->
+        <g id="playBackBarGroup0" style="display: none; pointer-events: none; transition: transform linear;">
+          <rect x="0" y="-5" width="2" height="100" fill="rgba(49, 156, 217, 0.6)" />
+        </g>
       </g>
     </svg>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import TabRow from './TabRow.vue'
 import Song from '../../assets/js/songData'
 import { Tab, tab } from '../../assets/js/tab'
+import Helper from '../../assets/js/helper'
+import { svgDrawer } from '../../assets/js/svgDrawer'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { useDurationHandler } from '../../composables/useDurationHandler'
@@ -153,19 +160,66 @@ const tabRows = computed(() => {
   let currentWidth = 32 // TAB label offset
   let startBlockId = 0
 
+  // Initialize mapping data for legacy svgDrawer support
+  const trackId = props.trackId
+  const voiceId = props.voiceId
+  
+  svgDrawer.blockToPage = []
+  if (!svgDrawer.blockToX[trackId]) svgDrawer.blockToX[trackId] = []
+  if (!svgDrawer.rowToY[trackId]) svgDrawer.rowToY[trackId] = []
+  if (!svgDrawer.rowToY[trackId][voiceId]) svgDrawer.rowToY[trackId][voiceId] = []
+  if (!svgDrawer.heightOfRow[trackId]) svgDrawer.heightOfRow[trackId] = []
+  if (!svgDrawer.heightOfRow[trackId][voiceId]) svgDrawer.heightOfRow[trackId][voiceId] = []
+  
+  if (!tab.blockToRow[trackId]) tab.blockToRow[trackId] = []
+  if (!tab.blockToRow[trackId][voiceId]) tab.blockToRow[trackId][voiceId] = []
+  
+  if (!tab.finalBlockWidths[trackId]) tab.finalBlockWidths[trackId] = []
+  if (!tab.finalBlockWidths[trackId][voiceId]) tab.finalBlockWidths[trackId][voiceId] = []
+  
+  if (!tab.measureOffset[trackId]) tab.measureOffset[trackId] = []
+
+  svgDrawer.trackCreated = true
+  svgDrawer.paddingTop = paddingTop.value
+  svgDrawer.tabInformationHeight = 80
+
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i]
     
     let measureWidth = 200
+    let minOffset = 40
     try {
-      const widthInfo = Tab.computeWidthOfBlock(props.trackId, i, props.voiceId)
+      // Ensure measureMoveHelper is populated for playback bar
+      Helper.groupMeasureBeats(trackId, i, voiceId)
+      
+      const widthInfo = Tab.computeWidthOfBlock(trackId, i, voiceId)
       measureWidth = widthInfo.minWidth
+      minOffset = widthInfo.minOffset
+      
+      // Populate mapping data
+      svgDrawer.blockToPage[i] = 0 // All on page 0 for now
+      if (!svgDrawer.blockToX[trackId][i]) svgDrawer.blockToX[trackId][i] = []
+      svgDrawer.blockToX[trackId][i][voiceId] = currentWidth
+      
+      tab.blockToRow[trackId][voiceId][i] = {
+        rowId: rows.length,
+        numInRow: currentRowMeasures.length
+      }
+      
+      tab.finalBlockWidths[trackId][voiceId][i] = measureWidth
+      if (!tab.measureOffset[trackId][i]) tab.measureOffset[trackId][i] = []
+      tab.measureOffset[trackId][i][voiceId] = minOffset
+      
     } catch (e) {
       console.error('Error computing measure width:', e)
     }
     
     // Start new row if current exceeds width
     if (currentWidth + measureWidth > availableWidth && currentRowMeasures.length > 0) {
+      // Update row mapping
+      svgDrawer.rowToY[trackId][voiceId][rows.length] = getRowYOffset(rows.length)
+      svgDrawer.heightOfRow[trackId][voiceId][rows.length] = rowHeight
+      
       rows.push({
         id: rows.length,
         measures: currentRowMeasures,
@@ -176,10 +230,19 @@ const tabRows = computed(() => {
       currentRowMeasures = []
       currentWidth = 0
       startBlockId = i
+      
+      // Re-populate mapping for the first measure of the new row
+      if (svgDrawer.blockToX[trackId][i]) {
+        svgDrawer.blockToX[trackId][i][voiceId] = 0
+      }
+      if (tab.blockToRow[trackId][voiceId][i]) {
+        tab.blockToRow[trackId][voiceId][i].rowId = rows.length
+        tab.blockToRow[trackId][voiceId][i].numInRow = 0
+      }
     }
     
     currentRowMeasures.push({
-      data: measure?.[props.voiceId] || [],
+      data: measure?.[voiceId] || [],
       width: measureWidth
     })
     currentWidth += measureWidth
@@ -187,6 +250,8 @@ const tabRows = computed(() => {
   
   // Add remaining measures
   if (currentRowMeasures.length > 0) {
+    svgDrawer.rowToY[trackId][voiceId][rows.length] = getRowYOffset(rows.length)
+    svgDrawer.heightOfRow[trackId][voiceId][rows.length] = rowHeight
     rows.push({
       id: rows.length,
       measures: currentRowMeasures,
@@ -195,6 +260,9 @@ const tabRows = computed(() => {
       yOffset: 0
     })
   }
+
+  svgDrawer.numRows = rows.length
+  svgDrawer.numPages = 1
   
   return rows
 })
@@ -374,6 +442,12 @@ function addSampleNotes() {
 onMounted(() => {
   initEventListeners()
   addSampleNotes()
+  
+  // Initialize playback bar for legacy svgDrawer support
+  const mGroup = document.getElementById('playBackBarGroup0')
+  if (mGroup) {
+    svgDrawer.playBackBarObjects = [mGroup]
+  }
   
   window.addEventListener('songDataChanged', handleSongDataChange)
   window.addEventListener('noteSelected', handleNoteSelection)
