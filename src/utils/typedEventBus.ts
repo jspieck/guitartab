@@ -91,6 +91,7 @@ export type AppEvents = {
   // Rendering events - for triggering re-renders
   'render.block': { trackId: number; blockId: number; voiceId: number }
   'render.blocks': { trackId: number; blockIds: number[]; voiceId: number }
+  'render.all': void
   'render.overBar': { trackId: number; blockId: number; voiceId: number; rerender?: boolean }
   'render.durations': { trackId: number; blockId: number; voiceId: number }
   

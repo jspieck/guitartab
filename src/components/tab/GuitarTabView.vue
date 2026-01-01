@@ -57,12 +57,27 @@
         </g>
       </g>
     </svg>
+
+    <!-- Note Context Menu (Single instance outside SVG) -->
+    <NoteContextMenu
+      :is-visible="contextMenuState.visible"
+      :note="contextMenuState.note"
+      :x="contextMenuState.x"
+      :y="contextMenuState.y"
+      @close="hideContextMenu"
+      @toggle-effect="handleToggleEffect"
+      @set-duration="handleContextMenuSetDuration"
+      @delete-note="handleDeleteNote"
+      @copy-note="handleCopyNote"
+      @paste-note="handlePasteNote"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import TabRow from './TabRow.vue'
+import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
 import { Tab, tab } from '../../assets/js/tab'
 import Helper from '../../assets/js/helper'
@@ -71,6 +86,8 @@ import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { useDurationHandler } from '../../composables/useDurationHandler'
 import { typedEventBus } from '../../utils/typedEventBus'
+import { getPageMargins } from '../../utils/tabLayout'
+
 interface Props {
   trackId: number
   voiceId: number
@@ -97,10 +114,13 @@ const {
   currentSelection,
   selectedNote,
   toolbarVisible,
+  contextMenuState,
   setSelection,
   clearSelection,
   toggleToolbar,
+  hideContextMenu,
   copySelection,
+  pasteSelection,
   durationToCode,
   codeToDuration,
   handleNoteSelectionEvent
@@ -113,10 +133,9 @@ const tabContainer = ref<HTMLElement>()
 const updateTrigger = ref(0)
 
 // Layout constants
-const PAGE_MARGIN_SIDE = computed(() => props.width * (1 / 21))
-const PAGE_MARGIN_TOP = computed(() => props.height * (1 / 29.7))
-const paddingLeft = PAGE_MARGIN_SIDE
-const paddingTop = PAGE_MARGIN_TOP
+const margins = computed(() => getPageMargins(props.width, props.height))
+const paddingLeft = computed(() => margins.value.left)
+const paddingTop = computed(() => margins.value.top)
 const tabGroupWidth = computed(() => props.width - 2 * paddingLeft.value)
 const pageWidth = props.width
 const rowHeight = 120
@@ -341,6 +360,110 @@ function handleRenderBlock() {
   updateTrigger.value++
 }
 
+// Event handlers for Context Menu
+function handleToggleEffect(effectId: string) {
+  if (!contextMenuState.value.note) return
+  
+  const note = contextMenuState.value.note
+  
+  if (effectId === 'bend') {
+    note.bendPresent = !note.bendPresent
+    if (note.bendPresent && (!note.bendObj || note.bendObj.length === 0)) {
+      note.bendObj = [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 60, bendValue: 4, vibrato: 0 }]
+    }
+  } else if (effectId === 'trill') {
+    note.trillPresent = !note.trillPresent
+    if (note.trillPresent && !note.trill) {
+      note.trill = { fret: note.fret + 1, period: 4 }
+    }
+  } else if (effectId === 'ghost') {
+    note.ghost = !note.ghost
+  } else if (effectId === 'dead') {
+    note.dead = !note.dead
+  } else if (effectId === 'vibrato') {
+    note.vibrato = !note.vibrato
+  } else if (effectId === 'slide') {
+    note.slide = !note.slide
+  } else if (effectId === 'pullDown') {
+    note.pullDown = !note.pullDown
+  } else if (effectId === 'palmMute') {
+    note.palmMute = !note.palmMute
+  } else if (effectId === 'stacatto') {
+    note.stacatto = !note.stacatto
+  }
+  
+  syncSongData()
+  updateTrigger.value++
+  window.dispatchEvent(new CustomEvent('songDataChanged'))
+}
+
+function handleContextMenuSetDuration(durationId: string) {
+  if (!contextMenuState.value.note || !currentSelection.value) return
+  
+  const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
+  
+  tab.changeNoteDuration(
+    trackId,
+    blockId,
+    voiceId,
+    beatIndex,
+    stringIndex,
+    durationId as any,
+    false
+  )
+  
+  syncSongData()
+  updateTrigger.value++
+  window.dispatchEvent(new CustomEvent('songDataChanged'))
+}
+
+function handleDeleteNote() {
+  if (!contextMenuState.value.note || !currentSelection.value) return
+  
+  const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
+  setNote(trackId, blockId, voiceId, beatIndex, stringIndex, -1)
+  
+  syncSongData()
+  updateTrigger.value++
+  hideContextMenu()
+}
+
+function handleCopyNote() {
+  if (!contextMenuState.value.note) return
+  copySelection()
+  hideContextMenu()
+}
+
+function handlePasteNote() {
+  const clipboardData = pasteSelection()
+  if (!clipboardData || !currentSelection.value) return
+
+  const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
+  const sourceBeat = clipboardData.beat
+  const sourceStringIndex = clipboardData.position.stringIndex
+
+  // Find the note on the same string in the source beat
+  const sourceNote = sourceBeat.notes.find((n: any) => n.string === sourceStringIndex)
+  
+  if (sourceNote) {
+    setNote(trackId, blockId, voiceId, beatIndex, stringIndex, sourceNote.fret)
+    updateTrigger.value++
+  }
+  
+  hideContextMenu()
+}
+
+// Close context menu on click outside
+function handleGlobalClick(event: MouseEvent) {
+  if (contextMenuState.value.visible) {
+    const target = event.target as HTMLElement
+    if (target.closest('.note-context-menu') || target.closest('.string-click-area')) {
+      return
+    }
+    hideContextMenu()
+  }
+}
+
 // Event handlers
 function handleApplyEffect(effect: string) {
   // TODO: Implement effect application
@@ -444,13 +567,14 @@ onMounted(() => {
   addSampleNotes()
   
   // Initialize playback bar for legacy svgDrawer support
-  const mGroup = document.getElementById('playBackBarGroup0')
+  const mGroup = document.getElementById('playBackBarGroup0') as unknown as SVGGElement
   if (mGroup) {
     svgDrawer.playBackBarObjects = [mGroup]
   }
   
   window.addEventListener('songDataChanged', handleSongDataChange)
   window.addEventListener('noteSelected', handleNoteSelection)
+  window.addEventListener('mousedown', handleGlobalClick)
   
   typedEventBus.on('render.block', handleRenderBlock)
   typedEventBus.on('render.all', handleRenderBlock)
@@ -463,6 +587,7 @@ onUnmounted(() => {
   cleanupEventListeners()
   window.removeEventListener('songDataChanged', handleSongDataChange)
   window.removeEventListener('noteSelected', handleNoteSelection)
+  window.removeEventListener('mousedown', handleGlobalClick)
   
   typedEventBus.off('render.block', handleRenderBlock)
   typedEventBus.off('render.all', handleRenderBlock)

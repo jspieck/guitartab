@@ -1,14 +1,13 @@
 <template>
-  <Teleport to="body">
-    <div
-      v-if="isVisible && note"
-      :style="menuStyle"
-      class="note-context-menu"
-      @click.stop
-    >
-      <div class="menu-header">
-        Note {{ note.fret }} on String {{ note.string + 1 }}
-      </div>
+  <div
+    v-if="isVisible && note"
+    :style="menuStyle"
+    class="note-context-menu"
+    @click.stop
+  >
+    <div class="menu-header">
+      Note {{ note.fret }} on String {{ note.string + 1 }}
+    </div>
 
       <!-- Durations Section -->
       <div class="menu-section">
@@ -57,11 +56,10 @@
         </button>
       </div>
     </div>
-  </Teleport>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 
 // Import icons
 import wholeNoteIcon from '../assets/images/notes/wholeNote.svg'
@@ -128,6 +126,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['close', 'toggle-effect', 'set-duration', 'delete-note', 'copy-note', 'paste-note'])
 
+watch(() => props.isVisible, (newVal) => {
+  console.log('NoteContextMenu isVisible changed to:', newVal, 'note:', props.note)
+})
+
 const durations = [
   { id: 'w', label: 'Whole', icon: wholeNoteIcon },
   { id: 'h', label: 'Half', icon: halfNoteIcon },
@@ -164,8 +166,9 @@ const menuStyle = computed(() => {
     position: 'fixed',
     left: `${x}px`,
     top: `${y}px`,
-    zIndex: '10000',
-    transform: 'translate(-50%, -105%)', // Position above the click
+    zIndex: 10000,
+    transform: 'translate(-50%, -10px)', // Position slightly above the click
+    pointerEvents: 'auto'
   }
 })
 
@@ -204,7 +207,7 @@ function pasteNote() {
 }
 
 onMounted(() => {
-  console.log('NoteContextMenu mounted')
+  console.log('NoteContextMenu mounted, isVisible:', props.isVisible, 'note:', props.note, 'x:', props.x, 'y:', props.y)
 })
 </script>
 

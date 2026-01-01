@@ -13,7 +13,19 @@ export const TAB_CONSTANTS = {
   BEAT_WIDTH: 40,
   TAB_LABEL_WIDTH: 32,
   START_PADDING: 15,
-  MIN_BEAT_DISPLAY_WIDTH: 20  // Minimum width for short notes (ensures clickability)
+  MIN_BEAT_DISPLAY_WIDTH: 20,  // Minimum width for short notes (ensures clickability)
+  PAGE_WIDTH: 1200,
+  PAGE_HEIGHT: 1600
+}
+
+/**
+ * Calculate the standard page margins
+ */
+export function getPageMargins(width: number = TAB_CONSTANTS.PAGE_WIDTH, height: number = TAB_CONSTANTS.PAGE_HEIGHT) {
+  return {
+    left: width * (1 / 21),
+    top: height * (1 / 29.7)
+  }
 }
 
 /**
