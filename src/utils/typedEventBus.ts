@@ -1,24 +1,7 @@
-/**
- * Typed Event Bus
- * 
- * Provides type-safe event emission and subscription for the guitar tab application.
- * All events and their payloads are documented and typed.
- */
-
 import mitt, { Emitter, Handler } from 'mitt'
+import type { TabPosition } from '../types/tab'
 
-// =============================================================================
-// Event Payload Types
-// =============================================================================
-
-/** Position in the tab (track, block, voice, beat, string) */
-export interface TabPosition {
-  trackId: number
-  blockId: number
-  voiceId: number
-  beatId: number
-  string: number
-}
+export type { TabPosition } from '../types/tab'
 
 /** Partial position (for events that don't need all fields) */
 export interface PartialTabPosition {
@@ -46,10 +29,6 @@ export interface SelectionChangeData {
   beatIndex: number
   stringIndex: number
 }
-
-// =============================================================================
-// Event Map - All events and their payload types
-// =============================================================================
 
 export type AppEvents = {
   // Song data events
@@ -100,56 +79,33 @@ export type AppEvents = {
   'modal.closed': string
 }
 
-// =============================================================================
-// Typed Event Bus
-// =============================================================================
-
 class TypedEventBus {
   private emitter: Emitter<AppEvents>
-  
+
   constructor() {
     this.emitter = mitt<AppEvents>()
   }
-  
-  /**
-   * Subscribe to an event
-   */
+
   on<K extends keyof AppEvents>(event: K, handler: Handler<AppEvents[K]>): void {
     this.emitter.on(event, handler)
   }
-  
-  /**
-   * Unsubscribe from an event
-   */
+
   off<K extends keyof AppEvents>(event: K, handler: Handler<AppEvents[K]>): void {
     this.emitter.off(event, handler)
   }
-  
-  /**
-   * Emit an event
-   */
+
   emit<K extends keyof AppEvents>(event: K, payload?: AppEvents[K]): void {
     this.emitter.emit(event, payload as AppEvents[K])
   }
-  
-  /**
-   * Subscribe to all events (for debugging)
-   */
+
   onAll(handler: (event: keyof AppEvents, payload: any) => void): void {
     this.emitter.on('*', handler as any)
   }
-  
-  /**
-   * Clear all event handlers
-   */
+
   clearAll(): void {
     this.emitter.all.clear()
   }
 }
 
-// Export singleton instance
 export const typedEventBus = new TypedEventBus()
-
-// Export for backwards compatibility - wraps the old mitt instance
-// This allows gradual migration
 export default typedEventBus

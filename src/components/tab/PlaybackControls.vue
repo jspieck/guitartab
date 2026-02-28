@@ -263,7 +263,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 
 // Props
 interface Props {
@@ -477,20 +477,11 @@ function setBpm(preset: number) {
   updateBpm()
 }
 
-function updateAudioEngine() {
-  // Implementation for audio engine change
-  console.log('Audio engine changed to:', audioEngine.value)
-}
+function updateAudioEngine() {}
 
-function updateSampleRate() {
-  // Implementation for sample rate change
-  console.log('Sample rate changed to:', sampleRate.value)
-}
+function updateSampleRate() {}
 
-function updateBufferSize() {
-  // Implementation for buffer size change
-  console.log('Buffer size changed to:', bufferSize.value)
-}
+function updateBufferSize() {}
 
 function toggleSettings() {
   showSettings.value = !showSettings.value
@@ -526,10 +517,6 @@ function stopMetronomeVisual() {
 }
 
 // Lifecycle
-onMounted(() => {
-  // Initialize audio context or playback engine
-  console.log('Playback controls mounted')
-})
 
 onUnmounted(() => {
   stopMetronomeVisual()

@@ -1,17 +1,6 @@
-/**
- * useTrack Composable
- * 
- * Provides reactive track state and controls for managing guitar tab tracks.
- * Handles track selection, properties, and instrument settings.
- */
-
 import { ref, computed, readonly, watch } from 'vue'
 import Song from '../assets/js/songData'
 import EventBus from '../assets/js/eventBus'
-
-// =============================================================================
-// Types
-// =============================================================================
 
 export interface TrackColor {
   red: number
@@ -19,7 +8,7 @@ export interface TrackColor {
   blue: number
 }
 
-export interface Track {
+export interface TrackViewModel {
   id: number
   name: string
   numStrings: number
@@ -46,22 +35,11 @@ export interface TrackInstrument {
   balance: number
 }
 
-// =============================================================================
-// Singleton State
-// =============================================================================
-
 const currentTrackId = ref(0)
 const currentVoiceId = ref(0)
 
-// =============================================================================
-// Composable
-// =============================================================================
-
 export function useTrack() {
-  /**
-   * Get all tracks
-   */
-  const tracks = computed<Track[]>(() => {
+  const tracks = computed<TrackViewModel[]>(() => {
     return (Song.tracks || []).map((track: any, index: number) => ({
       id: index,
       name: track.name || `Track ${index + 1}`,
@@ -78,10 +56,7 @@ export function useTrack() {
     }))
   })
   
-  /**
-   * Current track
-   */
-  const currentTrack = computed<Track | null>(() => {
+  const currentTrack = computed<TrackViewModel | null>(() => {
     return tracks.value[currentTrackId.value] || null
   })
   

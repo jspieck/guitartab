@@ -34,12 +34,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, defineEmits } from 'vue'
-import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { computed } from 'vue'
+import { getDisplayWidth } from '../../utils/tabLayout'
 
-// Props
 interface Props {
-  beatData: any // Beat/Measure data from Song
+  beatData: any
   beatIndex: number
   xOffset: number
   stringSpacing: number
@@ -48,14 +47,11 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { BEAT_WIDTH } = TAB_CONSTANTS
-
 const noteX = computed(() => {
   const duration = props.beatData?.duration || 'q'
   return getDisplayWidth(duration) / 2
 })
 
-// Create a hash of the beat data to force re-rendering when data changes
 const beatDataHash = computed(() => {
   if (!props.beatData || !props.beatData.notes) return 0
   
@@ -70,17 +66,8 @@ const beatDataHash = computed(() => {
   return hash
 })
 
-// Watch for changes in beat data
-watch(() => props.beatData, () => {
-  // Force re-render when beat data changes
-}, { deep: true })
-
-// Computed properties
 const notesToRender = computed(() => {
-  // console.log('Computing notes to render for beat:', props.beatIndex, props.beatData)
-  
   if (!props.beatData || !props.beatData.notes) {
-    // console.log('No beat data or notes array')
     return []
   }
   
@@ -90,20 +77,17 @@ const notesToRender = computed(() => {
       if (note === null) return null
       return {
         ...note,
-        string: stringIndex // Add string index for positioning
+        string: stringIndex
       }
     })
-    .filter((note: any) => note !== null && !note.tied) // Don't render tied notes
-  
-  // console.log('Notes to render:', notes)
+    .filter((note: any) => note !== null && !note.tied)
   return notes
 })
 
-const graceNotes = computed(() => {
-  return notesToRender.value.filter((note: any) => note.gracePresent && note.graceObj)
-})
+const graceNotes = computed(() =>
+  notesToRender.value.filter((note: any) => note.gracePresent && note.graceObj)
+)
 
-// Methods
 function getNoteDisplay(note: any): string {
   if (!note) return ''
   
@@ -125,24 +109,18 @@ function getFontSize(note: any): string {
 
 function getNoteClasses(note: any): string {
   const classes = []
-  
   if (note.dead) classes.push('dead-note')
   if (note.ghost) classes.push('ghost-note')
   if (note.palmMute) classes.push('palm-mute')
   if (note.slide) classes.push('slide')
   if (note.vibrato) classes.push('vibrato')
   if (note.bendPresent) classes.push('bend')
-  
   return classes.join(' ')
 }
-
-// Event handlers
 </script>
 
 <style scoped>
-.tab-note {
-  /* SVG styles are handled by attributes */
-}
+.tab-note {}
 
 .note-text {
   user-select: none;

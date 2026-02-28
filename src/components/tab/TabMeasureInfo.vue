@@ -132,8 +132,8 @@ const timeMeter = computed(() => ({
 }))
 
 const timeMeterX = computed(() => {
-  // Center in the padding area (usually 25px for time meter)
-  return 15
+  // Place after a small margin inside the content padding area
+  return 8
 })
 
 const bpmX = computed(() => {

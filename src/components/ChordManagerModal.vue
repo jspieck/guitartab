@@ -66,11 +66,8 @@ const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManager
 const chordRefs = ref<SVGElement[]>([]);
 const chords = ref<Map<string, Chord>>(new Map());
 
-// Helper to notify the Vue tab view to re-render chords
 const notifyChordChange = () => {
-  EventBus.emit('song-data-changed');
-  // Also dispatch DOM event for Vue components
-  window.dispatchEvent(new CustomEvent('songDataChanged', { detail: { type: 'chords' } }));
+  EventBus.emit('song-data-changed')
 };
 
 const drawChordDiagram = (svg: SVGElement, chord: Chord) => {

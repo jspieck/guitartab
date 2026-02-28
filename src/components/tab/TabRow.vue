@@ -103,6 +103,7 @@ import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
 import { tab } from '../../assets/js/tab'
 import EventBus from '../../assets/js/eventBus'
+import { typedEventBus } from '../../utils/typedEventBus'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { getDurationInBeats, getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
 
@@ -195,11 +196,8 @@ watch(() => currentSelection.value, (newSelection) => {
     const note = measureData?.[newSelection.beatIndex]?.notes?.[newSelection.stringIndex]
     
     if (note) {
-      // Calculate position for the menu
-      // We use a small delay to ensure the DOM has updated if needed
       setTimeout(() => {
         const pos = getSelectionScreenPos()
-        console.log('Note selected, showing context menu at:', pos)
         if (pos) {
           showContextMenu(note, pos.x, pos.y)
         }
@@ -310,7 +308,6 @@ function getMeasureContentPadding(blockId: number): number {
 
 function handleStringClick(event: MouseEvent, stringIndex: number) {
   event.stopPropagation()
-  console.log('String click:', stringIndex)
   
   // Get the SVG root element
   const svgElement = document.querySelector('.tab-svg') as SVGSVGElement
@@ -390,18 +387,14 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
       beatIndex,
       blockId
     }
-    
-    // Emit selection event for legacy compatibility
-    const selectionEvent = new CustomEvent('noteSelected', {
-      detail: {
-        trackId: props.trackId,
-        voiceId: props.voiceId,
-        blockId,
-        beatIndex,
-        stringIndex
-      }
+
+    typedEventBus.emit('selection.changed', {
+      trackId: props.trackId,
+      voiceId: props.voiceId,
+      blockId,
+      beatIndex,
+      stringIndex
     })
-    window.dispatchEvent(selectionEvent)
   }
 }
 
@@ -476,13 +469,7 @@ function setNoteAtSelection(fret: number) {
     }
   }
   
-  // Notify via EventBus for syncSongData to update reactive proxy
   EventBus.emit('song-data-changed')
-  
-  // Also dispatch DOM event for GuitarTabView
-  window.dispatchEvent(new CustomEvent('songDataChanged', {
-    detail: { trackId, blockId: selectedPosition.value.blockId, voiceId, beatIndex, stringIndex }
-  }))
 }
 
 // Expose the setNoteAtSelection function to parent components

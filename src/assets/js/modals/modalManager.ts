@@ -164,7 +164,7 @@ export class ModalManager {
                 onmove: this.dragMoveListener,
                 modifiers: [
                     interact.modifiers.restrictRect({
-                        restriction: 'parent',
+                        restriction: 'window',
                         elementRect: { top: 0, left: 0, bottom: 1, right: 1 },
                     }),
                 ],

@@ -512,7 +512,6 @@ function processNotationSelect(
     trackId: number, blockId: number, voiceId: number, beatId: number,
     id: string, isRevert: boolean,
 ) {
-    console.log('Process Notation Select', id, isRevert);
     const beat = Song.measures[trackId][blockId][voiceId][beatId];
     if (id === 'addText' && !isRevert && !beat.textPresent) {
         modalManager.toggleByModal(MODALS.TEXT, { trackId, blockId, voiceId, beatId, beat });
@@ -573,8 +572,6 @@ function processNotationSelect(
 
         toggleEffectSelect(id, beat);
         typedEventBus.emit('render.block', { trackId, blockId, voiceId });
-        // drawTrack(trackId, voiceId, true);
-        // typedEventBus.emit('render.overBar', { trackId, blockId, voiceId });
     }
 }
 
@@ -602,14 +599,11 @@ function processEffectSelect(
 ) {
     // Variable is only set, if effect is active at every element in arr
     let isVariableSet: boolean = true;
-    console.log(arr, id);
-    console.log('Process Effect Select');
     for (const no of arr.notes) {
         const beat = Song.measures[no.trackId][no.blockId][no.voiceId][no.beatId];
         const note = beat.notes[no.string];
         isVariableSet = menuHandler.getEffectVariable(beat, note, id);
     }
-    console.log('PE', id, isVariableSet, isRevert);
     if (id === 'bend' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
         modalManager.toggleByModal(MODALS.BEND, {
             notes: arr.notes,
