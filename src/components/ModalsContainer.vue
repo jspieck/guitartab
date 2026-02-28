@@ -36,13 +36,12 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue';
+<script setup lang="ts">
 import Compressor from './Compressor.vue'
 import Equalizer from './Equalizer.vue'
 import PianoModal from './PianoModal.vue'
 import TimeMeterModal from './TimeMeterModal.vue'
-import InstrumentSettingsModal from './InstrumentSettingModal.vue';
+import InstrumentSettingsModal from './InstrumentSettingModal.vue'
 import Mixer from './Mixer.vue'
 import CopyrightModal from './CopyrightModal.vue'
 import MidiModal from './MidiModal.vue'
@@ -56,58 +55,18 @@ import AddMarkerModal from './AddMarkerModal.vue'
 import AddTextModal from './AddTextModal.vue'
 import BpmModal from './BpmModal.vue'
 import StrokeModal from './StrokeModal.vue'
-import DrumInfoModal from  './DrumInfoModal.vue'
-import TremoloPickingModal from  './TremoloPickingModal.vue'
-import HarmonicModal from  './HarmonicModal.vue'
-import RepeatAlternativeModal from  './RepeatAlternativeModal.vue'
-import AddTrackModal from  './AddTrackModal.vue'
-import RepititionModal from  './RepititionModal.vue'
-import DeleteModal from  './DeleteModal.vue'
-import BendModal from  './BendModal.vue'
+import DrumInfoModal from './DrumInfoModal.vue'
+import TremoloPickingModal from './TremoloPickingModal.vue'
+import HarmonicModal from './HarmonicModal.vue'
+import RepeatAlternativeModal from './RepeatAlternativeModal.vue'
+import AddTrackModal from './AddTrackModal.vue'
+import RepititionModal from './RepititionModal.vue'
+import DeleteModal from './DeleteModal.vue'
+import BendModal from './BendModal.vue'
 
-export default defineComponent({
-  name: 'ModalsContainer',
-  components: {
-    Compressor,
-    Equalizer,
-    PianoModal,
-    TimeMeterModal,
-    InstrumentSettingsModal,
-    Mixer,
-    CopyrightModal,
-    MidiModal,
-    TrackInfoModal,
-    TremoloBarModal,
-    GuitarModal,
-    GraceModal,
-    ChordManagerModal,
-    AddChordModal,
-    AddMarkerModal,
-    AddTextModal,
-    BpmModal,
-    StrokeModal,
-    DrumInfoModal,
-    TremoloPickingModal,
-    HarmonicModal,
-    RepeatAlternativeModal,
-    AddTrackModal,
-    RepititionModal,
-    DeleteModal,
-    BendModal
-  },
-  props: {
-    trackId: {
-      type: Number,
-      required: true
-    },
-    voiceId: {
-      type: Number,
-      required: true
-    },
-    blockId: {
-      type: Number,
-      required: true
-    }
-  }
-});
+defineProps<{
+  trackId: number
+  voiceId: number
+  blockId: number
+}>()
 </script>

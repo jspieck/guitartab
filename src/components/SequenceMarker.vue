@@ -1,38 +1,25 @@
 <template>
     <svg :style="markerStyle">
-      <rect :x="0" :y="0" :width="markerWidth" :height="height"
-            fill="#adadad" stroke-width="1" stroke="rgba(62, 173, 255, 0.19)" />
+        <rect :x="0" :y="0" :width="markerWidth" :height="height"
+              fill="#adadad" stroke-width="1" stroke="rgba(62, 173, 255, 0.19)" />
     </svg>
-  </template>
-  
-  <script lang="ts">
-  export default {
-    props: {
-      blockStart: {
-        type: Number,
-        required: true,
-      },
-      blockEnd: {
-        type: Number,
-        required: true,
-      },
-      height: {
-        type: Number,
-        required: true,
-      },
-    },
-    computed: {
-      markerStyle() {
-        return {
-          left: `${this.blockStart * 30}px`,
-          width: `${30 * (this.blockEnd - this.blockStart + 1)}px`,
-          top: '0px',
-          height: `${this.height}px`,
-        };
-      },
-      markerWidth() {
-        return 30 * (this.blockEnd - this.blockStart + 1);
-      },
-    },
-  };
-  </script>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+const props = defineProps<{
+    blockStart: number;
+    blockEnd: number;
+    height: number;
+}>();
+
+const span = computed(() => 30 * (props.blockEnd - props.blockStart + 1));
+const markerWidth = computed(() => span.value);
+const markerStyle = computed(() => ({
+    left: `${props.blockStart * 30}px`,
+    width: `${span.value}px`,
+    top: '0px',
+    height: `${props.height}px`,
+}));
+</script>

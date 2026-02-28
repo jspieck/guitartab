@@ -12,7 +12,6 @@
       <Menu ref="menu"/>
       <div id="mainContent" class="mainWrapper" ref="mainContent" tabindex="0" @click="focusMainContent">
         <div id="completeTab" class="dinA4Size">
-          <!-- New Vue-based tab view -->
           <GuitarTabView
             :track-id="currentTrackId"
             :voice-id="currentVoiceId"
@@ -28,7 +27,6 @@
     </div>
     <Footer/>
     
-    <!-- 2 -->
     <div id="loadingWheel" class="loader loader--style2" title="1">
       <svg version="1.1" id="loader-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
         x="0px" y="0px" width="50px" height="50px" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50;"
@@ -65,106 +63,38 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import EffectsBar from './components/EffectsBar.vue'
 import Menu from './components/Menu.vue'
-import { useTabStore } from './stores/tabStore'
 import Footer from './components/Footer.vue'
 import Sequencer from './components/Sequencer.vue'
 import ModalsContainer from './components/ModalsContainer.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
-import { overlayHandler } from './assets/js/overlayHandler'
-import { tab } from './assets/js/tab'
 import EventBus from './assets/js/eventBus'
-import Song from './assets/js/songData'
 import { useSongData } from './composables/useSongData'
 
-const { reactiveSongData } = useSongData();
+const { reactiveSongData } = useSongData()
 
-let currentTrackId = computed(() => reactiveSongData.currentTrackId);
-let currentVoiceId = computed(() => reactiveSongData.currentVoiceId);
-let currentBlockId = ref(0);
-let currentBeatId = ref(0);
-
-const store = useTabStore();
-const currentSelection = computed(() => {
-  // Trigger dependency
-  store.selectionVersion;
-  return overlayHandler.getNotesInInterval(null);
-});
+const currentTrackId = computed(() => reactiveSongData.currentTrackId)
+const currentVoiceId = computed(() => reactiveSongData.currentVoiceId)
+const currentBlockId = ref(0)
 
 function focusMainContent() {
   const mainContent = document.getElementById('mainContent')
-  if (mainContent) {
-    mainContent.focus()
-  }
+  mainContent?.focus()
 }
 
-// Handle track changes
 function handleTrackChange(trackId: number) {
-  currentTrackId.value = trackId;
-}
-
-// Handle song data changes (e.g., when loading a new file)
-function handleSongDataChange() {
-  // Update to current track from Song
-  currentTrackId.value = Song.currentTrackId;
-  currentVoiceId.value = Song.currentVoiceId;
+  reactiveSongData.currentTrackId = trackId
 }
 
 onMounted(() => {
-  // Initialize legacy system for audio/playback support
-  startUp();
-  
-  // Listen for track changes
-  EventBus.on('ui.trackChanged', handleTrackChange as any);
-  EventBus.on('song-data-changed', handleSongDataChange);
+  startUp()
+  EventBus.on('ui.trackChanged', handleTrackChange as any)
 })
 
 onUnmounted(() => {
-  EventBus.off('ui.trackChanged', handleTrackChange as any);
-  EventBus.off('song-data-changed', handleSongDataChange);
+  EventBus.off('ui.trackChanged', handleTrackChange as any)
 })
 </script>
-
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-
-.dev-toggle-button {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
-  padding: 8px 16px;
-  background: #f0f0f0;
-  border: 2px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-
-.dev-toggle-button:hover {
-  background: #e0e0e0;
-}
-
-.dev-toggle-button.active {
-  background: #4CAF50;
-  color: white;
-  border-color: #45a049;
-}
-</style>

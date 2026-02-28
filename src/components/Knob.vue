@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="knob-root">
         <svg :id="id" :data-id="dataId" class="knobRing" @mousedown="knobRotateFunc"
             :data-angle="startAngle">
             <circle :cx="cx" :cy="cy" :r="radiusInner" :stroke="strokeInner" stroke-width="1" :fill="fillInner"></circle>

@@ -20,4 +20,4 @@ export type { PlaybackPosition, PlaybackState } from './usePlayback'
 
 // Track management
 export { useTrack } from './useTrack'
-export type { Track, TrackColor, TrackInstrument } from './useTrack'
+export type { TrackViewModel, TrackColor, TrackInstrument } from './useTrack'

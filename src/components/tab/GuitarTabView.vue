@@ -336,8 +336,8 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-function handleNoteSelection(event: Event) {
-  handleNoteSelectionEvent(event)
+function handleNoteSelection(selection: any) {
+  if (selection) handleNoteSelectionEvent({ detail: selection } as any)
 }
 
 function setNoteAtCurrentSelection(fretNumber: number) {
@@ -392,27 +392,21 @@ function handleToggleEffect(effectId: string) {
   
   syncSongData()
   updateTrigger.value++
-  window.dispatchEvent(new CustomEvent('songDataChanged'))
+  typedEventBus.emit('song-data-changed')
 }
 
 function handleContextMenuSetDuration(durationId: string) {
   if (!contextMenuState.value.note || !currentSelection.value) return
-  
+
   const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
-  
+
   tab.changeNoteDuration(
-    trackId,
-    blockId,
-    voiceId,
-    beatIndex,
-    stringIndex,
-    durationId as any,
-    false
+    trackId, blockId, voiceId, beatIndex, stringIndex, durationId as any, false
   )
-  
+
   syncSongData()
   updateTrigger.value++
-  window.dispatchEvent(new CustomEvent('songDataChanged'))
+  typedEventBus.emit('song-data-changed')
 }
 
 function handleDeleteNote() {
@@ -569,10 +563,10 @@ onMounted(() => {
     svgDrawer.playBackBarObjects = [mGroup]
   }
   
-  window.addEventListener('songDataChanged', handleSongDataChange)
-  window.addEventListener('noteSelected', handleNoteSelection)
   window.addEventListener('mousedown', handleGlobalClick)
-  
+
+  typedEventBus.on('song-data-changed', handleSongDataChange)
+  typedEventBus.on('selection.changed', handleNoteSelection as any)
   typedEventBus.on('render.block', handleRenderBlock)
   typedEventBus.on('render.all', handleRenderBlock)
   
@@ -581,10 +575,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener('songDataChanged', handleSongDataChange)
-  window.removeEventListener('noteSelected', handleNoteSelection)
   window.removeEventListener('mousedown', handleGlobalClick)
-  
+
+  typedEventBus.off('song-data-changed', handleSongDataChange)
+  typedEventBus.off('selection.changed', handleNoteSelection as any)
   typedEventBus.off('render.block', handleRenderBlock)
   typedEventBus.off('render.all', handleRenderBlock)
 })

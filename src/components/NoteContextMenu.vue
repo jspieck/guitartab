@@ -59,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed } from 'vue'
 
 // Import icons
 import wholeNoteIcon from '../assets/images/notes/wholeNote.svg'
@@ -125,10 +125,6 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits(['close', 'toggle-effect', 'set-duration', 'delete-note', 'copy-note', 'paste-note'])
-
-watch(() => props.isVisible, (newVal) => {
-  console.log('NoteContextMenu isVisible changed to:', newVal, 'note:', props.note)
-})
 
 const durations = [
   { id: 'w', label: 'Whole', icon: wholeNoteIcon },
@@ -205,10 +201,6 @@ function pasteNote() {
   emit('paste-note')
   emit('close')
 }
-
-onMounted(() => {
-  console.log('NoteContextMenu mounted, isVisible:', props.isVisible, 'note:', props.note, 'x:', props.x, 'y:', props.y)
-})
 </script>
 
 <style scoped>

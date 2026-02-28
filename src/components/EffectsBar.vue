@@ -75,84 +75,53 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, computed } from 'vue';
-import Knob from './Knob.vue';
-import Song from '../assets/js/songData';
-import audioEngine from '../assets/js/audioEngine';
+<script setup lang="ts">
+import { computed } from 'vue'
+import Knob from './Knob.vue'
+import Song from '../assets/js/songData'
+import audioEngine from '../assets/js/audioEngine'
 
-export default defineComponent({
-  name: 'EffectsBar',
-  components: {
-    Knob
-  },
-  props: {
-    trackId: {
-      type: Number,
-      required: true
-    }
-  },
-  setup(props) {
-    const getInstrument = () => {
-      if (!Song.playBackInstrument || !Song.playBackInstrument[props.trackId]) {
-        return null;
-      }
-      return Song.playBackInstrument[props.trackId];
-    };
+const props = defineProps<{ trackId: number }>()
 
-    const panValue = computed(() => getInstrument()?.balance ?? 64);
-    const reverbValue = computed(() => getInstrument()?.reverb ?? 0);
-    const chorusValue = computed(() => getInstrument()?.chorus ?? 0);
-    const phaserValue = computed(() => getInstrument()?.phaser ?? 0);
+const getInstrument = () =>
+  Song.playBackInstrument?.[props.trackId] ?? null
 
-    const panKnobRotate = (angle: number, _dataId: string) => {
-      const instrument = getInstrument();
-      if (!instrument) return;
+const panValue = computed(() => getInstrument()?.balance ?? 64)
+const reverbValue = computed(() => getInstrument()?.reverb ?? 0)
+const chorusValue = computed(() => getInstrument()?.chorus ?? 0)
+const phaserValue = computed(() => getInstrument()?.phaser ?? 0)
 
-      const scaled = (angle / 360) * 127;
-      instrument.balance = scaled;
-      audioEngine.setEffectGain(props.trackId, scaled, 'pan');
-    };
+const panKnobRotate = (angle: number, _dataId: string) => {
+  const instrument = getInstrument()
+  if (!instrument) return
+  const scaled = (angle / 360) * 127
+  instrument.balance = scaled
+  audioEngine.setEffectGain(props.trackId, scaled, 'pan')
+}
 
-    const reverbKnobRotate = (angle: number, _dataId: string) => {
-      const instrument = getInstrument();
-      if (!instrument) return;
-      
-      const scaled = (angle / 360) * 127;
-      instrument.reverb = scaled;
-      audioEngine.setEffectGain(props.trackId, scaled, 'reverb');
-    };
+const reverbKnobRotate = (angle: number, _dataId: string) => {
+  const instrument = getInstrument()
+  if (!instrument) return
+  const scaled = (angle / 360) * 127
+  instrument.reverb = scaled
+  audioEngine.setEffectGain(props.trackId, scaled, 'reverb')
+}
 
-    const chorusKnobRotate = (angle: number, _dataId: string) => {
-      const instrument = getInstrument();
-      if (!instrument) return;
-      
-      const scaled = (angle / 360) * 127;
-      instrument.chorus = scaled;
-      audioEngine.setEffectGain(props.trackId, scaled, 'chorus');
-    };
+const chorusKnobRotate = (angle: number, _dataId: string) => {
+  const instrument = getInstrument()
+  if (!instrument) return
+  const scaled = (angle / 360) * 127
+  instrument.chorus = scaled
+  audioEngine.setEffectGain(props.trackId, scaled, 'chorus')
+}
 
-    const phaserKnobRotate = (angle: number, _dataId: string) => {
-      const instrument = getInstrument();
-      if (!instrument) return;
-      
-      const scaled = (angle / 360) * 127;
-      instrument.phaser = scaled;
-      audioEngine.setEffectGain(props.trackId, scaled, 'phaser');
-    };
-
-    return {
-      panValue,
-      reverbValue,
-      chorusValue,
-      phaserValue,
-      panKnobRotate,
-      reverbKnobRotate,
-      chorusKnobRotate,
-      phaserKnobRotate
-    };
-  }
-});
+const phaserKnobRotate = (angle: number, _dataId: string) => {
+  const instrument = getInstrument()
+  if (!instrument) return
+  const scaled = (angle / 360) * 127
+  instrument.phaser = scaled
+  audioEngine.setEffectGain(props.trackId, scaled, 'phaser')
+}
 </script>
 
 <style scoped>

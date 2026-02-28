@@ -174,7 +174,7 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
     private drawLine(ctx: CanvasRenderingContext2D, xStart: number, yStart: number, xEnd: number, yEnd: number) {
         if (ctx != null) {
-            ctx.strokeStyle = Settings.darkMode ? 'rgb(79, 79, 79)' : '#e5e7eb';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
             ctx.beginPath();
             ctx.moveTo(xStart, yStart);
             ctx.lineTo(xEnd, yEnd);
@@ -229,20 +229,19 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
 
     public clearCanvas(ctx: CanvasRenderingContext2D): void {
-        console.log(Settings.darkMode);
-        ctx.fillStyle = Settings.darkMode ? '#202020' : '#ffffff';
+        ctx.fillStyle = '#0e1520';
         ctx.fillRect(
             0, 0,
             this.CANVAS_WIDTH + this.DECIBEL_WIDTH,
             this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT
         );
 
-        ctx.fillStyle = Settings.darkMode ? '#212121' : '#fff';
+        ctx.fillStyle = '#0c1219';
         ctx.fillRect(
             0,
             this.FREQUENCY_HEIGHT,
             this.CANVAS_WIDTH,
-            this.CANVAS_HEIGHT + this.FREQUENCY_HEIGHT
+            this.CANVAS_HEIGHT
         );
     }
 

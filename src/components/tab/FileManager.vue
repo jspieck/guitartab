@@ -801,9 +801,7 @@ function closeInfoDialog() {
   showInfo.value = false
 }
 
-function showRecentContextMenu(file: TabFile, event: MouseEvent) {
-  // Context menu implementation would go here
-  console.log('Context menu for file:', file, event)
+function showRecentContextMenu(_file: TabFile, _event: MouseEvent) {
 }
 
 // Lifecycle
