@@ -1,4 +1,4 @@
-import { ref, computed, readonly, watch } from 'vue'
+import { ref, computed, readonly } from 'vue'
 import Song from '../assets/js/songData'
 import EventBus from '../assets/js/eventBus'
 

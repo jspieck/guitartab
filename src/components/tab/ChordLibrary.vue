@@ -227,7 +227,7 @@ interface Props {
   visible: boolean
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 // Emits
 const emit = defineEmits([

@@ -5,17 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "dev:local": "vite --host 127.0.0.1 --port 4173",
+    "typecheck": "vue-tsc --noEmit",
+    "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint vite.config.ts src/components/NoteContextMenu.vue src/components/tab/**/*.vue src/composables/**/*.ts src/types/**/*.ts src/utils/**/*.ts",
+    "lint:fix": "npm run lint -- --fix"
   },
   "dependencies": {
     "@types/vexflow": "^1.2.42",
     "fastdom": "^1.0.11",
     "interactjs": "^1.10.17",
-    "jquery": "^3.6.4",
-    "jquery-ui-dist": "^1.13.2",
     "lz-string": "^1.5.0",
     "mitt": "^3.0.0",
     "pinia": "^3.0.4",
@@ -23,18 +25,22 @@
     "tinycolor2": "^1.6.0",
     "vanilla-picker": "^2.12.1",
     "vexflow": "^4.1.0",
-    "vue": "^3.2.47",
-    "vuex": "^4.0.2"
+    "vue": "^3.2.47"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/electron": "^1.6.12",
-    "@types/jquery": "^3.5.16",
     "@types/node": "^22.15.29",
     "@types/tinycolor2": "^1.4.6",
     "@vitejs/plugin-vue": "^4.1.0",
+    "eslint": "^10.4.0",
+    "eslint-plugin-vue": "^10.9.1",
+    "globals": "^17.6.0",
     "typescript": "^4.9.3",
+    "typescript-eslint": "^8.59.3",
     "vite": "^4.2.0",
     "vitest": "^4.0.18",
+    "vue-eslint-parser": "^10.4.0",
     "vue-tsc": "^1.2.0"
   }
 }

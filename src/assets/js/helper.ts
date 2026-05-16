@@ -1,6 +1,5 @@
 import fastdom from 'fastdom';
 import { instrumentList } from './instrumentData';
-import Settings from './settingManager';
 import { Song, Measure } from './songData';
 import Duration from './duration';
 import { tab } from './tab';
@@ -64,11 +63,7 @@ class Helper {
     if (instrumentList[instrument] == null) {
       return '';
     }
-    let iconPath = instrumentList[instrument][0];
-    if (Settings.darkMode) {
-      iconPath = `${iconPath.substring(0, iconPath.length - 4)}White.svg`;
-    }
-    return iconPath;
+    return instrumentList[instrument][0];
   }
 
   static isInt(value: string): boolean {

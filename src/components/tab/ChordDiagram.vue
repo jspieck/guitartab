@@ -7,7 +7,6 @@
       font-family="Source Sans Pro"
       font-size="14px"
       font-weight="bold"
-      fill="#000"
       text-anchor="middle"
       class="chord-name"
     >
@@ -24,8 +23,8 @@
         :x2="diagramWidth"
         :y1="(fret - startFret) * fretHeight"
         :y2="(fret - startFret) * fretHeight"
-        stroke="#333"
         :stroke-width="fret === 0 ? 3 : 1"
+        class="grid-line"
       />
       
       <!-- String lines (vertical) -->
@@ -36,8 +35,8 @@
         :x2="(stringIndex - 1) * stringSpacing"
         :y1="0"
         :y2="diagramHeight"
-        stroke="#333"
         stroke-width="1"
+        class="grid-line"
       />
     </g>
     
@@ -49,8 +48,6 @@
         :cx="position.x"
         :cy="position.y"
         :r="6"
-        fill="#333"
-        stroke="#fff"
         stroke-width="1"
         class="finger-dot"
       />
@@ -63,7 +60,6 @@
           font-family="Source Sans Pro"
           font-size="10px"
           font-weight="bold"
-          fill="#fff"
           text-anchor="middle"
           class="finger-number"
           v-if="position.finger > 0"
@@ -83,9 +79,9 @@
         font-family="Source Sans Pro"
         font-size="12px"
         font-weight="bold"
-        :fill="indicator.type === 'muted' ? '#f00' : '#000'"
         text-anchor="middle"
         class="string-indicator"
+        :class="{ 'muted-indicator': indicator.type === 'muted', 'open-indicator': indicator.type !== 'muted' }"
       >
         {{ indicator.symbol }}
       </text>
@@ -98,7 +94,6 @@
       :y="fretHeight + 4"
       font-family="Source Sans Pro"
       font-size="10px"
-      fill="#666"
       text-anchor="middle"
       class="fret-number"
     >
@@ -215,16 +210,31 @@ const stringIndicators = computed(() => {
 }
 
 .chord-name {
+  fill: var(--tab-primary);
   font-weight: bold;
+}
+
+.grid-line {
+  stroke: var(--tab-muted);
 }
 
 .finger-dot {
-  fill: #333;
+  fill: var(--tab-chord-dot);
+  stroke: var(--tab-chord-finger);
 }
 
 .finger-number {
+  fill: var(--tab-chord-finger);
   font-weight: bold;
   font-size: 10px;
+}
+
+.muted-indicator {
+  fill: var(--tab-muted-string);
+}
+
+.open-indicator {
+  fill: var(--tab-primary);
 }
 
 .string-indicator {
@@ -232,6 +242,7 @@ const stringIndicators = computed(() => {
 }
 
 .fret-number {
+  fill: var(--tab-secondary);
   font-size: 10px;
   opacity: 0.7;
 }

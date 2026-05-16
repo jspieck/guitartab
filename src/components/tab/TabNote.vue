@@ -8,7 +8,6 @@
       :y="note.string * stringSpacing + 6"
       font-family="Source Sans Pro"
       :font-size="getFontSize(note)"
-      fill="#000"
       text-anchor="middle"
       class="note-text"
       :class="getNoteClasses(note)"
@@ -24,7 +23,6 @@
       :y="note.string * stringSpacing + 6"
       font-family="Source Sans Pro"
       font-size="11px"
-      fill="#666"
       text-anchor="middle"
       class="grace-note"
     >
@@ -36,9 +34,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getDisplayWidth } from '../../utils/tabLayout'
+import type { TabBeat, TabNoteData } from '../../types/tab'
+
+type RenderableNote = TabNoteData & { string: number }
 
 interface Props {
-  beatData: any
+  beatData?: TabBeat
   beatIndex: number
   xOffset: number
   stringSpacing: number
@@ -57,7 +58,7 @@ const beatDataHash = computed(() => {
   
   // Create a simple hash based on the notes content
   let hash = 0
-  props.beatData.notes.forEach((note: any, index: number) => {
+  props.beatData.notes.forEach((note, index) => {
     if (note) {
       hash += (note.fret || 0) * (index + 1) * 17
       hash += note.string * (index + 1) * 13
@@ -68,38 +69,34 @@ const beatDataHash = computed(() => {
 
 const notesToRender = computed(() => {
   if (!props.beatData || !props.beatData.notes) {
-    return []
+    return [] as RenderableNote[]
   }
   
   // Filter out null notes and add string index information
-  const notes = props.beatData.notes
-    .map((note: any, stringIndex: number) => {
-      if (note === null) return null
-      return {
-        ...note,
-        string: stringIndex
-      }
-    })
-    .filter((note: any) => note !== null && !note.tied)
-  return notes
+  return props.beatData.notes.flatMap((note, stringIndex) => {
+    if (!note || note.tied) {
+      return []
+    }
+
+    return [{
+      ...note,
+      string: stringIndex,
+    } satisfies RenderableNote]
+  })
 })
 
 const graceNotes = computed(() =>
-  notesToRender.value.filter((note: any) => note.gracePresent && note.graceObj)
+  notesToRender.value.filter((note) => note.gracePresent && note.graceObj)
 )
 
-function getNoteDisplay(note: any): string {
-  if (!note) return ''
-  
+function getNoteDisplay(note: RenderableNote): string {
   if (note.dead) return 'x'
   if (note.ghost) return `(${note.fret})`
   
   return note.fret.toString()
 }
 
-function getFontSize(note: any): string {
-  if (!note) return '16px'
-  
+function getFontSize(note: RenderableNote): string {
   const display = getNoteDisplay(note)
   if (display.length > 3) return '12px'
   if (display.length > 1 || note.ghost) return '14px'
@@ -107,7 +104,7 @@ function getFontSize(note: any): string {
   return '16px'
 }
 
-function getNoteClasses(note: any): string {
+function getNoteClasses(note: RenderableNote): string {
   const classes = []
   if (note.dead) classes.push('dead-note')
   if (note.ghost) classes.push('ghost-note')
@@ -124,14 +121,15 @@ function getNoteClasses(note: any): string {
 
 .note-text {
   user-select: none;
+  fill: var(--tab-primary);
 }
 
 .dead-note {
-  fill: #666;
+  fill: var(--tab-secondary);
 }
 
 .ghost-note {
-  fill: #999;
+  fill: var(--tab-ghost);
   font-style: italic;
 }
 
@@ -142,5 +140,6 @@ function getNoteClasses(note: any): string {
 .grace-note {
   font-size: 11px;
   opacity: 0.8;
+  fill: var(--tab-secondary);
 }
 </style> 

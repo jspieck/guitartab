@@ -63,16 +63,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
-import EffectsBar from './components/EffectsBar.vue'
+import { defineAsyncComponent, onMounted, onUnmounted, ref, computed } from 'vue'
 import Menu from './components/Menu.vue'
-import Footer from './components/Footer.vue'
-import Sequencer from './components/Sequencer.vue'
-import ModalsContainer from './components/ModalsContainer.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
 import EventBus from './assets/js/eventBus'
 import { useSongData } from './composables/useSongData'
+
+const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
+const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
+const Sequencer = defineAsyncComponent(() => import('./components/Sequencer.vue'))
+const ModalsContainer = defineAsyncComponent(() => import('./components/ModalsContainer.vue'))
 
 const { reactiveSongData } = useSongData()
 

@@ -30,11 +30,34 @@ $color-glowingGreen: #53caa0;
     #bendEditor circle, #tremoloEditor circle, #chordDisplay circle{
         fill: #4386ca;
     }
-    #svgTestArea {
-        filter: invert(90%);
-    }
-    svg.svgPage text {
-        fill: black;
+    /* Sheet music dark mode: override CSS variables for Vue tab view */
+    --tab-bg: #1e1e1e;
+    --tab-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --tab-primary: #e0e0e0;
+    --tab-secondary: #aaaaaa;
+    --tab-tertiary: #cccccc;
+    --tab-muted: #bbbbbb;
+    --tab-subtle: #999999;
+    --tab-ghost: #777777;
+    --tab-string: #444444;
+    --tab-separator: #666666;
+    --tab-chord-dot: #cccccc;
+    --tab-chord-finger: #1e1e1e;
+    --tab-muted-string: #ff6666;
+    --tab-slide: #6fa8dc;
+
+    /* Invert all toolbar / button icons to white */
+    .checkBoxNote img,
+    .classicalButton img,
+    .playStart img,
+    .playChange img,
+    #trackSign img,
+    #sequencerBar img,
+    #sequencerMenuBody img,
+    #sideBarButtons img,
+    .visibleEye,
+    #sequencerSideBar img {
+        filter: brightness(0) invert(1);
     }
     .filterNodeSetting{
         background: #282828;

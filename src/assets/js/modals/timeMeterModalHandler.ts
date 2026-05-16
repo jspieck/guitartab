@@ -87,8 +87,6 @@ export class TimeMeterModalHandler extends BaseModalHandler {
                 automations: [],
             };
         }
-        
-        console.log('Setting time meter state', blockId);
 
         // Set the modal state with defaults if values are missing
         this.modalState.denominator = Song.measureMeta[blockId].denominator ?? 4;

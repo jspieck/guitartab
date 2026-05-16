@@ -333,7 +333,6 @@ const AppManager = {
           Song.measureMoveHelper[i][j][k] = [];
         }
       }
-      console.log('Create Guitar Tab:', Song.numVoices);
       for (let j = 0; j < Song.numVoices; j += 1) {
         tab.createTakte(i, j);
         const tx = performance.now();
@@ -342,8 +341,6 @@ const AppManager = {
         durComplete += performance.now() - tx;
       }
     }
-    console.log(`FillMeasures ${durComplete}`);
-    console.log(`CreateTakte: ${performance.now() - t1}ms`);
 
     this.setTimeMeterToAllTracks();
 
@@ -365,9 +362,6 @@ const AppManager = {
 
     const img = document.getElementById('trackSignImg') as HTMLImageElement;
     img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
-
-    console.log(`drawTrack: ${performance.now() - t2}ms`);
-    console.log(`Track Change: ${performance.now() - t0}ms`);
     // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
     // draw suitable sequencer
     sequencerHandler.drawBeat();
@@ -375,7 +369,6 @@ const AppManager = {
     modalManager.closeAllModals();
     
     // Notify that song data has changed to update reactive components
-    console.log('Song loaded. Tracks:', Song.tracks.map(t => t.name));
     EventBus.emit('song-data-changed');
   },
 
@@ -422,9 +415,10 @@ const AppManager = {
     content += JSON.stringify(audioEngine.noteToDrum);
 
     const compressed = LZString.compressToUint8Array(content);
+  const compressedBytes = new Uint8Array(compressed);
     // TODO save open modals with size/position, write pan from busses
     const a = document.createElement('a');
-    const file = new Blob([compressed], { type: 'octet/stream' });
+  const file = new Blob([compressedBytes], { type: 'octet/stream' });
     a.href = URL.createObjectURL(file);
     if (promptDialog) {
       a.download = 'saveAs.gt';

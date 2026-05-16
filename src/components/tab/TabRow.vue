@@ -9,7 +9,7 @@
         :x2="width"
         :y1="(stringIndex - 1) * stringSpacing"
         :y2="(stringIndex - 1) * stringSpacing"
-        stroke="#cccccc"
+        class="tab-string-line"
         stroke-width="1"
       />
     </g>
@@ -23,16 +23,16 @@
         :x2="separator.x"
         :y1="0"
         :y2="(numStrings - 1) * stringSpacing"
-        stroke="#333333"
+        class="tab-separator-line"
         stroke-width="1"
       />
     </g>
     
     <!-- TAB label for first row -->
     <g v-if="isFirstRow" class="tab-label">
-      <text x="15" :y="stringSpacing * 1.5" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">T</text>
-      <text x="15" :y="stringSpacing * 3.0" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">A</text>
-      <text x="15" :y="stringSpacing * 4.5" font-family="Source Sans Pro" font-size="16px" fill="#000" text-anchor="middle">B</text>
+      <text x="15" :y="stringSpacing * 1.5" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">T</text>
+      <text x="15" :y="stringSpacing * 3.0" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">A</text>
+      <text x="15" :y="stringSpacing * 4.5" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">B</text>
     </g>
     
     <!-- Selection indicator -->
@@ -96,29 +96,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, watch } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
-import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
 import EventBus from '../../assets/js/eventBus'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { useTabSelection } from '../../composables/useTabSelection'
-import { getDurationInBeats, getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
-
-// Local type definitions to avoid import issues
-interface TabRow {
-  id: number
-  measures: any[]
-  startBlockId: number
-  endBlockId: number
-  yOffset: number
-}
+import { getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
+import type {
+  RendererSelectionPosition,
+  RenderedTabRow,
+  TabBeat,
+  TabMeasureMetaData,
+} from '../../types/tab'
 
 // Props
 interface Props {
-  rowData: TabRow
+  rowData: RenderedTabRow
   trackId: number
   voiceId: number
   yOffset: number
@@ -131,22 +126,20 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Constants from centralized layout utilities
-const { STRING_SPACING, MEASURE_WIDTH, BEAT_WIDTH, TAB_LABEL_WIDTH, START_PADDING } = TAB_CONSTANTS
+const { STRING_SPACING, MEASURE_WIDTH, TAB_LABEL_WIDTH, START_PADDING } = TAB_CONSTANTS
 const stringSpacing = STRING_SPACING
 const measureWidth = MEASURE_WIDTH
-const beatWidth = BEAT_WIDTH
 const tabLabelWidth = TAB_LABEL_WIDTH
 
 const { 
   currentSelection, 
   setSelection, 
-  contextMenuState, 
   showContextMenu, 
   hideContextMenu 
 } = useTabSelection()
 
 // Selection state - derived from global selection
-const selectedPosition = computed({
+const selectedPosition = computed<RendererSelectionPosition | null>({
   get() {
     if (!currentSelection.value) return null
     
@@ -192,8 +185,8 @@ watch(() => currentSelection.value, (newSelection) => {
       newSelection.blockId <= props.rowData.endBlockId) {
     
     const measureIndex = newSelection.blockId - props.rowData.startBlockId
-    const measureData = props.rowData.measures[measureIndex].data
-    const note = measureData?.[newSelection.beatIndex]?.notes?.[newSelection.stringIndex]
+    const measureData = props.rowData.measures[measureIndex]?.data ?? []
+    const note = measureData?.[newSelection.beatIndex]?.notes?.[newSelection.stringIndex] ?? null
     
     if (note) {
       setTimeout(() => {
@@ -250,8 +243,8 @@ const numStrings = computed(() => {
   return Song.tracks?.[props.trackId]?.numStrings || 6
 })
 
-const measureSeparators = computed(() => {
-  const separators = []
+const measureSeparators = computed<{ x: number }[]>(() => {
+  const separators: { x: number }[] = []
   let currentX = props.isFirstRow ? tabLabelWidth : 0
   
   // Start separator
@@ -277,21 +270,8 @@ function getMeasureXOffset(measureIndex: number): number {
   return offset
 }
 
-function getMeasureMeta(blockId: number) {
-  return Song.measureMeta?.[blockId] || {
-    numerator: 4,
-    denominator: 4,
-    timeMeterPresent: false,
-    bpmPresent: false,
-    bpm: 120,
-    repeatOpen: false,
-    repeatClosePresent: false,
-    repeatClose: 0,
-    repeatAlternativePresent: false,
-    repeatAlternative: 0,
-    markerPresent: false,
-    marker: { text: '', color: { red: 0, green: 0, blue: 0 } }
-  }
+function getMeasureMeta(blockId: number): TabMeasureMetaData {
+  return Song.measureMeta?.[blockId] || Song.defaultMeasureMeta()
 }
 
 function getMeasureContentPadding(blockId: number): number {
@@ -312,15 +292,14 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
   // Get the SVG root element
   const svgElement = document.querySelector('.tab-svg') as SVGSVGElement
   if (!svgElement) return
-  
-  // Get SVG bounding rect for padding calculation
-  const svgRect = svgElement.getBoundingClientRect()
+  const screenMatrix = svgElement.getScreenCTM()
+  if (!screenMatrix) return
   
   // Calculate the click position in SVG coordinates
   const svgPoint = svgElement.createSVGPoint()
   svgPoint.x = event.clientX
   svgPoint.y = event.clientY
-  const transformedPoint = svgPoint.matrixTransform(svgElement.getScreenCTM()?.inverse())
+  const transformedPoint = svgPoint.matrixTransform(screenMatrix.inverse())
   
   // Adjust for the main SVG padding and row transform
   const margins = getPageMargins()
@@ -356,7 +335,10 @@ function handleStringClick(event: MouseEvent, stringIndex: number) {
     const beatX = measureRelativeX - padding
     
     // Find which beat corresponds to this X position
-    const measureData = props.rowData.measures[measureIndex].data
+    const measureData = props.rowData.measures[measureIndex]?.data ?? []
+    if (measureData.length === 0) {
+      return
+    }
     let currentBeatX = 0
     let foundBeatIndex = -1
     
@@ -415,7 +397,7 @@ function getSelectionX(): number {
   
   // Calculate beat X position based on variable durations
   let beatX = 0
-  const measureData = props.rowData.measures[selectedPosition.value.measureIndex].data
+  const measureData = props.rowData.measures[selectedPosition.value.measureIndex]?.data ?? []
   if (measureData) {
     for (let i = 0; i < selectedPosition.value.beatIndex; i++) {
       const beat = measureData[i]
@@ -452,7 +434,7 @@ function setNoteAtSelection(fret: number) {
     }
   }
   
-  const beat = Song.measures[trackId][blockId][voiceId][beatIndex]
+  const beat = Song.measures[trackId][blockId][voiceId][beatIndex] as TabBeat
   
   // Ensure notes array exists
   if (!beat.notes) {
@@ -480,7 +462,13 @@ defineExpose({
 </script>
 
 <style scoped>
-.tab-row {
-  /* SVG styles are handled by attributes */
+.tab-string-line {
+  stroke: var(--tab-string);
+}
+.tab-separator-line {
+  stroke: var(--tab-separator);
+}
+.tab-label-text {
+  fill: var(--tab-primary);
 }
 </style> 

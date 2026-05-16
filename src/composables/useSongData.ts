@@ -1,9 +1,26 @@
 import { reactive, ref } from 'vue'
-import Song from '../assets/js/songData'
+import Song, {
+  type Measure as SongBeat,
+  type MeasureMetaInfo,
+  type Note as SongNote,
+  type PlayBackInstrument,
+  type SongDescription,
+  type Track,
+} from '../assets/js/songData'
 import EventBus from '../assets/js/eventBus'
 
+interface ReactiveSongData {
+  measures: SongBeat[][][][]
+  songDescription: SongDescription
+  tracks: Track[]
+  measureMeta: MeasureMetaInfo[]
+  playBackInstrument: PlayBackInstrument[]
+  currentTrackId: number
+  currentVoiceId: number
+}
+
 const songDataVersion = ref(0)
-const reactiveSongData = reactive({
+const reactiveSongData = reactive<ReactiveSongData>({
   measures: Song.measures,
   songDescription: Song.songDescription,
   tracks: Song.tracks,
@@ -27,14 +44,14 @@ export function useSongData() {
 
   function getMeasures(trackId: number, voiceId: number) {
     const measures = reactiveSongData.measures?.[trackId] || []
-    return measures.map((block: any) => block?.[voiceId] || [])
+    return measures.map((block) => block?.[voiceId] || [])
   }
   
-  function getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number) {
+  function getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): SongBeat | undefined {
     return Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
   }
   
-  function getNote(trackId: number, blockId: number, voiceId: number, beatIndex: number, stringIndex: number) {
+  function getNote(trackId: number, blockId: number, voiceId: number, beatIndex: number, stringIndex: number): SongNote | null | undefined {
     const beat = getBeat(trackId, blockId, voiceId, beatIndex)
     return beat?.notes?.[stringIndex]
   }

@@ -116,6 +116,9 @@ import { AddTrackModalHandler } from '../assets/js/modals/addTrackModalHandler';
 import { MODALS } from "../assets/js/modals/modalTypes";
 import { sequencerHandler } from '../assets/js/sequencerHandler';
 import { useSongData } from '../composables/useSongData';
+import changeButtonImage from '../assets/images/change.svg';
+import trashButtonImage from '../assets/images/trashCan.svg';
+import masterSettingsIcon from '../assets/images/instrumentIcons/myMasterDesign.svg';
 
 const { reactiveSongData, syncSongData } = useSongData();
 
@@ -242,25 +245,11 @@ const beatStyle = (trackId: number, index: number) => {
         : { background: colorPalette[trackId % colorPalette.length] };
 };
 
-const getChangeButtonImage = computed(() => {
-    return Settings.darkMode
-        ? './src/assets/images/changeWhite.svg'
-        : './src/assets/images/change.svg';
-});
+const getChangeButtonImage = changeButtonImage;
 
-const getTrashButtonImage = computed(() => {
-    return Settings.darkMode
-        ? './src/assets/images/trashCanWhite.svg'
-        : './src/assets/images/trashCan.svg';
-});
+const getTrashButtonImage = trashButtonImage;
 
-const settingsIconSrc = computed(() => {
-    if (Settings.darkMode) {
-        return "./src/assets/images/instrumentIcons/myMasterDesignWhite.svg";
-    } else {
-        return "./src/assets/images/instrumentIcons/myMasterDesign.svg";
-    }
-});
+const settingsIconSrc = masterSettingsIcon;
 
 const getBorderStyle = (trackId: number) => {
     if (!Settings.sequencerTrackColor || !reactiveSongData.tracks || !reactiveSongData.tracks[trackId]) {
@@ -371,7 +360,7 @@ function chorusKnobRotate(angle: number, dataId: string) {
     syncSongData();
 }
 
-const sequencerScrollEvent = (event: UIEvent) => {
+const sequencerScrollEvent = (event: Event) => {
     const target = event.target as HTMLElement;
     fastdom.mutate(() => {
         const menuBody = document.getElementById('sequencerMenuBody');

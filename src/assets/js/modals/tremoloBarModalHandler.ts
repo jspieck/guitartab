@@ -291,7 +291,6 @@ export class TremoloBarModalHandler extends BaseModalHandler {
     }
 
     private drawGrid(tremoloEditor: SVGElement, padding: number, width: number, height: number) {
-        console.log("Drawing grid", this.NUM_COLUMNS_TREMOLO, width, height, padding);
         // Draw vertical lines
         for (let i = 0; i <= this.NUM_COLUMNS_TREMOLO; i++) {
             const x = (width * i) / this.NUM_COLUMNS_TREMOLO + padding;

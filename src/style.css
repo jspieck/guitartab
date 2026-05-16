@@ -1,0 +1,33 @@
+/* ===== Tab Color Variables (Light Mode Defaults) ===== */
+:root {
+  /* Tab sheet background */
+  --tab-bg: #ffffff;
+  --tab-shadow: 0 22px 56px rgba(15, 23, 42, 0.12);
+
+  /* Primary text/strokes (notes, repeat signs, labels) */
+  --tab-primary: #111827;
+  /* Secondary text (author, block numbers, grace notes) */
+  --tab-secondary: #475569;
+  /* Tertiary (effects, bends, ties, vibrato, trills, tremolo) */
+  --tab-tertiary: #1f2937;
+  /* Muted elements (durations, chord grid, separators) */
+  --tab-muted: #4b5563;
+  /* Subtle (let ring, ghost notes) */
+  --tab-subtle: #64748b;
+  /* Very light (ghost notes) */
+  --tab-ghost: #94a3b8;
+
+  /* String lines */
+  --tab-string: #667281;
+  /* Measure separator lines */
+  --tab-separator: #1f2937;
+
+  /* Chord diagram dots & finger numbers */
+  --tab-chord-dot: #1f2937;
+  --tab-chord-finger: #ffffff;
+  /* Muted string indicator */
+  --tab-muted-string: #f00;
+
+  /* Slide color (blue accent) */
+  --tab-slide: #2d6bb2;
+}

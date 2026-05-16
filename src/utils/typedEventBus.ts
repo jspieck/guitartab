@@ -1,5 +1,5 @@
 import mitt, { Emitter, Handler } from 'mitt'
-import type { TabPosition } from '../types/tab'
+import type { TabBeat, TabNoteData, TabPosition } from '../types/tab'
 
 export type { TabPosition } from '../types/tab'
 
@@ -15,8 +15,8 @@ export interface PartialTabPosition {
 /** Effect collision data */
 export interface EffectCollisionData {
   isVariableSet: boolean
-  beat: any
-  note: any
+  beat: TabBeat
+  note: TabNoteData | null
   id: string
   index: number
 }
@@ -42,8 +42,8 @@ export type AppEvents = {
   'menu.activateEffectsForMarkedPos': void
   'menu.activateEffectsForMarkedBeat': void
   'menu.activateEffectsForBlock': void
-  'menu.activateEffectsForNote': any  // Note object
-  'menu.activateEffectsForBeat': any  // Beat object
+  'menu.activateEffectsForNote': TabNoteData
+  'menu.activateEffectsForBeat': TabBeat
   'menu.setEffectOnCollision': EffectCollisionData
   
   // Selection events
@@ -98,7 +98,7 @@ class TypedEventBus {
     this.emitter.emit(event, payload as AppEvents[K])
   }
 
-  onAll(handler: (event: keyof AppEvents, payload: any) => void): void {
+  onAll(handler: (event: keyof AppEvents, payload: AppEvents[keyof AppEvents]) => void): void {
     this.emitter.on('*', handler as any)
   }
 

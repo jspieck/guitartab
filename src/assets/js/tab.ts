@@ -1071,8 +1071,6 @@ class Tab {
     trackId: number, voiceId: number, forceScale: boolean, width: number,
     height: number, callback: (() => void) | null,
   ) {
-    console.trace('Draw track called');
-    
     EventBus.emit('song-data-changed');
     
     // Call the callback since the actual drawing code is commented out
@@ -1276,11 +1274,11 @@ class Tab {
       end: blockIdEnd,
     };
     for (let j = groupStartIndex; j < blockIdEnd; j += 1) {
+      const num16ths = Math.max(1, this.allWidths[j].num16ths || 0);
       this.finalBlockWidths[trackId][voiceId][j] = this.allWidths[j].minWidth + extraWidth;
       this.measureOffset[trackId][j][voiceId] = this.allWidths[j].minOffset
-        + extraWidth / this.allWidths[j].num16ths;
+        + extraWidth / num16ths;
     }
-    console.trace(this.allWidths[0], this.blocksPerRow[0][0][0]);
     rowId += 1;
     svgDrawer.numRows = rowId;
   }
