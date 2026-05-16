@@ -10,7 +10,7 @@ import Helper from './helper';
 import AppManager from './appManager';
 import { modalManager } from './modals/modalManager';
 import { audioEngine } from './audioEngine';
-import { classicalNotation } from './vexflowClassical';
+import { classicalNotation } from '../../services/legacy/classicalNotationAdapter';
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
 import { typedEventBus } from '../../utils/typedEventBus';

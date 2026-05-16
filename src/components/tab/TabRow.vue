@@ -99,10 +99,10 @@
 import { computed, watch } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
-import Song from '../../assets/js/songData'
 import EventBus from '../../assets/js/eventBus'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { useTabSelection } from '../../composables/useTabSelection'
+import { legacyEditorCore } from '../../services/legacy/editorCoreAdapter'
 import { getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
 import type {
   RendererSelectionPosition,
@@ -240,7 +240,7 @@ function getSelectionScreenPos() {
 // Computed properties
 const numStrings = computed(() => {
   // Get from actual track data
-  return Song.tracks?.[props.trackId]?.numStrings || 6
+  return legacyEditorCore.getTrackStringCount(props.trackId)
 })
 
 const measureSeparators = computed<{ x: number }[]>(() => {
@@ -271,7 +271,7 @@ function getMeasureXOffset(measureIndex: number): number {
 }
 
 function getMeasureMeta(blockId: number): TabMeasureMetaData {
-  return Song.measureMeta?.[blockId] || Song.defaultMeasureMeta()
+  return legacyEditorCore.getMeasureMeta(blockId)
 }
 
 function getMeasureContentPadding(blockId: number): number {
@@ -422,30 +422,14 @@ function setNoteAtSelection(fret: number) {
   const { stringIndex, blockId, beatIndex } = selectedPosition.value
   const trackId = props.trackId
   const voiceId = props.voiceId
-  
-  // Ensure the measure structure exists
-  if (!Song.measures[trackId]) Song.measures[trackId] = []
-  if (!Song.measures[trackId][blockId]) Song.measures[trackId][blockId] = []
-  if (!Song.measures[trackId][blockId][voiceId]) Song.measures[trackId][blockId][voiceId] = []
-  if (!Song.measures[trackId][blockId][voiceId][beatIndex]) {
-    Song.measures[trackId][blockId][voiceId][beatIndex] = {
-      ...Song.defaultMeasure(),
-      duration: 'quarter'
-    }
-  }
-  
-  const beat = Song.measures[trackId][blockId][voiceId][beatIndex] as TabBeat
-  
-  // Ensure notes array exists
-  if (!beat.notes) {
-    beat.notes = new Array(6).fill(null)
-  }
+
+  const beat = legacyEditorCore.ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings.value) as TabBeat
   
   if (fret === -1) {
     beat.notes[stringIndex] = null
   } else {
     beat.notes[stringIndex] = {
-      ...Song.defaultNote(),
+      ...legacyEditorCore.defaultNote(),
       fret,
       string: stringIndex
     }

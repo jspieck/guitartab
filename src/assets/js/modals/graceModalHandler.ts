@@ -2,7 +2,7 @@ import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Measure } from '../songData';
 import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
-import { classicalNotation } from '../vexflowClassical';
+import { classicalNotation } from '../../../services/legacy/classicalNotationAdapter';
 import EventBus from '../eventBus';
 import { MODALS } from './modalTypes';
 

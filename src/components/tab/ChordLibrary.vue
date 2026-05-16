@@ -110,14 +110,14 @@
       </div>
       
       <div class="chord-actions-panel">
-        <button @click="insertChord(selectedChord)" class="primary-btn">
+        <button @click="insertSelectedChord" class="primary-btn">
           Insert Chord
         </button>
-        <button @click="duplicateChord(selectedChord)" class="secondary-btn">
+        <button @click="duplicateSelectedChord" class="secondary-btn">
           Duplicate
         </button>
         <button 
-          @click="editChord(selectedChord)" 
+          @click="editSelectedChord" 
           class="secondary-btn"
           v-if="selectedChord.custom"
         >
@@ -222,6 +222,27 @@
 import { ref, computed, reactive } from 'vue'
 import ChordDiagram from './ChordDiagram.vue'
 
+interface ChordLibraryItem {
+  id: string
+  name: string
+  type: string
+  root: string
+  variation?: string
+  frets: number[]
+  fingers: number[]
+  custom?: boolean
+}
+
+interface ChordFormState {
+  name: string
+  variation: string
+  root: string
+  type: string
+  frets: number[]
+  fingers: number[]
+  custom: boolean
+}
+
 // Props
 interface Props {
   visible: boolean
@@ -230,19 +251,19 @@ interface Props {
 defineProps<Props>()
 
 // Emits
-const emit = defineEmits([
-  'insertChord',
-  'close'
-])
+const emit = defineEmits<{
+  insertChord: [chord: ChordLibraryItem]
+  close: []
+}>()
 
 // State
 const searchTerm = ref('')
 const selectedCategory = ref('all')
-const selectedChord = ref<any>(null)
+const selectedChord = ref<ChordLibraryItem | null>(null)
 const showChordEditor = ref(false)
-const editingChord = ref<any>(null)
+const editingChord = ref<ChordLibraryItem | null>(null)
 
-const chordForm = reactive({
+const chordForm = reactive<ChordFormState>({
   name: '',
   variation: '',
   root: '',
@@ -265,7 +286,7 @@ const categories = [
 ]
 
 // Predefined chord library
-const predefinedChords = [
+const predefinedChords: ChordLibraryItem[] = [
   // Major chords
   { id: 'c-major', name: 'C', type: 'major', root: 'C', frets: [0, 1, 0, 2, 3, 0], fingers: [0, 1, 0, 2, 3, 0] },
   { id: 'g-major', name: 'G', type: 'major', root: 'G', frets: [3, 2, 0, 0, 3, 3], fingers: [3, 2, 0, 0, 4, 4] },
@@ -284,12 +305,12 @@ const predefinedChords = [
   { id: 'c7-seventh', name: 'C7', type: '7th', root: 'C', frets: [0, 1, 0, 2, 1, 0], fingers: [0, 1, 0, 3, 2, 0] }
 ]
 
-const customChords = ref<any[]>([])
+const customChords = ref<ChordLibraryItem[]>([])
 
 // Computed
-const allChords = computed(() => [...predefinedChords, ...customChords.value])
+const allChords = computed<ChordLibraryItem[]>(() => [...predefinedChords, ...customChords.value])
 
-const filteredChords = computed(() => {
+const filteredChords = computed<ChordLibraryItem[]>(() => {
   let chords = allChords.value
   
   // Filter by category
@@ -315,12 +336,18 @@ const filteredChords = computed(() => {
 })
 
 // Methods
-function selectChord(chord: any) {
+function selectChord(chord: ChordLibraryItem) {
   selectedChord.value = chord
 }
 
-function insertChord(chord: any) {
+function insertChord(chord: ChordLibraryItem) {
   emit('insertChord', chord)
+}
+
+function insertSelectedChord() {
+  if (selectedChord.value) {
+    insertChord(selectedChord.value)
+  }
 }
 
 function addCustomChord() {
@@ -329,7 +356,7 @@ function addCustomChord() {
   showChordEditor.value = true
 }
 
-function editChord(chord: any) {
+function editChord(chord: ChordLibraryItem) {
   editingChord.value = chord
   Object.assign(chordForm, {
     ...chord,
@@ -339,8 +366,14 @@ function editChord(chord: any) {
   showChordEditor.value = true
 }
 
-function duplicateChord(chord: any) {
-  const duplicate = {
+function editSelectedChord() {
+  if (selectedChord.value) {
+    editChord(selectedChord.value)
+  }
+}
+
+function duplicateChord(chord: ChordLibraryItem) {
+  const duplicate: ChordLibraryItem = {
     ...chord,
     id: `${chord.id}-copy-${Date.now()}`,
     name: `${chord.name} Copy`,
@@ -352,7 +385,13 @@ function duplicateChord(chord: any) {
   selectedChord.value = duplicate
 }
 
-function deleteChord(chord: any) {
+function duplicateSelectedChord() {
+  if (selectedChord.value) {
+    duplicateChord(selectedChord.value)
+  }
+}
+
+function deleteChord(chord: ChordLibraryItem) {
   if (chord.custom && confirm(`Delete chord "${chord.name}"?`)) {
     const index = customChords.value.findIndex(c => c.id === chord.id)
     if (index > -1) {
@@ -370,16 +409,18 @@ function saveChord() {
     return
   }
   
-  const chordData = {
+  const chordData: ChordLibraryItem = {
     ...chordForm,
     id: editingChord.value?.id || `custom-${Date.now()}`,
     frets: [...chordForm.frets],
     fingers: [...chordForm.fingers]
   }
+
+  const editingChordId = editingChord.value?.id
   
-  if (editingChord.value) {
+  if (editingChordId) {
     // Update existing chord
-    const index = customChords.value.findIndex(c => c.id === editingChord.value.id)
+    const index = customChords.value.findIndex(c => c.id === editingChordId)
     if (index > -1) {
       customChords.value[index] = chordData
     }
@@ -410,14 +451,14 @@ function resetChordForm() {
   })
 }
 
-function getFretsDisplay(chord: any): string {
+function getFretsDisplay(chord: ChordLibraryItem): string {
   return chord.frets.map((fret: number) => {
     if (fret === -1) return 'x'
     return fret.toString()
   }).join(' ')
 }
 
-function getFingersDisplay(chord: any): string {
+function getFingersDisplay(chord: ChordLibraryItem): string {
   return chord.fingers.map((finger: number) => {
     if (finger === 0) return '-'
     return finger.toString()

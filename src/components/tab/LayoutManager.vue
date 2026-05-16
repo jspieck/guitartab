@@ -208,7 +208,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, type CSSProperties } from 'vue'
+
+interface PanelPosition {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface LayoutPresetPanel {
+  id: string
+  gridArea: string
+}
+
+interface LayoutPreset {
+  id: string
+  name: string
+  description: string
+  panels: LayoutPresetPanel[]
+}
+
+interface AvailablePanelConfig {
+  id: string
+  name: string
+  icon: string
+  component: string
+}
+
+interface SavedLayout {
+  id: string
+  name: string
+  description: string
+  created: string
+  panels: Panel[]
+}
 
 // Panel interface
 interface Panel {
@@ -216,18 +250,13 @@ interface Panel {
   title: string
   icon: string
   component: string
-  props: any
+  props: Record<string, unknown>
   visible: boolean
   docked: boolean
   floating: boolean
   minimized: boolean
   resizable: boolean
-  position: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
+  position: PanelPosition
   gridArea?: string
   zIndex: number
 }
@@ -240,12 +269,12 @@ interface Props {
 const props = defineProps<Props>()
 
 // Emits
-const emit = defineEmits([
-  'layoutChanged',
-  'panelAdded',
-  'panelRemoved',
-  'panelEvent'
-])
+const emit = defineEmits<{
+  layoutChanged: [layout: { panels: Panel[]; preset: string }]
+  panelAdded: [panel: Panel]
+  panelRemoved: [panelId: string]
+  panelEvent: [event: unknown]
+}>()
 
 // State
 const panels = ref<Panel[]>([])
@@ -255,7 +284,7 @@ const showLayoutDialog = ref(false)
 const layoutDialogMode = ref<'save' | 'load'>('save')
 const newLayoutName = ref('')
 const newLayoutDescription = ref('')
-const selectedSavedLayout = ref<any>(null)
+const selectedSavedLayout = ref<SavedLayout | null>(null)
 const dragState = reactive({
   dragging: false,
   panel: null as Panel | null,
@@ -275,7 +304,7 @@ const resizeState = reactive({
 })
 
 // Layout presets
-const layoutPresets = [
+const layoutPresets: LayoutPreset[] = [
   {
     id: 'default',
     name: 'Default',
@@ -320,7 +349,7 @@ const layoutPresets = [
 ]
 
 // Available panels that can be added
-const availablePanels = [
+const availablePanels: AvailablePanelConfig[] = [
   { id: 'track-selector', name: 'Track Selector', icon: '🎸', component: 'TabTrackSelector' },
   { id: 'tab-view', name: 'Tab View', icon: '🎼', component: 'GuitarTabView' },
   { id: 'chord-library', name: 'Chord Library', icon: '📚', component: 'ChordLibrary' },
@@ -332,7 +361,7 @@ const availablePanels = [
   { id: 'inspector', name: 'Inspector', icon: '🔍', component: 'Inspector' }
 ]
 
-const savedLayouts = ref<any[]>([])
+const savedLayouts = ref<SavedLayout[]>([])
 
 // Computed
 const minimizedPanels = computed(() => 
@@ -347,7 +376,7 @@ const gridStyles = computed(() => ({
 
 // Methods
 function getPanelStyles(panel: Panel) {
-  const styles: any = {
+  const styles: CSSProperties = {
     zIndex: panel.zIndex
   }
   
@@ -406,7 +435,7 @@ function closePanel(panelId: string) {
   }
 }
 
-function addPanel(panelConfig: any) {
+function addPanel(panelConfig: AvailablePanelConfig) {
   const newPanel: Panel = {
     id: panelConfig.id + '-' + Date.now(),
     title: panelConfig.name,
@@ -556,12 +585,16 @@ function closeLayoutDialog() {
 }
 
 function confirmSaveLayout() {
-  const layoutData = {
+  const layoutData: SavedLayout = {
     id: Date.now().toString(),
     name: newLayoutName.value,
     description: newLayoutDescription.value,
-    created: new Date(),
-    panels: panels.value.map(p => ({ ...p }))
+    created: new Date().toISOString(),
+    panels: panels.value.map((panel) => ({
+      ...panel,
+      props: { ...panel.props },
+      position: { ...panel.position },
+    }))
   }
   
   savedLayouts.value.push(layoutData)
@@ -578,7 +611,7 @@ function confirmLoadLayout() {
   closeLayoutDialog()
 }
 
-function selectSavedLayout(layout: any) {
+function selectSavedLayout(layout: SavedLayout) {
   selectedSavedLayout.value = layout
 }
 
@@ -591,19 +624,21 @@ function deleteSavedLayout(layoutId: string) {
 }
 
 function getPreviewPanelStyle(panel: Panel) {
-  return {
+  const previewStyle: CSSProperties = {
     gridArea: panel.gridArea,
     backgroundColor: '#4A90E2',
     border: '1px solid #ddd',
     borderRadius: '2px'
   }
+
+  return previewStyle
 }
 
-function formatDate(date: Date): string {
+function formatDate(date: string): string {
   return new Intl.DateTimeFormat().format(new Date(date))
 }
 
-function handlePanelEvent(event: any) {
+function handlePanelEvent(event: unknown) {
   emit('panelEvent', event)
 }
 
@@ -619,7 +654,7 @@ onMounted(() => {
   // Load saved layouts
   const saved = localStorage.getItem('guitarTabLayouts')
   if (saved) {
-    savedLayouts.value = JSON.parse(saved)
+    savedLayouts.value = JSON.parse(saved) as SavedLayout[]
   }
   
   // Initialize default layout
