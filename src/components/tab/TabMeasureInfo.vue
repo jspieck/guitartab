@@ -8,7 +8,6 @@
         font-family="Source Sans Pro"
         font-size="20px"
         font-weight="bold"
-        fill="#000"
         text-anchor="middle"
         class="time-numerator"
       >
@@ -20,7 +19,6 @@
         font-family="Source Sans Pro"
         font-size="20px"
         font-weight="bold"
-        fill="#000"
         text-anchor="middle"
         class="time-denominator"
       >
@@ -35,7 +33,6 @@
         :y="-yOffset - 45"
         font-family="Source Sans Pro"
         font-size="14px"
-        fill="#000"
         text-anchor="middle"
         class="bpm-text"
       >
@@ -45,19 +42,19 @@
     
     <!-- Repeat start -->
     <g v-if="measureMeta.repeatOpen" class="repeat-start">
-      <line x1="-5" x2="-5" y1="-20" y2="20" stroke="#000" stroke-width="3"/>
-      <line x1="-2" x2="-2" y1="-20" y2="20" stroke="#000" stroke-width="1"/>
-      <circle cx="2" cy="-8" r="2" fill="#000"/>
-      <circle cx="2" cy="8" r="2" fill="#000"/>
+      <line x1="-5" x2="-5" y1="-20" y2="20" class="repeat-bar-thick" stroke-width="3"/>
+      <line x1="-2" x2="-2" y1="-20" y2="20" class="repeat-bar-thin" stroke-width="1"/>
+      <circle cx="2" cy="-8" r="2" class="repeat-dot"/>
+      <circle cx="2" cy="8" r="2" class="repeat-dot"/>
     </g>
     
     <!-- Repeat end -->
     <g v-if="measureMeta.repeatClosePresent" class="repeat-end">
-      <line x1="5" x2="5" y1="-20" y2="20" stroke="#000" stroke-width="3"/>
-      <line x1="2" x2="2" y1="-20" y2="20" stroke="#000" stroke-width="1"/>
-      <circle cx="-2" cy="-8" r="2" fill="#000"/>
-      <circle cx="-2" cy="8" r="2" fill="#000"/>
-      <text x="10" y="5" font-family="Source Sans Pro" font-size="12px" fill="#000">
+      <line x1="5" x2="5" y1="-20" y2="20" class="repeat-bar-thick" stroke-width="3"/>
+      <line x1="2" x2="2" y1="-20" y2="20" class="repeat-bar-thin" stroke-width="1"/>
+      <circle cx="-2" cy="-8" r="2" class="repeat-dot"/>
+      <circle cx="-2" cy="8" r="2" class="repeat-dot"/>
+      <text x="10" y="5" font-family="Source Sans Pro" font-size="12px" class="repeat-count-text">
         {{ measureMeta.repeatClose }}x
       </text>
     </g>
@@ -66,7 +63,7 @@
     <g v-if="measureMeta.repeatAlternativePresent" class="alternative-ending">
       <path
         d="M-10,-25 L-10,-30 L30,-30 L30,-25"
-        stroke="#000"
+        class="alternative-bracket"
         stroke-width="1"
         fill="none"
       />
@@ -75,7 +72,6 @@
         y="-32"
         font-family="Source Sans Pro"
         font-size="12px"
-        fill="#000"
         class="alternative-number"
       >
         {{ measureMeta.repeatAlternative }}.
@@ -90,8 +86,8 @@
         width="30"
         height="15"
         :fill="`rgb(${measureMeta.marker.color.red}, ${measureMeta.marker.color.green}, ${measureMeta.marker.color.blue})`"
-        stroke="#000"
         stroke-width="1"
+        class="marker-border"
         rx="2"
       />
       <text
@@ -111,10 +107,28 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { TabMeasureMetaData } from '../../types/tab'
+
+const fallbackMeasureMeta: TabMeasureMetaData = {
+  numerator: 4,
+  denominator: 4,
+  timeMeterPresent: false,
+  bpmPresent: false,
+  bpm: 120,
+  repeatOpen: false,
+  repeatClosePresent: false,
+  repeatClose: 0,
+  repeatAlternativePresent: false,
+  repeatAlternative: 0,
+  markerPresent: false,
+  marker: { text: '', color: { red: 0, green: 0, blue: 0 } },
+  keySignature: 0,
+  automations: [],
+}
 
 // Props
 interface Props {
-  measureMeta: any // MeasureMetaInfo from Song
+  measureMeta: TabMeasureMetaData
   blockId: number
   xOffset: number
   yOffset: number
@@ -127,8 +141,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Computed properties
 const timeMeter = computed(() => ({
-  numerator: props.measureMeta?.numerator || 4,
-  denominator: props.measureMeta?.denominator || 4
+  numerator: props.measureMeta?.numerator || fallbackMeasureMeta.numerator,
+  denominator: props.measureMeta?.denominator || fallbackMeasureMeta.denominator
 }))
 
 const timeMeterX = computed(() => {
@@ -141,7 +155,7 @@ const bpmX = computed(() => {
   return props.contentPadding || 10
 })
 
-const bpm = computed(() => props.measureMeta?.bpm || 120)
+const bpm = computed(() => props.measureMeta?.bpm || fallbackMeasureMeta.bpm)
 
 const showTimeMeter = computed(() => {
   return props.measureMeta?.timeMeterPresent === true
@@ -172,5 +186,36 @@ const showBpm = computed(() => {
 
 .alternative-number {
   font-weight: bold;
+  fill: var(--tab-primary);
+}
+
+.time-numerator,
+.time-denominator {
+  fill: var(--tab-primary);
+}
+
+.bpm-text {
+  fill: var(--tab-primary);
+}
+
+.repeat-bar-thick,
+.repeat-bar-thin {
+  stroke: var(--tab-primary);
+}
+
+.repeat-dot {
+  fill: var(--tab-primary);
+}
+
+.repeat-count-text {
+  fill: var(--tab-primary);
+}
+
+.alternative-bracket {
+  stroke: var(--tab-primary);
+}
+
+.marker-border {
+  stroke: var(--tab-primary);
 }
 </style> 

@@ -176,6 +176,24 @@ class AudioEngine {
       .then((arrayBuffer) => audioCtx.decodeAudioData(arrayBuffer));
   }
 
+  async ensureContextRunning() {
+    if (this.context.state === 'closed') {
+      return;
+    }
+
+    if (this.context.state !== 'running') {
+      try {
+        await this.context.resume();
+      } catch {
+        return;
+      }
+    }
+
+    for (const bus of this.busses) {
+      bus?.chorus?.ensureStarted();
+    }
+  }
+
   async updateBusses(channels: PlayBackInstrument[]) {
     // first disconnect everything
     for (let i = 0; i < this.busses.length; i += 1) {
@@ -187,7 +205,6 @@ class AudioEngine {
     // CREATE BUSSES FOR EACH TRACK
     const promiseBuffers: Promise<AudioBuffer>[] = [];
     const convolvers = [];
-    console.log('Iterating over channels of number: ', channels.length);
     for (let i = 0; i < channels.length; i += 1) {
       const busGain = this.context.createGain();
       busGain.gain.value = Song.playBackInstrument[i].volume / 100.0;
@@ -201,6 +218,9 @@ class AudioEngine {
         dryGain: 1 - channels[i].chorus / 127,
         wetGain: channels[i].chorus / 127,
       });
+      if (this.context.state === 'running') {
+        chorus.ensureStarted();
+      }
       busGain.connect(chorus.input);
       // chorus.connect(this.masterGain);
 

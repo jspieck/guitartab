@@ -1,3 +1,10 @@
+import type {
+  Chord as SongChord,
+  Measure as SongBeat,
+  MeasureMetaInfo as SongMeasureMeta,
+  Note as SongNote,
+} from '../assets/js/songData'
+
 export interface Note {
   fret: number
   tied: boolean
@@ -174,3 +181,48 @@ export interface TabRow {
 export interface TabPage {
   rows: TabRow[]
 } 
+
+export type TabBeat = SongBeat
+export type TabNoteData = SongNote
+export type TabMeasureMetaData = SongMeasureMeta
+export type TabChordData = SongChord
+
+export interface RenderedMeasureData {
+  data: TabBeat[]
+  width: number
+}
+
+export interface RenderedTabRow {
+  id: number
+  measures: RenderedMeasureData[]
+  startBlockId: number
+  endBlockId: number
+  yOffset: number
+}
+
+export interface TabSelectionData {
+  trackId: number
+  voiceId: number
+  blockId: number
+  beatIndex: number
+  stringIndex: number
+}
+
+export interface RendererSelectionPosition {
+  stringIndex: number
+  measureIndex: number
+  beatIndex: number
+  blockId: number
+}
+
+export interface TabClipboardData {
+  beat: TabBeat
+  position: TabSelectionData
+}
+
+export interface SelectedNoteState extends Partial<TabNoteData> {
+  duration: string
+  isEmpty: boolean
+}
+
+export type NoteLengthCode = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o'

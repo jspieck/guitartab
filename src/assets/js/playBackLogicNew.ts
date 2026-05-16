@@ -940,6 +940,7 @@ class PlayBackLogic {
   }
 
   startPlayback() {
+    void audioEngine.ensureContextRunning();
     fastdom.mutate(() => {
       Settings.songPlaying = true;
       audioEngine.drawVolumes();

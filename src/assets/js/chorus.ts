@@ -37,6 +37,8 @@ class Chorus extends CompositeAudioNode {
 
   dryNode: GainNode;
 
+  lfoStarted: boolean;
+
   delayVal: number;
 
   depthVal: number;
@@ -56,6 +58,7 @@ class Chorus extends CompositeAudioNode {
     this.depthVal = 0.7;
     this.feedbackVal = 0.4;
     this.rateVal = 1.5;
+    this.lfoStarted = false;
     this.activateNode = audioCtx.createGain();
     this.attenuator = this.activateNode;
     this.splitter = audioCtx.createChannelSplitter(2);
@@ -76,7 +79,6 @@ class Chorus extends CompositeAudioNode {
     this.lfoL.connect(this.lfoLDepth);
     this.lfoLDepth.connect(this.lfoLGain.gain); // Trick: this way a sum is computed
     this.lfoLGain.connect(this.delayL.delayTime);
-    this.lfoL.start();
 
     this.lfoR = this.audioCtx.createOscillator();
     this.lfoR.type = 'sine';
@@ -88,7 +90,6 @@ class Chorus extends CompositeAudioNode {
     this.lfoR.connect(this.lfoLDepth);
     this.lfoRDepth.connect(this.lfoLGain.gain); // Trick: this way a sum is computed
     this.lfoRGain.connect(this.delayL.delayTime);
-    this.lfoR.start();
 
     this.wet = audioCtx.createGain();
     this.wet.gain.setValueAtTime(wetGain, audioCtx.currentTime);
@@ -113,8 +114,20 @@ class Chorus extends CompositeAudioNode {
     this.rate = this.defaults.rate;
     this.delay = this.defaults.delay;
     this.depth = this.defaults.depth;
+    if (this.audioCtx.state === 'running') {
+      this.ensureStarted();
+    }
     // this.lfoR.phase = Math.PI / 2;
     this.attenuator.gain.value = 0.6934; // 1 / (10 ^ (((20 * log10(3)) / 3) / 20))
+  }
+
+  ensureStarted() {
+    if (this.lfoStarted || this.audioCtx.state === 'closed') {
+      return;
+    }
+    this.lfoL.start();
+    this.lfoR.start();
+    this.lfoStarted = true;
   }
 
   set dry(value: number) {

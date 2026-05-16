@@ -1,4 +1,6 @@
 /*SASS MAIN FILE*/
+@use 'sass:meta';
+
 @font-face {
     font-family: maestro;
     src: url(../fonts/maestro.ttf);
@@ -1161,9 +1163,9 @@ body {
     background: $color-glowingRed;
 }
 
-@import './piano';
+@include meta.load-css('./piano');
 
-@import './guitar';
+@include meta.load-css('./guitar');
 
 #addChordModal label{
     display: block;
@@ -1455,7 +1457,7 @@ transform-origin: 11px center 0px;
     background: #F44336;
 }
 
-@import 'sequencer';
+@include meta.load-css('sequencer');
 
 /*#content button#guitarEyeToggle{
 	background: #f4cfb2;
@@ -2379,7 +2381,7 @@ svg.svgPage .blockNumber{
     fill: rgba(29, 56, 107, 0.4);
 }
  
-@import 'darkMode';
+@include meta.load-css('darkMode');
 
 /*MEDIA*/
 @media only screen and (max-width: 1200px) {

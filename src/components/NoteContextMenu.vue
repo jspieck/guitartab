@@ -60,6 +60,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { Note as SongNote } from '../assets/js/songData'
 
 // Import icons
 import wholeNoteIcon from '../assets/images/notes/wholeNote.svg'
@@ -79,40 +80,11 @@ import palmMuteIcon from '../assets/images/articulations/PalmMute.svg'
 import staccatoIcon from '../assets/images/articulations/Stacatto.svg'
 import trillIcon from '../assets/images/articulations/Triller.svg'
 
-interface Note {
-  fret: number
-  string: number
-  duration?: string
-  tied?: boolean
-  tieBegin?: boolean
-  gracePresent?: boolean
-  graceObj?: { fret: number; duration: string }
-  bendPresent?: boolean
-  ghost?: boolean
-  dead?: boolean
-  pullDown?: boolean
-  vibrato?: boolean
-  trillPresent?: boolean
-  trill?: { fret: number; period: number }
-  tremoloBar?: boolean
-  textEffect?: string
-  letRing?: boolean
-  artificialPresent?: boolean
-  tremoloPickingPresent?: boolean
-  palmMute?: boolean
-  stacatto?: boolean
-  tap?: boolean
-  slap?: boolean
-  pop?: boolean
-  accentuated?: boolean
-  heavyAccentuated?: boolean
-  fadeIn?: boolean
-  slide?: boolean
-}
+type ContextMenuNote = SongNote & { duration?: string }
 
 interface Props {
   isVisible: boolean
-  note: Note | null
+  note: ContextMenuNote | null
   x?: number
   y?: number
 }
@@ -170,13 +142,29 @@ const menuStyle = computed(() => {
 
 function hasEffect(effectId: string): boolean {
   if (!props.note) return false
-  const note = props.note as any
-  
-  if (effectId === 'bend') return note.bendPresent
-  if (effectId === 'trill') return note.trillPresent
-  if (effectId === 'pullDown') return note.pullDown
-  
-  return !!note[effectId]
+
+  switch (effectId) {
+    case 'bend':
+      return props.note.bendPresent
+    case 'trill':
+      return props.note.trillPresent
+    case 'pullDown':
+      return props.note.pullDown
+    case 'vibrato':
+      return props.note.vibrato
+    case 'slide':
+      return props.note.slide
+    case 'ghost':
+      return props.note.ghost
+    case 'dead':
+      return props.note.dead
+    case 'palmMute':
+      return props.note.palmMute
+    case 'stacatto':
+      return props.note.stacatto
+    default:
+      return false
+  }
 }
 
 function toggleEffect(effectId: string) {

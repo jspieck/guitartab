@@ -96,9 +96,9 @@ class MenuHandler {
 
   public applyStyleMode() {
     if (Settings.darkMode) {
-      document.body.classList.add('darkMode');
+      document.body.setAttribute('id', 'darkMode');
     } else {
-      document.body.classList.remove('darkMode');
+      document.body.setAttribute('id', 'lightMode');
     }
   }
 

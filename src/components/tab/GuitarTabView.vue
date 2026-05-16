@@ -19,7 +19,7 @@
             y="30" 
             font-family="Source Sans Pro" 
             font-size="24px" 
-            fill="#000"
+            class="tab-title"
             text-anchor="middle"
           >
             {{ songTitle }}
@@ -29,7 +29,7 @@
             y="55" 
             font-family="Source Sans Pro" 
             font-size="16px" 
-            fill="#666"
+            class="tab-author"
             text-anchor="middle"
           >
             {{ songAuthor }}
@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import TabRow from './TabRow.vue'
 import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
@@ -84,9 +84,9 @@ import Helper from '../../assets/js/helper'
 import { svgDrawer } from '../../assets/js/svgDrawer'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
-import { useDurationHandler } from '../../composables/useDurationHandler'
-import { typedEventBus } from '../../utils/typedEventBus'
+import { typedEventBus, type SelectionChangeData } from '../../utils/typedEventBus'
 import { getPageMargins } from '../../utils/tabLayout'
+import type { RenderedMeasureData, RenderedTabRow, TabBeat, TabNoteData } from '../../types/tab'
 
 interface Props {
   trackId: number
@@ -110,8 +110,6 @@ const {
 
 const {
   currentSelection,
-  selectedNote,
-  toolbarVisible,
   contextMenuState,
   setSelection,
   clearSelection,
@@ -119,15 +117,10 @@ const {
   hideContextMenu,
   copySelection,
   pasteSelection,
-  durationToCode,
-  codeToDuration,
-  handleNoteSelectionEvent
 } = useTabSelection()
 
-const { changeDuration } = useDurationHandler(syncSongData)
-
 // Refs
-const tabContainer = ref<HTMLElement>()
+const tabContainer = ref<HTMLElement | null>(null)
 const updateTrigger = ref(0)
 
 // Layout constants
@@ -143,21 +136,15 @@ const songTitle = computed(() => reactiveSongData.songDescription?.title || 'Unt
 const songAuthor = computed(() => reactiveSongData.songDescription?.author || 'Unknown Artist')
 const showTabInfo = computed(() => true)
 
+function trackRenderDependencies(..._versions: number[]) {
+  return _versions.length
+}
+
 // Tab rows layout computation
 const tabRows = computed(() => {
-  // Dependencies for reactivity
-  updateTrigger.value
-  songDataVersion.value
-  
-  interface TabRowData {
-    id: number
-    measures: any[]
-    startBlockId: number
-    endBlockId: number
-    yOffset: number
-  }
-  
-  const rows: TabRowData[] = []
+  trackRenderDependencies(updateTrigger.value, songDataVersion.value)
+
+  const rows: RenderedTabRow[] = []
   
   // Initialize Song if needed
   if (!Song.measures || Song.measures.length === 0) {
@@ -173,7 +160,7 @@ const tabRows = computed(() => {
 
   // Layout logic
   const availableWidth = tabGroupWidth.value
-  let currentRowMeasures: any[] = []
+  let currentRowMeasures: RenderedMeasureData[] = []
   let currentWidth = 32 // TAB label offset
   let startBlockId = 0
 
@@ -202,34 +189,39 @@ const tabRows = computed(() => {
 
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i]
-    
-    let measureWidth = 200
-    let minOffset = 40
+
+    let measureWidth: number
+    let minOffset: number
     try {
       // Ensure measureMoveHelper is populated for playback bar
       Helper.groupMeasureBeats(trackId, i, voiceId)
       
       const widthInfo = Tab.computeWidthOfBlock(trackId, i, voiceId)
-      measureWidth = widthInfo.minWidth
-      minOffset = widthInfo.minOffset
-      
-      // Populate mapping data
-      svgDrawer.blockToPage[i] = 0 // All on page 0 for now
-      if (!svgDrawer.blockToX[trackId][i]) svgDrawer.blockToX[trackId][i] = []
-      svgDrawer.blockToX[trackId][i][voiceId] = currentWidth
-      
-      tab.blockToRow[trackId][voiceId][i] = {
-        rowId: rows.length,
-        numInRow: currentRowMeasures.length
-      }
-      
-      tab.finalBlockWidths[trackId][voiceId][i] = measureWidth
-      if (!tab.measureOffset[trackId][i]) tab.measureOffset[trackId][i] = []
-      tab.measureOffset[trackId][i][voiceId] = minOffset
-      
-    } catch (e) {
-      console.error('Error computing measure width:', e)
+      measureWidth = Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
+        ? widthInfo.minWidth
+        : 200
+      minOffset = Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
+        ? widthInfo.minOffset
+        : 40
+    } catch {
+      console.warn(`Failed to compute width for measure ${i}, using default.`)
+      measureWidth = 200
+      minOffset = 40
     }
+
+    // Populate mapping data
+    svgDrawer.blockToPage[i] = 0 // All on page 0 for now
+    if (!svgDrawer.blockToX[trackId][i]) svgDrawer.blockToX[trackId][i] = []
+    svgDrawer.blockToX[trackId][i][voiceId] = currentWidth
+
+    tab.blockToRow[trackId][voiceId][i] = {
+      rowId: rows.length,
+      numInRow: currentRowMeasures.length
+    }
+
+    tab.finalBlockWidths[trackId][voiceId][i] = measureWidth
+    if (!tab.measureOffset[trackId][i]) tab.measureOffset[trackId][i] = []
+    tab.measureOffset[trackId][i][voiceId] = minOffset
     
     // Start new row if current exceeds width
     if (currentWidth + measureWidth > availableWidth && currentRowMeasures.length > 0) {
@@ -259,7 +251,7 @@ const tabRows = computed(() => {
     }
     
     currentRowMeasures.push({
-      data: measure?.[voiceId] || [],
+      data: (measure?.[voiceId] || []) as TabBeat[],
       width: measureWidth
     })
     currentWidth += measureWidth
@@ -295,15 +287,15 @@ function getRowYOffset(rowIndex: number): number {
   return headerHeight + (rowIndex * rowHeight)
 }
 
-function handleMouseDown(event: MouseEvent) {
+function handleMouseDown(_event: MouseEvent) {
   // Handle tab interaction
 }
 
-function handleMouseMove(event: MouseEvent) {
+function handleMouseMove(_event: MouseEvent) {
   // Handle hover effects
 }
 
-function handleMouseUp(event: MouseEvent) {
+function handleMouseUp(_event: MouseEvent) {
   // Handle selection end
 }
 
@@ -336,8 +328,19 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-function handleNoteSelection(selection: any) {
-  if (selection) handleNoteSelectionEvent({ detail: selection } as any)
+function handleNoteSelection(selection: SelectionChangeData | null) {
+  if (selection) {
+    setSelection({
+      trackId: selection.trackId,
+      voiceId: selection.voiceId,
+      blockId: selection.blockId,
+      beatIndex: selection.beatIndex,
+      stringIndex: selection.stringIndex,
+    })
+    return
+  }
+
+  clearSelection()
 }
 
 function setNoteAtCurrentSelection(fretNumber: number) {
@@ -362,7 +365,7 @@ function handleRenderBlock() {
 function handleToggleEffect(effectId: string) {
   if (!contextMenuState.value.note) return
   
-  const note = contextMenuState.value.note
+  const note = contextMenuState.value.note as TabNoteData
   
   if (effectId === 'bend') {
     note.bendPresent = !note.bendPresent
@@ -401,7 +404,7 @@ function handleContextMenuSetDuration(durationId: string) {
   const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
 
   tab.changeNoteDuration(
-    trackId, blockId, voiceId, beatIndex, stringIndex, durationId as any, false
+    trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false
   )
 
   syncSongData()
@@ -435,7 +438,9 @@ function handlePasteNote() {
   const sourceStringIndex = clipboardData.position.stringIndex
 
   // Find the note on the same string in the source beat
-  const sourceNote = sourceBeat.notes.find((n: any) => n.string === sourceStringIndex)
+  const sourceNote = sourceBeat.notes.find(
+    (note: TabNoteData | null): note is TabNoteData => note !== null && note.string === sourceStringIndex,
+  )
   
   if (sourceNote) {
     setNote(trackId, blockId, voiceId, beatIndex, stringIndex, sourceNote.fret)
@@ -454,44 +459,6 @@ function handleGlobalClick(event: MouseEvent) {
     }
     hideContextMenu()
   }
-}
-
-// Event handlers
-function handleApplyEffect(effect: string) {
-  // TODO: Implement effect application
-}
-
-function handleSetDuration(duration: string) {
-  if (!currentSelection.value) return
-  
-  const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
-  
-  const success = changeDuration(trackId, blockId, voiceId, beatIndex, stringIndex, duration)
-  
-  if (success && selectedNote.value) {
-    selectedNote.value.duration = duration
-  }
-  
-  updateTrigger.value++
-}
-
-function handleClearSelection() {
-  clearSelection()
-}
-
-function handleCopySelection() {
-  copySelection()
-}
-
-function handlePasteSelection() {
-  // TODO: Implement paste
-}
-
-function handleDeleteSelection() {
-  if (currentSelection.value) {
-    setNoteAtCurrentSelection(-1)
-  }
-  clearSelection()
 }
 
 // Sample notes for demo
@@ -589,11 +556,25 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: auto;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 38%),
+    linear-gradient(180deg, #f7f8fb 0%, #eef1f5 100%);
+  padding: 24px 0 48px;
 }
 
 .tab-svg {
   display: block;
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  background: var(--tab-bg);
+  box-shadow: var(--tab-shadow);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.tab-title {
+  fill: var(--tab-primary);
+}
+
+.tab-author {
+  fill: var(--tab-secondary);
 }
 </style> 

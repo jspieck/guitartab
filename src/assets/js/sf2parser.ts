@@ -235,7 +235,6 @@ const parser = {
     const signature = String.fromCharCode(
       this.input[ip], this.input[ip + 1], this.input[ip + 2], this.input[ip + 3],
     );
-    console.log(signature);
     ip += 4;
     if (signature !== 'sfbk') {
       throw new Error(`invalid signature: ${signature}`);
@@ -297,7 +296,6 @@ const parser = {
     /** @type {number} */
     let ip = chunk.offset;
     // check parse target
-    console.log(chunk.type);
     if (chunk.type !== 'LIST') {
       throw new Error(`invalid chunk type: ${chunk.type}`);
     }

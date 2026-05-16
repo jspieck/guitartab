@@ -77,10 +77,10 @@
                             accept=".gp3,.gp4,.gp5,.gpx,.mid,.gt"
                             style="display: none;"
                         />
-                        <button id="downloadGP" data-tooltip="Download File" onclick="saveAsGt()"
+                        <button id="downloadGP" data-tooltip="Download File" @click="handleSaveTab"
                             class="checkBoxNote playButton"><img id="downloadIDGP" src="../assets/images/saveOwn.svg" /></button>
 
-                        <button id="createPDF" data-tooltip="Create PDF" onclick="createPDF()"
+                        <button id="createPDF" data-tooltip="Create PDF" @click="handleCreatePdf"
                             class="checkBoxNote playButton"><img src="../assets/images/pdf.svg" /></button>
                         <!--<div class="wrapper">
                             <div class="file-upload">
@@ -250,6 +250,8 @@ import EventBus from "../assets/js/eventBus";
 import { menuHandler } from '../assets/js/menuHandler';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
+import type { Handler } from 'mitt';
+import type { TabPosition } from '../utils/typedEventBus';
 
 // File input ref for opening files
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -276,23 +278,70 @@ function clickedOnPos(position: {trackId: number, blockId: number, voiceId: numb
     menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, string);
 }
 
+function handleSaveTab() {
+    AppManager.saveAsGt(false);
+}
+
+function handleCreatePdf() {
+    AppManager.showNotification('PDF export is not available in the Vue renderer yet.');
+}
+
+const handleActivateEffectsForMarkedBeat = () => {
+    menuHandler.activateEffectsForMarkedBeat();
+};
+
+const handleActivateEffectsForMarkedPos = () => {
+    menuHandler.activateEffectsForMarkedPos();
+};
+
+const handleActivateEffectsForBeat: Handler<unknown> = (beat) => {
+    menuHandler.activateEffectsForBeat(beat as Measure);
+};
+
+const handleDisableNoteEffectButtons = () => {
+    menuHandler.disableNoteEffectButtons();
+};
+
+const handleActivateEffectsForBlock = () => {
+    menuHandler.activateEffectsForBlock();
+};
+
+const handleActivateEffectsForPos: Handler<unknown> = (position) => {
+    const { trackId, blockId, voiceId, beatId, string } = position as TabPosition;
+    menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
+};
+
+const handleActivateEffectsForNote: Handler<unknown> = (note) => {
+    menuHandler.activateEffectsForNote(note as Note);
+};
+
+const handleClickedOnPos: Handler<unknown> = (position) => {
+    clickedOnPos(position as TabPosition);
+};
+
 onMounted(() => {
     // EventBus.on("menu.applyStyleMode", () => applyStyleMode);
     // EventBus.on("menu.handleEffectGroupCollision", {notes: arr.notes, property: 'bend', isVariableSet})
-    EventBus.on("menu.activateEffectsForMarkedBeat", () => menuHandler.activateEffectsForMarkedBeat);
-    EventBus.on("menu.activateEffectsForMarkedPos", () => menuHandler.activateEffectsForMarkedPos);
-    EventBus.on("menu.activateEffectsForBeat", beat => menuHandler.activateEffectsForBeat(beat as Measure));
-    EventBus.on("menu.disableNoteEffectButtons", () => menuHandler.disableNoteEffectButtons);
-    EventBus.on("menu.activateEffectsForBlock", () => menuHandler.activateEffectsForBlock)
-    EventBus.on("menu.activateEffectsForPos", () => (trackId: number, blockId: number, voiceId: number, beatId: number, string: number) => menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string));
-    EventBus.on("menu.activateEffectsForNote", note => menuHandler.activateEffectsForNote(note as Note));
-    EventBus.on("menu.clickedOnPos", position => clickedOnPos(position as {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}));
+    EventBus.on("menu.activateEffectsForMarkedBeat", handleActivateEffectsForMarkedBeat);
+    EventBus.on("menu.activateEffectsForMarkedPos", handleActivateEffectsForMarkedPos);
+    EventBus.on("menu.activateEffectsForBeat", handleActivateEffectsForBeat);
+    EventBus.on("menu.disableNoteEffectButtons", handleDisableNoteEffectButtons);
+    EventBus.on("menu.activateEffectsForBlock", handleActivateEffectsForBlock);
+    EventBus.on("menu.activateEffectsForPos", handleActivateEffectsForPos);
+    EventBus.on("menu.activateEffectsForNote", handleActivateEffectsForNote);
+    EventBus.on("menu.clickedOnPos", handleClickedOnPos);
     
 })
 
 onBeforeUnmount(() => {
-    EventBus.off("menu.activateEffectsForNote", note => menuHandler.activateEffectsForNote(note as Note));
-    EventBus.off("menu.clickedOnPos", position => clickedOnPos(position as {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}));
+    EventBus.off("menu.activateEffectsForMarkedBeat", handleActivateEffectsForMarkedBeat);
+    EventBus.off("menu.activateEffectsForMarkedPos", handleActivateEffectsForMarkedPos);
+    EventBus.off("menu.activateEffectsForBeat", handleActivateEffectsForBeat);
+    EventBus.off("menu.disableNoteEffectButtons", handleDisableNoteEffectButtons);
+    EventBus.off("menu.activateEffectsForBlock", handleActivateEffectsForBlock);
+    EventBus.off("menu.activateEffectsForPos", handleActivateEffectsForPos);
+    EventBus.off("menu.activateEffectsForNote", handleActivateEffectsForNote);
+    EventBus.off("menu.clickedOnPos", handleClickedOnPos);
 });
 
 let tempoMoveTmp: (event: MouseEvent) => void = () => { };

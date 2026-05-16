@@ -1,24 +1,33 @@
 import { ref, computed } from 'vue'
 import Song from '../assets/js/songData'
 import { tab } from '../assets/js/tab'
-import { typedEventBus } from '../utils/typedEventBus'
+import { typedEventBus, type SelectionChangeData } from '../utils/typedEventBus'
 import { NAME_TO_CODE, DURATION_NAMES } from '../utils/musicUtils'
+import type {
+  SelectedNoteState,
+  TabBeat,
+  TabClipboardData,
+  TabNoteData,
+  TabSelectionData,
+} from '../types/tab'
 
-export interface TabSelection {
-  trackId: number
-  voiceId: number
-  blockId: number
-  beatIndex: number
-  stringIndex: number
+export type TabSelection = TabSelectionData
+
+interface ContextMenuState {
+  visible: boolean
+  note: TabNoteData | null
+  x: number
+  y: number
 }
-const currentSelection = ref<TabSelection | null>(null)
-const clipboard = ref<any>(null)
-const toolbarVisible = ref(false)
-const selectedNote = ref<any>(null)
 
-const contextMenuState = ref({
+const currentSelection = ref<TabSelection | null>(null)
+const clipboard = ref<TabClipboardData | null>(null)
+const toolbarVisible = ref(false)
+const selectedNote = ref<SelectedNoteState | null>(null)
+
+const contextMenuState = ref<ContextMenuState>({
   visible: false,
-  note: null as any,
+  note: null,
   x: 0,
   y: 0
 })
@@ -47,7 +56,7 @@ export function useTabSelection() {
       tab.markedNoteObj = { trackId, voiceId, blockId, beatId: beatIndex, string: stringIndex }
       tab.hasExplicitSelection = true
       const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
-      const note = beat?.notes?.[stringIndex]
+      const note = beat?.notes?.[stringIndex] as TabNoteData | null | undefined
       const rawDuration = beat?.duration || 'q'
       const cleanDuration = rawDuration.replace('r', '')
       const longDuration = DURATION_NAMES[cleanDuration as keyof typeof DURATION_NAMES] || 'quarter'
@@ -58,7 +67,7 @@ export function useTabSelection() {
     }
   }
 
-  function showContextMenu(note: any, x: number, y: number) {
+  function showContextMenu(note: TabNoteData, x: number, y: number) {
     contextMenuState.value = { visible: true, note, x, y }
   }
 
@@ -80,11 +89,16 @@ export function useTabSelection() {
   function copySelection() {
     if (!currentSelection.value) return
     const { trackId, voiceId, blockId, beatIndex } = currentSelection.value
-    const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
-    clipboard.value = { beat: JSON.parse(JSON.stringify(beat)), position: { ...currentSelection.value } }
+    const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex] as TabBeat | undefined
+    if (!beat) return
+
+    clipboard.value = {
+      beat: JSON.parse(JSON.stringify(beat)) as TabBeat,
+      position: { ...currentSelection.value },
+    }
   }
 
-  function pasteSelection() {
+  function pasteSelection(): TabClipboardData | null {
     if (!clipboard.value || !currentSelection.value) return null
     return clipboard.value
   }
@@ -101,8 +115,8 @@ export function useTabSelection() {
     return DURATION_NAMES[code as keyof typeof DURATION_NAMES] ?? 'quarter'
   }
   
-  function handleNoteSelectionEvent(event: Event) {
-    const detail = (event as CustomEvent).detail
+  function handleNoteSelectionEvent(event: Event | CustomEvent<SelectionChangeData | null>) {
+    const detail = (event as CustomEvent<SelectionChangeData | null>).detail
     if (detail) {
       setSelection({
         trackId: detail.trackId,

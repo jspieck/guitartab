@@ -15,8 +15,6 @@ import { modalManager } from './modals/modalManager';
 import { EqualizerModalHandler } from './modals/equalizerModalHandler';
 // import { svgDrawer } from './svgDrawer';
 
-console.log('File is called!!!!!!');
-
 declare global {
   interface Window {
     api: {
@@ -71,6 +69,12 @@ if (!inBrowser) {
 // let waveSurfer;
 // let wml;
 const startUp = function startUp() {
+  const unlockAudio = () => {
+    void audioEngine.ensureContextRunning();
+    document.removeEventListener('pointerdown', unlockAudio);
+    document.removeEventListener('keydown', unlockAudio);
+  };
+
   document.fonts.load('10pt "musicFont"');
   document.fonts.load('10pt "notesFont"');
   Settings.darkMode = Settings.load('darkMode') === 'true';
@@ -88,6 +92,8 @@ const startUp = function startUp() {
   document.addEventListener('mouseup', () => {
     AppManager.clickEnding();
   });
+  document.addEventListener('pointerdown', unlockAudio);
+  document.addEventListener('keydown', unlockAudio);
 
   playBackLogic.initTimerWorker();
   Song.initEmptySong();

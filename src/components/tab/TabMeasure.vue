@@ -6,7 +6,6 @@
       y="-5" 
       font-family="Source Sans Pro" 
       font-size="12px" 
-      fill="#666"
       class="block-number"
     >
       {{ blockId }}
@@ -67,11 +66,22 @@ import TabNote from './TabNote.vue'
 import TabEffects from './TabEffects.vue'
 import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
-import { getDurationInBeats, getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
+import type { TabBeat, TabChordData } from '../../types/tab'
+
+interface RenderedChord {
+  data: {
+    name: string
+    frets: number[]
+    fingers: number[]
+    display: boolean
+  }
+  x: number
+}
 
 // Props
 interface Props {
-  measureData: any[] // TODO: Type this properly once we align with existing data
+  measureData: TabBeat[]
   trackId: number
   voiceId: number
   blockId: number
@@ -88,21 +98,22 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Constants
-const { BEAT_WIDTH, START_PADDING } = TAB_CONSTANTS
+const { START_PADDING } = TAB_CONSTANTS
 const measureWidth = computed(() => props.width)
 
 // Computed properties
 const chordsToShow = computed(() => {
-  const chords: Array<{data: any, x: number}> = []
+  const chords: RenderedChord[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.chordPresent && beat?.chord) {
+      const chord = beat.chord as TabChordData
       chords.push({
         data: {
-          name: beat.chord.name || 'Unknown',
-          frets: beat.chord.frets || [],
-          fingers: beat.chord.fingers || [],
-          display: beat.chord.display !== false
+          name: chord.name || 'Unknown',
+          frets: chord.frets || [],
+          fingers: chord.fingers || [],
+          display: chord.display !== false
         },
         x: getBeatXOffset(beatIndex)
       })
@@ -131,5 +142,6 @@ function getBeatXOffset(beatIndex: number): number {
 .block-number {
   font-size: 10px;
   opacity: 0.7;
+  fill: var(--tab-secondary);
 }
 </style> 

@@ -6,9 +6,9 @@
         v-for="(beam, index) in beams"
         :key="`beam-${index}`"
         :d="beam.path"
-        stroke="#333"
         :stroke-width="BEAM_THICKNESS"
         fill="none"
+        class="beam-path"
       />
     </g>
     
@@ -21,8 +21,8 @@
         :x2="stem.x"
         :y1="stem.y1"
         :y2="stem.y2"
-        stroke="#333"
         stroke-width="1"
+        class="stem-line"
       />
     </g>
     
@@ -33,9 +33,9 @@
           v-for="(flagPath, fIndex) in flag.paths"
           :key="`flag-${index}-${fIndex}`"
           :d="flagPath"
-          stroke="#333"
           :stroke-width="BEAM_THICKNESS"
           fill="none"
+          class="flag-path"
         />
       </g>
     </g>
@@ -49,7 +49,6 @@
         :y="rest.y"
         font-family="Bravura, Sonata, serif"
         font-size="24px"
-        fill="#333"
         text-anchor="middle"
         class="rest-symbol"
       >
@@ -62,17 +61,17 @@
       <g v-for="(tuplet, index) in tuplets" :key="`tuplet-${index}`">
         <path
           :d="tuplet.bracketPath"
-          stroke="#333"
           stroke-width="1"
           fill="none"
+          class="tuplet-bracket"
         />
         <text
           :x="tuplet.textX"
           :y="tuplet.textY"
           font-family="Source Sans Pro"
           font-size="12px"
-          fill="#333"
           text-anchor="middle"
+          class="tuplet-number"
         >
           {{ tuplet.number }}
         </text>
@@ -83,16 +82,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { TAB_CONSTANTS, getDisplayWidth } from '../../utils/tabLayout'
+import { getDisplayWidth } from '../../utils/tabLayout'
 import {
-  getDurationBeats,
   getRestSymbol,
   getBeamCount,
-  isRest,
   beatHasNotes,
-  getNoteStringPositions,
-  isRestDuration
 } from '../../utils/durationUtils'
+import type { TabBeat } from '../../types/tab'
 
 // =============================================================================
 // Types
@@ -137,7 +133,7 @@ interface BeatPosition {
 // =============================================================================
 
 interface Props {
-  measureData: any[]
+  measureData: TabBeat[]
   trackId: number
   voiceId: number
   blockId: number
@@ -153,8 +149,6 @@ const props = defineProps<Props>()
 // Constants
 // =============================================================================
 
-const { BEAT_WIDTH, MIN_BEAT_DISPLAY_WIDTH } = TAB_CONSTANTS
-
 // Beam positioning - positioned below the tab staff
 // numStrings * stringSpacing gives the total height of strings
 // We add an offset below that
@@ -166,9 +160,6 @@ const BEAM_THICKNESS = 2  // Thickness of beam lines
 // Helper Functions
 // =============================================================================
 
-/**
- * Get the Y position for beams (below the tab staff)
- */
 function getBeamY(): number {
   return (props.numStrings - 1) * props.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
 }
@@ -503,7 +494,28 @@ const tuplets = computed((): Tuplet[] => {
 </script>
 
 <style scoped>
+.beam-path {
+  stroke: var(--tab-muted);
+}
+
+.stem-line {
+  stroke: var(--tab-muted);
+}
+
+.flag-path {
+  stroke: var(--tab-muted);
+}
+
 .rest-symbol {
+  fill: var(--tab-muted);
   user-select: none;
+}
+
+.tuplet-bracket {
+  stroke: var(--tab-muted);
+}
+
+.tuplet-number {
+  fill: var(--tab-muted);
 }
 </style>

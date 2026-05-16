@@ -8,6 +8,8 @@ import { revertHandler } from '../revertHandler';
 import { ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
 
+const trashCanIconSrc = new URL('../../images/trashCan.svg', import.meta.url).href;
+
 interface ChordModalState extends ModalState {
     chordModalData: {
         chordRoot: string;
@@ -555,7 +557,7 @@ export class ChordModalHandler extends BaseModalHandler {
         box.appendChild(svg);
         const removeChord = document.createElement('div');
         const removeImg = document.createElement('img');
-        removeImg.setAttribute('src', './images/trashCan.svg');
+        removeImg.setAttribute('src', trashCanIconSrc);
         removeChord.appendChild(removeImg);
         removeChord.setAttribute('class', 'removeChord');
         const displayChord = document.createElement('div');

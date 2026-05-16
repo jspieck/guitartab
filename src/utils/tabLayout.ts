@@ -2,6 +2,7 @@
  * Utility functions for calculating positions in the guitar tab layout
  */
 
+import type { RenderedMeasureData, RenderedTabRow, TabBeat } from '../types/tab'
 import { getDurationBeats } from './durationUtils'
 
 /**
@@ -33,7 +34,13 @@ export function getPageMargins(width: number = TAB_CONSTANTS.PAGE_WIDTH, height:
  */
 export function getDisplayWidth(duration: string | undefined): number {
   const beats = getDurationBeats(duration || 'q')
-  const naturalWidth = beats * TAB_CONSTANTS.BEAT_WIDTH
+  const safeBeats = Number.isFinite(beats) && beats > 0 ? beats : 1
+  const naturalWidth = safeBeats * TAB_CONSTANTS.BEAT_WIDTH
+
+  if (!Number.isFinite(naturalWidth) || naturalWidth <= 0) {
+    return TAB_CONSTANTS.MIN_BEAT_DISPLAY_WIDTH
+  }
+
   return Math.max(naturalWidth, TAB_CONSTANTS.MIN_BEAT_DISPLAY_WIDTH)
 }
 
@@ -49,7 +56,7 @@ export function getDurationInBeats(duration: string): number {
  * Calculate the X offset for a measure within a row
  */
 export function getMeasureXOffset(
-  measures: any[], 
+  measures: RenderedMeasureData[], 
   measureIndex: number, 
   isFirstRow: boolean
 ): number {
@@ -65,7 +72,7 @@ export function getMeasureXOffset(
  * Calculate the X position of a beat within a measure
  */
 export function getBeatXOffset(
-  measureData: any[], 
+  measureData: TabBeat[], 
   beatIndex: number, 
   contentPadding: number = 0
 ): number {
@@ -81,7 +88,7 @@ export function getBeatXOffset(
  * Find which measure was clicked based on X position
  */
 export function findMeasureAtPosition(
-  measures: any[],
+  measures: RenderedMeasureData[],
   relativeX: number
 ): { measureIndex: number; measureRelativeX: number } | null {
   let currentX = 0
@@ -106,7 +113,7 @@ export function findMeasureAtPosition(
  * Find which beat was clicked based on X position within a measure
  */
 export function findBeatAtPosition(
-  measureData: any[],
+  measureData: TabBeat[],
   beatX: number
 ): number {
   let currentBeatX = 0
@@ -134,7 +141,7 @@ export function findBeatAtPosition(
 export function clickToTabPosition(
   event: MouseEvent,
   svgElement: SVGSVGElement,
-  rowData: { measures: any[]; startBlockId: number },
+  rowData: Pick<RenderedTabRow, 'measures' | 'startBlockId'>,
   isFirstRow: boolean,
   getMeasureContentPadding: (blockId: number) => number
 ): { measureIndex: number; blockId: number; beatIndex: number } | null {

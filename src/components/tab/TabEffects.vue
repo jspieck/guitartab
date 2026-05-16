@@ -6,7 +6,6 @@
         v-for="(slide, index) in slides"
         :key="`slide-${index}`"
         :d="slide.path"
-        stroke="#4f7cbb"
         stroke-width="1.5"
         fill="none"
         class="slide-path"
@@ -18,7 +17,6 @@
       <g v-for="(bend, index) in bends" :key="`bend-group-${index}`">
         <path
           :d="bend.path"
-          stroke="#111"
           stroke-width="1"
           fill="none"
           class="bend-path"
@@ -30,8 +28,8 @@
           :y="bend.textY"
           font-family="Source Sans Pro"
           font-size="10px"
-          fill="#111"
           text-anchor="middle"
+          class="bend-text"
         >
           {{ bend.valueText }}
         </text>
@@ -39,9 +37,7 @@
         <path
           v-if="bend.arrowPath"
           :d="bend.arrowPath"
-          stroke="#111"
           stroke-width="1"
-          fill="#111"
           class="bend-arrow"
         />
       </g>
@@ -53,7 +49,6 @@
         v-for="(tie, index) in ties"
         :key="`tie-${index}`"
         :d="tie.path"
-        stroke="#111"
         stroke-width="1"
         fill="none"
         class="tie-path"
@@ -66,7 +61,6 @@
         v-for="(pd, index) in pullDowns"
         :key="`pd-${index}`"
         :d="pd.path"
-        stroke="#111"
         stroke-width="1"
         fill="none"
         class="pulldown-path"
@@ -79,7 +73,6 @@
         v-for="(vibrato, index) in vibratos"
         :key="`vibrato-${index}`"
         :d="vibrato.path"
-        stroke="#111"
         stroke-width="1"
         fill="none"
         class="vibrato-path"
@@ -95,13 +88,12 @@
           font-family="Source Sans Pro"
           font-size="11px"
           font-style="italic"
-          fill="#111"
+          class="trill-text"
         >
           tr
         </text>
         <path
           :d="trill.path"
-          stroke="#111"
           stroke-width="1"
           fill="none"
           class="trill-wave"
@@ -115,7 +107,6 @@
         v-for="(tb, index) in tremoloBars"
         :key="`tb-${index}`"
         :d="tb.path"
-        stroke="#111"
         stroke-width="1"
         fill="none"
         class="tremolo-bar-path"
@@ -131,7 +122,6 @@
         :y="effect.y"
         font-family="Source Sans Pro"
         :font-size="effect.fontSize"
-        fill="#000"
         text-anchor="middle"
         class="effect-text"
       >
@@ -148,7 +138,7 @@
           font-family="Source Sans Pro"
           font-size="10px"
           font-style="italic"
-          fill="#555"
+          class="let-ring-text"
         >
           let ring
         </text>
@@ -157,9 +147,9 @@
           :y1="lr.y - 3"
           :x2="lr.lineEndX"
           :y2="lr.y - 3"
-          stroke="#555"
           stroke-width="1"
           stroke-dasharray="3,2"
+          class="let-ring-line"
         />
       </g>
     </g>
@@ -172,7 +162,7 @@
           :y="harm.y"
           font-family="Source Sans Pro"
           font-size="10px"
-          fill="#111"
+          class="harmonic-text"
         >
           {{ harm.text }}
         </text>
@@ -182,9 +172,9 @@
     <!-- Tremolo Picking -->
     <g v-if="hasTremoloPicking" class="tremolo-picking">
       <g v-for="(tp, index) in tremoloPickings" :key="`tp-${index}`" :transform="`translate(${tp.x}, ${tp.y})`">
-        <path d="M2 4L12 2" stroke="#111" stroke-width="2" fill="none" />
-        <path v-if="tp.lines >= 2" d="M2 8L12 6" stroke="#111" stroke-width="2" fill="none" />
-        <path v-if="tp.lines >= 3" d="M2 12L12 10" stroke="#111" stroke-width="2" fill="none" />
+        <path d="M2 4L12 2" stroke-width="2" fill="none" class="tremolo-picking-line" />
+        <path v-if="tp.lines >= 2" d="M2 8L12 6" stroke-width="2" fill="none" class="tremolo-picking-line" />
+        <path v-if="tp.lines >= 3" d="M2 12L12 10" stroke-width="2" fill="none" class="tremolo-picking-line" />
       </g>
     </g>
 
@@ -196,17 +186,17 @@
           :y="gn.y"
           font-family="Source Sans Pro"
           font-size="10px"
-          fill="#666"
           text-anchor="middle"
+          class="grace-fret-text"
         >
           {{ gn.fret }}
         </text>
         <!-- Grace note slur/arc -->
         <path
           :d="gn.slurPath"
-          stroke="#666"
           stroke-width="1"
           fill="none"
+          class="grace-slur"
         />
       </g>
     </g>
@@ -215,11 +205,23 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { getDisplayWidth } from '../../utils/tabLayout'
+import type { TabBeat, TabNoteData } from '../../types/tab'
+
+interface TremoloBarPoint {
+  position?: number
+  value?: number
+}
+
+type EffectBeat = TabBeat & {
+  notes?: Array<TabNoteData | null>
+  tremoloBarPresent?: boolean
+  tremoloBar?: TremoloBarPoint[]
+}
 
 // Props
 interface Props {
-  measureData: any[]
+  measureData: EffectBeat[]
   trackId: number
   voiceId: number
   blockId: number
@@ -252,7 +254,9 @@ const slides = computed(() => {
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+      beat.notes.forEach((note, stringIndex: number) => {
+        if (!note) return
+
         if (note?.slide) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -288,7 +292,9 @@ const bends = computed(() => {
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+      beat.notes.forEach((note, stringIndex: number) => {
+        if (!note) return
+
         if (note?.bendPresent && note?.bendObj && note.bendObj.length > 0) {
           const beatX = getBeatX(beatIndex)
           const startX = beatX + getDisplayWidth(beat.duration) / 2 + 5
@@ -355,7 +361,9 @@ const ties = computed(() => {
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+      beat.notes.forEach((note, stringIndex: number) => {
+        if (!note) return
+
         if (note?.tied && beatIndex > 0) {
           // Draw tie from previous beat to this beat
           const prevBeatX = getBeatX(beatIndex - 1)
@@ -389,7 +397,9 @@ const pullDowns = computed(() => {
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+      beat.notes.forEach((note, stringIndex: number) => {
+        if (!note) return
+
         if (note?.pullDown && beatIndex < props.measureData.length - 1) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -423,7 +433,9 @@ const vibratos = computed(() => {
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+      beat.notes.forEach((note, stringIndex: number) => {
+        if (!note) return
+
         if (note?.vibrato) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -501,7 +513,7 @@ const tremoloBars = computed(() => {
       
       let pathData = `M${startX} ${startY}`
       
-      beat.tremoloBar.forEach((point: any, index: number) => {
+      beat.tremoloBar.forEach((point: any) => {
         const x = startX + (point.position || 0) / 4
         const y = startY + (point.value || 0) / 10
         pathData += `L${x} ${y}`
@@ -527,7 +539,9 @@ const textEffects = computed(() => {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       
-      beat.notes.forEach((note: any) => {
+      beat.notes.forEach((note) => {
+        if (!note) return
+
         if (note?.palmMute) beatEffects.push('P.M.')
         if (note?.tap) beatEffects.push('T')
         if (note?.pop) beatEffects.push('P')
@@ -721,32 +735,80 @@ function getFontSizeForEffect(effectText: string): string {
 }
 
 .slide-path {
+  stroke: var(--tab-slide);
   stroke-linecap: round;
 }
 
 .bend-path {
+  stroke: var(--tab-tertiary);
   stroke-linecap: round;
 }
 
+.bend-text {
+  fill: var(--tab-tertiary);
+}
+
+.bend-arrow {
+  stroke: var(--tab-tertiary);
+  fill: var(--tab-tertiary);
+}
+
 .tie-path {
+  stroke: var(--tab-tertiary);
   stroke-linecap: round;
 }
 
 .pulldown-path {
+  stroke: var(--tab-tertiary);
   stroke-linecap: round;
 }
 
 .vibrato-path {
+  stroke: var(--tab-tertiary);
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.trill-text {
+  fill: var(--tab-tertiary);
 }
 
 .trill-wave {
+  stroke: var(--tab-tertiary);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
+.tremolo-bar-path {
+  stroke: var(--tab-tertiary);
+}
+
 .effect-text {
+  fill: var(--tab-primary);
   user-select: none;
+}
+
+.let-ring-text {
+  fill: var(--tab-subtle);
+}
+
+.let-ring-line {
+  stroke: var(--tab-subtle);
+}
+
+.harmonic-text {
+  fill: var(--tab-tertiary);
+}
+
+.tremolo-picking-line {
+  stroke: var(--tab-tertiary);
+}
+
+.grace-fret-text {
+  fill: var(--tab-secondary);
+}
+
+.grace-slur {
+  stroke: var(--tab-secondary);
 }
 </style> 
