@@ -242,7 +242,7 @@ import Song, { Note, Measure } from '../assets/js/songData';
 import { tab, Tab } from '../assets/js/tab';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
-import { classicalNotation } from '../assets/js/vexflowClassical';
+import { classicalNotation } from '../services/legacy/classicalNotationAdapter';
 import { SequencerHandler } from '../assets/js/sequencerHandler';
 import { overlayHandler } from '../assets/js/overlayHandler';
 import { onMounted, onBeforeUnmount, ref } from 'vue';

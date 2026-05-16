@@ -3,7 +3,7 @@ import { tab } from "./tab";
 import { svgDrawer } from "./svgDrawer";
 import { modalManager } from "./modals/modalManager";
 import { revertHandler } from "./revertHandler";
-import classicalNotation from "./vexflowClassical";
+import classicalNotation from "../../services/legacy/classicalNotationAdapter";
 import EventBus from "./eventBus";
 import { MODALS } from "./modals/modalTypes";
 

@@ -79,11 +79,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import TabRow from './TabRow.vue'
 import NoteContextMenu from '../NoteContextMenu.vue'
 import Song from '../../assets/js/songData'
-import { Tab, tab } from '../../assets/js/tab'
-import Helper from '../../assets/js/helper'
-import { svgDrawer } from '../../assets/js/svgDrawer'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
+import { legacyEditorCore } from '../../services/legacy/editorCoreAdapter'
 import { typedEventBus, type SelectionChangeData } from '../../utils/typedEventBus'
 import { getPageMargins } from '../../utils/tabLayout'
 import type { RenderedMeasureData, RenderedTabRow, TabBeat, TabNoteData } from '../../types/tab'
@@ -147,8 +145,7 @@ const tabRows = computed(() => {
   const rows: RenderedTabRow[] = []
   
   // Initialize Song if needed
-  if (!Song.measures || Song.measures.length === 0) {
-    Song.initEmptySong()
+  if (legacyEditorCore.ensureSongInitialized()) {
     syncSongData()
   }
   
@@ -168,24 +165,7 @@ const tabRows = computed(() => {
   const trackId = props.trackId
   const voiceId = props.voiceId
   
-  svgDrawer.blockToPage = []
-  if (!svgDrawer.blockToX[trackId]) svgDrawer.blockToX[trackId] = []
-  if (!svgDrawer.rowToY[trackId]) svgDrawer.rowToY[trackId] = []
-  if (!svgDrawer.rowToY[trackId][voiceId]) svgDrawer.rowToY[trackId][voiceId] = []
-  if (!svgDrawer.heightOfRow[trackId]) svgDrawer.heightOfRow[trackId] = []
-  if (!svgDrawer.heightOfRow[trackId][voiceId]) svgDrawer.heightOfRow[trackId][voiceId] = []
-  
-  if (!tab.blockToRow[trackId]) tab.blockToRow[trackId] = []
-  if (!tab.blockToRow[trackId][voiceId]) tab.blockToRow[trackId][voiceId] = []
-  
-  if (!tab.finalBlockWidths[trackId]) tab.finalBlockWidths[trackId] = []
-  if (!tab.finalBlockWidths[trackId][voiceId]) tab.finalBlockWidths[trackId][voiceId] = []
-  
-  if (!tab.measureOffset[trackId]) tab.measureOffset[trackId] = []
-
-  svgDrawer.trackCreated = true
-  svgDrawer.paddingTop = paddingTop.value
-  svgDrawer.tabInformationHeight = 80
+  legacyEditorCore.initializeModernRendererState(trackId, voiceId, paddingTop.value, 80)
 
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i]
@@ -194,9 +174,9 @@ const tabRows = computed(() => {
     let minOffset: number
     try {
       // Ensure measureMoveHelper is populated for playback bar
-      Helper.groupMeasureBeats(trackId, i, voiceId)
+      legacyEditorCore.groupMeasureBeats(trackId, i, voiceId)
       
-      const widthInfo = Tab.computeWidthOfBlock(trackId, i, voiceId)
+      const widthInfo = legacyEditorCore.computeBlockWidth(trackId, i, voiceId)
       measureWidth = Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
         ? widthInfo.minWidth
         : 200
@@ -210,24 +190,21 @@ const tabRows = computed(() => {
     }
 
     // Populate mapping data
-    svgDrawer.blockToPage[i] = 0 // All on page 0 for now
-    if (!svgDrawer.blockToX[trackId][i]) svgDrawer.blockToX[trackId][i] = []
-    svgDrawer.blockToX[trackId][i][voiceId] = currentWidth
-
-    tab.blockToRow[trackId][voiceId][i] = {
-      rowId: rows.length,
-      numInRow: currentRowMeasures.length
-    }
-
-    tab.finalBlockWidths[trackId][voiceId][i] = measureWidth
-    if (!tab.measureOffset[trackId][i]) tab.measureOffset[trackId][i] = []
-    tab.measureOffset[trackId][i][voiceId] = minOffset
+    legacyEditorCore.setBlockLayout(
+      trackId,
+      voiceId,
+      i,
+      currentWidth,
+      rows.length,
+      currentRowMeasures.length,
+      measureWidth,
+      minOffset,
+    )
     
     // Start new row if current exceeds width
     if (currentWidth + measureWidth > availableWidth && currentRowMeasures.length > 0) {
       // Update row mapping
-      svgDrawer.rowToY[trackId][voiceId][rows.length] = getRowYOffset(rows.length)
-      svgDrawer.heightOfRow[trackId][voiceId][rows.length] = rowHeight
+      legacyEditorCore.setRowLayout(trackId, voiceId, rows.length, getRowYOffset(rows.length), rowHeight)
       
       rows.push({
         id: rows.length,
@@ -241,13 +218,7 @@ const tabRows = computed(() => {
       startBlockId = i
       
       // Re-populate mapping for the first measure of the new row
-      if (svgDrawer.blockToX[trackId][i]) {
-        svgDrawer.blockToX[trackId][i][voiceId] = 0
-      }
-      if (tab.blockToRow[trackId][voiceId][i]) {
-        tab.blockToRow[trackId][voiceId][i].rowId = rows.length
-        tab.blockToRow[trackId][voiceId][i].numInRow = 0
-      }
+      legacyEditorCore.markRowStartBlock(trackId, voiceId, i, rows.length)
     }
     
     currentRowMeasures.push({
@@ -259,8 +230,7 @@ const tabRows = computed(() => {
   
   // Add remaining measures
   if (currentRowMeasures.length > 0) {
-    svgDrawer.rowToY[trackId][voiceId][rows.length] = getRowYOffset(rows.length)
-    svgDrawer.heightOfRow[trackId][voiceId][rows.length] = rowHeight
+    legacyEditorCore.setRowLayout(trackId, voiceId, rows.length, getRowYOffset(rows.length), rowHeight)
     rows.push({
       id: rows.length,
       measures: currentRowMeasures,
@@ -270,8 +240,7 @@ const tabRows = computed(() => {
     })
   }
 
-  svgDrawer.numRows = rows.length
-  svgDrawer.numPages = 1
+  legacyEditorCore.finalizeModernRendererState(rows.length)
   
   return rows
 })
@@ -403,9 +372,7 @@ function handleContextMenuSetDuration(durationId: string) {
 
   const { trackId, voiceId, blockId, beatIndex, stringIndex } = currentSelection.value
 
-  tab.changeNoteDuration(
-    trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false
-  )
+  legacyEditorCore.changeNoteDuration(trackId, blockId, voiceId, beatIndex, stringIndex, durationId)
 
   syncSongData()
   updateTrigger.value++
@@ -527,7 +494,7 @@ onMounted(() => {
   // Initialize playback bar for legacy svgDrawer support
   const mGroup = document.getElementById('playBackBarGroup0') as unknown as SVGGElement
   if (mGroup) {
-    svgDrawer.playBackBarObjects = [mGroup]
+    legacyEditorCore.setPlayBackBarObjects([mGroup])
   }
   
   window.addEventListener('mousedown', handleGlobalClick)

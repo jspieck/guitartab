@@ -7,7 +7,7 @@ import AppManager from './appManager';
 import Duration from './duration';
 import Helper from './helper';
 import Settings from './settingManager';
-import { classicalNotation } from './vexflowClassical';
+import { classicalNotation } from '../../services/legacy/classicalNotationAdapter';
 import { overlayHandler } from './overlayHandler';
 import { menuHandler } from './menuHandler';
 import EventBus from './eventBus';
@@ -1071,6 +1071,8 @@ class Tab {
     trackId: number, voiceId: number, forceScale: boolean, width: number,
     height: number, callback: (() => void) | null,
   ) {
+    console.trace('Draw track called');
+    
     EventBus.emit('song-data-changed');
     
     // Call the callback since the actual drawing code is commented out

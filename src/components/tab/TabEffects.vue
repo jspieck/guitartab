@@ -213,10 +213,132 @@ interface TremoloBarPoint {
   value?: number
 }
 
+interface BendPoint {
+  bendPosition?: number
+  bendValue?: number
+}
+
+interface GraceData {
+  fret: number
+}
+
+type EffectNote = TabNoteData & {
+  slide?: boolean
+  bendPresent?: boolean
+  bendObj?: BendPoint[]
+  tied?: boolean
+  pullDown?: boolean
+  vibrato?: boolean
+  trillPresent?: boolean
+  palmMute?: boolean
+  tap?: boolean
+  pop?: boolean
+  slap?: boolean
+  stacatto?: boolean
+  fadeIn?: boolean
+  accentuated?: boolean
+  heavyAccentuated?: boolean
+  letRing?: boolean
+  artificialPresent?: boolean
+  naturalHarmonic?: boolean
+  tremoloPicking?: boolean
+  tremoloPickingLength?: string
+  gracePresent?: boolean
+  graceObj?: GraceData
+}
+
+interface NoteAtString {
+  note: EffectNote
+  stringIndex: number
+}
+
+interface IndexedPathEffect {
+  path: string
+  beatIndex: number
+  stringIndex: number
+}
+
+interface BendEffect extends IndexedPathEffect {
+  arrowPath: string
+  valueText: string
+  textX: number
+  textY: number
+}
+
+interface TrillEffect {
+  textX: number
+  textY: number
+  path: string
+  beatIndex: number
+}
+
+interface TremoloBarEffect {
+  path: string
+  beatIndex: number
+}
+
+interface TextEffect {
+  text: string
+  x: number
+  y: number
+  fontSize: string
+  beatIndex: number
+}
+
+interface LetRingEffect {
+  x: number
+  y: number
+  lineEndX: number
+}
+
+interface HarmonicEffect {
+  x: number
+  y: number
+  text: string
+  beatIndex: number
+  stringIndex: number
+}
+
+interface TremoloPickingEffect {
+  x: number
+  y: number
+  lines: number
+  beatIndex: number
+  stringIndex: number
+}
+
+interface GraceNoteEffect {
+  x: number
+  y: number
+  fret: number
+  slurPath: string
+  beatIndex: number
+  stringIndex: number
+}
+
 type EffectBeat = TabBeat & {
-  notes?: Array<TabNoteData | null>
+  notes?: Array<EffectNote | null>
   tremoloBarPresent?: boolean
   tremoloBar?: TremoloBarPoint[]
+}
+
+function getBeatNotes(beat: EffectBeat | undefined): NoteAtString[] {
+  const beatNotes: NoteAtString[] = []
+
+  beat?.notes?.forEach((note, stringIndex) => {
+    if (note) {
+      beatNotes.push({ note, stringIndex })
+    }
+  })
+
+  return beatNotes
+}
+
+function beatHasMatchingNote(
+  beat: EffectBeat | undefined,
+  predicate: (note: EffectNote) => boolean,
+): boolean {
+  return getBeatNotes(beat).some(({ note }) => predicate(note))
 }
 
 // Props
@@ -250,13 +372,10 @@ function getStringY(stringIndex: number): number {
 
 // ============ SLIDES ============
 const slides = computed(() => {
-  const slideEffects: any[] = []
+  const slideEffects: IndexedPathEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note, stringIndex: number) => {
-        if (!note) return
-
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.slide) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -279,7 +398,6 @@ const slides = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -288,13 +406,10 @@ const slides = computed(() => {
 
 // ============ BENDS ============
 const bends = computed(() => {
-  const bendEffects: any[] = []
+  const bendEffects: BendEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note, stringIndex: number) => {
-        if (!note) return
-
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.bendPresent && note?.bendObj && note.bendObj.length > 0) {
           const beatX = getBeatX(beatIndex)
           const startX = beatX + getDisplayWidth(beat.duration) / 2 + 5
@@ -307,14 +422,15 @@ const bends = computed(() => {
           let lastY = startY + 10
           
           // Calculate bend curve
-          note.bendObj.forEach((bendPoint: any, index: number) => {
+          note.bendObj.forEach((bendPoint: BendPoint, index: number) => {
             const posOffset = (bendPoint.bendPosition || 0) / 4
-            const bendHeight = (bendPoint.bendValue || 0) / 5
+            const bendValue = bendPoint.bendValue || 0
+            const bendHeight = bendValue / 5
             const x = startX + posOffset
             const y = startY + 10 - bendHeight
             
-            if (bendPoint.bendValue > maxBendValue) {
-              maxBendValue = bendPoint.bendValue
+            if (bendValue > maxBendValue) {
+              maxBendValue = bendValue
             }
             
             if (index === 0 && bendPoint.bendPosition === 0) {
@@ -348,7 +464,6 @@ const bends = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -357,13 +472,10 @@ const bends = computed(() => {
 
 // ============ TIES (for tied notes) ============
 const ties = computed(() => {
-  const tieEffects: any[] = []
+  const tieEffects: IndexedPathEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note, stringIndex: number) => {
-        if (!note) return
-
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.tied && beatIndex > 0) {
           // Draw tie from previous beat to this beat
           const prevBeatX = getBeatX(beatIndex - 1)
@@ -384,7 +496,6 @@ const ties = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -393,13 +504,10 @@ const ties = computed(() => {
 
 // ============ PULL DOWNS (hammer-on/pull-off) ============
 const pullDowns = computed(() => {
-  const effects: any[] = []
+  const effects: IndexedPathEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note, stringIndex: number) => {
-        if (!note) return
-
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.pullDown && beatIndex < props.measureData.length - 1) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -420,7 +528,6 @@ const pullDowns = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -429,13 +536,10 @@ const pullDowns = computed(() => {
 
 // ============ VIBRATO ============
 const vibratos = computed(() => {
-  const vibratoEffects: any[] = []
+  const vibratoEffects: IndexedPathEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note, stringIndex: number) => {
-        if (!note) return
-
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.vibrato) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -459,7 +563,6 @@ const vibratos = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -468,10 +571,10 @@ const vibratos = computed(() => {
 
 // ============ TRILL ============
 const trills = computed(() => {
-  const trillEffects: any[] = []
+  const trillEffects: TrillEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes?.some((n: any) => n?.trillPresent)) {
+    if (beatHasMatchingNote(beat, (note) => note.trillPresent === true)) {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       const startX = beatX + beatWidth / 2
@@ -502,7 +605,7 @@ const trills = computed(() => {
 
 // ============ TREMOLO BAR ============
 const tremoloBars = computed(() => {
-  const effects: any[] = []
+  const effects: TremoloBarEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.tremoloBarPresent && beat?.tremoloBar) {
@@ -513,7 +616,7 @@ const tremoloBars = computed(() => {
       
       let pathData = `M${startX} ${startY}`
       
-      beat.tremoloBar.forEach((point: any) => {
+      beat.tremoloBar.forEach((point: TremoloBarPoint) => {
         const x = startX + (point.position || 0) / 4
         const y = startY + (point.value || 0) / 10
         pathData += `L${x} ${y}`
@@ -531,7 +634,7 @@ const tremoloBars = computed(() => {
 
 // ============ TEXT EFFECTS ============
 const textEffects = computed(() => {
-  const effects: any[] = []
+  const effects: TextEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
     if (beat?.notes) {
@@ -571,17 +674,17 @@ const textEffects = computed(() => {
 
 // ============ LET RING ============
 const letRings = computed(() => {
-  const effects: any[] = []
+  const effects: LetRingEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes?.some((n: any) => n?.letRing)) {
+    if (beatHasMatchingNote(beat, (note) => note.letRing === true)) {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       
       // Find how long the let ring continues
       let endBeatIndex = beatIndex
       for (let i = beatIndex + 1; i < props.measureData.length; i++) {
-        if (props.measureData[i]?.notes?.some((n: any) => n?.letRing)) {
+        if (beatHasMatchingNote(props.measureData[i], (note) => note.letRing === true)) {
           endBeatIndex = i
         } else {
           break
@@ -591,7 +694,7 @@ const letRings = computed(() => {
       const endX = getBeatX(endBeatIndex) + getDisplayWidth(props.measureData[endBeatIndex]?.duration)
       
       // Only add if this is the start of a let ring section
-      if (beatIndex === 0 || !props.measureData[beatIndex - 1]?.notes?.some((n: any) => n?.letRing)) {
+      if (beatIndex === 0 || !beatHasMatchingNote(props.measureData[beatIndex - 1], (note) => note.letRing === true)) {
         effects.push({
           x: beatX + beatWidth / 2,
           y: props.numStrings * props.stringSpacing + 15,
@@ -606,11 +709,10 @@ const letRings = computed(() => {
 
 // ============ HARMONICS ============
 const harmonics = computed(() => {
-  const effects: any[] = []
+  const effects: HarmonicEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.artificialPresent || note?.naturalHarmonic) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -626,7 +728,6 @@ const harmonics = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -635,11 +736,10 @@ const harmonics = computed(() => {
 
 // ============ TREMOLO PICKING ============
 const tremoloPickings = computed(() => {
-  const effects: any[] = []
+  const effects: TremoloPickingEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.tremoloPicking) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -658,7 +758,6 @@ const tremoloPickings = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
@@ -667,11 +766,10 @@ const tremoloPickings = computed(() => {
 
 // ============ GRACE NOTES ============
 const graceNotes = computed(() => {
-  const effects: any[] = []
+  const effects: GraceNoteEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.notes) {
-      beat.notes.forEach((note: any, stringIndex: number) => {
+    for (const { note, stringIndex } of getBeatNotes(beat)) {
         if (note?.gracePresent && note?.graceObj) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -692,7 +790,6 @@ const graceNotes = computed(() => {
             stringIndex
           })
         }
-      })
     }
   })
   
