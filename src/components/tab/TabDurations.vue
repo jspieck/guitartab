@@ -82,13 +82,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { TabBeat } from '../../types/tab'
 import { getDisplayWidth } from '../../utils/tabLayout'
 import {
   getRestSymbol,
   getBeamCount,
   beatHasNotes,
 } from '../../utils/durationUtils'
-import type { TabBeat } from '../../types/tab'
 
 // =============================================================================
 // Types
@@ -128,10 +128,6 @@ interface BeatPosition {
   beamCount: number
 }
 
-// =============================================================================
-// Props
-// =============================================================================
-
 interface Props {
   measureData: TabBeat[]
   trackId: number
@@ -145,29 +141,14 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// =============================================================================
-// Constants
-// =============================================================================
-
-// Beam positioning - positioned below the tab staff
-// numStrings * stringSpacing gives the total height of strings
-// We add an offset below that
 const BEAM_OFFSET_FROM_BOTTOM = 15  // Distance below the last string
 const BEAM_SPACING = 6  // Vertical spacing between multiple beams (needs room for 2+ beams)
 const BEAM_THICKNESS = 2  // Thickness of beam lines
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
 
 function getBeamY(): number {
   return (props.numStrings - 1) * props.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
 }
 
-/**
- * Calculate X position for a beat based on cumulative duration
- * Uses minimum display width to ensure short notes are spaced adequately
- */
 function calculateBeatX(beatIndex: number): number {
   let cumulativeX = 0
   for (let i = 0; i < beatIndex; i++) {
@@ -177,9 +158,6 @@ function calculateBeatX(beatIndex: number): number {
   return props.xOffset + cumulativeX + 10
 }
 
-/**
- * Get the center X position of a note in a beat
- */
 function getNoteCenterX(beatIndex: number): number {
   const beat = props.measureData[beatIndex]
   const displayWidth = getDisplayWidth(beat?.duration)
@@ -248,9 +226,6 @@ function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
   return beams
 }
 
-/**
- * Create a tuplet bracket
- */
 function createTupletBracket(group: { beatIndex: number; x: number }[], number: number): Tuplet {
   const startX = group[0].x - 5
   const endX = group[group.length - 1].x + 5
@@ -266,13 +241,6 @@ function createTupletBracket(group: { beatIndex: number; x: number }[], number: 
   }
 }
 
-// =============================================================================
-// Computed Properties
-// =============================================================================
-
-/**
- * Track which beats are part of a beam group (so they don't need flags)
- */
 const beamedBeatIndices = computed((): Set<number> => {
   const indices = new Set<number>()
   let currentGroup: number[] = []

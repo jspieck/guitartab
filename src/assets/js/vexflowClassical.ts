@@ -575,11 +575,9 @@ class ClassicalNotation {
     // align notes to right position
     const numNotes = notes.length;
     // const tickables = voice.getTickables();
-    const blockPos = svgDrawer.getXForBlock(trackId, Song.currentVoiceId, blockId);
     for (let beatId = 0; beatId < numNotes; beatId += 1) {
       // const absoluteX = notes[beatId].getAbsoluteX();
-      const beatPosX = Helper.getBeatPosX(trackId, blockId, Song.currentVoiceId, beatId);
-      const blockInPos = blockPos + beatPosX;
+      const blockInPos = svgDrawer.getPositionInRow(trackId, Song.currentVoiceId, blockId, beatId);
       // const xShift = blockInPos - absoluteX;
       // notes[beatId].extraLeftPx  = extraPx;
       // console.log(blockInPos, beatPosX, absoluteX, extraPx);

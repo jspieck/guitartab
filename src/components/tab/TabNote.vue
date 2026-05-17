@@ -33,10 +33,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getDisplayWidth } from '../../utils/tabLayout'
 import type { TabBeat, TabNoteData } from '../../types/tab'
+import { getDisplayWidth } from '../../utils/tabLayout'
 
-type RenderableNote = TabNoteData & { string: number }
+type RenderableTabNote = TabNoteData & {
+  string: number
+}
 
 interface Props {
   beatData?: TabBeat
@@ -54,26 +56,25 @@ const noteX = computed(() => {
 })
 
 const beatDataHash = computed(() => {
-  if (!props.beatData || !props.beatData.notes) return 0
+  if (!props.beatData?.notes) return 0
   
   // Create a simple hash based on the notes content
   let hash = 0
-  props.beatData.notes.forEach((note, index) => {
+  props.beatData.notes.forEach((note: TabNoteData | null, index: number) => {
     if (note) {
       hash += (note.fret || 0) * (index + 1) * 17
-      hash += note.string * (index + 1) * 13
+      hash += index * (index + 1) * 13
     }
   })
   return hash
 })
 
-const notesToRender = computed(() => {
-  if (!props.beatData || !props.beatData.notes) {
-    return [] as RenderableNote[]
+const notesToRender = computed<RenderableTabNote[]>(() => {
+  if (!props.beatData?.notes) {
+    return []
   }
-  
-  // Filter out null notes and add string index information
-  return props.beatData.notes.flatMap((note, stringIndex) => {
+
+  return props.beatData.notes.flatMap((note: TabNoteData | null, stringIndex: number) => {
     if (!note || note.tied) {
       return []
     }
@@ -81,22 +82,26 @@ const notesToRender = computed(() => {
     return [{
       ...note,
       string: stringIndex,
-    } satisfies RenderableNote]
+    }]
   })
 })
 
-const graceNotes = computed(() =>
-  notesToRender.value.filter((note) => note.gracePresent && note.graceObj)
+const graceNotes = computed<RenderableTabNote[]>(() =>
+  notesToRender.value.filter((note) => note.gracePresent && Boolean(note.graceObj))
 )
 
-function getNoteDisplay(note: RenderableNote): string {
+function getNoteDisplay(note: RenderableTabNote | null | undefined): string {
+  if (!note) return ''
+  
   if (note.dead) return 'x'
   if (note.ghost) return `(${note.fret})`
   
   return note.fret.toString()
 }
 
-function getFontSize(note: RenderableNote): string {
+function getFontSize(note: RenderableTabNote | null | undefined): string {
+  if (!note) return '16px'
+  
   const display = getNoteDisplay(note)
   if (display.length > 3) return '12px'
   if (display.length > 1 || note.ghost) return '14px'
@@ -104,8 +109,8 @@ function getFontSize(note: RenderableNote): string {
   return '16px'
 }
 
-function getNoteClasses(note: RenderableNote): string {
-  const classes = []
+function getNoteClasses(note: RenderableTabNote): string {
+  const classes: string[] = []
   if (note.dead) classes.push('dead-note')
   if (note.ghost) classes.push('ghost-note')
   if (note.palmMute) classes.push('palm-mute')

@@ -205,64 +205,51 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { Grace, TabBeat, TabNoteData } from '../../types/tab'
 import { getDisplayWidth } from '../../utils/tabLayout'
-import type { TabBeat, TabNoteData } from '../../types/tab'
-
-interface TremoloBarPoint {
-  position?: number
-  value?: number
-}
 
 interface BendPoint {
   bendPosition?: number
   bendValue?: number
 }
 
-interface GraceData {
-  fret: number
+interface TremoloBarPoint {
+  position?: number
+  value?: number
 }
 
 type EffectNote = TabNoteData & {
-  slide?: boolean
-  bendPresent?: boolean
-  bendObj?: BendPoint[]
-  tied?: boolean
-  pullDown?: boolean
-  vibrato?: boolean
-  trillPresent?: boolean
-  palmMute?: boolean
-  tap?: boolean
-  pop?: boolean
-  slap?: boolean
-  stacatto?: boolean
-  fadeIn?: boolean
-  accentuated?: boolean
-  heavyAccentuated?: boolean
-  letRing?: boolean
-  artificialPresent?: boolean
   naturalHarmonic?: boolean
-  tremoloPicking?: boolean
-  tremoloPickingLength?: string
-  gracePresent?: boolean
-  graceObj?: GraceData
+  bendObj?: BendPoint[]
+  graceObj?: Grace
 }
 
-interface NoteAtString {
-  note: EffectNote
-  stringIndex: number
-}
-
-interface IndexedPathEffect {
+interface SlideEffect {
   path: string
   beatIndex: number
   stringIndex: number
 }
 
-interface BendEffect extends IndexedPathEffect {
+interface BendEffect {
+  path: string
   arrowPath: string
   valueText: string
   textX: number
   textY: number
+  beatIndex: number
+  stringIndex: number
+}
+
+interface ArcEffect {
+  path: string
+  beatIndex: number
+  stringIndex: number
+}
+
+interface VibratoEffect {
+  path: string
+  beatIndex: number
+  stringIndex: number
 }
 
 interface TrillEffect {
@@ -316,34 +303,9 @@ interface GraceNoteEffect {
   stringIndex: number
 }
 
-type EffectBeat = TabBeat & {
-  notes?: Array<EffectNote | null>
-  tremoloBarPresent?: boolean
-  tremoloBar?: TremoloBarPoint[]
-}
-
-function getBeatNotes(beat: EffectBeat | undefined): NoteAtString[] {
-  const beatNotes: NoteAtString[] = []
-
-  beat?.notes?.forEach((note, stringIndex) => {
-    if (note) {
-      beatNotes.push({ note, stringIndex })
-    }
-  })
-
-  return beatNotes
-}
-
-function beatHasMatchingNote(
-  beat: EffectBeat | undefined,
-  predicate: (note: EffectNote) => boolean,
-): boolean {
-  return getBeatNotes(beat).some(({ note }) => predicate(note))
-}
-
 // Props
 interface Props {
-  measureData: EffectBeat[]
+  measureData: TabBeat[]
   trackId: number
   voiceId: number
   blockId: number
@@ -370,12 +332,19 @@ function getStringY(stringIndex: number): number {
   return (props.numStrings - 1 - stringIndex) * props.stringSpacing
 }
 
+function getEffectNote(note: TabNoteData | null | undefined): EffectNote | null {
+  return note as EffectNote | null | undefined ?? null
+}
+
 // ============ SLIDES ============
-const slides = computed(() => {
-  const slideEffects: IndexedPathEffect[] = []
+const slides = computed<SlideEffect[]>(() => {
+  const slideEffects: SlideEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((rawNote: TabNoteData | null, stringIndex: number) => {
+        const note = getEffectNote(rawNote)
+
         if (note?.slide) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -384,8 +353,8 @@ const slides = computed(() => {
           
           // Determine next note's fret to know slide direction
           const nextBeat = props.measureData[beatIndex + 1]
-          const nextNote = nextBeat?.notes?.[stringIndex]
-          const slideUp = nextNote && nextNote.fret > note.fret
+          const nextNote = getEffectNote(nextBeat?.notes?.[stringIndex])
+          const slideUp = Boolean(nextNote && nextNote.fret > note.fret)
           
           const slideLength = Math.min(beatWidth * 0.6, 25)
           const yOffset = slideUp ? -3 : 3
@@ -398,6 +367,7 @@ const slides = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -405,12 +375,15 @@ const slides = computed(() => {
 })
 
 // ============ BENDS ============
-const bends = computed(() => {
+const bends = computed<BendEffect[]>(() => {
   const bendEffects: BendEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
-        if (note?.bendPresent && note?.bendObj && note.bendObj.length > 0) {
+    if (beat?.notes) {
+      beat.notes.forEach((rawNote: TabNoteData | null, stringIndex: number) => {
+        const note = getEffectNote(rawNote)
+
+        if (note?.bendPresent && note.bendObj && note.bendObj.length > 0) {
           const beatX = getBeatX(beatIndex)
           const startX = beatX + getDisplayWidth(beat.duration) / 2 + 5
           const startY = getStringY(stringIndex) - 8
@@ -464,6 +437,7 @@ const bends = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -471,11 +445,12 @@ const bends = computed(() => {
 })
 
 // ============ TIES (for tied notes) ============
-const ties = computed(() => {
-  const tieEffects: IndexedPathEffect[] = []
+const ties = computed<ArcEffect[]>(() => {
+  const tieEffects: ArcEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((note: TabNoteData | null, stringIndex: number) => {
         if (note?.tied && beatIndex > 0) {
           // Draw tie from previous beat to this beat
           const prevBeatX = getBeatX(beatIndex - 1)
@@ -496,6 +471,7 @@ const ties = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -503,11 +479,12 @@ const ties = computed(() => {
 })
 
 // ============ PULL DOWNS (hammer-on/pull-off) ============
-const pullDowns = computed(() => {
-  const effects: IndexedPathEffect[] = []
+const pullDowns = computed<ArcEffect[]>(() => {
+  const effects: ArcEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((note: TabNoteData | null, stringIndex: number) => {
         if (note?.pullDown && beatIndex < props.measureData.length - 1) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -528,6 +505,7 @@ const pullDowns = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -535,11 +513,12 @@ const pullDowns = computed(() => {
 })
 
 // ============ VIBRATO ============
-const vibratos = computed(() => {
-  const vibratoEffects: IndexedPathEffect[] = []
+const vibratos = computed<VibratoEffect[]>(() => {
+  const vibratoEffects: VibratoEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((note: TabNoteData | null, stringIndex: number) => {
         if (note?.vibrato) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -563,6 +542,7 @@ const vibratos = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -570,11 +550,11 @@ const vibratos = computed(() => {
 })
 
 // ============ TRILL ============
-const trills = computed(() => {
+const trills = computed<TrillEffect[]>(() => {
   const trillEffects: TrillEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beatHasMatchingNote(beat, (note) => note.trillPresent === true)) {
+    if (beat?.notes?.some((note: TabNoteData | null) => note?.trillPresent)) {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       const startX = beatX + beatWidth / 2
@@ -604,11 +584,13 @@ const trills = computed(() => {
 })
 
 // ============ TREMOLO BAR ============
-const tremoloBars = computed(() => {
+const tremoloBars = computed<TremoloBarEffect[]>(() => {
   const effects: TremoloBarEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.tremoloBarPresent && beat?.tremoloBar) {
+    const tremoloBar = beat?.effects?.tremoloBar as TremoloBarPoint[] | undefined
+
+    if (beat?.effects?.tremoloBarPresent && tremoloBar) {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       const startX = beatX + beatWidth / 2
@@ -616,7 +598,7 @@ const tremoloBars = computed(() => {
       
       let pathData = `M${startX} ${startY}`
       
-      beat.tremoloBar.forEach((point: TremoloBarPoint) => {
+      tremoloBar.forEach((point: TremoloBarPoint) => {
         const x = startX + (point.position || 0) / 4
         const y = startY + (point.value || 0) / 10
         pathData += `L${x} ${y}`
@@ -633,7 +615,7 @@ const tremoloBars = computed(() => {
 })
 
 // ============ TEXT EFFECTS ============
-const textEffects = computed(() => {
+const textEffects = computed<TextEffect[]>(() => {
   const effects: TextEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
@@ -642,9 +624,7 @@ const textEffects = computed(() => {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       
-      beat.notes.forEach((note) => {
-        if (!note) return
-
+      beat.notes.forEach((note: TabNoteData | null) => {
         if (note?.palmMute) beatEffects.push('P.M.')
         if (note?.tap) beatEffects.push('T')
         if (note?.pop) beatEffects.push('P')
@@ -673,18 +653,18 @@ const textEffects = computed(() => {
 })
 
 // ============ LET RING ============
-const letRings = computed(() => {
+const letRings = computed<LetRingEffect[]>(() => {
   const effects: LetRingEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beatHasMatchingNote(beat, (note) => note.letRing === true)) {
+    if (beat?.notes?.some((note: TabNoteData | null) => note?.letRing)) {
       const beatX = getBeatX(beatIndex)
       const beatWidth = getDisplayWidth(beat.duration)
       
       // Find how long the let ring continues
       let endBeatIndex = beatIndex
       for (let i = beatIndex + 1; i < props.measureData.length; i++) {
-        if (beatHasMatchingNote(props.measureData[i], (note) => note.letRing === true)) {
+        if (props.measureData[i]?.notes?.some((note: TabNoteData | null) => note?.letRing)) {
           endBeatIndex = i
         } else {
           break
@@ -694,7 +674,7 @@ const letRings = computed(() => {
       const endX = getBeatX(endBeatIndex) + getDisplayWidth(props.measureData[endBeatIndex]?.duration)
       
       // Only add if this is the start of a let ring section
-      if (beatIndex === 0 || !beatHasMatchingNote(props.measureData[beatIndex - 1], (note) => note.letRing === true)) {
+      if (beatIndex === 0 || !props.measureData[beatIndex - 1]?.notes?.some((note: TabNoteData | null) => note?.letRing)) {
         effects.push({
           x: beatX + beatWidth / 2,
           y: props.numStrings * props.stringSpacing + 15,
@@ -708,11 +688,14 @@ const letRings = computed(() => {
 })
 
 // ============ HARMONICS ============
-const harmonics = computed(() => {
+const harmonics = computed<HarmonicEffect[]>(() => {
   const effects: HarmonicEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((rawNote: TabNoteData | null, stringIndex: number) => {
+        const note = getEffectNote(rawNote)
+
         if (note?.artificialPresent || note?.naturalHarmonic) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -728,6 +711,7 @@ const harmonics = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -735,11 +719,12 @@ const harmonics = computed(() => {
 })
 
 // ============ TREMOLO PICKING ============
-const tremoloPickings = computed(() => {
+const tremoloPickings = computed<TremoloPickingEffect[]>(() => {
   const effects: TremoloPickingEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((note: TabNoteData | null, stringIndex: number) => {
         if (note?.tremoloPicking) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -758,6 +743,7 @@ const tremoloPickings = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   
@@ -765,11 +751,14 @@ const tremoloPickings = computed(() => {
 })
 
 // ============ GRACE NOTES ============
-const graceNotes = computed(() => {
+const graceNotes = computed<GraceNoteEffect[]>(() => {
   const effects: GraceNoteEffect[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    for (const { note, stringIndex } of getBeatNotes(beat)) {
+    if (beat?.notes) {
+      beat.notes.forEach((rawNote: TabNoteData | null, stringIndex: number) => {
+        const note = getEffectNote(rawNote)
+
         if (note?.gracePresent && note?.graceObj) {
           const beatX = getBeatX(beatIndex)
           const beatWidth = getDisplayWidth(beat.duration)
@@ -790,6 +779,7 @@ const graceNotes = computed(() => {
             stringIndex
           })
         }
+      })
     }
   })
   

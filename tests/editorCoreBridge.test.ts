@@ -54,6 +54,7 @@ import Song, {
   type Track,
 } from '../src/assets/js/songData'
 import { svgDrawer } from '../src/assets/js/svgDrawer'
+import { resetPlaybackBarState, usePlaybackBarState } from '../src/composables/usePlaybackBarState'
 import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/useTabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
@@ -109,6 +110,7 @@ let originalHasExplicitSelection: boolean
 
 beforeEach(() => {
   clearTrackRenderLayout(0, 0)
+  resetPlaybackBarState()
 
   originalMeasures = cloneValue(Song.measures)
   originalTracks = cloneValue(Song.tracks)
@@ -133,6 +135,7 @@ beforeEach(() => {
 
 afterEach(() => {
   clearTrackRenderLayout(0, 0)
+  resetPlaybackBarState()
 
   Song.measures = originalMeasures
   Song.tracks = originalTracks
@@ -207,12 +210,15 @@ describe('legacyEditorCore bridge', () => {
   })
 
   it('routes playback marker ownership through the render bridge', () => {
+    const { playbackBarState } = usePlaybackBarState()
     const marker = { id: 'playback-marker' } as unknown as SVGGElement
 
     legacyEditorCore.setPlaybackBarObject(marker)
-    expect(svgDrawer.playBackBarObjects).toEqual([marker])
+    expect(playbackBarState.registered).toBe(true)
+    expect(svgDrawer.playBackBarObjects).toEqual([])
 
     legacyEditorCore.setPlaybackBarObject(null)
+    expect(playbackBarState.registered).toBe(false)
     expect(svgDrawer.playBackBarObjects).toEqual([])
   })
 })
