@@ -89,6 +89,7 @@ import {
   getBeamCount,
   beatHasNotes,
 } from '../../utils/durationUtils'
+import { getBeamedBeatGroups, getBeamedBeatIndices } from '../../utils/tabBeaming'
 
 // =============================================================================
 // Types
@@ -155,15 +156,14 @@ function calculateBeatX(beatIndex: number): number {
     const beat = props.measureData[i]
     cumulativeX += getDisplayWidth(beat?.duration)
   }
-  return props.xOffset + cumulativeX + 10
+  return props.xOffset + cumulativeX
 }
 
 function getNoteCenterX(beatIndex: number): number {
   const beat = props.measureData[beatIndex]
   const displayWidth = getDisplayWidth(beat?.duration)
   const beatStartX = calculateBeatX(beatIndex)
-  // Notes are centered in their display width
-  return beatStartX + displayWidth / 2 - 5
+  return beatStartX + displayWidth / 2
 }
 
 /**
@@ -241,33 +241,18 @@ function createTupletBracket(group: { beatIndex: number; x: number }[], number: 
   }
 }
 
+const beamGroups = computed(() =>
+  getBeamedBeatGroups(props.measureData).map((group) =>
+    group.map(({ beatIndex, beamCount }) => ({
+      beatIndex,
+      beamCount,
+      x: getNoteCenterX(beatIndex),
+    }))
+  )
+)
+
 const beamedBeatIndices = computed((): Set<number> => {
-  const indices = new Set<number>()
-  let currentGroup: number[] = []
-  
-  props.measureData.forEach((beat, beatIndex) => {
-    if (!beat) return
-    
-    const beamCount = getBeamCount(beat.duration)
-    const hasNotes = beatHasNotes(beat)
-    
-    if (beamCount > 0 && hasNotes) {
-      currentGroup.push(beatIndex)
-    } else {
-      // Only mark as beamed if there are 2+ notes in the group
-      if (currentGroup.length >= 2) {
-        currentGroup.forEach(idx => indices.add(idx))
-      }
-      currentGroup = []
-    }
-  })
-  
-  // Handle remaining group
-  if (currentGroup.length >= 2) {
-    currentGroup.forEach(idx => indices.add(idx))
-  }
-  
-  return indices
+  return getBeamedBeatIndices(props.measureData)
 })
 
 /**
@@ -275,37 +260,7 @@ const beamedBeatIndices = computed((): Set<number> => {
  * Groups consecutive beamable notes and creates beams for groups of 2+
  */
 const beams = computed((): Beam[] => {
-  const result: Beam[] = []
-  let currentGroup: BeatPosition[] = []
-  
-  props.measureData.forEach((beat, beatIndex) => {
-    if (!beat) return
-    
-    const beamCount = getBeamCount(beat.duration)
-    const hasNotes = beatHasNotes(beat)
-    
-    // Only beam notes (not rests) with beam count > 0 (eighth notes or shorter)
-    if (beamCount > 0 && hasNotes) {
-      currentGroup.push({
-        beatIndex,
-        x: getNoteCenterX(beatIndex),
-        beamCount
-      })
-    } else {
-      // End current beam group when we hit a non-beamable beat
-      if (currentGroup.length >= 2) {
-        result.push(...createBeamPaths(currentGroup))
-      }
-      currentGroup = []
-    }
-  })
-  
-  // Handle any remaining group at end of measure
-  if (currentGroup.length >= 2) {
-    result.push(...createBeamPaths(currentGroup))
-  }
-  
-  return result
+  return beamGroups.value.flatMap((group) => createBeamPaths(group))
 })
 
 /**
@@ -404,7 +359,7 @@ const rests = computed((): Rest[] => {
     
     // Only show rest for beats with no notes
     result.push({
-      x: calculateBeatX(beatIndex),
+      x: getNoteCenterX(beatIndex),
       y: centerY + 5,
       symbol: getRestSymbol(beat.duration)
     })
@@ -432,7 +387,7 @@ const tuplets = computed((): Tuplet[] => {
         currentTupletValue = tupletValue
         currentGroup.push({
           beatIndex,
-          x: calculateBeatX(beatIndex)
+          x: getNoteCenterX(beatIndex)
         })
       } else {
         // Different tuplet value - end current and start new
@@ -440,7 +395,7 @@ const tuplets = computed((): Tuplet[] => {
           result.push(createTupletBracket(currentGroup, currentTupletValue))
         }
         currentTupletValue = tupletValue
-        currentGroup = [{ beatIndex, x: calculateBeatX(beatIndex) }]
+        currentGroup = [{ beatIndex, x: getNoteCenterX(beatIndex) }]
       }
     } else if (currentGroup.length > 0) {
       // End current tuplet group

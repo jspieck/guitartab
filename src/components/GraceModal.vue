@@ -58,12 +58,11 @@
 <script setup lang="ts">
 import { ref, watchEffect } from "vue";
 import BaseModal from "./BaseModal.vue";
-import { Note } from "../assets/js/songData";
-import { Measure } from "../assets/js/songData";
 import { GraceModalHandler } from "../assets/js/modals/graceModalHandler";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { MODALS } from "../assets/js/modals/modalTypes";
 import SubmitButton from "./SubmitButton.vue";
+import type { Note, Measure } from "../types/tab";
 
 interface NoteSelection {
   notes: {

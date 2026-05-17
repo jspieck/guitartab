@@ -1,154 +1,26 @@
 import type {
+  Bend as SongBend,
   Chord as SongChord,
+  Grace as SongGrace,
   Measure as SongBeat,
+  MeasureEffects as SongMeasureEffects,
   MeasureMetaInfo as SongMeasureMeta,
   Note as SongNote,
+  SongDescription as LegacySongDescription,
+  Track as SongTrack,
+  TremoloBar as SongTremoloBar,
 } from '../assets/js/songData'
 
-export interface Note {
-  fret: number
-  tied: boolean
-  dead: boolean
-  ghost: boolean
-  palmMute: boolean
-  stacatto: boolean
-  tap: boolean
-  letRing: boolean
-  fadeIn: boolean
-  pop: boolean
-  slap: boolean
-  accentuated: boolean
-  heavyAccentuated: boolean
-  vibrato: boolean
-  trillPresent: boolean
-  artificialPresent: boolean
-  artificialStyle?: string
-  pullDown: boolean
-  slide: boolean
-  gracePresent: boolean
-  graceObj?: Grace
-  bendPresent: boolean
-  bendObj?: Bend
-  tremoloPicking: boolean
-  tremoloPickingLength?: string
-  noteDrawn?: SVGTextElement | SVGGElement | null
-  tieBegin: boolean
-  // Legacy properties
-  string: number
-  height: number
-  tiedTo?: { blockId: number; beatId: number } | Record<string, unknown>
-  velocity?: number
-  element?: number
-  octave?: number
-  tone?: number
-  trill?: { fret: number, period: number }
-}
-
-export interface Grace {
-  fret: number
-}
-
-export interface Bend {
-  length: number
-  [index: number]: {
-    bendValue: number
-    bendPosition?: number
-  }
-}
-
-export interface TremoloBar {
-  length: number
-  [index: number]: {
-    value: number
-    position: number
-  }
-}
-
-export interface BeatEffects {
-  strokePresent: boolean
-  stroke?: {
-    strokeType: string
-  }
-  tremoloBarPresent: boolean
-  tremoloBar?: TremoloBar
-}
-
-export interface Measure {
-  duration: string
-  dotted: boolean
-  doubleDotted: boolean
-  tuplet?: number | null
-  notes: (Note | null)[]
-  textPresent: boolean
-  text?: string
-  chordPresent: boolean
-  chord?: {
-    name: string
-  } | Record<string, unknown> | null
-  dynamicPresent: boolean
-  dynamic?: string
-  effects?: BeatEffects | Record<string, unknown>
-  // Legacy properties
-  otherNotes?: Note[]
-  tupletId?: number
-  empty?: boolean
-  keySignature?: string
-  noteIds?: number[]
-  rhythmId?: number
-  gracePresent?: boolean
-  graceObj?: Grace | Record<string, unknown> | string
-}
-
-export interface MeasureMeta {
-  numerator: number
-  denominator: number
-  bpm: number
-  bpmPresent: boolean
-  timeMeterPresent: boolean
-  repeatOpen: boolean
-  repeatClosePresent: boolean
-  repeatClose: number
-  repeatAlternativePresent: boolean
-  repeatAlternative?: number
-  markerPresent: boolean
-  marker?: {
-    text: string
-    color: {
-      red: number
-      green: number
-      blue: number
-    }
-  }
-}
-
-export interface Track {
-  name: string
-  numStrings: number
-  color: {
-    red: number
-    green: number
-    blue: number
-  }
-  capo: number
-  tuning: number[]
-  strings?: number[] // Legacy alias for tuning
-  instrument?: string | number
-  // Legacy properties
-  volume?: number
-  balance?: number
-  reverb?: number
-  channel?: Record<string, unknown>
-  program?: number
-  primaryChannel?: number
-  letItRing?: boolean
-}
-
-export interface SongDescription {
-  title: string
-  author: string
-  album?: string
-  year?: number
-}
+export type Note = SongNote
+export type Chord = SongChord
+export type Grace = SongGrace
+export type Bend = SongBend
+export type TremoloBar = SongTremoloBar
+export type BeatEffects = SongMeasureEffects
+export type Measure = SongBeat
+export type MeasureMeta = SongMeasureMeta
+export type Track = SongTrack
+export type SongDescription = LegacySongDescription
 
 export interface ChordDiagram {
   name: string

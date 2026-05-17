@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Note as SongNote } from '../assets/js/songData'
+import type { Note as SongNote } from '../types/tab'
 
 // Import icons
 import wholeNoteIcon from '../assets/images/notes/wholeNote.svg'

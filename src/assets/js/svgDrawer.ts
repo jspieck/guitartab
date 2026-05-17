@@ -18,6 +18,7 @@ import {
   setPlaybackBarPosition,
   showPlaybackBar,
 } from '../../composables/usePlaybackBarState';
+import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState';
 import { getBlockRenderLayout, getBlockRenderPageId, getRowRenderLayout } from '../../composables/useTabRenderLayout';
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
@@ -638,6 +639,10 @@ class SvgDrawer {
       }
       currentPos = this.getPositionInRow(trackId, voiceId, currentBlockId, currentBeatId);
       this.jumpToNewPos = false;
+    } else if (!isFinite(this.lastTransformTime) || this.lastTransformTime <= 0) {
+      currentPos = isFinite(this.lastNextPos)
+        ? this.lastNextPos
+        : this.getPositionInRow(trackId, voiceId, currentBlockId, currentBeatId);
     } else {
       currentPos = this.lastCurrentPos + (this.lastNextPos - this.lastCurrentPos)
         * (((currentTime - this.lastTime)) / this.lastTransformTime);
@@ -684,6 +689,12 @@ class SvgDrawer {
     const transformedNextXPos = currentPos + (nextXPos - currentPos) * longerFactor;
     // Special case end of row reached -> go to the end of the row
     const transformedTiming = (timing * longerFactor) / 1000;
+
+    if (!isFinite(transformedNextXPos) || !isFinite(transformedTiming)) {
+      this.jumpToNewPos = true;
+      return;
+    }
+
     this.movePlayBackBarToXPos(trackId, currentBlockId, voiceId,
       pageId, transformedNextXPos, transformedTiming);
 
@@ -3079,7 +3090,7 @@ const svgDrawer = new SvgDrawer();
 
 // Set up navigation event listeners so Vue components can emit events instead of calling methods directly
 typedEventBus.on('navigation.setClickedPos', (pos) => {
-  if (pos) {
+  if (pos && !hasRegisteredSelectionSurface()) {
     svgDrawer.setNewClickedPos(pos.trackId, pos.blockId, pos.voiceId, pos.beatId, pos.string);
   }
 });

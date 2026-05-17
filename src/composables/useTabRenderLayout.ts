@@ -13,6 +13,7 @@ export interface RenderBlockLayout {
   width: number
   minOffset: number
   pageId: number
+  beatPositions: number[]
 }
 
 export interface RenderRowLayout {
@@ -76,6 +77,15 @@ export function getBlockRenderPageId(
   return getBlockRenderLayout(trackId, voiceId, blockId)?.pageId ?? null
 }
 
+export function getBeatRenderPosition(
+  trackId: number,
+  voiceId: number,
+  blockId: number,
+  beatId: number,
+): number | null {
+  return getBlockRenderLayout(trackId, voiceId, blockId)?.beatPositions[beatId] ?? null
+}
+
 export function getRowRenderLayout(
   trackId: number,
   voiceId: number,
@@ -90,6 +100,7 @@ export function useTabRenderLayout() {
     getTrackLayout: getTrackRenderLayout,
     getBlockLayout: getBlockRenderLayout,
     getBlockPageId: getBlockRenderPageId,
+    getBeatPosition: getBeatRenderPosition,
     getRowLayout: getRowRenderLayout,
     setTrackLayout: setTrackRenderLayout,
     clearTrackLayout: clearTrackRenderLayout,

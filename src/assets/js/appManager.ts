@@ -20,6 +20,7 @@ import Duration from './duration';
 import Tuning from './tuning';
 import { menuHandler } from './menuHandler';
 import { useTabStore } from '../../stores/tabStore';
+import { setTrackSignIcon } from '../../utils/editorUi';
 
 const AppManager = {
   notificationTimeOut: null as ReturnType<typeof setTimeout> | null,
@@ -297,20 +298,25 @@ const AppManager = {
         tuningStrings += Tuning.octave[Song.tracks[trackId].strings[j] % 12];
       }
       const tuningTitleDom = document.getElementById('tuningTitle');
-      tuningTitleDom!.textContent = `Tuning: ${tuningStrings}`;
+      if (tuningTitleDom) {
+        tuningTitleDom.textContent = `Tuning: ${tuningStrings}`;
+      }
       const tuningFooterDom = document.getElementById('tuningFooter');
-      tuningFooterDom!.textContent = `Tuning: ${tuningStrings}`;
+      if (tuningFooterDom) {
+        tuningFooterDom.textContent = `Tuning: ${tuningStrings}`;
+      }
       const trackTitleDom = document.getElementById('trackTitle');
-      trackTitleDom!.textContent = Song.tracks[trackId].name;
+      if (trackTitleDom instanceof HTMLElement) {
+        trackTitleDom.textContent = Song.tracks[trackId].name;
 
-      const { red, green, blue } = Song.tracks[trackId].color;
-      const colorString = `rgb(${red},${green},${blue})`;
-      const trackTitelDom = document.getElementById('trackTitle');
-      trackTitelDom!.style.color = colorString;
-      if (tinycolor(colorString).isLight()) {
-        trackTitelDom!.classList.add('isTooBright');
-      } else {
-        trackTitelDom!.classList.remove('isTooBright');
+        const { red, green, blue } = Song.tracks[trackId].color;
+        const colorString = `rgb(${red},${green},${blue})`;
+        trackTitleDom.style.color = colorString;
+        if (tinycolor(colorString).isLight()) {
+          trackTitleDom.classList.add('isTooBright');
+        } else {
+          trackTitleDom.classList.remove('isTooBright');
+        }
       }
     }
   },
@@ -333,6 +339,7 @@ const AppManager = {
           Song.measureMoveHelper[i][j][k] = [];
         }
       }
+      console.log('Create Guitar Tab:', Song.numVoices);
       for (let j = 0; j < Song.numVoices; j += 1) {
         tab.createTakte(i, j);
         const tx = performance.now();
@@ -341,6 +348,8 @@ const AppManager = {
         durComplete += performance.now() - tx;
       }
     }
+    console.log(`FillMeasures ${durComplete}`);
+    console.log(`CreateTakte: ${performance.now() - t1}ms`);
 
     this.setTimeMeterToAllTracks();
 
@@ -360,8 +369,10 @@ const AppManager = {
     // as the SVG elements don't exist yet.
     tab.drawTrack(trackId, voiceId, false, null);
 
-    const img = document.getElementById('trackSignImg') as HTMLImageElement;
-    img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
+    setTrackSignIcon(Helper.getIconSrc(Song.playBackInstrument[trackId].instrument));
+
+    console.log(`drawTrack: ${performance.now() - t2}ms`);
+    console.log(`Track Change: ${performance.now() - t0}ms`);
     // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
     // draw suitable sequencer
     sequencerHandler.drawBeat();
@@ -369,6 +380,7 @@ const AppManager = {
     modalManager.closeAllModals();
     
     // Notify that song data has changed to update reactive components
+    console.log('Song loaded. Tracks:', Song.tracks.map(t => t.name));
     EventBus.emit('song-data-changed');
   },
 
@@ -384,8 +396,7 @@ const AppManager = {
 
     overlayHandler.resetOverlays();
 
-    const img = document.getElementById('trackSignImg') as HTMLImageElement;
-    img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
+    setTrackSignIcon(Helper.getIconSrc(Song.playBackInstrument[trackId].instrument));
 
     // visualInstruments.createGuitar(Song.tracks[trackId].numStrings, 25);
     this.setEffects(trackId);
@@ -439,10 +450,18 @@ const AppManager = {
       const chorusKnob = document.getElementById('chorusKnob');
       const phaserKnob = document.getElementById('phaserKnob');
       const panKnob = document.getElementById('panKnob');
-      reverbKnobDom!.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].reverb)}deg)`;
-      chorusKnob!.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].chorus)}deg)`;
-      phaserKnob!.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].phaser)}deg)`;
-      panKnob!.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].balance)}deg)`;
+      if (reverbKnobDom instanceof HTMLElement) {
+        reverbKnobDom.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].reverb)}deg)`;
+      }
+      if (chorusKnob instanceof HTMLElement) {
+        chorusKnob.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].chorus)}deg)`;
+      }
+      if (phaserKnob instanceof HTMLElement) {
+        phaserKnob.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].phaser)}deg)`;
+      }
+      if (panKnob instanceof HTMLElement) {
+        panKnob.style.transform = `rotate(${this.effectToAngle(Song.playBackInstrument[trackIndex].balance)}deg)`;
+      }
     });
   },
 
