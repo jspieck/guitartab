@@ -1,5 +1,7 @@
 import Helper from '../../assets/js/helper'
+import Duration from '../../assets/js/duration'
 import EventBus from '../../assets/js/eventBus'
+import playBackLogic from '../../assets/js/playBackLogicNew'
 import Song, {
   type Measure as SongBeat,
   type MeasureMetaInfo,
@@ -9,6 +11,7 @@ import Song, {
   type Track,
 } from '../../assets/js/songData'
 import { Tab, tab } from '../../assets/js/tab'
+import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { DURATION_NAMES } from '../../utils/musicUtils'
 import { TAB_CONSTANTS } from '../../utils/tabLayout'
 import type {
@@ -45,6 +48,31 @@ interface ModernLayoutOptions {
 }
 
 type BlockWidthInfo = ReturnType<typeof Tab.computeWidthOfBlock>
+
+function getBeatRenderPositions(
+  trackId: number,
+  blockId: number,
+  voiceId: number,
+  beats: TabBeat[],
+  minOffset: number,
+): number[] {
+  const leftOffset = Helper.getLeftOffset(blockId)
+  const moveHelper = Song.measureMoveHelper?.[trackId]?.[blockId]?.[voiceId]
+
+  if (Array.isArray(moveHelper) && moveHelper.length >= beats.length) {
+    return beats.map((_, beatIndex) => {
+      const beatOffset = moveHelper[beatIndex]
+      return Number.isFinite(beatOffset) ? leftOffset + beatOffset * minOffset : leftOffset
+    })
+  }
+
+  let position = leftOffset
+  return beats.map((beat) => {
+    const currentPosition = position
+    position += Duration.getDurationWidth(beat) * minOffset
+    return currentPosition
+  })
+}
 
 function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -105,6 +133,28 @@ function getSelectedNoteState(selection: TabSelectionData | null): SelectedNoteS
 function copyBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): TabBeat | null {
   const beat = getBeat(trackId, blockId, voiceId, beatIndex)
   return beat ? cloneValue(beat as TabBeat) : null
+}
+
+function syncSelectionEffects(selection: TabSelectionData | null): void {
+  if (!selection) {
+    return
+  }
+
+  const payload = {
+    trackId: selection.trackId,
+    blockId: selection.blockId,
+    voiceId: selection.voiceId,
+    beatId: selection.beatIndex,
+    string: selection.stringIndex,
+  }
+
+  EventBus.emit('menu.clickedOnPos', payload)
+  playBackLogic.setPlayPosition(
+    selection.trackId,
+    selection.blockId,
+    selection.voiceId,
+    selection.beatIndex,
+  )
 }
 
 function ensureBeatAtPosition(
@@ -196,6 +246,14 @@ const legacyEditorCore = {
     tab.hasExplicitSelection = true
   },
 
+  syncSelectionEffects(selection: TabSelectionData | null): void {
+    syncSelectionEffects(selection)
+  },
+
+  shouldUseLegacySelectionPresentation(): boolean {
+    return !hasRegisteredSelectionSurface()
+  },
+
   copyBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): TabBeat | null {
     return copyBeat(trackId, blockId, voiceId, beatIndex)
   },
@@ -224,6 +282,7 @@ const legacyEditorCore = {
 
     for (let blockId = 0; blockId < measures.length; blockId++) {
       const measure = measures[blockId]
+      const voiceMeasures = (measure?.[voiceId] || []) as TabBeat[]
 
       let widthInfo: BlockWidthInfo | null = null
       try {
@@ -265,11 +324,12 @@ const legacyEditorCore = {
         width: measureWidth,
         minOffset,
         pageId: 0,
+        beatPositions: getBeatRenderPositions(trackId, blockId, voiceId, voiceMeasures, minOffset),
       }
       state.blockLayouts[blockId] = blockLayout
 
       currentRowMeasures.push({
-        data: (measure?.[voiceId] || []) as TabBeat[],
+        data: voiceMeasures,
         width: measureWidth,
       })
       currentWidth += measureWidth

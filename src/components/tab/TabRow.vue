@@ -113,6 +113,7 @@ interface Props {
   rowData: RenderedTabRow
   trackId: number
   voiceId: number
+  svgRoot?: SVGSVGElement | null
   yOffset: number
   width: number
   isFirstRow?: boolean
@@ -210,7 +211,7 @@ function getSelectionScreenPos(): { x: number; y: number } | null {
     return null
   }
 
-  const svgElement = document.querySelector('.tab-svg') as SVGSVGElement | null
+  const svgElement = props.svgRoot
   if (!svgElement) {
     return null
   }
@@ -274,7 +275,7 @@ function getMeasureContentPadding(blockId: number): number {
 function handleStringClick(event: MouseEvent, stringIndex: number): void {
   event.stopPropagation()
 
-  const svgElement = document.querySelector('.tab-svg') as SVGSVGElement | null
+  const svgElement = props.svgRoot
   if (!svgElement) {
     return
   }

@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { typedEventBus, type SelectionChangeData } from '../utils/typedEventBus'
+import { hasRegisteredSelectionSurface } from './useSelectionSurfaceState'
 import legacyEditorCore from '../services/legacy/editorCoreAdapter'
 import { NAME_TO_CODE, DURATION_NAMES } from '../utils/musicUtils'
 import type {
@@ -52,6 +53,10 @@ export function useTabSelection() {
     if (selection) {
       legacyEditorCore.syncSelection(selection)
       selectedNote.value = legacyEditorCore.getSelectedNoteState(selection)
+
+      if (hasRegisteredSelectionSurface()) {
+        legacyEditorCore.syncSelectionEffects(selection)
+      }
     } else {
       legacyEditorCore.syncSelection(null)
       selectedNote.value = null

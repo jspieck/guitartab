@@ -106,7 +106,6 @@ import Song from '../assets/js/songData';
 import { overlayHandler } from '../assets/js/overlayHandler';
 import Helper from '../assets/js/helper';
 import playBackLogic from '../assets/js/playBackLogicNew';
-import AppManager from '../assets/js/appManager';
 import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
 import Knob from './Knob.vue';
@@ -116,6 +115,7 @@ import { AddTrackModalHandler } from '../assets/js/modals/addTrackModalHandler';
 import { MODALS } from "../assets/js/modals/modalTypes";
 import { sequencerHandler } from '../assets/js/sequencerHandler';
 import { useSongData } from '../composables/useSongData';
+import { changeTrackWithLoading, focusEditorPosition } from '../services/editorNavigation';
 import changeButtonImage from '../assets/images/change.svg';
 import trashButtonImage from '../assets/images/trashCan.svg';
 import masterSettingsIcon from '../assets/images/instrumentIcons/myMasterDesign.svg';
@@ -202,19 +202,24 @@ onBeforeUnmount(() => {
 
 const handleTrackLabelClick = (trackId: number) => {
     if (reactiveSongData.currentTrackId !== trackId) {
-        document.getElementById('loadingWheel')!.style.display = 'block';
-        setTimeout(() => {
-            activeInstrumentIndex.value = trackId;
-            const blockId = playBackLogic.getCurrentBlock();
-            setIndicator(trackId, blockId);
-            AppManager.changeTrack(trackId, 0, false, () => {
-                nextTick(() => {
-                    typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId: reactiveSongData.currentVoiceId, beatId: 0, string: 1 });
-                    typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId: reactiveSongData.currentVoiceId, blockId });
-                    document.getElementById('loadingWheel')!.style.display = 'none';
-                });
+        const blockId = playBackLogic.getCurrentBlock();
+        changeTrackWithLoading(trackId, 0, (complete) => {
+            nextTick(() => {
+                focusEditorPosition({
+                    trackId,
+                    blockId,
+                    voiceId: reactiveSongData.currentVoiceId,
+                    beatId: 0,
+                    string: 1,
+                }, { updatePlaybackPosition: false });
+                complete();
             });
-        }, 0);
+        }, {
+            onBeforeChange: () => {
+                activeInstrumentIndex.value = trackId;
+                setIndicator(trackId, blockId);
+            },
+        });
     }
 }
 
@@ -383,20 +388,16 @@ function sequencerClick(e: MouseEvent, trackId: number, voiceId: number) {
             playBackLogic.clearQueueAndSetNewBlock(blockId);
             setIndicator(trackId, blockId);
             if (reactiveSongData.currentTrackId !== trackId) {
-                setTimeout(() => {
-                    document.getElementById('loadingWheel')!.style.display = 'block';
-                    activeInstrumentIndex.value = trackId;
-                    AppManager.changeTrack(trackId, 0, false, () => {
-                        playBackLogic.jumpToPosition(blockId, 0, 0);
-                        typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId: 0, string: 1 });
-                        typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId, blockId });
-                        document.getElementById('loadingWheel')!.style.display = 'none';
-                    });
+                changeTrackWithLoading(trackId, 0, (complete) => {
+                    focusEditorPosition({ trackId, blockId, voiceId, beatId: 0, string: 1 });
+                    complete();
+                }, {
+                    onBeforeChange: () => {
+                        activeInstrumentIndex.value = trackId;
+                    },
                 });
             } else {
-                typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId, blockId });
-                typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId: 0, string: 1 });
-                playBackLogic.jumpToPosition(blockId, 0, 0);
+                focusEditorPosition({ trackId, blockId, voiceId, beatId: 0, string: 1 });
             }
             overlayHandler.clearAllOverlays();
         }

@@ -10,6 +10,7 @@ export { useSongData } from './useSongData'
 // Tab selection and navigation
 export { useTabSelection } from './useTabSelection'
 export type { TabSelection } from './useTabSelection'
+export { useSelectionSurfaceState } from './useSelectionSurfaceState'
 
 // Duration handling
 export { useDurationHandler } from './useDurationHandler'

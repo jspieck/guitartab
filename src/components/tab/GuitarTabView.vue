@@ -1,6 +1,7 @@
 <template>
   <div class="guitar-tab-view" ref="tabContainer">
     <svg 
+      ref="svgRoot"
       :width="pageWidth" 
       :height="totalHeight"
       class="tab-svg"
@@ -46,6 +47,7 @@
           :row-data="row"
           :track-id="trackId"
           :voice-id="voiceId"
+          :svg-root="svgRoot"
           :y-offset="row.yOffset"
           :width="tabGroupWidth"
           :is-first-row="rowIndex === 0"
@@ -53,6 +55,7 @@
 
         <!-- Playback Bar (for legacy svgDrawer support) -->
         <g
+          ref="playbackBarGroup"
           id="playBackBarGroup0"
           :transform="playbackBarTransform"
           :style="playbackBarStyle"
@@ -83,6 +86,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import NoteContextMenu from '../NoteContextMenu.vue'
 import TabRow from './TabRow.vue'
 import { usePlaybackBarState } from '../../composables/usePlaybackBarState'
+import { registerSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { useDurationHandler } from '../../composables/useDurationHandler'
 import { useTabRenderLayout } from '../../composables/useTabRenderLayout'
 import { useSongData } from '../../composables/useSongData'
@@ -130,6 +134,8 @@ const { getTrackLayout } = useTabRenderLayout()
 const { playbackBarState } = usePlaybackBarState()
 
 const tabContainer = ref<HTMLElement | null>(null)
+const svgRoot = ref<SVGSVGElement | null>(null)
+const playbackBarGroup = ref<SVGGElement | null>(null)
 const renderVersion = ref(0)
 
 const margins = computed(() => getPageMargins(props.width, props.height))
@@ -374,14 +380,14 @@ function handleGlobalClick(event: MouseEvent): void {
 }
 
 onMounted(() => {
-  const playBackBarGroup = document.getElementById('playBackBarGroup0') as SVGGElement | null
-  legacyEditorCore.setPlaybackBarObject(playBackBarGroup)
+  legacyEditorCore.setPlaybackBarObject(playbackBarGroup.value)
+  registerSelectionSurface(true)
 
   window.addEventListener('mousedown', handleGlobalClick)
   typedEventBus.on('render.block', handleRenderInvalidation)
   typedEventBus.on('render.all', handleRenderInvalidation)
 
-  tabContainer.value?.querySelector('svg')?.focus()
+  svgRoot.value?.focus()
 })
 
 onUnmounted(() => {
@@ -389,6 +395,7 @@ onUnmounted(() => {
   typedEventBus.off('render.block', handleRenderInvalidation)
   typedEventBus.off('render.all', handleRenderInvalidation)
   legacyEditorCore.setPlaybackBarObject(null)
+  registerSelectionSurface(false)
 })
 </script>
 

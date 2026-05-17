@@ -1,5 +1,5 @@
 import { reactive, ref } from 'vue'
-import type { Measure as SongBeat, Note as SongNote } from '../assets/js/songData'
+import type { Measure as SongBeat, Note as SongNote } from '../types/tab'
 import EventBus from '../assets/js/eventBus'
 import legacyEditorCore, { type LegacySongSnapshot } from '../services/legacy/editorCoreAdapter'
 import { typedEventBus } from '../utils/typedEventBus'

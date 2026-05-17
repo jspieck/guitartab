@@ -11,6 +11,7 @@ import { Gp4Reader } from './GP4Reader';
 import { Gp3Reader } from './GP3Reader';
 import midiReader from './MidiReader';
 import EventBus from './eventBus';
+import { setLoadingWheelVisible } from '../../utils/editorUi';
 
 class GProReader {
   readerBuffer: Uint8Array | null;
@@ -79,8 +80,7 @@ class GProReader {
     }
     
     // Show loading indicator
-    const loadingWheel = document.getElementById('loadingWheel');
-    if (loadingWheel) loadingWheel.style.display = 'block';
+    setLoadingWheelVisible(true);
     
     // reset values
     this.bytePosition = 0;
@@ -104,7 +104,7 @@ class GProReader {
           } else if (ending === 'gt') {
             this.readGt();
             // Hide loading for gt format since it handles its own flow
-            if (loadingWheel) loadingWheel.style.display = 'none';
+            setLoadingWheelVisible(false);
             return;
           }
           
@@ -115,16 +115,16 @@ class GProReader {
           EventBus.emit('song-data-changed');
           
           // Hide loading indicator
-          if (loadingWheel) loadingWheel.style.display = 'none';
+          setLoadingWheelVisible(false);
         } else {
           console.error('Buffer empty');
-          if (loadingWheel) loadingWheel.style.display = 'none';
+          setLoadingWheelVisible(false);
         }
       }
     };
     reader.onerror = () => {
       console.error('Error reading file');
-      if (loadingWheel) loadingWheel.style.display = 'none';
+      setLoadingWheelVisible(false);
     };
     reader.readAsArrayBuffer(f);
   }

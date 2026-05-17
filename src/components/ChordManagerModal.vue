@@ -59,8 +59,9 @@ import SubmitButton from "./SubmitButton.vue";
 import { MODALS } from "../assets/js/modals/modalTypes";
 import { modalManager } from "../assets/js/modals/modalManager";
 import { ChordManagerModalHandler } from "../assets/js/modals/chordManagerModalHandler";
-import { Song, Chord } from "../assets/js/songData";
+import { Song } from "../assets/js/songData";
 import EventBus from "../assets/js/eventBus";
+import type { Chord } from "../types/tab";
 
 const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler;
 const chordRefs = ref<SVGElement[]>([]);

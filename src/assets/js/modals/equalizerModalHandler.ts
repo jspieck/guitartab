@@ -46,14 +46,9 @@ export class EqualizerModalHandler extends BaseModalHandler {
         this.logarithmicMax = Math.log(this.frequencyLines[this.frequencyLines.length - 1]) / Math.LN10;
     }
 
-    public getEqualizer(): BiquadFilterNode[] {
-        return this.equalizerNodes;
-    }
+    private setupNodes(audioCtx: AudioContext): void {
+        this.audioCtx = audioCtx;
 
-    public initializeAudio(): void {
-        this.audioCtx = audioEngine.context;
-
-        // Initialize filter nodes
         this.lowshelf = this.audioCtx.createBiquadFilter();
         this.mid = this.audioCtx.createBiquadFilter();
         this.highshelf = this.audioCtx.createBiquadFilter();
@@ -66,8 +61,21 @@ export class EqualizerModalHandler extends BaseModalHandler {
         this.initializeNodes();
     }
 
+    public getEqualizer(): BiquadFilterNode[] {
+        return this.equalizerNodes;
+    }
+
+    public initializeAudio(): void {
+        this.setupNodes(audioEngine.context);
+    }
+
     setAudioContext(audioCtx: AudioContext): void {
-        this.audioCtx = audioCtx;
+        if (this.equalizerNodes.length > 0 && this.equalizerNodes[0]?.context === audioCtx) {
+            this.audioCtx = audioCtx;
+            return;
+        }
+
+        this.setupNodes(audioCtx);
     }
 
     private initializeNodes(): void {

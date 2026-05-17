@@ -7,6 +7,13 @@ vi.mock('vanilla-picker', () => ({
 vi.mock('../src/assets/js/helper', () => ({
   default: {
     groupMeasureBeats: vi.fn(),
+    getLeftOffset: vi.fn((blockId: number) => (blockId === 0 ? 53 : 10)),
+  },
+}))
+
+vi.mock('../src/assets/js/playBackLogicNew', () => ({
+  default: {
+    setPlayPosition: vi.fn(),
   },
 }))
 
@@ -47,6 +54,7 @@ vi.mock('../src/assets/js/tab', () => {
 })
 
 import EventBus from '../src/assets/js/eventBus'
+import playBackLogic from '../src/assets/js/playBackLogicNew'
 import Song, {
   type MeasureMetaInfo,
   type PlayBackInstrument,
@@ -55,6 +63,7 @@ import Song, {
 } from '../src/assets/js/songData'
 import { svgDrawer } from '../src/assets/js/svgDrawer'
 import { resetPlaybackBarState, usePlaybackBarState } from '../src/composables/usePlaybackBarState'
+import { registerSelectionSurface, resetSelectionSurfaceState } from '../src/composables/useSelectionSurfaceState'
 import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/useTabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
@@ -111,6 +120,7 @@ let originalHasExplicitSelection: boolean
 beforeEach(() => {
   clearTrackRenderLayout(0, 0)
   resetPlaybackBarState()
+  resetSelectionSurfaceState()
 
   originalMeasures = cloneValue(Song.measures)
   originalTracks = cloneValue(Song.tracks)
@@ -136,6 +146,7 @@ beforeEach(() => {
 afterEach(() => {
   clearTrackRenderLayout(0, 0)
   resetPlaybackBarState()
+  resetSelectionSurfaceState()
 
   Song.measures = originalMeasures
   Song.tracks = originalTracks
@@ -202,6 +213,7 @@ describe('legacyEditorCore bridge', () => {
     expect(layout?.numRows).toBe(2)
     expect(reactiveLayout?.numRows).toBe(2)
     expect(layout?.blockLayouts[0]?.rowId).toBe(0)
+    expect(layout?.blockLayouts[0]?.beatPositions).toEqual([53])
     expect(layout?.blockLayouts[1]?.rowId).toBe(1)
     expect(reactiveLayout?.blockLayouts[1]?.rowId).toBe(1)
     expect(tab.blockToRow[0][0][1]).toEqual({ rowId: 1, numInRow: 0 })
@@ -225,10 +237,12 @@ describe('legacyEditorCore bridge', () => {
 
 describe('useTabSelection', () => {
   it('syncs selection state from navigation events without a broadcast loop', () => {
+    registerSelectionSurface(true)
     legacyEditorCore.setNoteAtPosition(0, 0, 0, 0, 2, 9)
     Song.measures[0][0][0][0].duration = 'e'
 
     const { currentSelection, selectedNote } = useTabSelection()
+    const emitSpy = vi.spyOn(EventBus, 'emit')
 
     typedEventBus.emit('navigation.setClickedPos', {
       trackId: 0,
@@ -253,6 +267,14 @@ describe('useTabSelection', () => {
       beatId: 0,
       string: 2,
     })
+    expect(emitSpy).toHaveBeenCalledWith('menu.clickedOnPos', {
+      trackId: 0,
+      voiceId: 0,
+      blockId: 0,
+      beatId: 0,
+      string: 2,
+    })
+    expect(playBackLogic.setPlayPosition).toHaveBeenCalledWith(0, 0, 0, 0)
     expect(selectedNote.value?.fret).toBe(9)
     expect(selectedNote.value?.duration).toBe('eighth')
   })

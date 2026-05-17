@@ -3,6 +3,7 @@ import { instrumentList } from './instrumentData';
 import { Song, Measure } from './songData';
 import Duration from './duration';
 import { tab } from './tab';
+import { getBeatRenderPosition } from '../../composables/useTabRenderLayout';
 
 class Helper {
   static OFFSET_LEFT(): number {
@@ -250,6 +251,11 @@ class Helper {
   }
 
   static getBeatPosX(trackId: number, blockId: number, voiceId: number, beatId: number): number {
+    const renderPosition = getBeatRenderPosition(trackId, voiceId, blockId, beatId);
+    if (renderPosition != null && isFinite(renderPosition)) {
+      return renderPosition;
+    }
+
     const moveHelper = Song.measureMoveHelper[trackId]?.[blockId]?.[voiceId]?.[beatId];
     
     if (moveHelper == null || !isFinite(moveHelper)) {

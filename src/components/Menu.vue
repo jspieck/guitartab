@@ -238,7 +238,7 @@ import { revertHandler } from '../assets/js/revertHandler';
 import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
 import Settings from '../assets/js/settingManager';
-import Song, { Note, Measure } from '../assets/js/songData';
+import Song from '../assets/js/songData';
 import { tab, Tab } from '../assets/js/tab';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
@@ -252,6 +252,7 @@ import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
 import type { Handler } from 'mitt';
 import type { TabPosition } from '../utils/typedEventBus';
+import type { Note, Measure } from '../types/tab';
 
 // File input ref for opening files
 const fileInputRef = ref<HTMLInputElement | null>(null);

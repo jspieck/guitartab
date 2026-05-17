@@ -17,9 +17,11 @@ const props = defineProps<{
 const span = computed(() => 30 * (props.blockEnd - props.blockStart + 1));
 const markerWidth = computed(() => span.value);
 const markerStyle = computed(() => ({
+    position: 'absolute',
     left: `${props.blockStart * 30}px`,
     width: `${span.value}px`,
     top: '0px',
     height: `${props.height}px`,
+    pointerEvents: 'none',
 }));
 </script>
