@@ -99,15 +99,13 @@
 import { computed, watch } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
-import EventBus from '../../assets/js/eventBus'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { legacyEditorCore } from '../../services/legacy/editorCoreAdapter'
-import { getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { clickToTabPosition, getDisplayWidth, getMeasureXOffset as getRowMeasureXOffset, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
 import type {
   RendererSelectionPosition,
   RenderedTabRow,
-  TabBeat,
   TabMeasureMetaData,
 } from '../../types/tab'
 
@@ -262,12 +260,7 @@ const measureSeparators = computed<{ x: number }[]>(() => {
 
 // Methods
 function getMeasureXOffset(measureIndex: number): number {
-  let offset = props.isFirstRow ? tabLabelWidth : 0
-  for (let i = 0; i < measureIndex; i++) {
-    const measure = props.rowData.measures[i]
-    offset += measure.width || measureWidth
-  }
-  return offset
+  return getRowMeasureXOffset(props.rowData.measures, measureIndex, props.isFirstRow)
 }
 
 function getMeasureMeta(blockId: number): TabMeasureMetaData {
@@ -288,96 +281,36 @@ function getMeasureContentPadding(blockId: number): number {
 
 function handleStringClick(event: MouseEvent, stringIndex: number) {
   event.stopPropagation()
-  
-  // Get the SVG root element
+
   const svgElement = document.querySelector('.tab-svg') as SVGSVGElement
   if (!svgElement) return
-  const screenMatrix = svgElement.getScreenCTM()
-  if (!screenMatrix) return
-  
-  // Calculate the click position in SVG coordinates
-  const svgPoint = svgElement.createSVGPoint()
-  svgPoint.x = event.clientX
-  svgPoint.y = event.clientY
-  const transformedPoint = svgPoint.matrixTransform(screenMatrix.inverse())
-  
-  // Adjust for the main SVG padding and row transform
-  const margins = getPageMargins()
-  const paddingLeft = margins.left // Same as in GuitarTabView
-  const adjustedX = transformedPoint.x - paddingLeft
-  
-  // Calculate which measure was clicked
-  const tabOffset = props.isFirstRow ? tabLabelWidth : 0
-  const relativeX = adjustedX - tabOffset
-  
-  // Find the measure at click position
-  let currentX = 0
-  let foundMeasureIndex = -1
-  let measureRelativeX = 0
-  
-  for (let i = 0; i < props.rowData.measures.length; i++) {
-    const measure = props.rowData.measures[i]
-    const width = measure.width || measureWidth
-    
-    if (relativeX >= currentX && relativeX < currentX + width) {
-      foundMeasureIndex = i
-      measureRelativeX = relativeX - currentX
-      break
-    }
-    currentX += width
-  }
-  
-  if (foundMeasureIndex !== -1) {
-    const measureIndex = foundMeasureIndex
-    const blockId = props.rowData.startBlockId + measureIndex
-    const padding = getMeasureContentPadding(blockId) + START_PADDING
-    
-    const beatX = measureRelativeX - padding
-    
-    // Find which beat corresponds to this X position
-    const measureData = props.rowData.measures[measureIndex]?.data ?? []
-    if (measureData.length === 0) {
-      return
-    }
-    let currentBeatX = 0
-    let foundBeatIndex = -1
-    
-    // Iterate through beats to find the one at this position
-    for (let i = 0; i < measureData.length; i++) {
-      const beat = measureData[i]
-      const width = getDisplayWidth(beat?.duration)
-      
-      if (beatX >= currentBeatX && beatX < currentBeatX + width) {
-        foundBeatIndex = i
-        break
-      }
-      
-      currentBeatX += width
-    }
-    
-    // If we didn't find a beat, clamp to valid range
-    if (foundBeatIndex === -1) {
-      foundBeatIndex = beatX < 0 ? 0 : measureData.length - 1
-    }
-    
-    const beatIndex = Math.max(0, Math.min(foundBeatIndex, measureData.length - 1))
-    
-    // Set the selection (this triggers the global state and the watcher)
-    selectedPosition.value = {
-      stringIndex,
-      measureIndex,
-      beatIndex,
-      blockId
-    }
 
-    typedEventBus.emit('selection.changed', {
-      trackId: props.trackId,
-      voiceId: props.voiceId,
-      blockId,
-      beatIndex,
-      stringIndex
-    })
+  const clickPosition = clickToTabPosition(
+    event,
+    svgElement,
+    props.rowData,
+    props.isFirstRow,
+    getMeasureContentPadding,
+  )
+  if (!clickPosition) {
+    return
   }
+
+  const { measureIndex, blockId, beatIndex } = clickPosition
+  selectedPosition.value = {
+    stringIndex,
+    measureIndex,
+    beatIndex,
+    blockId,
+  }
+
+  typedEventBus.emit('selection.changed', {
+    trackId: props.trackId,
+    voiceId: props.voiceId,
+    blockId,
+    beatIndex,
+    stringIndex,
+  })
 }
 
 function getSelectionX(): number {
@@ -423,19 +356,7 @@ function setNoteAtSelection(fret: number) {
   const trackId = props.trackId
   const voiceId = props.voiceId
 
-  const beat = legacyEditorCore.ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings.value) as TabBeat
-  
-  if (fret === -1) {
-    beat.notes[stringIndex] = null
-  } else {
-    beat.notes[stringIndex] = {
-      ...legacyEditorCore.defaultNote(),
-      fret,
-      string: stringIndex
-    }
-  }
-  
-  EventBus.emit('song-data-changed')
+  legacyEditorCore.setNoteAtPosition(trackId, blockId, voiceId, beatIndex, stringIndex, fret, numStrings.value)
 }
 
 // Expose the setNoteAtSelection function to parent components

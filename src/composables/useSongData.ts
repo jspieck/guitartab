@@ -8,6 +8,7 @@ import Song, {
   type Track,
 } from '../assets/js/songData'
 import EventBus from '../assets/js/eventBus'
+import { typedEventBus } from '../utils/typedEventBus'
 
 interface ReactiveSongData {
   measures: SongBeat[][][][]
@@ -112,4 +113,12 @@ export function useSongData() {
 
 EventBus.on('song-data-changed', () => {
   useSongData().syncSongData()
+})
+
+typedEventBus.on('ui.trackChanged', (trackId) => {
+  reactiveSongData.currentTrackId = trackId
+})
+
+typedEventBus.on('ui.voiceChanged', (voiceId) => {
+  reactiveSongData.currentVoiceId = voiceId
 })

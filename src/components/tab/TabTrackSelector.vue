@@ -14,8 +14,8 @@
         class="track-item"
         :class="{ 
           active: track.id === selectedTrackId,
-          muted: track.muted,
-          solo: track.solo
+          muted: track.isMuted,
+          solo: track.isSolo
         }"
         @click="selectTrack(track.id)"
       >
@@ -23,7 +23,7 @@
           <div class="track-name">
             <input 
               v-if="editingTrack === track.id"
-              v-model="track.name"
+              v-model="editingTrackName"
               @blur="stopEditing"
               @keydown.enter="stopEditing"
               @keydown.escape="cancelEditing"
@@ -40,7 +40,7 @@
           </div>
           
           <div class="track-details">
-            <span class="track-instrument">{{ getInstrumentName(track.instrument) }}</span>
+            <span class="track-instrument">{{ getInstrumentName(track.program) }}</span>
             <span class="track-tuning">{{ getTuningDisplay(track.tuning) }}</span>
           </div>
         </div>
@@ -49,7 +49,7 @@
           <button 
             @click.stop="toggleMute(track.id)"
             class="control-btn"
-            :class="{ active: track.muted }"
+            :class="{ active: track.isMuted }"
             title="Mute"
           >
             M
@@ -58,7 +58,7 @@
           <button 
             @click.stop="toggleSolo(track.id)"
             class="control-btn"
-            :class="{ active: track.solo }"
+            :class="{ active: track.isSolo }"
             title="Solo"
           >
             S
@@ -68,8 +68,8 @@
             <input 
               type="range" 
               min="0" 
-              max="100" 
-              v-model="track.volume"
+              max="127" 
+              :value="track.volume"
               @input="updateVolume(track.id, $event)"
               class="volume-slider"
               title="Volume"
@@ -90,22 +90,15 @@
     </div>
     
     <!-- Track Properties Panel -->
-    <div v-if="selectedTrack" class="track-properties">
+    <div v-if="selectedTrack && selectedTrackDraft" class="track-properties">
       <h4>Track Properties</h4>
       
       <div class="property-group">
         <label>Instrument:</label>
-        <select v-model="selectedTrack.instrument" @change="updateTrackInstrument">
-          <option value="25">Acoustic Guitar (steel)</option>
-          <option value="26">Electric Guitar (jazz)</option>
-          <option value="27">Electric Guitar (clean)</option>
-          <option value="28">Electric Guitar (muted)</option>
-          <option value="29">Overdriven Guitar</option>
-          <option value="30">Distortion Guitar</option>
-          <option value="31">Guitar harmonics</option>
-          <option value="33">Acoustic Bass</option>
-          <option value="34">Electric Bass (finger)</option>
-          <option value="35">Electric Bass (pick)</option>
+        <select v-model.number="selectedTrackDraft.program" @change="updateTrackInstrument">
+          <option v-for="option in instrumentOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
         </select>
       </div>
       
@@ -113,12 +106,12 @@
         <label>Tuning:</label>
         <div class="tuning-controls">
           <div 
-            v-for="(note, stringIndex) in selectedTrack.tuning" 
+            v-for="(note, stringIndex) in selectedTrackDraft.tuning" 
             :key="stringIndex"
             class="tuning-string"
           >
             <label>{{ stringIndex + 1 }}:</label>
-            <select v-model="selectedTrack.tuning[stringIndex]" @change="updateTuning">
+            <select v-model.number="selectedTrackDraft.tuning[stringIndex]" @change="updateTuning">
               <option v-for="noteOption in noteOptions" :key="noteOption.value" :value="noteOption.value">
                 {{ noteOption.name }}
               </option>
@@ -133,7 +126,7 @@
           type="number" 
           min="0" 
           max="12" 
-          v-model.number="selectedTrack.capo"
+          v-model.number="selectedTrackDraft.capo"
           @change="updateCapo"
           class="capo-input"
         />
@@ -142,7 +135,7 @@
       
       <div class="property-group">
         <label>Number of Strings:</label>
-        <select v-model.number="selectedTrack.numStrings" @change="updateStringCount">
+        <select v-model.number="selectedTrackDraft.numStrings" @change="updateStringCount">
           <option :value="4">4 (Bass)</option>
           <option :value="5">5 (Bass)</option>
           <option :value="6">6 (Guitar)</option>
@@ -156,33 +149,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { resizeTrackTuning } from '../../services/legacy/trackAdapter'
+import type { TrackUpdate, TrackViewModel } from '../../types/track'
 
-// Props
 interface Props {
-  tracks: any[]
+  tracks: TrackViewModel[]
   selectedTrackId: number
 }
 
+type TrackDetailsDraft = Pick<TrackViewModel, 'program' | 'tuning' | 'capo' | 'numStrings'>
+
 const props = defineProps<Props>()
 
-// Emits
-const emit = defineEmits([
-  'selectTrack',
-  'addTrack',
-  'removeTrack',
-  'updateTrack',
-  'toggleMute',
-  'toggleSolo',
-  'updateVolume'
-])
+const emit = defineEmits<{
+  selectTrack: [trackId: number]
+  addTrack: []
+  removeTrack: [trackId: number]
+  updateTrack: [trackId: number, patch: TrackUpdate]
+  toggleMute: [trackId: number]
+  toggleSolo: [trackId: number]
+  updateVolume: [trackId: number, volume: number]
+}>()
 
-// State
 const editingTrack = ref<number | null>(null)
+const editingTrackName = ref('')
 const originalTrackName = ref('')
-const trackNameInput = ref<HTMLInputElement>()
+const trackNameInput = ref<HTMLInputElement | null>(null)
+const selectedTrackDraft = ref<TrackDetailsDraft | null>(null)
 
-// Note options for tuning
+const instrumentOptions = [
+  { value: 25, label: 'Acoustic Guitar (steel)' },
+  { value: 26, label: 'Electric Guitar (jazz)' },
+  { value: 27, label: 'Electric Guitar (clean)' },
+  { value: 28, label: 'Electric Guitar (muted)' },
+  { value: 29, label: 'Overdriven Guitar' },
+  { value: 30, label: 'Distortion Guitar' },
+  { value: 31, label: 'Guitar harmonics' },
+  { value: 33, label: 'Acoustic Bass' },
+  { value: 34, label: 'Electric Bass (finger)' },
+  { value: 35, label: 'Electric Bass (pick)' },
+] as const
+
 const noteOptions = [
   { value: 40, name: 'E2' }, { value: 41, name: 'F2' }, { value: 42, name: 'F#2' },
   { value: 43, name: 'G2' }, { value: 44, name: 'G#2' }, { value: 45, name: 'A2' },
@@ -194,15 +202,24 @@ const noteOptions = [
   { value: 61, name: 'C#4' }, { value: 62, name: 'D4' }, { value: 63, name: 'D#4' },
   { value: 64, name: 'E4' }, { value: 65, name: 'F4' }, { value: 66, name: 'F#4' },
   { value: 67, name: 'G4' }, { value: 68, name: 'G#4' }, { value: 69, name: 'A4' },
-  { value: 70, name: 'A#4' }, { value: 71, name: 'B4' }, { value: 72, name: 'C5' }
+  { value: 70, name: 'A#4' }, { value: 71, name: 'B4' }, { value: 72, name: 'C5' },
 ]
 
-// Computed
-const selectedTrack = computed(() => {
-  return props.tracks.find(track => track.id === props.selectedTrackId)
+const selectedTrack = computed<TrackViewModel | null>(() => {
+  return props.tracks.find((track) => track.id === props.selectedTrackId) ?? null
 })
 
-// Methods
+watch(selectedTrack, (track) => {
+  selectedTrackDraft.value = track
+    ? {
+        program: track.program,
+        tuning: [...track.tuning],
+        capo: track.capo,
+        numStrings: track.numStrings,
+      }
+    : null
+}, { immediate: true })
+
 function selectTrack(trackId: number) {
   emit('selectTrack', trackId)
 }
@@ -224,14 +241,15 @@ function toggleSolo(trackId: number) {
 }
 
 function updateVolume(trackId: number, event: Event) {
-  const volume = parseInt((event.target as HTMLInputElement).value)
+  const volume = Number.parseInt((event.target as HTMLInputElement).value, 10)
   emit('updateVolume', trackId, volume)
 }
 
 function startEditing(trackId: number) {
-  const track = props.tracks.find(t => t.id === trackId)
+  const track = props.tracks.find((track) => track.id === trackId)
   if (track) {
     originalTrackName.value = track.name
+    editingTrackName.value = track.name
     editingTrack.value = trackId
     nextTick(() => {
       trackNameInput.value?.focus()
@@ -242,93 +260,66 @@ function startEditing(trackId: number) {
 
 function stopEditing() {
   if (editingTrack.value !== null) {
-    const track = props.tracks.find(t => t.id === editingTrack.value)
-    if (track) {
-      emit('updateTrack', editingTrack.value, { name: track.name })
-    }
+    emit('updateTrack', editingTrack.value, {
+      name: editingTrackName.value.trim() || originalTrackName.value,
+    })
     editingTrack.value = null
   }
 }
 
 function cancelEditing() {
-  if (editingTrack.value !== null) {
-    const track = props.tracks.find(t => t.id === editingTrack.value)
-    if (track) {
-      track.name = originalTrackName.value
-    }
-    editingTrack.value = null
-  }
+  editingTrackName.value = originalTrackName.value
+  editingTrack.value = null
 }
 
 function updateTrackInstrument() {
-  if (selectedTrack.value) {
-    emit('updateTrack', selectedTrack.value.id, { 
-      instrument: selectedTrack.value.instrument 
+  if (selectedTrack.value && selectedTrackDraft.value) {
+    emit('updateTrack', selectedTrack.value.id, {
+      program: selectedTrackDraft.value.program,
     })
   }
 }
 
 function updateTuning() {
-  if (selectedTrack.value) {
-    emit('updateTrack', selectedTrack.value.id, { 
-      tuning: selectedTrack.value.tuning 
+  if (selectedTrack.value && selectedTrackDraft.value) {
+    emit('updateTrack', selectedTrack.value.id, {
+      tuning: [...selectedTrackDraft.value.tuning],
     })
   }
 }
 
 function updateCapo() {
-  if (selectedTrack.value) {
-    emit('updateTrack', selectedTrack.value.id, { 
-      capo: selectedTrack.value.capo 
+  if (selectedTrack.value && selectedTrackDraft.value) {
+    emit('updateTrack', selectedTrack.value.id, {
+      capo: selectedTrackDraft.value.capo,
     })
   }
 }
 
 function updateStringCount() {
-  if (selectedTrack.value) {
-    // Update tuning array to match string count
-    const newTuning = [...selectedTrack.value.tuning]
-    const targetLength = selectedTrack.value.numStrings
-    
-    if (targetLength > newTuning.length) {
-      // Add strings (default to standard tuning pattern)
-      const standardTuning = [64, 59, 55, 50, 45, 40] // E, B, G, D, A, E
-      while (newTuning.length < targetLength) {
-        const stringIndex = newTuning.length
-        newTuning.push(standardTuning[stringIndex] || 40)
-      }
-    } else if (targetLength < newTuning.length) {
-      // Remove strings
-      newTuning.splice(targetLength)
+  if (selectedTrack.value && selectedTrackDraft.value) {
+    const nextTuning = resizeTrackTuning(selectedTrackDraft.value.tuning, selectedTrackDraft.value.numStrings)
+    selectedTrackDraft.value = {
+      ...selectedTrackDraft.value,
+      numStrings: nextTuning.length,
+      tuning: nextTuning,
     }
-    
-    emit('updateTrack', selectedTrack.value.id, { 
-      numStrings: selectedTrack.value.numStrings,
-      tuning: newTuning
+
+    emit('updateTrack', selectedTrack.value.id, {
+      numStrings: nextTuning.length,
+      tuning: nextTuning,
     })
   }
 }
 
-function getInstrumentName(instrumentId: number): string {
-  const instruments: { [key: number]: string } = {
-    25: 'Acoustic Guitar',
-    26: 'Electric Jazz',
-    27: 'Electric Clean',
-    28: 'Electric Muted',
-    29: 'Overdriven',
-    30: 'Distortion',
-    31: 'Harmonics',
-    33: 'Acoustic Bass',
-    34: 'Electric Bass',
-    35: 'Bass Pick'
-  }
-  return instruments[instrumentId] || 'Unknown'
+function getInstrumentName(program: number): string {
+  return instrumentOptions.find((option) => option.value === program)?.label || `Program ${program}`
 }
 
 function getTuningDisplay(tuning: number[]): string {
   const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-  return tuning.map(note => {
-    const noteIndex = (note - 12) % 12
+  return tuning.map((note) => {
+    const noteIndex = ((note - 12) % 12 + 12) % 12
     return noteNames[noteIndex]
   }).join('-')
 }
