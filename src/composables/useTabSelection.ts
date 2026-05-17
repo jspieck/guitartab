@@ -1,11 +1,9 @@
 import { ref, computed } from 'vue'
-import Song from '../assets/js/songData'
-import { tab } from '../assets/js/tab'
 import { typedEventBus, type SelectionChangeData } from '../utils/typedEventBus'
+import legacyEditorCore from '../services/legacy/editorCoreAdapter'
 import { NAME_TO_CODE, DURATION_NAMES } from '../utils/musicUtils'
 import type {
   SelectedNoteState,
-  TabBeat,
   TabClipboardData,
   TabNoteData,
   TabSelectionData,
@@ -15,7 +13,7 @@ export type TabSelection = TabSelectionData
 
 interface ContextMenuState {
   visible: boolean
-  note: TabNoteData | null
+  note: (TabNoteData & { duration?: string }) | null
   x: number
   y: number
 }
@@ -52,22 +50,16 @@ export function useTabSelection() {
   function setSelection(selection: TabSelection | null) {
     currentSelection.value = selection
     if (selection) {
-      const { trackId, voiceId, blockId, beatIndex, stringIndex } = selection
-      tab.markedNoteObj = { trackId, voiceId, blockId, beatId: beatIndex, string: stringIndex }
-      tab.hasExplicitSelection = true
-      const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
-      const note = beat?.notes?.[stringIndex] as TabNoteData | null | undefined
-      const rawDuration = beat?.duration || 'q'
-      const cleanDuration = rawDuration.replace('r', '')
-      const longDuration = DURATION_NAMES[cleanDuration as keyof typeof DURATION_NAMES] || 'quarter'
-      selectedNote.value = { ...(note || {}), duration: longDuration, isEmpty: !note }
+      legacyEditorCore.syncSelection(selection)
+      selectedNote.value = legacyEditorCore.getSelectedNoteState(selection)
     } else {
+      legacyEditorCore.syncSelection(null)
       selectedNote.value = null
       contextMenuState.value.visible = false
     }
   }
 
-  function showContextMenu(note: TabNoteData, x: number, y: number) {
+  function showContextMenu(note: TabNoteData & { duration?: string }, x: number, y: number) {
     contextMenuState.value = { visible: true, note, x, y }
   }
 
@@ -79,7 +71,6 @@ export function useTabSelection() {
     setSelection(null)
     toolbarVisible.value = false
     contextMenuState.value.visible = false
-    tab.hasExplicitSelection = false
   }
   
   function toggleToolbar() { toolbarVisible.value = !toolbarVisible.value }
@@ -89,11 +80,11 @@ export function useTabSelection() {
   function copySelection() {
     if (!currentSelection.value) return
     const { trackId, voiceId, blockId, beatIndex } = currentSelection.value
-    const beat = Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex] as TabBeat | undefined
+    const beat = legacyEditorCore.copyBeat(trackId, blockId, voiceId, beatIndex)
     if (!beat) return
 
     clipboard.value = {
-      beat: JSON.parse(JSON.stringify(beat)) as TabBeat,
+      beat,
       position: { ...currentSelection.value },
     }
   }
@@ -115,8 +106,7 @@ export function useTabSelection() {
     return DURATION_NAMES[code as keyof typeof DURATION_NAMES] ?? 'quarter'
   }
   
-  function handleNoteSelectionEvent(event: Event | CustomEvent<SelectionChangeData | null>) {
-    const detail = (event as CustomEvent<SelectionChangeData | null>).detail
+  function handleNoteSelectionEvent(detail: SelectionChangeData | null) {
     if (detail) {
       setSelection({
         trackId: detail.trackId,

@@ -409,7 +409,7 @@ interface TabFile {
   created: Date
   lastModified: Date
   lastOpened?: Date
-  content?: any
+  content?: string | ArrayBuffer | Record<string, unknown> | null
   stats?: {
     tracks: number
     measures: number
@@ -420,7 +420,7 @@ interface TabFile {
 
 // Props
 interface Props {
-  currentSong?: any
+  currentSong?: unknown
   hasUnsavedChanges?: boolean
 }
 

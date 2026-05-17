@@ -1,3 +1,5 @@
+import type { TabBeat, TabNoteData } from '../types/tab'
+
 /**
  * Utilities for handling note/rest durations
  */
@@ -86,7 +88,7 @@ export function getBeamCount(duration: string | undefined): number {
  * Check if a beat has any actual notes (not all null/undefined/empty)
  * This is critical for determining whether to show rests
  */
-export function beatHasNotes(beat: any): boolean {
+export function beatHasNotes(beat: Pick<TabBeat, 'notes'> | null | undefined): boolean {
   if (!beat) return false
   if (!beat.notes) return false
   if (!Array.isArray(beat.notes)) return false
@@ -112,7 +114,7 @@ export function beatHasNotes(beat: any): boolean {
  * 1. Duration explicitly ends with 'r' (rest), OR
  * 2. Beat has no notes AND has a valid duration set
  */
-export function isRest(beat: any): boolean {
+export function isRest(beat: Pick<TabBeat, 'duration' | 'notes'> | null | undefined): boolean {
   if (!beat) return false
   
   // Explicit rest duration
@@ -127,7 +129,7 @@ export function isRest(beat: any): boolean {
 /**
  * Determine if a beat needs a stem (for beamed notes)
  */
-export function needsStem(beat: any): boolean {
+export function needsStem(beat: Pick<TabBeat, 'duration' | 'notes'> | null | undefined): boolean {
   if (!beat?.duration) return false
   if (!beatHasNotes(beat)) return false
   
@@ -138,13 +140,13 @@ export function needsStem(beat: any): boolean {
 /**
  * Get string positions of notes in a beat (for stem positioning)
  */
-export function getNoteStringPositions(beat: any): { highest: number; lowest: number } | null {
+export function getNoteStringPositions(beat: Pick<TabBeat, 'notes'> | null | undefined): { highest: number; lowest: number } | null {
   if (!beat?.notes) return null
   
   let highest = -1
   let lowest = -1
   
-  beat.notes.forEach((note: any, stringIndex: number) => {
+  beat.notes.forEach((note: TabNoteData | null, stringIndex: number) => {
     if (note !== null) {
       if (highest === -1 || stringIndex < highest) highest = stringIndex
       if (lowest === -1 || stringIndex > lowest) lowest = stringIndex

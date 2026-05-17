@@ -91,9 +91,19 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 
+interface ToolbarBendSettings {
+  amount?: string
+  type?: string
+}
+
+type ToolbarSelectedNote = {
+  duration?: string
+  bend?: ToolbarBendSettings
+} & Record<string, unknown>
+
 // Props
 interface Props {
-  selectedNote?: any
+  selectedNote?: ToolbarSelectedNote | null
   isVisible: boolean
 }
 
