@@ -68,6 +68,14 @@ export function getBlockRenderLayout(
   return getTrackRenderLayout(trackId, voiceId)?.blockLayouts[blockId] ?? null
 }
 
+export function getBlockRenderPageId(
+  trackId: number,
+  voiceId: number,
+  blockId: number,
+): number | null {
+  return getBlockRenderLayout(trackId, voiceId, blockId)?.pageId ?? null
+}
+
 export function getRowRenderLayout(
   trackId: number,
   voiceId: number,
@@ -81,6 +89,7 @@ export function useTabRenderLayout() {
     trackLayouts,
     getTrackLayout: getTrackRenderLayout,
     getBlockLayout: getBlockRenderLayout,
+    getBlockPageId: getBlockRenderPageId,
     getRowLayout: getRowRenderLayout,
     setTrackLayout: setTrackRenderLayout,
     clearTrackLayout: clearTrackRenderLayout,

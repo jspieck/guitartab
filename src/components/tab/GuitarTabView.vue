@@ -52,7 +52,11 @@
         />
 
         <!-- Playback Bar (for legacy svgDrawer support) -->
-        <g id="playBackBarGroup0" style="display: none; pointer-events: none; transition: transform linear;">
+        <g
+          id="playBackBarGroup0"
+          :transform="playbackBarTransform"
+          :style="playbackBarStyle"
+        >
           <rect x="0" y="-5" width="2" :height="playbackBarHeight" fill="rgba(49, 156, 217, 0.6)" />
         </g>
       </g>
@@ -78,6 +82,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import NoteContextMenu from '../NoteContextMenu.vue'
 import TabRow from './TabRow.vue'
+import { usePlaybackBarState } from '../../composables/usePlaybackBarState'
 import { useDurationHandler } from '../../composables/useDurationHandler'
 import { useTabRenderLayout } from '../../composables/useTabRenderLayout'
 import { useSongData } from '../../composables/useSongData'
@@ -122,6 +127,7 @@ const {
 
 const { changeDuration } = useDurationHandler()
 const { getTrackLayout } = useTabRenderLayout()
+const { playbackBarState } = usePlaybackBarState()
 
 const tabContainer = ref<HTMLElement | null>(null)
 const renderVersion = ref(0)
@@ -170,6 +176,12 @@ const playbackBarHeight = computed(() => {
 })
 
 const totalHeight = computed(() => HEADER_HEIGHT + tabRows.value.length * ROW_HEIGHT + 100)
+const playbackBarTransform = computed(() => `translate(${playbackBarState.x}, ${playbackBarState.y})`)
+const playbackBarStyle = computed(() => ({
+  display: playbackBarState.visible ? 'block' : 'none',
+  pointerEvents: 'none',
+  transition: `transform ${playbackBarState.transitionDuration}s ${playbackBarState.transitionTimingFunction}`,
+}))
 
 function handleMouseDown(_event: MouseEvent) {
   // Reserved for drag selection.

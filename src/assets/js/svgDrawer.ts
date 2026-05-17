@@ -11,6 +11,14 @@ import AppManager from './appManager';
 import { modalManager } from './modals/modalManager';
 import { audioEngine } from './audioEngine';
 import { classicalNotation } from '../../services/legacy/classicalNotationAdapter';
+import {
+  hasRegisteredPlaybackBar,
+  hidePlaybackBar,
+  isPlaybackBarVisible,
+  setPlaybackBarPosition,
+  showPlaybackBar,
+} from '../../composables/usePlaybackBarState';
+import { getBlockRenderLayout, getBlockRenderPageId, getRowRenderLayout } from '../../composables/useTabRenderLayout';
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
 import { typedEventBus } from '../../utils/typedEventBus';
@@ -244,7 +252,31 @@ class SvgDrawer {
   }
 
   getXForBlock(trackId: number, voiceId: number, blockId: number) {
-    return this.blockToX[trackId][blockId][voiceId];
+    return getBlockRenderLayout(trackId, voiceId, blockId)?.xOffset
+      ?? this.blockToX?.[trackId]?.[blockId]?.[voiceId]
+      ?? 0;
+  }
+
+  hasBlockXForBlock(trackId: number, voiceId: number, blockId: number) {
+    return getBlockRenderLayout(trackId, voiceId, blockId)?.xOffset !== undefined
+      || this.blockToX?.[trackId]?.[blockId]?.[voiceId] !== undefined;
+  }
+
+  getPageIdForBlock(trackId: number, voiceId: number, blockId: number) {
+    return getBlockRenderPageId(trackId, voiceId, blockId)
+      ?? this.blockToPage?.[blockId]
+      ?? 0;
+  }
+
+  getYForRow(trackId: number, voiceId: number, rowId: number) {
+    return getRowRenderLayout(trackId, voiceId, rowId)?.yOffset
+      ?? this.rowToY?.[trackId]?.[voiceId]?.[rowId]
+      ?? 0;
+  }
+
+  hasYForRow(trackId: number, voiceId: number, rowId: number) {
+    return getRowRenderLayout(trackId, voiceId, rowId)?.yOffset !== undefined
+      || this.rowToY?.[trackId]?.[voiceId]?.[rowId] !== undefined;
   }
 
   initHelperArrays(trackId: number, voiceId: number) {
@@ -361,6 +393,10 @@ class SvgDrawer {
   }
 
   hidePlayBackBars() {
+    if (hasRegisteredPlaybackBar()) {
+      hidePlaybackBar();
+    }
+
     for (let i = 0, n = this.playBackBarObjects.length; i < n; i += 1) {
       this.playBackBarObjects[i].style.display = 'none';
     }
@@ -372,10 +408,7 @@ class SvgDrawer {
   ) {
     let pageId = pageNumber;
     if (pageId == null) {
-      pageId = this.blockToPage[blockId];
-      if (pageId == null) {
-        pageId = 0;
-      }
+      pageId = this.getPageIdForBlock(trackId, voiceId, blockId);
     }
     const eGroup = this.clickMarkers[pageId];
     // Guard: SVG elements may not exist yet during initial load
@@ -392,9 +425,8 @@ class SvgDrawer {
       return;
     }
     const { rowId } = tab.blockToRow[trackId][voiceId][blockId];
-    let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 3;
-    xPos += this.blockToX[trackId][blockId][voiceId];
-    const yPos = this.rowToY[trackId][voiceId][rowId] - 1;
+    let xPos = this.getPositionInRow(trackId, voiceId, blockId, beatId) + 3;
+    const yPos = this.getYForRow(trackId, voiceId, rowId) - 1;
     let yPosString = yPos + (Song.tracks[trackId].numStrings
       - 1 - string - 0.5) * this.heightPerString;
     if (Settings.vexFlowIsActive) {
@@ -408,7 +440,7 @@ class SvgDrawer {
 
   getPositionInRow(trackId: number, voiceId: number, blockId: number, beatId: number) {
     return Helper.getBeatPosX(trackId, blockId, voiceId, beatId)
-      + this.blockToX[trackId][blockId][voiceId];
+      + this.getXForBlock(trackId, voiceId, blockId);
   }
 
   hideMarkersExcept(pageId: number) {
@@ -442,9 +474,9 @@ class SvgDrawer {
     let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 5;
     if (xPos == null) return;
     // console.log(xPos);
-    xPos += this.blockToX[trackId][blockId][voiceId];
+    xPos += this.getXForBlock(trackId, voiceId, blockId);
     // console.log(xPos);
-    let yPos = this.rowToY[trackId][voiceId][rowId];
+    let yPos = this.getYForRow(trackId, voiceId, rowId);
     let yPosString = (Song.tracks[trackId].numStrings
       - 1 - string - 0.5) * this.heightPerString + 1;
     let staveBegin = 0;
@@ -472,12 +504,12 @@ class SvgDrawer {
     timing: number,
   ) {
     // Guard against uninitialized data
-    if (this.blockToX?.[trackId]?.[blockId]?.[voiceId] === undefined) {
+    if (!this.hasBlockXForBlock(trackId, voiceId, blockId)) {
       return;
     }
-    const pageId = this.blockToPage[blockId];
+    const pageId = this.getPageIdForBlock(trackId, voiceId, blockId);
     const leftOffset = Helper.getLeftOffset(blockId);
-    let xPos = this.blockToX[trackId][blockId][voiceId] + leftOffset + 5;
+    let xPos = this.getXForBlock(trackId, voiceId, blockId) + leftOffset + 5;
 
     const timeQuotient = Song.measureMeta[blockId].numerator
       / Song.measureMeta[blockId].denominator;
@@ -496,11 +528,10 @@ class SvgDrawer {
     if (!this.trackCreated || blockId >= Song.measures[trackId].length) {
       return;
     }
-    const pageId = this.blockToPage[blockId];
+    const pageId = this.getPageIdForBlock(trackId, voiceId, blockId);
     // console.log(pageId, blockId);
     // const { rowId } = tab.blockToRow[trackId][voiceId][blockId];
-    let xPos = Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + 5;
-    xPos += this.blockToX[trackId][blockId][voiceId];
+    const xPos = this.getPositionInRow(trackId, voiceId, blockId, beatId) + 5;
 
     console.log(`TO BEAT ${xPos}`);
     this.movePlayBackBarToXPos(trackId, blockId, voiceId, pageId, xPos, timing);
@@ -511,27 +542,48 @@ class SvgDrawer {
     xPos: number, timing: number,
   ) {
     if (!AppManager.duringTrackCreation) {
+      const useReactivePlaybackBar = hasRegisteredPlaybackBar();
       const { rowId } = tab.blockToRow[trackId][voiceId][blockId];
-      const mGroup = document.getElementById(`playBackBarGroup${pageId}`);
-      if (mGroup == null) {
+      const mGroup = useReactivePlaybackBar
+        ? null
+        : document.getElementById(`playBackBarGroup${pageId}`);
+      if (!useReactivePlaybackBar && mGroup == null) {
         console.log('Playback bar not yet drawn');
         return;
       }
-      if (Settings.songPlaying && this.lastPlayBackBarPageId !== pageId) {
+
+      if (Settings.songPlaying
+        && (this.lastPlayBackBarPageId !== pageId
+          || (useReactivePlaybackBar && !isPlaybackBarVisible()))) {
         this.hidePlayBackBars();
-        mGroup.style.display = 'block';
+
+        if (useReactivePlaybackBar) {
+          showPlaybackBar();
+        } else if (mGroup != null) {
+          mGroup.style.display = 'block';
+        }
+
         this.lastPlayBackBarPageId = pageId;
       }
 
-      if (!this.rowToY[trackId] || !this.rowToY[trackId][voiceId] || this.rowToY[trackId][voiceId][rowId] === undefined) {
+      if (!this.hasYForRow(trackId, voiceId, rowId)) {
         return;
       }
 
-      let yPos = this.rowToY[trackId][voiceId][rowId];
+      let yPos = this.getYForRow(trackId, voiceId, rowId);
       let staveBegin = 0;
       if (Settings.vexFlowIsActive) {
         staveBegin = classicalNotation.getYForStaveBegin(blockId);
         yPos += staveBegin;
+      }
+
+      if (useReactivePlaybackBar) {
+        setPlaybackBarPosition(xPos, yPos, timing);
+        return;
+      }
+
+      if (mGroup == null) {
+        return;
       }
       
       if (mGroup.childNodes && mGroup.childNodes.length > 0) {
@@ -575,17 +627,16 @@ class SvgDrawer {
     console.log('Move', trackId, nextBlockId, voiceId, nextBeatId, timing, longerFactor, currentBlockId, currentBeatId);
 
     if (AppManager.duringTrackCreation) return;
-    const pageId = this.blockToPage[currentBlockId];
+    const pageId = this.getPageIdForBlock(trackId, voiceId, currentBlockId);
     if (pageId == null) return;
     const currentTime = audioEngine.getCurrentTime();
 
     let currentPos = 0;
     if (this.jumpToNewPos) { // After end of row was reached
-      if (this.blockToX?.[trackId]?.[currentBlockId]?.[voiceId] === undefined) {
+      if (!this.hasBlockXForBlock(trackId, voiceId, currentBlockId)) {
         return;
       }
-      currentPos = Helper.getBeatPosX(trackId, currentBlockId, voiceId, currentBeatId)
-        + this.blockToX[trackId][currentBlockId][voiceId];
+      currentPos = this.getPositionInRow(trackId, voiceId, currentBlockId, currentBeatId);
       this.jumpToNewPos = false;
     } else {
       currentPos = this.lastCurrentPos + (this.lastNextPos - this.lastCurrentPos)
@@ -593,10 +644,14 @@ class SvgDrawer {
       // console.log("Set to beginning of block "+currentPos);
     }
 
-    const mGroup = document.getElementById(`playBackBarGroup${pageId}`);
+    const useReactivePlaybackBar = hasRegisteredPlaybackBar();
+    const mGroup = useReactivePlaybackBar ? null : document.getElementById(`playBackBarGroup${pageId}`);
     if (this.lastPlayBackBarPageId !== pageId) {
       this.hidePlayBackBars();
-      if (mGroup != null) {
+
+      if (useReactivePlaybackBar) {
+        showPlaybackBar();
+      } else if (mGroup != null) {
         mGroup.style.display = 'block';
       } else {
         console.error('MGroup null!');
@@ -609,8 +664,7 @@ class SvgDrawer {
     let nextXPos = 0;
     if (nextBlockId < Song.measures[trackId].length) {
       nextRowId = tab.blockToRow[trackId][voiceId][nextBlockId].rowId;
-      nextXPos = Helper.getBeatPosX(trackId, nextBlockId, voiceId, nextBeatId)
-        + this.blockToX[trackId][nextBlockId][voiceId];
+      nextXPos = this.getPositionInRow(trackId, voiceId, nextBlockId, nextBeatId);
     }
 
     // SPECIAL CASE: next block is in another row OR
@@ -620,8 +674,7 @@ class SvgDrawer {
       || ((currentBlockId !== nextBlockId)
       && (nextBeatId !== 0 || currentBlockId + 1 !== nextBlockId))) {
       // THEN: move to currentPos + noteDuration width
-      nextXPos = Helper.getBeatPosX(trackId, currentBlockId, voiceId, currentBeatId)
-        + this.blockToX[trackId][currentBlockId][voiceId];
+      nextXPos = this.getPositionInRow(trackId, voiceId, currentBlockId, currentBeatId);
       nextXPos += tab.measureOffset[trackId][currentBlockId][voiceId]
         * Duration.getDurationWidth(Song.measures[trackId][currentBlockId][voiceId][currentBeatId]);
       this.jumpToNewPos = true;
@@ -731,7 +784,7 @@ class SvgDrawer {
     trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
   ) {
     if (AppManager.duringTrackCreation) return;
-    const pageId = this.blockToPage[blockId];
+    const pageId = this.getPageIdForBlock(trackId, voiceId, blockId);
     this.moveMarkerToPosition(trackId, blockId, voiceId, beatId, string, pageId);
     this.markClickedPos(trackId, blockId, voiceId, beatId, string, pageId);
     EventBus.emit("menu.clickedOnPos", {trackId, blockId, voiceId, beatId, string})
@@ -789,14 +842,14 @@ class SvgDrawer {
       const trackId = Song.currentTrackId;
       const voiceId = Song.currentVoiceId;
 
-      if (!this.rowToY[trackId] || !this.rowToY[trackId][voiceId] || this.rowToY[trackId][voiceId][rowId] === undefined) {
+      if (!this.hasYForRow(trackId, voiceId, rowId)) {
         return;
       }
 
       const SCROLL_TOP_MARGIN = this.getOverBarHeight(trackId, voiceId, rowId) * Settings.currentZoom;
 
       const newScrollPos = PAGE_POSITION + TAB_GROUP_OFFSET
-        + this.rowToY[trackId][voiceId][rowId]
+        + this.getYForRow(trackId, voiceId, rowId)
         * Settings.currentZoom - SCROLL_TOP_MARGIN;
 
       const mainContentDiv = document.getElementById('mainContent')!;

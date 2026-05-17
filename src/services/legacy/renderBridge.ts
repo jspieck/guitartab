@@ -1,4 +1,5 @@
 import Helper from '../../assets/js/helper'
+import { registerPlaybackBarElement } from '../../composables/usePlaybackBarState'
 import {
   clearTrackRenderLayout,
   createRenderTrackLayoutState,
@@ -134,7 +135,8 @@ const legacyRenderBridge = {
   },
 
   setPlaybackBarObject(object: SVGGElement | null) {
-    svgDrawer.playBackBarObjects = object ? [object] : []
+    registerPlaybackBarElement(object)
+    svgDrawer.playBackBarObjects = []
   },
 }
 
