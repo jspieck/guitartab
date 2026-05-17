@@ -1,46 +1,33 @@
 import { reactive, ref } from 'vue'
-import Song, {
-  type Measure as SongBeat,
-  type MeasureMetaInfo,
-  type Note as SongNote,
-  type PlayBackInstrument,
-  type SongDescription,
-  type Track,
-} from '../assets/js/songData'
+import type { Measure as SongBeat, Note as SongNote } from '../assets/js/songData'
 import EventBus from '../assets/js/eventBus'
+import legacyEditorCore, { type LegacySongSnapshot } from '../services/legacy/editorCoreAdapter'
 import { typedEventBus } from '../utils/typedEventBus'
 
-interface ReactiveSongData {
-  measures: SongBeat[][][][]
-  songDescription: SongDescription
-  tracks: Track[]
-  measureMeta: MeasureMetaInfo[]
-  playBackInstrument: PlayBackInstrument[]
-  currentTrackId: number
-  currentVoiceId: number
-}
+type ReactiveSongData = LegacySongSnapshot
 
 const songDataVersion = ref(0)
-const reactiveSongData = reactive<ReactiveSongData>({
-  measures: Song.measures,
-  songDescription: Song.songDescription,
-  tracks: Song.tracks,
-  measureMeta: Song.measureMeta,
-  playBackInstrument: Song.playBackInstrument,
-  currentTrackId: Song.currentTrackId,
-  currentVoiceId: Song.currentVoiceId
-})
+
+function applySongSnapshot(snapshot: LegacySongSnapshot) {
+  reactiveSongData.measures = snapshot.measures
+  reactiveSongData.songDescription = snapshot.songDescription
+  reactiveSongData.tracks = snapshot.tracks
+  reactiveSongData.measureMeta = snapshot.measureMeta
+  reactiveSongData.playBackInstrument = snapshot.playBackInstrument
+  reactiveSongData.currentTrackId = snapshot.currentTrackId
+  reactiveSongData.currentVoiceId = snapshot.currentVoiceId
+}
+
+const reactiveSongData = reactive<ReactiveSongData>(legacyEditorCore.getSongSnapshot())
+
+function syncSongDataState() {
+  applySongSnapshot(legacyEditorCore.getSongSnapshot())
+  songDataVersion.value++
+}
 
 export function useSongData() {
   function syncSongData() {
-    reactiveSongData.measures = JSON.parse(JSON.stringify(Song.measures))
-    reactiveSongData.songDescription = JSON.parse(JSON.stringify(Song.songDescription))
-    reactiveSongData.tracks = JSON.parse(JSON.stringify(Song.tracks))
-    reactiveSongData.measureMeta = JSON.parse(JSON.stringify(Song.measureMeta))
-    reactiveSongData.playBackInstrument = JSON.parse(JSON.stringify(Song.playBackInstrument))
-    reactiveSongData.currentTrackId = Song.currentTrackId
-    reactiveSongData.currentVoiceId = Song.currentVoiceId
-    songDataVersion.value++
+    syncSongDataState()
   }
 
   function getMeasures(trackId: number, voiceId: number) {
@@ -49,12 +36,11 @@ export function useSongData() {
   }
   
   function getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): SongBeat | undefined {
-    return Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
+    return legacyEditorCore.getBeat(trackId, blockId, voiceId, beatIndex)
   }
   
   function getNote(trackId: number, blockId: number, voiceId: number, beatIndex: number, stringIndex: number): SongNote | null | undefined {
-    const beat = getBeat(trackId, blockId, voiceId, beatIndex)
-    return beat?.notes?.[stringIndex]
+    return legacyEditorCore.getNote(trackId, blockId, voiceId, beatIndex, stringIndex)
   }
   
   function setNote(
@@ -64,40 +50,8 @@ export function useSongData() {
     beatIndex: number, 
     stringIndex: number, 
     fretNumber: number
-  ) {
-    if (!Song.measures[trackId]) {
-      Song.measures[trackId] = []
-    }
-    if (!Song.measures[trackId][blockId]) {
-      Song.measures[trackId][blockId] = []
-    }
-    if (!Song.measures[trackId][blockId][voiceId]) {
-      Song.measures[trackId][blockId][voiceId] = []
-    }
-    if (!Song.measures[trackId][blockId][voiceId][beatIndex]) {
-      Song.measures[trackId][blockId][voiceId][beatIndex] = {
-        ...Song.defaultMeasure(),
-        duration: 'q'
-      }
-    }
-    
-    const beat = Song.measures[trackId][blockId][voiceId][beatIndex]
-    if (!beat.notes) {
-      beat.notes = new Array(6).fill(null)
-    }
-    
-    if (fretNumber === -1) {
-      beat.notes[stringIndex] = null
-    } else {
-      beat.notes[stringIndex] = {
-        ...Song.defaultNote(),
-        fret: fretNumber,
-        string: stringIndex
-      }
-    }
-    
-    syncSongData()
-    EventBus.emit('song-data-changed')
+  ): void {
+    legacyEditorCore.setNoteAtPosition(trackId, blockId, voiceId, beatIndex, stringIndex, fretNumber)
   }
   
   return {
@@ -111,9 +65,7 @@ export function useSongData() {
   }
 }
 
-EventBus.on('song-data-changed', () => {
-  useSongData().syncSongData()
-})
+EventBus.on('song-data-changed', syncSongDataState)
 
 typedEventBus.on('ui.trackChanged', (trackId) => {
   reactiveSongData.currentTrackId = trackId

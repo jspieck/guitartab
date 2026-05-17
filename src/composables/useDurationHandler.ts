@@ -1,15 +1,15 @@
-import { tab } from '../assets/js/tab'
-import EventBus from '../assets/js/eventBus'
+import legacyEditorCore from '../services/legacy/editorCoreAdapter'
 import { DURATION_BEATS } from '../utils/durationUtils'
 import { NAME_TO_CODE } from '../utils/musicUtils'
+import type { TabBeat } from '../types/tab'
 
-export function useDurationHandler(syncSongData: () => void) {
+export function useDurationHandler() {
   function getDurationInBeats(duration: string): number {
     return DURATION_BEATS[duration] ?? 1
   }
 
   function durationToCode(duration: string): string {
-    return NAME_TO_CODE[duration as keyof typeof NAME_TO_CODE] ?? 'q'
+    return NAME_TO_CODE[duration as keyof typeof NAME_TO_CODE] ?? duration
   }
   
   function changeDuration(
@@ -21,20 +21,12 @@ export function useDurationHandler(syncSongData: () => void) {
     duration: string
   ): boolean {
     const shortDuration = durationToCode(duration)
-    const success = tab.changeNoteDuration(
-      trackId, blockId, voiceId, beatIndex, stringIndex, shortDuration, false
+    return legacyEditorCore.changeNoteDuration(
+      trackId, blockId, voiceId, beatIndex, stringIndex, shortDuration
     )
-    
-    if (success) {
-      syncSongData()
-      EventBus.emit('song-data-changed')
-      return true
-    }
-    
-    return false
   }
   
-  function calculateBeatXOffset(measureData: any[], beatIndex: number, beatWidth: number, contentPadding = 0): number {
+  function calculateBeatXOffset(measureData: TabBeat[], beatIndex: number, beatWidth: number, contentPadding = 0): number {
     let beats = 0
     for (let i = 0; i < beatIndex; i++) {
       const beat = measureData[i]
@@ -43,7 +35,7 @@ export function useDurationHandler(syncSongData: () => void) {
     return contentPadding + (beats * beatWidth)
   }
   
-  function findBeatAtPosition(measureData: any[], xPosition: number, beatWidth: number): number {
+  function findBeatAtPosition(measureData: TabBeat[], xPosition: number, beatWidth: number): number {
     let currentX = 0
     
     for (let i = 0; i < measureData.length; i++) {

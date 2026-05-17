@@ -264,10 +264,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted, watch } from 'vue'
+import type { TrackViewModel } from '../../types/track'
 
 // Props
 interface Props {
-  tracks: any[]
+  tracks: TrackViewModel[]
   currentTrack: number
   totalMeasures: number
 }

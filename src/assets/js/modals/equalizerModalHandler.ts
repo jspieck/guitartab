@@ -30,7 +30,7 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
     // Public properties
     public equalizerNodes: BiquadFilterNode[] = [];
-    public readonly equalizerNodeFrequencies = ref<number[]>([]);
+    public readonly equalizerNodeFrequencies = ref<number[]>([40, 1000, 15000]);
 
     // Private state
     private currentNode: number = -1;
@@ -42,6 +42,8 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
     constructor() {
         super('equalizerModal', 'Equalizer');
+        this.logarithmicMin = Math.log(this.frequencyLines[0]) / Math.LN10;
+        this.logarithmicMax = Math.log(this.frequencyLines[this.frequencyLines.length - 1]) / Math.LN10;
     }
 
     public getEqualizer(): BiquadFilterNode[] {
@@ -57,7 +59,6 @@ export class EqualizerModalHandler extends BaseModalHandler {
         this.highshelf = this.audioCtx.createBiquadFilter();
 
         this.equalizerNodes = [this.lowshelf, this.mid, this.highshelf];
-        this.equalizerNodeFrequencies.value = [40, 1000, 15000];
 
         this.logarithmicMin = Math.log(this.frequencyLines[0]) / Math.LN10;
         this.logarithmicMax = Math.log(this.frequencyLines[this.frequencyLines.length - 1]) / Math.LN10;
@@ -114,10 +115,20 @@ export class EqualizerModalHandler extends BaseModalHandler {
     }
 
     public frequencyToXPos(freq: number): number {
+        if (!Number.isFinite(freq) || freq <= 0) {
+            return 0;
+        }
+
         const logarithmicValue = Math.log(freq) / Math.LN10;
+        const logarithmicRange = this.logarithmicMax - this.logarithmicMin;
+
+        if (!Number.isFinite(logarithmicRange) || logarithmicRange <= 0) {
+            return 0;
+        }
+
         return (
             ((logarithmicValue - this.logarithmicMin)
-                / (this.logarithmicMax - this.logarithmicMin))
+                / logarithmicRange)
             * this.CANVAS_WIDTH
         );
     }

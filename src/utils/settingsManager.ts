@@ -94,6 +94,29 @@ const STORAGE_KEYS: Record<keyof AppSettings, string> = {
   EPSILON: `${STORAGE_PREFIX}epsilon`
 }
 
+function coerceLegacySetting<K extends keyof AppSettings>(key: K, value: string): AppSettings[K] {
+  const defaultValue = DEFAULT_SETTINGS[key]
+
+  if (typeof defaultValue === 'boolean') {
+    return (value === 'true') as AppSettings[K]
+  }
+
+  if (typeof defaultValue === 'number') {
+    const parsed = Number(value)
+    return (Number.isFinite(parsed) ? parsed : defaultValue) as AppSettings[K]
+  }
+
+  return defaultValue
+}
+
+function assignLoadedSetting<K extends keyof AppSettings>(
+  target: Partial<AppSettings>,
+  key: K,
+  value: AppSettings[K],
+): void {
+  target[key] = value
+}
+
 // =============================================================================
 // Settings Class
 // =============================================================================
@@ -111,14 +134,14 @@ class SettingsManager {
   private loadAll(): AppSettings {
     const loaded: Partial<AppSettings> = {}
     
-    for (const [key, storageKey] of Object.entries(STORAGE_KEYS)) {
+    for (const [key, storageKey] of Object.entries(STORAGE_KEYS) as [keyof AppSettings, string][]) {
       const stored = localStorage.getItem(storageKey)
       if (stored !== null) {
         try {
-          loaded[key as keyof AppSettings] = JSON.parse(stored)
+          assignLoadedSetting(loaded, key, JSON.parse(stored) as AppSettings[typeof key])
         } catch {
           // If JSON parse fails, use as string for backwards compatibility
-          loaded[key as keyof AppSettings] = stored as any
+          assignLoadedSetting(loaded, key, coerceLegacySetting(key, stored))
         }
       }
     }
@@ -236,11 +259,11 @@ class SettingsManager {
   get OVERBAR_ROW_HEIGHT(): number { return this.get('OVERBAR_ROW_HEIGHT') }
   
   // Legacy save/load methods
-  save(key: string, value: any): void {
+  save(key: string, value: unknown): void {
     localStorage.setItem(key, JSON.stringify(value))
   }
   
-  load(key: string): any {
+  load(key: string): unknown {
     const stored = localStorage.getItem(key)
     if (stored === null) return null
     try {

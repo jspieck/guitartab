@@ -9,6 +9,7 @@ import { sequencerHandler, SequencerHandler } from './sequencerHandler';
 import { svgDrawer } from './svgDrawer';
 import { menuHandler } from './menuHandler';
 import { useTabStore } from '../../stores/tabStore';
+import legacyRenderBridge from '../../services/legacy/renderBridge';
 
 class OverlayHandler {
   startPosOverlay: { trackId: number, blockId: number, voiceId: number,
@@ -169,12 +170,17 @@ class OverlayHandler {
 
   drawOverlay(trackId: number, voiceId: number, blockIdStart: number,
     blockIdEnd: number, beatIdStart: number, beatIdEnd: number) {
-    const rowBegin = tab.blockToRow[trackId][voiceId][blockIdStart].rowId;
-    const rowEnd = tab.blockToRow[trackId][voiceId][blockIdEnd].rowId;
+    const rowBegin = legacyRenderBridge.getRowIdForBlock(trackId, voiceId, blockIdStart);
+    const rowEnd = legacyRenderBridge.getRowIdForBlock(trackId, voiceId, blockIdEnd);
+
+    if (rowBegin == null || rowEnd == null) {
+      return;
+    }
+
     for (let rowId = rowBegin; rowId <= rowEnd; rowId += 1) {
       let xPosStart;
       if (rowId === rowBegin) {
-        xPosStart = svgDrawer.getPositionInRow(trackId, voiceId, blockIdStart, beatIdStart);
+        xPosStart = legacyRenderBridge.getPositionInRow(trackId, voiceId, blockIdStart, beatIdStart);
       } else {
         xPosStart = 0;
       }
@@ -182,13 +188,13 @@ class OverlayHandler {
       let xPosEnd;
       if (rowId === rowEnd) {
         if (Song.measures[trackId][blockIdEnd][voiceId].length === beatIdEnd + 1) {
-          xPosEnd = svgDrawer.getXForBlock(trackId, voiceId, blockIdEnd)
-            + tab.finalBlockWidths[trackId][voiceId][blockIdEnd];
+          xPosEnd = legacyRenderBridge.getBlockX(trackId, voiceId, blockIdEnd)
+            + legacyRenderBridge.getBlockWidth(trackId, voiceId, blockIdEnd);
         } else {
-          xPosEnd = svgDrawer.getPositionInRow(trackId, voiceId, blockIdEnd, beatIdEnd + 1);
+          xPosEnd = legacyRenderBridge.getPositionInRow(trackId, voiceId, blockIdEnd, beatIdEnd + 1);
         }
       } else {
-        xPosEnd = svgDrawer.getRowWidth();
+        xPosEnd = legacyRenderBridge.getRowWidth(trackId, voiceId);
       }
 
       this.overlaysPerRow[rowId] = svgDrawer.drawOverlayRow(trackId, voiceId, rowId,

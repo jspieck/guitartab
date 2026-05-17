@@ -1,10 +1,40 @@
 import Helper from '../../assets/js/helper'
 import EventBus from '../../assets/js/eventBus'
-import Song from '../../assets/js/songData'
+import Song, {
+  type Measure as SongBeat,
+  type MeasureMetaInfo,
+  type Note as SongNote,
+  type PlayBackInstrument,
+  type SongDescription,
+  type Track,
+} from '../../assets/js/songData'
 import { Tab, tab } from '../../assets/js/tab'
-import { svgDrawer } from '../../assets/js/svgDrawer'
+import { DURATION_NAMES } from '../../utils/musicUtils'
 import { TAB_CONSTANTS } from '../../utils/tabLayout'
-import type { RenderedTabRow, TabBeat, TabMeasureMetaData, TabNoteData } from '../../types/tab'
+import type {
+  RenderedTabRow,
+  SelectedNoteState,
+  TabBeat,
+  TabMeasureMetaData,
+  TabNoteData,
+  TabSelectionData,
+} from '../../types/tab'
+import legacyRenderBridge, {
+  createRenderTrackLayoutState,
+  type RenderBlockLayout,
+  type RenderRowLayout,
+  type RenderTrackLayoutState,
+} from './renderBridge'
+
+export interface LegacySongSnapshot {
+  measures: SongBeat[][][][]
+  songDescription: SongDescription
+  tracks: Track[]
+  measureMeta: MeasureMetaInfo[]
+  playBackInstrument: PlayBackInstrument[]
+  currentTrackId: number
+  currentVoiceId: number
+}
 
 interface ModernLayoutOptions {
   availableWidth: number
@@ -14,97 +44,93 @@ interface ModernLayoutOptions {
   tabInformationHeight: number
 }
 
-interface ModernBlockLayout {
-  xOffset: number
-  rowId: number
-  numInRow: number
-  width: number
-  minOffset: number
-}
-
-interface ModernRowLayout {
-  yOffset: number
-  height: number
-}
-
-interface ModernTrackLayoutState {
-  blockLayouts: ModernBlockLayout[]
-  rowLayouts: ModernRowLayout[]
-  paddingTop: number
-  tabInformationHeight: number
-  numRows: number
-  numPages: number
-}
-
 type BlockWidthInfo = ReturnType<typeof Tab.computeWidthOfBlock>
 
-const modernLayoutState = new Map<string, ModernTrackLayoutState>()
-
-function layoutKey(trackId: number, voiceId: number): string {
-  return `${trackId}:${voiceId}`
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
-function createModernLayoutState(paddingTop: number, tabInformationHeight: number): ModernTrackLayoutState {
+function notifySongDataChanged(): void {
+  EventBus.emit('song-data-changed')
+}
+
+function getSongSnapshot(): LegacySongSnapshot {
   return {
-    blockLayouts: [],
-    rowLayouts: [],
-    paddingTop,
-    tabInformationHeight,
-    numRows: 0,
-    numPages: 1,
+    measures: cloneValue(Song.measures),
+    songDescription: cloneValue(Song.songDescription),
+    tracks: cloneValue(Song.tracks),
+    measureMeta: cloneValue(Song.measureMeta),
+    playBackInstrument: cloneValue(Song.playBackInstrument),
+    currentTrackId: Song.currentTrackId,
+    currentVoiceId: Song.currentVoiceId,
   }
 }
 
-function ensureRendererArrays(trackId: number, voiceId: number) {
-  svgDrawer.blockToPage = []
-
-  if (!svgDrawer.blockToX[trackId]) svgDrawer.blockToX[trackId] = []
-  if (!svgDrawer.rowToY[trackId]) svgDrawer.rowToY[trackId] = []
-  if (!svgDrawer.rowToY[trackId][voiceId]) svgDrawer.rowToY[trackId][voiceId] = []
-  if (!svgDrawer.heightOfRow[trackId]) svgDrawer.heightOfRow[trackId] = []
-  if (!svgDrawer.heightOfRow[trackId][voiceId]) svgDrawer.heightOfRow[trackId][voiceId] = []
-
-  if (!tab.blockToRow[trackId]) tab.blockToRow[trackId] = []
-  if (!tab.blockToRow[trackId][voiceId]) tab.blockToRow[trackId][voiceId] = []
-
-  if (!tab.finalBlockWidths[trackId]) tab.finalBlockWidths[trackId] = []
-  if (!tab.finalBlockWidths[trackId][voiceId]) tab.finalBlockWidths[trackId][voiceId] = []
-
-  if (!tab.measureOffset[trackId]) tab.measureOffset[trackId] = []
+function getTrackStringCount(trackId: number): number {
+  return Song.tracks?.[trackId]?.numStrings || Song.tracks?.[trackId]?.strings?.length || 6
 }
 
-function syncModernLayoutToLegacy(trackId: number, voiceId: number, state: ModernTrackLayoutState) {
-  ensureRendererArrays(trackId, voiceId)
+function defaultNote(): TabNoteData {
+  return Song.defaultNote() as TabNoteData
+}
 
-  svgDrawer.trackCreated = true
-  svgDrawer.paddingTop = state.paddingTop
-  svgDrawer.tabInformationHeight = state.tabInformationHeight
-  svgDrawer.numRows = state.numRows
-  svgDrawer.numPages = state.numPages
-  svgDrawer.rowToY[trackId][voiceId] = []
-  svgDrawer.heightOfRow[trackId][voiceId] = []
-  tab.blockToRow[trackId][voiceId] = []
-  tab.finalBlockWidths[trackId][voiceId] = []
+function getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): SongBeat | undefined {
+  return Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
+}
 
-  state.rowLayouts.forEach((rowLayout, rowId) => {
-    svgDrawer.rowToY[trackId][voiceId][rowId] = rowLayout.yOffset
-    svgDrawer.heightOfRow[trackId][voiceId][rowId] = rowLayout.height
-  })
+function getNote(
+  trackId: number,
+  blockId: number,
+  voiceId: number,
+  beatIndex: number,
+  stringIndex: number,
+): SongNote | null | undefined {
+  return getBeat(trackId, blockId, voiceId, beatIndex)?.notes?.[stringIndex]
+}
 
-  state.blockLayouts.forEach((blockLayout, blockId) => {
-    svgDrawer.blockToPage[blockId] = 0
-    if (!svgDrawer.blockToX[trackId][blockId]) svgDrawer.blockToX[trackId][blockId] = []
-    svgDrawer.blockToX[trackId][blockId][voiceId] = blockLayout.xOffset
+function getSelectedNoteState(selection: TabSelectionData | null): SelectedNoteState | null {
+  if (!selection) {
+    return null
+  }
 
-    tab.blockToRow[trackId][voiceId][blockId] = {
-      rowId: blockLayout.rowId,
-      numInRow: blockLayout.numInRow,
-    }
-    tab.finalBlockWidths[trackId][voiceId][blockId] = blockLayout.width
+  const beat = getBeat(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex) as TabBeat | undefined
+  const note = beat?.notes?.[selection.stringIndex] as TabNoteData | null | undefined
+  const rawDuration = beat?.duration || 'q'
+  const cleanDuration = rawDuration.replace('r', '')
+  const duration = DURATION_NAMES[cleanDuration as keyof typeof DURATION_NAMES] || 'quarter'
 
-    if (!tab.measureOffset[trackId][blockId]) tab.measureOffset[trackId][blockId] = []
-    tab.measureOffset[trackId][blockId][voiceId] = blockLayout.minOffset
-  })
+  return { ...(note || {}), duration, isEmpty: !note }
+}
+
+function copyBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): TabBeat | null {
+  const beat = getBeat(trackId, blockId, voiceId, beatIndex)
+  return beat ? cloneValue(beat as TabBeat) : null
+}
+
+function ensureBeatAtPosition(
+  trackId: number,
+  blockId: number,
+  voiceId: number,
+  beatIndex: number,
+  numStrings: number,
+): TabBeat {
+  if (!Song.measures[trackId]) Song.measures[trackId] = []
+  if (!Song.measures[trackId][blockId]) Song.measures[trackId][blockId] = []
+  if (!Song.measures[trackId][blockId][voiceId]) Song.measures[trackId][blockId][voiceId] = []
+
+  if (!Song.measures[trackId][blockId][voiceId][beatIndex]) {
+    const defaultBeat = Song.defaultMeasure() as TabBeat
+    defaultBeat.duration = 'q'
+    defaultBeat.notes = new Array(numStrings).fill(null)
+    Song.measures[trackId][blockId][voiceId][beatIndex] = defaultBeat
+  }
+
+  const beat = Song.measures[trackId][blockId][voiceId][beatIndex] as TabBeat
+  if (!beat.notes) {
+    beat.notes = new Array(numStrings).fill(null)
+  }
+
+  return beat
 }
 
 const legacyEditorCore = {
@@ -117,8 +143,16 @@ const legacyEditorCore = {
     return false
   },
 
+  notifySongDataChanged(): void {
+    notifySongDataChanged()
+  },
+
+  getSongSnapshot(): LegacySongSnapshot {
+    return getSongSnapshot()
+  },
+
   getTrackStringCount(trackId: number): number {
-    return Song.tracks?.[trackId]?.numStrings || 6
+    return getTrackStringCount(trackId)
   },
 
   getMeasureMeta(blockId: number): TabMeasureMetaData {
@@ -130,7 +164,40 @@ const legacyEditorCore = {
   },
 
   defaultNote(): TabNoteData {
-    return Song.defaultNote() as TabNoteData
+    return defaultNote()
+  },
+
+  getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): SongBeat | undefined {
+    return getBeat(trackId, blockId, voiceId, beatIndex)
+  },
+
+  getNote(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatIndex: number,
+    stringIndex: number,
+  ): SongNote | null | undefined {
+    return getNote(trackId, blockId, voiceId, beatIndex, stringIndex)
+  },
+
+  getSelectedNoteState(selection: TabSelectionData | null): SelectedNoteState | null {
+    return getSelectedNoteState(selection)
+  },
+
+  syncSelection(selection: TabSelectionData | null): void {
+    if (!selection) {
+      tab.hasExplicitSelection = false
+      return
+    }
+
+    const { trackId, voiceId, blockId, beatIndex, stringIndex } = selection
+    tab.markedNoteObj = { trackId, voiceId, blockId, beatId: beatIndex, string: stringIndex }
+    tab.hasExplicitSelection = true
+  },
+
+  copyBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): TabBeat | null {
+    return copyBeat(trackId, blockId, voiceId, beatIndex)
   },
 
   buildModernTabRows(
@@ -140,11 +207,14 @@ const legacyEditorCore = {
     options: ModernLayoutOptions,
   ): RenderedTabRow[] {
     const rows: RenderedTabRow[] = []
-    const state = createModernLayoutState(options.paddingTop, options.tabInformationHeight)
+    const state = createRenderTrackLayoutState({
+      availableWidth: options.availableWidth,
+      paddingTop: options.paddingTop,
+      tabInformationHeight: options.tabInformationHeight,
+    })
 
     if (measures.length === 0) {
-      modernLayoutState.set(layoutKey(trackId, voiceId), state)
-      syncModernLayoutToLegacy(trackId, voiceId, state)
+      legacyRenderBridge.setTrackLayout(trackId, voiceId, state)
       return rows
     }
 
@@ -173,7 +243,8 @@ const legacyEditorCore = {
       if (currentWidth + measureWidth > options.availableWidth && currentRowMeasures.length > 0) {
         const rowId = rows.length
         const yOffset = options.headerHeight + rowId * options.rowHeight
-        state.rowLayouts[rowId] = { yOffset, height: options.rowHeight }
+        const rowLayout: RenderRowLayout = { yOffset, height: options.rowHeight }
+        state.rowLayouts[rowId] = rowLayout
         rows.push({
           id: rowId,
           measures: currentRowMeasures,
@@ -187,13 +258,15 @@ const legacyEditorCore = {
       }
 
       const rowId = rows.length
-      state.blockLayouts[blockId] = {
+      const blockLayout: RenderBlockLayout = {
         xOffset: currentWidth,
         rowId,
         numInRow: currentRowMeasures.length,
         width: measureWidth,
         minOffset,
+        pageId: 0,
       }
+      state.blockLayouts[blockId] = blockLayout
 
       currentRowMeasures.push({
         data: (measure?.[voiceId] || []) as TabBeat[],
@@ -205,7 +278,8 @@ const legacyEditorCore = {
     if (currentRowMeasures.length > 0) {
       const rowId = rows.length
       const yOffset = options.headerHeight + rowId * options.rowHeight
-      state.rowLayouts[rowId] = { yOffset, height: options.rowHeight }
+      const rowLayout: RenderRowLayout = { yOffset, height: options.rowHeight }
+      state.rowLayouts[rowId] = rowLayout
       rows.push({
         id: rowId,
         measures: currentRowMeasures,
@@ -216,14 +290,13 @@ const legacyEditorCore = {
     }
 
     state.numRows = rows.length
-    modernLayoutState.set(layoutKey(trackId, voiceId), state)
-    syncModernLayoutToLegacy(trackId, voiceId, state)
+    legacyRenderBridge.setTrackLayout(trackId, voiceId, state)
 
     return rows
   },
 
-  getModernLayout(trackId: number, voiceId: number): ModernTrackLayoutState | null {
-    return modernLayoutState.get(layoutKey(trackId, voiceId)) ?? null
+  getModernLayout(trackId: number, voiceId: number): RenderTrackLayoutState | null {
+    return legacyRenderBridge.getTrackLayout(trackId, voiceId)
   },
 
   changeNoteDuration(
@@ -233,8 +306,8 @@ const legacyEditorCore = {
     beatIndex: number,
     stringIndex: number,
     durationId: string,
-  ) {
-    tab.changeNoteDuration(trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false)
+  ): boolean {
+    return tab.changeNoteDuration(trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false)
   },
 
   setNoteAtPosition(
@@ -244,23 +317,23 @@ const legacyEditorCore = {
     beatIndex: number,
     stringIndex: number,
     fret: number,
-    numStrings: number,
-  ) {
-    const beat = legacyEditorCore.ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
+    numStrings = getTrackStringCount(trackId),
+  ): void {
+    const beat = ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
 
     beat.notes[stringIndex] = fret === -1
       ? null
       : {
-          ...legacyEditorCore.defaultNote(),
+          ...defaultNote(),
           fret,
           string: stringIndex,
         }
 
-    EventBus.emit('song-data-changed')
+    notifySongDataChanged()
   },
 
   setPlaybackBarObject(object: SVGGElement | null) {
-    svgDrawer.playBackBarObjects = object ? [object] : []
+    legacyRenderBridge.setPlaybackBarObject(object)
   },
 
   ensureBeatAtPosition(
@@ -270,23 +343,7 @@ const legacyEditorCore = {
     beatIndex: number,
     numStrings: number,
   ): TabBeat {
-    if (!Song.measures[trackId]) Song.measures[trackId] = []
-    if (!Song.measures[trackId][blockId]) Song.measures[trackId][blockId] = []
-    if (!Song.measures[trackId][blockId][voiceId]) Song.measures[trackId][blockId][voiceId] = []
-
-    if (!Song.measures[trackId][blockId][voiceId][beatIndex]) {
-      const defaultBeat = Song.defaultMeasure() as TabBeat
-      defaultBeat.duration = 'quarter'
-      defaultBeat.notes = new Array(numStrings).fill(null)
-      Song.measures[trackId][blockId][voiceId][beatIndex] = defaultBeat
-    }
-
-    const beat = Song.measures[trackId][blockId][voiceId][beatIndex] as TabBeat
-    if (!beat.notes) {
-      beat.notes = new Array(numStrings).fill(null)
-    }
-
-    return beat
+    return ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
   },
 }
 

@@ -394,17 +394,22 @@ function importShortcuts() {
   input.click()
 }
 
-function isValidShortcut(obj: any): obj is Shortcut {
+function isValidShortcut(obj: unknown): obj is Shortcut {
+  if (!obj || typeof obj !== 'object') {
+    return false
+  }
+
+  const shortcut = obj as Record<string, unknown>
   return obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.description === 'string' &&
-    Array.isArray(obj.keys) &&
-    typeof obj.category === 'string' &&
-    Array.isArray(obj.context) &&
-    typeof obj.action === 'string' &&
-    typeof obj.required === 'boolean' &&
-    typeof obj.enabled === 'boolean'
+    typeof shortcut.id === 'string' &&
+    typeof shortcut.name === 'string' &&
+    typeof shortcut.description === 'string' &&
+    Array.isArray(shortcut.keys) &&
+    typeof shortcut.category === 'string' &&
+    Array.isArray(shortcut.context) &&
+    typeof shortcut.action === 'string' &&
+    typeof shortcut.required === 'boolean' &&
+    typeof shortcut.enabled === 'boolean'
 }
 
 function formatShortcut(keys: string[]): string {

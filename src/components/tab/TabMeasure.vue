@@ -66,16 +66,18 @@ import TabNote from './TabNote.vue'
 import TabEffects from './TabEffects.vue'
 import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
-import { getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 import type { TabBeat, TabChordData } from '../../types/tab'
+import { getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
 
-interface RenderedChord {
-  data: {
-    name: string
-    frets: number[]
-    fingers: number[]
-    display: boolean
-  }
+interface RenderedChordDiagramData {
+  name: string
+  frets: number[]
+  fingers: number[]
+  display: boolean
+}
+
+interface RenderedChordPlacement {
+  data: RenderedChordDiagramData
   x: number
 }
 
@@ -102,20 +104,21 @@ const { START_PADDING } = TAB_CONSTANTS
 const measureWidth = computed(() => props.width)
 
 // Computed properties
-const chordsToShow = computed(() => {
-  const chords: RenderedChord[] = []
+const chordsToShow = computed<RenderedChordPlacement[]>(() => {
+  const chords: RenderedChordPlacement[] = []
   
   props.measureData.forEach((beat, beatIndex) => {
-    if (beat?.chordPresent && beat?.chord) {
-      const chord = beat.chord as TabChordData
+    const chord = beat?.chord as TabChordData | null | undefined
+
+    if (beat?.chordPresent && chord) {
       chords.push({
         data: {
           name: chord.name || 'Unknown',
           frets: chord.frets || [],
           fingers: chord.fingers || [],
-          display: chord.display !== false
+          display: chord.display !== false,
         },
-        x: getBeatXOffset(beatIndex)
+        x: getBeatXOffset(beatIndex),
       })
     }
   })

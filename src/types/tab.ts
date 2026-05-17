@@ -36,7 +36,7 @@ export interface Note {
   // Legacy properties
   string: number
   height: number
-  tiedTo?: any
+  tiedTo?: { blockId: number; beatId: number } | Record<string, unknown>
   velocity?: number
   element?: number
   octave?: number
@@ -84,10 +84,10 @@ export interface Measure {
   chordPresent: boolean
   chord?: {
     name: string
-  } | any
+  } | Record<string, unknown> | null
   dynamicPresent: boolean
   dynamic?: string
-  effects?: BeatEffects | any
+  effects?: BeatEffects | Record<string, unknown>
   // Legacy properties
   otherNotes?: Note[]
   tupletId?: number
@@ -96,7 +96,7 @@ export interface Measure {
   noteIds?: number[]
   rhythmId?: number
   gracePresent?: boolean
-  graceObj?: any
+  graceObj?: Grace | Record<string, unknown> | string
 }
 
 export interface MeasureMeta {
@@ -137,7 +137,7 @@ export interface Track {
   volume?: number
   balance?: number
   reverb?: number
-  channel?: any
+  channel?: Record<string, unknown>
   program?: number
   primaryChannel?: number
   letItRing?: boolean
