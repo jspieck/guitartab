@@ -1,4 +1,4 @@
-import mitt, { Emitter, Handler } from 'mitt'
+import mitt, { Emitter, Handler, WildcardHandler } from 'mitt'
 import type { TabBeat, TabNoteData, TabPosition } from '../types/tab'
 
 export type { TabPosition } from '../types/tab'
@@ -99,7 +99,11 @@ class TypedEventBus {
   }
 
   onAll(handler: (event: keyof AppEvents, payload: AppEvents[keyof AppEvents]) => void): void {
-    this.emitter.on('*', handler as any)
+    const wildcardHandler: WildcardHandler<AppEvents> = (event, payload) => {
+      handler(event, payload)
+    }
+
+    this.emitter.on('*', wildcardHandler)
   }
 
   clearAll(): void {

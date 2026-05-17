@@ -63,11 +63,10 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, onUnmounted, ref, computed } from 'vue'
+import { defineAsyncComponent, onMounted, ref, computed } from 'vue'
 import Menu from './components/Menu.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
-import EventBus from './assets/js/eventBus'
 import { useSongData } from './composables/useSongData'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
@@ -86,16 +85,7 @@ function focusMainContent() {
   mainContent?.focus()
 }
 
-function handleTrackChange(trackId: number) {
-  reactiveSongData.currentTrackId = trackId
-}
-
 onMounted(() => {
   startUp()
-  EventBus.on('ui.trackChanged', handleTrackChange as any)
-})
-
-onUnmounted(() => {
-  EventBus.off('ui.trackChanged', handleTrackChange as any)
 })
 </script>

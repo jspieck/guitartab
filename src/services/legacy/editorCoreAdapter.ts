@@ -1,10 +1,59 @@
 import Helper from '../../assets/js/helper'
+import EventBus from '../../assets/js/eventBus'
 import Song from '../../assets/js/songData'
 import { Tab, tab } from '../../assets/js/tab'
 import { svgDrawer } from '../../assets/js/svgDrawer'
-import type { TabBeat, TabMeasureMetaData, TabNoteData } from '../../types/tab'
+import { TAB_CONSTANTS } from '../../utils/tabLayout'
+import type { RenderedTabRow, TabBeat, TabMeasureMetaData, TabNoteData } from '../../types/tab'
+
+interface ModernLayoutOptions {
+  availableWidth: number
+  headerHeight: number
+  rowHeight: number
+  paddingTop: number
+  tabInformationHeight: number
+}
+
+interface ModernBlockLayout {
+  xOffset: number
+  rowId: number
+  numInRow: number
+  width: number
+  minOffset: number
+}
+
+interface ModernRowLayout {
+  yOffset: number
+  height: number
+}
+
+interface ModernTrackLayoutState {
+  blockLayouts: ModernBlockLayout[]
+  rowLayouts: ModernRowLayout[]
+  paddingTop: number
+  tabInformationHeight: number
+  numRows: number
+  numPages: number
+}
 
 type BlockWidthInfo = ReturnType<typeof Tab.computeWidthOfBlock>
+
+const modernLayoutState = new Map<string, ModernTrackLayoutState>()
+
+function layoutKey(trackId: number, voiceId: number): string {
+  return `${trackId}:${voiceId}`
+}
+
+function createModernLayoutState(paddingTop: number, tabInformationHeight: number): ModernTrackLayoutState {
+  return {
+    blockLayouts: [],
+    rowLayouts: [],
+    paddingTop,
+    tabInformationHeight,
+    numRows: 0,
+    numPages: 1,
+  }
+}
 
 function ensureRendererArrays(trackId: number, voiceId: number) {
   svgDrawer.blockToPage = []
@@ -22,6 +71,40 @@ function ensureRendererArrays(trackId: number, voiceId: number) {
   if (!tab.finalBlockWidths[trackId][voiceId]) tab.finalBlockWidths[trackId][voiceId] = []
 
   if (!tab.measureOffset[trackId]) tab.measureOffset[trackId] = []
+}
+
+function syncModernLayoutToLegacy(trackId: number, voiceId: number, state: ModernTrackLayoutState) {
+  ensureRendererArrays(trackId, voiceId)
+
+  svgDrawer.trackCreated = true
+  svgDrawer.paddingTop = state.paddingTop
+  svgDrawer.tabInformationHeight = state.tabInformationHeight
+  svgDrawer.numRows = state.numRows
+  svgDrawer.numPages = state.numPages
+  svgDrawer.rowToY[trackId][voiceId] = []
+  svgDrawer.heightOfRow[trackId][voiceId] = []
+  tab.blockToRow[trackId][voiceId] = []
+  tab.finalBlockWidths[trackId][voiceId] = []
+
+  state.rowLayouts.forEach((rowLayout, rowId) => {
+    svgDrawer.rowToY[trackId][voiceId][rowId] = rowLayout.yOffset
+    svgDrawer.heightOfRow[trackId][voiceId][rowId] = rowLayout.height
+  })
+
+  state.blockLayouts.forEach((blockLayout, blockId) => {
+    svgDrawer.blockToPage[blockId] = 0
+    if (!svgDrawer.blockToX[trackId][blockId]) svgDrawer.blockToX[trackId][blockId] = []
+    svgDrawer.blockToX[trackId][blockId][voiceId] = blockLayout.xOffset
+
+    tab.blockToRow[trackId][voiceId][blockId] = {
+      rowId: blockLayout.rowId,
+      numInRow: blockLayout.numInRow,
+    }
+    tab.finalBlockWidths[trackId][voiceId][blockId] = blockLayout.width
+
+    if (!tab.measureOffset[trackId][blockId]) tab.measureOffset[trackId][blockId] = []
+    tab.measureOffset[trackId][blockId][voiceId] = blockLayout.minOffset
+  })
 }
 
 const legacyEditorCore = {
@@ -50,12 +133,97 @@ const legacyEditorCore = {
     return Song.defaultNote() as TabNoteData
   },
 
-  groupMeasureBeats(trackId: number, blockId: number, voiceId: number) {
-    Helper.groupMeasureBeats(trackId, blockId, voiceId)
+  buildModernTabRows(
+    trackId: number,
+    voiceId: number,
+    measures: Array<TabBeat[][] | undefined>,
+    options: ModernLayoutOptions,
+  ): RenderedTabRow[] {
+    const rows: RenderedTabRow[] = []
+    const state = createModernLayoutState(options.paddingTop, options.tabInformationHeight)
+
+    if (measures.length === 0) {
+      modernLayoutState.set(layoutKey(trackId, voiceId), state)
+      syncModernLayoutToLegacy(trackId, voiceId, state)
+      return rows
+    }
+
+    let currentRowMeasures: RenderedTabRow['measures'] = []
+    let currentWidth = TAB_CONSTANTS.TAB_LABEL_WIDTH
+    let startBlockId = 0
+
+    for (let blockId = 0; blockId < measures.length; blockId++) {
+      const measure = measures[blockId]
+
+      let widthInfo: BlockWidthInfo | null = null
+      try {
+        Helper.groupMeasureBeats(trackId, blockId, voiceId)
+        widthInfo = Tab.computeWidthOfBlock(trackId, blockId, voiceId)
+      } catch {
+        console.warn(`Failed to compute width for measure ${blockId}, using default.`)
+      }
+
+      const measureWidth = widthInfo && Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
+        ? widthInfo.minWidth
+        : 200
+      const minOffset = widthInfo && Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
+        ? widthInfo.minOffset
+        : 40
+
+      if (currentWidth + measureWidth > options.availableWidth && currentRowMeasures.length > 0) {
+        const rowId = rows.length
+        const yOffset = options.headerHeight + rowId * options.rowHeight
+        state.rowLayouts[rowId] = { yOffset, height: options.rowHeight }
+        rows.push({
+          id: rowId,
+          measures: currentRowMeasures,
+          startBlockId,
+          endBlockId: blockId - 1,
+          yOffset,
+        })
+        currentRowMeasures = []
+        currentWidth = 0
+        startBlockId = blockId
+      }
+
+      const rowId = rows.length
+      state.blockLayouts[blockId] = {
+        xOffset: currentWidth,
+        rowId,
+        numInRow: currentRowMeasures.length,
+        width: measureWidth,
+        minOffset,
+      }
+
+      currentRowMeasures.push({
+        data: (measure?.[voiceId] || []) as TabBeat[],
+        width: measureWidth,
+      })
+      currentWidth += measureWidth
+    }
+
+    if (currentRowMeasures.length > 0) {
+      const rowId = rows.length
+      const yOffset = options.headerHeight + rowId * options.rowHeight
+      state.rowLayouts[rowId] = { yOffset, height: options.rowHeight }
+      rows.push({
+        id: rowId,
+        measures: currentRowMeasures,
+        startBlockId,
+        endBlockId: measures.length - 1,
+        yOffset,
+      })
+    }
+
+    state.numRows = rows.length
+    modernLayoutState.set(layoutKey(trackId, voiceId), state)
+    syncModernLayoutToLegacy(trackId, voiceId, state)
+
+    return rows
   },
 
-  computeBlockWidth(trackId: number, blockId: number, voiceId: number): BlockWidthInfo {
-    return Tab.computeWidthOfBlock(trackId, blockId, voiceId)
+  getModernLayout(trackId: number, voiceId: number): ModernTrackLayoutState | null {
+    return modernLayoutState.get(layoutKey(trackId, voiceId)) ?? null
   },
 
   changeNoteDuration(
@@ -69,57 +237,30 @@ const legacyEditorCore = {
     tab.changeNoteDuration(trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false)
   },
 
-  initializeModernRendererState(trackId: number, voiceId: number, paddingTop: number, tabInformationHeight: number) {
-    ensureRendererArrays(trackId, voiceId)
-    svgDrawer.trackCreated = true
-    svgDrawer.paddingTop = paddingTop
-    svgDrawer.tabInformationHeight = tabInformationHeight
-  },
-
-  setBlockLayout(
+  setNoteAtPosition(
     trackId: number,
-    voiceId: number,
     blockId: number,
-    xOffset: number,
-    rowId: number,
-    numInRow: number,
-    width: number,
-    minOffset: number,
+    voiceId: number,
+    beatIndex: number,
+    stringIndex: number,
+    fret: number,
+    numStrings: number,
   ) {
-    svgDrawer.blockToPage[blockId] = 0
-    if (!svgDrawer.blockToX[trackId][blockId]) svgDrawer.blockToX[trackId][blockId] = []
-    svgDrawer.blockToX[trackId][blockId][voiceId] = xOffset
+    const beat = legacyEditorCore.ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
 
-    tab.blockToRow[trackId][voiceId][blockId] = { rowId, numInRow }
-    tab.finalBlockWidths[trackId][voiceId][blockId] = width
+    beat.notes[stringIndex] = fret === -1
+      ? null
+      : {
+          ...legacyEditorCore.defaultNote(),
+          fret,
+          string: stringIndex,
+        }
 
-    if (!tab.measureOffset[trackId][blockId]) tab.measureOffset[trackId][blockId] = []
-    tab.measureOffset[trackId][blockId][voiceId] = minOffset
+    EventBus.emit('song-data-changed')
   },
 
-  markRowStartBlock(trackId: number, voiceId: number, blockId: number, rowId: number) {
-    if (svgDrawer.blockToX[trackId][blockId]) {
-      svgDrawer.blockToX[trackId][blockId][voiceId] = 0
-    }
-
-    if (tab.blockToRow[trackId][voiceId][blockId]) {
-      tab.blockToRow[trackId][voiceId][blockId].rowId = rowId
-      tab.blockToRow[trackId][voiceId][blockId].numInRow = 0
-    }
-  },
-
-  setRowLayout(trackId: number, voiceId: number, rowId: number, yOffset: number, rowHeight: number) {
-    svgDrawer.rowToY[trackId][voiceId][rowId] = yOffset
-    svgDrawer.heightOfRow[trackId][voiceId][rowId] = rowHeight
-  },
-
-  finalizeModernRendererState(rowCount: number) {
-    svgDrawer.numRows = rowCount
-    svgDrawer.numPages = 1
-  },
-
-  setPlayBackBarObjects(objects: SVGGElement[]) {
-    svgDrawer.playBackBarObjects = objects
+  setPlaybackBarObject(object: SVGGElement | null) {
+    svgDrawer.playBackBarObjects = object ? [object] : []
   },
 
   ensureBeatAtPosition(
