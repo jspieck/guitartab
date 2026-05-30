@@ -36,10 +36,10 @@
     </g>
     
     <!-- Selection indicator -->
-    <g v-if="selectedPosition" class="selection-indicator" style="pointer-events: none">
+    <g v-if="selectionRenderPoint" class="selection-indicator" style="pointer-events: none">
       <rect
-        :x="getSelectionX() - 10"
-        :y="getSelectionY() - 8"
+        :x="selectionRenderPoint.x - 10"
+        :y="selectionRenderPoint.y - 8"
         width="20"
         height="16"
         fill="rgba(74, 144, 226, 0.2)"
@@ -107,7 +107,14 @@ import type {
   TabMeasureMetaData,
   TabNoteData,
 } from '../../types/tab'
-import { getDisplayWidth, getPageMargins, TAB_CONSTANTS } from '../../utils/tabLayout'
+import {
+  clickToTabPosition,
+  getMeasureXOffset as getLayoutMeasureXOffset,
+  getSelectionRenderPoint,
+  getSvgPageMargins,
+  getSvgScreenPoint,
+  TAB_CONSTANTS,
+} from '../../utils/tabLayout'
 
 interface Props {
   rowData: RenderedTabRow
@@ -123,10 +130,8 @@ const props = withDefaults(defineProps<Props>(), {
   isFirstRow: false,
 })
 
-const { STRING_SPACING, MEASURE_WIDTH, TAB_LABEL_WIDTH, START_PADDING } = TAB_CONSTANTS
+const { STRING_SPACING } = TAB_CONSTANTS
 const stringSpacing = STRING_SPACING
-const measureWidth = MEASURE_WIDTH
-const tabLabelWidth = TAB_LABEL_WIDTH
 
 const {
   currentSelection,
@@ -134,6 +139,20 @@ const {
   showContextMenu,
   hideContextMenu,
 } = useTabSelection()
+
+const selectionRenderPoint = computed(() => {
+  if (!selectedPosition.value) {
+    return null
+  }
+
+  return getSelectionRenderPoint(
+    props.rowData,
+    selectedPosition.value,
+    props.isFirstRow,
+    stringSpacing,
+    getMeasureContentPadding,
+  )
+})
 
 const selectedPosition = computed<RendererSelectionPosition | null>({
   get() {
@@ -207,7 +226,7 @@ watch(() => currentSelection.value, (selection) => {
 }, { deep: true })
 
 function getSelectionScreenPos(): { x: number; y: number } | null {
-  if (!selectedPosition.value) {
+  if (!selectionRenderPoint.value) {
     return null
   }
 
@@ -216,42 +235,28 @@ function getSelectionScreenPos(): { x: number; y: number } | null {
     return null
   }
 
-  const point = svgElement.createSVGPoint()
-  const margins = getPageMargins()
-  point.x = getSelectionX() + margins.left
-  point.y = getSelectionY() + props.yOffset + margins.top
-
-  const ctm = svgElement.getScreenCTM()
-  if (!ctm) {
-    return null
-  }
-
-  const pos = point.matrixTransform(ctm)
-  return { x: pos.x, y: pos.y }
+  const margins = getSvgPageMargins(svgElement)
+  return getSvgScreenPoint(svgElement, {
+    x: selectionRenderPoint.value.x + margins.left,
+    y: selectionRenderPoint.value.y + props.yOffset + margins.top,
+  })
 }
 
 const numStrings = computed(() => legacyEditorCore.getTrackStringCount(props.trackId))
 
 const measureSeparators = computed(() => {
   const separators: Array<{ x: number }> = []
-  let currentX = props.isFirstRow ? tabLabelWidth : 0
-
-  separators.push({ x: currentX })
-
-  for (let index = 0; index < props.rowData.measures.length; index++) {
-    currentX += props.rowData.measures[index].width || measureWidth
-    separators.push({ x: currentX })
+  for (let index = 0; index <= props.rowData.measures.length; index++) {
+    separators.push({
+      x: getLayoutMeasureXOffset(props.rowData.measures, index, props.isFirstRow),
+    })
   }
 
   return separators
 })
 
 function getMeasureXOffset(measureIndex: number): number {
-  let offset = props.isFirstRow ? tabLabelWidth : 0
-  for (let index = 0; index < measureIndex; index++) {
-    offset += props.rowData.measures[index].width || measureWidth
-  }
-  return offset
+  return getLayoutMeasureXOffset(props.rowData.measures, measureIndex, props.isFirstRow)
 }
 
 function getMeasureMeta(blockId: number): TabMeasureMetaData {
@@ -280,100 +285,23 @@ function handleStringClick(event: MouseEvent, stringIndex: number): void {
     return
   }
 
-  const point = svgElement.createSVGPoint()
-  point.x = event.clientX
-  point.y = event.clientY
-
-  const ctm = svgElement.getScreenCTM()
-  if (!ctm) {
+  const targetPosition = clickToTabPosition(
+    event,
+    svgElement,
+    props.rowData,
+    props.isFirstRow,
+    getMeasureContentPadding,
+  )
+  if (!targetPosition) {
     return
   }
-
-  const transformedPoint = point.matrixTransform(ctm.inverse())
-  const adjustedX = transformedPoint.x - getPageMargins().left
-  const tabOffset = props.isFirstRow ? tabLabelWidth : 0
-  const relativeX = adjustedX - tabOffset
-
-  let currentX = 0
-  let measureIndex = -1
-  let measureRelativeX = 0
-
-  for (let index = 0; index < props.rowData.measures.length; index++) {
-    const width = props.rowData.measures[index].width || measureWidth
-    if (relativeX >= currentX && relativeX < currentX + width) {
-      measureIndex = index
-      measureRelativeX = relativeX - currentX
-      break
-    }
-    currentX += width
-  }
-
-  if (measureIndex === -1) {
-    return
-  }
-
-  const blockId = props.rowData.startBlockId + measureIndex
-  const padding = getMeasureContentPadding(blockId) + START_PADDING
-  const beatX = measureRelativeX - padding
-  const measureData = props.rowData.measures[measureIndex].data
-
-  let currentBeatX = 0
-  let foundBeatIndex = -1
-
-  for (let index = 0; index < measureData.length; index++) {
-    const width = getDisplayWidth(measureData[index]?.duration)
-    if (beatX >= currentBeatX && beatX < currentBeatX + width) {
-      foundBeatIndex = index
-      break
-    }
-    currentBeatX += width
-  }
-
-  if (foundBeatIndex === -1) {
-    foundBeatIndex = beatX < 0 ? 0 : measureData.length - 1
-  }
-
-  const beatIndex = Math.max(0, Math.min(foundBeatIndex, Math.max(0, measureData.length - 1)))
 
   selectedPosition.value = {
     stringIndex,
-    measureIndex,
-    beatIndex,
-    blockId,
+    measureIndex: targetPosition.measureIndex,
+    beatIndex: targetPosition.beatIndex,
+    blockId: targetPosition.blockId,
   }
-}
-
-function getSelectionX(): number {
-  if (!selectedPosition.value) {
-    return 0
-  }
-
-  const tabOffset = props.isFirstRow ? tabLabelWidth : 0
-  let measureX = 0
-
-  for (let index = 0; index < selectedPosition.value.measureIndex; index++) {
-    measureX += props.rowData.measures[index].width || measureWidth
-  }
-
-  const padding = getMeasureContentPadding(selectedPosition.value.blockId) + START_PADDING
-  let beatX = 0
-  const measureData = props.rowData.measures[selectedPosition.value.measureIndex].data
-
-  for (let index = 0; index < selectedPosition.value.beatIndex; index++) {
-    beatX += getDisplayWidth(measureData[index]?.duration)
-  }
-
-  beatX += getDisplayWidth(measureData[selectedPosition.value.beatIndex]?.duration) / 2
-
-  return tabOffset + measureX + padding + beatX
-}
-
-function getSelectionY(): number {
-  if (!selectedPosition.value) {
-    return 0
-  }
-
-  return selectedPosition.value.stringIndex * stringSpacing
 }
 </script>
 

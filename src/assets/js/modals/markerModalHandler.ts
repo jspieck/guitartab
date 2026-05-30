@@ -5,6 +5,7 @@ import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
 import { SequencerHandler } from '../sequencerHandler';
 import { MODALS } from './modalTypes';
+import { requestBlockRender } from '../../../services/legacy/renderCommands';
 
 interface MarkerModalState extends ModalState {
     markerData: Marker;
@@ -94,6 +95,6 @@ export class MarkerModalHandler extends BaseModalHandler {
         );
 
         SequencerHandler.setMarker(blockId);
-        svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+        requestBlockRender(trackId, blockId, voiceId);
     }
 } 

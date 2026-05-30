@@ -23,6 +23,7 @@ import { getBlockRenderLayout, getBlockRenderPageId, getRowRenderLayout } from '
 import { overlayHandler } from './overlayHandler';
 import EventBus from "./eventBus";
 import { typedEventBus } from '../../utils/typedEventBus';
+import { ensureLegacySongDataEventBridge } from '../../services/songDataEventBridge';
 import { ChordModalHandler } from './modals/chordModalHandler';
 import { MODALS } from './modals/modalTypes';
 import { ChordManagerModalHandler } from './modals/chordManagerModalHandler';
@@ -3137,13 +3138,10 @@ typedEventBus.on('navigation.moveMarker', (data) => {
 });
 
 // Also listen for chord diagram redraws from both event buses
+ensureLegacySongDataEventBridge();
+
 typedEventBus.on('song-data-changed', () => {
   // Redraw chord diagrams when song data changes
-  svgDrawer.redrawChordDiagrams();
-});
-
-// Listen on old EventBus too for legacy compatibility
-EventBus.on('song-data-changed', () => {
   svgDrawer.redrawChordDiagrams();
 });
 

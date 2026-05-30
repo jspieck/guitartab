@@ -67,6 +67,7 @@ import { registerSelectionSurface, resetSelectionSurfaceState } from '../src/com
 import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/useTabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
+import { useTabSelectionBridge } from '../src/composables/useTabSelectionBridge'
 import legacyEditorCore from '../src/services/legacy/editorCoreAdapter'
 import { typedEventBus } from '../src/utils/typedEventBus'
 
@@ -241,7 +242,8 @@ describe('useTabSelection', () => {
     legacyEditorCore.setNoteAtPosition(0, 0, 0, 0, 2, 9)
     Song.measures[0][0][0][0].duration = 'e'
 
-    const { currentSelection, selectedNote } = useTabSelection()
+    const { currentSelection, selectedNote, setSelection } = useTabSelection()
+    const unregisterBridge = useTabSelectionBridge(setSelection).registerNavigationSelectionBridge()
     const emitSpy = vi.spyOn(EventBus, 'emit')
 
     typedEventBus.emit('navigation.setClickedPos', {
@@ -277,5 +279,7 @@ describe('useTabSelection', () => {
     expect(playBackLogic.setPlayPosition).toHaveBeenCalledWith(0, 0, 0, 0)
     expect(selectedNote.value?.fret).toBe(9)
     expect(selectedNote.value?.duration).toBe('eighth')
+
+    unregisterBridge()
   })
 })

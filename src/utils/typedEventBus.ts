@@ -41,6 +41,7 @@ export type AppEvents = {
   'menu.activateEffectsForPos': TabPosition
   'menu.activateEffectsForMarkedPos': void
   'menu.activateEffectsForMarkedBeat': void
+  'menu.disableNoteEffectButtons': void
   'menu.activateEffectsForBlock': void
   'menu.activateEffectsForNote': TabNoteData
   'menu.activateEffectsForBeat': TabBeat
@@ -58,8 +59,6 @@ export type AppEvents = {
   
   // UI events
   'ui.zoomChanged': number
-  'ui.trackChanged': number
-  'ui.voiceChanged': number
   'ui.disablePageMode': void
   
   // Navigation events - for scrolling/clicking position in tab view

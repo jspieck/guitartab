@@ -1,6 +1,6 @@
 import Song, { type PlayBackInstrument, type Track as SongTrack } from '../../assets/js/songData'
 import EventBus from '../../assets/js/eventBus'
-import { typedEventBus } from '../../utils/typedEventBus'
+import { setCurrentTrack, setCurrentVoice } from '../../composables/useEditorScopeState'
 import type { TrackColor, TrackInstrumentSettings, TrackUpdate, TrackViewModel } from '../../types/track'
 
 const DEFAULT_TRACK_COLOR: TrackColor = { red: 255, green: 0, blue: 0 }
@@ -116,14 +116,14 @@ function getTrackViewModel(
 function selectTrack(trackId: number): void {
   if (trackId >= 0 && trackId < (Song.tracks?.length ?? 0)) {
     Song.currentTrackId = trackId
-    typedEventBus.emit('ui.trackChanged', trackId)
+    setCurrentTrack(trackId)
   }
 }
 
 function selectVoice(voiceId: number): void {
   if (voiceId >= 0 && voiceId < 4) {
     Song.currentVoiceId = voiceId
-    typedEventBus.emit('ui.voiceChanged', voiceId)
+    setCurrentVoice(voiceId)
   }
 }
 

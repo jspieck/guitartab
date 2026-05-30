@@ -4,6 +4,7 @@ import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { svgDrawer } from '../svgDrawer';
 import { MODALS } from './modalTypes';
+import { requestBlockRender } from '../../../services/legacy/renderCommands';
 
 interface TempoModalState extends ModalState {
     bpm: number;
@@ -112,7 +113,7 @@ export class TempoModalHandler extends BaseModalHandler {
         );
 
         if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-            svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+            requestBlockRender(trackId, blockId, voiceId);
         }
     }
 } 

@@ -3,6 +3,7 @@ import { Song } from '../songData';
 import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
+import { requestBlockRender } from '../../../services/legacy/renderCommands';
 
 export class RepeatModalHandler extends BaseModalHandler {
     private repititionData = {
@@ -92,7 +93,7 @@ export class RepeatModalHandler extends BaseModalHandler {
             );
         }
 
-        svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+        requestBlockRender(trackId, blockId, voiceId);
     }
 
     private calculateRepeatAlternative(): number {
@@ -132,7 +133,7 @@ export class RepeatModalHandler extends BaseModalHandler {
           revertHandler.addRepeatClose(trackId, blockId, repeatCloseBefore,
             Song.measureMeta[blockId].repeatClose, repeatClosePresentBefore,
             Song.measureMeta[blockId].repeatClosePresent);
-          svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+                    requestBlockRender(trackId, blockId, voiceId);
         };
     }
 } 

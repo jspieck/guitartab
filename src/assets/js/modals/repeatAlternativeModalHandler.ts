@@ -4,6 +4,7 @@ import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
 import { MODALS } from './modalTypes';
+import { requestBlockRender } from '../../../services/legacy/renderCommands';
 
 interface RepeatAlternativeState extends ModalState {
     trackId?: number;
@@ -81,7 +82,7 @@ export class RepeatAlternativeModalHandler extends BaseModalHandler {
             );
         }
 
-        svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+        requestBlockRender(trackId, blockId, voiceId);
     }
 
     private calculateRepeatAlternative(): number {

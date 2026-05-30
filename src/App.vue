@@ -63,26 +63,26 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref, computed } from 'vue'
+import { defineAsyncComponent, onMounted, ref } from 'vue'
 import Menu from './components/Menu.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
 import { useSongData } from './composables/useSongData'
+import { useEditorScopeState } from './composables/useEditorScopeState'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
 const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
 const Sequencer = defineAsyncComponent(() => import('./components/Sequencer.vue'))
 const ModalsContainer = defineAsyncComponent(() => import('./components/ModalsContainer.vue'))
 
-const { reactiveSongData } = useSongData()
+useSongData()
+const { currentTrackId, currentVoiceId } = useEditorScopeState()
 
-const currentTrackId = computed(() => reactiveSongData.currentTrackId)
-const currentVoiceId = computed(() => reactiveSongData.currentVoiceId)
+const mainContent = ref<HTMLElement | null>(null)
 const currentBlockId = ref(0)
 
 function focusMainContent() {
-  const mainContent = document.getElementById('mainContent')
-  mainContent?.focus()
+  mainContent.value?.focus()
 }
 
 onMounted(() => {

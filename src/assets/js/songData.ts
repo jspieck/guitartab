@@ -1,4 +1,5 @@
 import fastdom from 'fastdom';
+import { setTempoState } from '../../composables/useTempoState';
 
 interface Interval {
   trackId: number,
@@ -228,10 +229,7 @@ const Song = {
 
   setTempo(bpm: number) {
     fastdom.mutate(() => {
-      const tempoMeter = document.getElementById('tempoMeter');
-      if (tempoMeter != null) {
-        tempoMeter.textContent = bpm.toString();
-      }
+      setTempoState(bpm);
     });
     this.bpm = bpm;
   },
@@ -311,6 +309,8 @@ const Song = {
     this.chordsMap = [
       new Map<string, Chord>(),
     ];
+
+    this.setTempo(this.measureMeta[0].bpm);
   },
 
   initEmptyMeasure(trackId: number, blockId: number, voiceId: number) {

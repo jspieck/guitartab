@@ -2,7 +2,7 @@
  * Utility functions for calculating positions in the guitar tab layout
  */
 
-import type { RenderedMeasureData, RenderedTabRow, TabBeat } from '../types/tab'
+import type { RenderedMeasureData, RenderedTabRow, RendererSelectionPosition, TabBeat } from '../types/tab'
 import { getDurationBeats } from './durationUtils'
 
 /**
@@ -76,12 +76,12 @@ export function getBeatXOffset(
   beatIndex: number, 
   contentPadding: number = 0
 ): number {
-  let beats = 0
+  let xOffset = 0
   for (let i = 0; i < beatIndex; i++) {
     const beat = measureData[i]
-    beats += getDurationInBeats(beat?.duration || 'q')
+    xOffset += getDisplayWidth(beat?.duration)
   }
-  return contentPadding + TAB_CONSTANTS.START_PADDING + (beats * TAB_CONSTANTS.BEAT_WIDTH)
+  return contentPadding + TAB_CONSTANTS.START_PADDING + xOffset
 }
 
 /**
@@ -120,8 +120,7 @@ export function findBeatAtPosition(
   
   for (let i = 0; i < measureData.length; i++) {
     const beat = measureData[i]
-    const duration = getDurationInBeats(beat?.duration || 'q')
-    const width = duration * TAB_CONSTANTS.BEAT_WIDTH
+    const width = getDisplayWidth(beat?.duration)
     
     if (beatX >= currentBeatX && beatX < currentBeatX + width) {
       return i
@@ -135,6 +134,60 @@ export function findBeatAtPosition(
   return Math.max(0, measureData.length - 1)
 }
 
+function getSvgViewportSize(svgElement: SVGSVGElement): { width: number; height: number } {
+  const viewBoxWidth = svgElement.viewBox?.baseVal?.width
+  const viewBoxHeight = svgElement.viewBox?.baseVal?.height
+  const width = viewBoxWidth || svgElement.width?.baseVal?.value || TAB_CONSTANTS.PAGE_WIDTH
+  const height = viewBoxHeight || svgElement.height?.baseVal?.value || TAB_CONSTANTS.PAGE_HEIGHT
+
+  return { width, height }
+}
+
+export function getSvgPageMargins(svgElement: SVGSVGElement) {
+  const { width, height } = getSvgViewportSize(svgElement)
+  return getPageMargins(width, height)
+}
+
+export function getSvgLocalPoint(
+  event: Pick<MouseEvent, 'clientX' | 'clientY'>,
+  svgElement: SVGSVGElement,
+): { x: number; y: number } | null {
+  const ctm = svgElement.getScreenCTM()
+  if (!ctm) {
+    return null
+  }
+
+  const point = svgElement.createSVGPoint()
+  point.x = event.clientX
+  point.y = event.clientY
+
+  const transformedPoint = point.matrixTransform(ctm.inverse())
+  return {
+    x: transformedPoint.x,
+    y: transformedPoint.y,
+  }
+}
+
+export function getSvgScreenPoint(
+  svgElement: SVGSVGElement,
+  point: { x: number; y: number },
+): { x: number; y: number } | null {
+  const ctm = svgElement.getScreenCTM()
+  if (!ctm) {
+    return null
+  }
+
+  const svgPoint = svgElement.createSVGPoint()
+  svgPoint.x = point.x
+  svgPoint.y = point.y
+
+  const transformedPoint = svgPoint.matrixTransform(ctm)
+  return {
+    x: transformedPoint.x,
+    y: transformedPoint.y,
+  }
+}
+
 /**
  * Convert SVG click coordinates to tab position
  */
@@ -145,15 +198,13 @@ export function clickToTabPosition(
   isFirstRow: boolean,
   getMeasureContentPadding: (blockId: number) => number
 ): { measureIndex: number; blockId: number; beatIndex: number } | null {
-  // Get SVG coordinates
-  const svgRect = svgElement.getBoundingClientRect()
-  const svgPoint = svgElement.createSVGPoint()
-  svgPoint.x = event.clientX
-  svgPoint.y = event.clientY
-  const transformedPoint = svgPoint.matrixTransform(svgElement.getScreenCTM()?.inverse())
+  const transformedPoint = getSvgLocalPoint(event, svgElement)
+  if (!transformedPoint) {
+    return null
+  }
   
   // Adjust for padding
-  const paddingLeft = svgRect.width * (1 / 21)
+  const paddingLeft = getSvgPageMargins(svgElement).left
   const adjustedX = transformedPoint.x - paddingLeft
   
   // Calculate relative X after TAB label offset
@@ -174,4 +225,29 @@ export function clickToTabPosition(
   const beatIndex = findBeatAtPosition(measureData, beatX)
   
   return { measureIndex, blockId, beatIndex }
+}
+
+export function getSelectionRenderPoint(
+  rowData: Pick<RenderedTabRow, 'measures' | 'startBlockId'>,
+  selection: RendererSelectionPosition,
+  isFirstRow: boolean,
+  stringSpacing: number,
+  getMeasureContentPadding: (blockId: number) => number,
+): { x: number; y: number } | null {
+  const measure = rowData.measures[selection.measureIndex]
+  if (!measure || !measure.data?.[selection.beatIndex]) {
+    return null
+  }
+
+  const measureX = getMeasureXOffset(rowData.measures, selection.measureIndex, isFirstRow)
+  const beatX = getBeatXOffset(
+    measure.data,
+    selection.beatIndex,
+    getMeasureContentPadding(selection.blockId),
+  )
+
+  return {
+    x: measureX + beatX + getDisplayWidth(measure.data[selection.beatIndex]?.duration) / 2,
+    y: selection.stringIndex * stringSpacing,
+  }
 }

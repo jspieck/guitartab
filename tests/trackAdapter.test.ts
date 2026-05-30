@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Song, { type PlayBackInstrument, type Track } from '../src/assets/js/songData'
+import { resetEditorScopeState, useEditorScopeState } from '../src/composables/useEditorScopeState'
 import { legacyTrackAdapter, resizeTrackTuning, trackToViewModel } from '../src/services/legacy/trackAdapter'
-import { typedEventBus } from '../src/utils/typedEventBus'
 
 function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -55,6 +55,7 @@ beforeEach(() => {
   Song.playBackInstrument = [createPlayback()]
   Song.currentTrackId = 0
   Song.currentVoiceId = 0
+  resetEditorScopeState()
 })
 
 afterEach(() => {
@@ -62,7 +63,7 @@ afterEach(() => {
   Song.playBackInstrument = originalPlayback
   Song.currentTrackId = originalCurrentTrackId
   Song.currentVoiceId = originalCurrentVoiceId
-  typedEventBus.clearAll()
+  resetEditorScopeState()
 })
 
 describe('trackAdapter helpers', () => {
@@ -106,19 +107,15 @@ describe('legacyTrackAdapter', () => {
     expect(Song.playBackInstrument[0].solo).toBe(true)
   })
 
-  it('updates current track and voice through the typed event path', () => {
-    const trackHandler = vi.fn()
-    const voiceHandler = vi.fn()
-
-    typedEventBus.on('ui.trackChanged', trackHandler)
-    typedEventBus.on('ui.voiceChanged', voiceHandler)
+  it('updates current track and voice through explicit reactive scope state', () => {
+    const { editorScopeState } = useEditorScopeState()
 
     legacyTrackAdapter.selectTrack(0)
     legacyTrackAdapter.selectVoice(2)
 
     expect(Song.currentTrackId).toBe(0)
     expect(Song.currentVoiceId).toBe(2)
-    expect(trackHandler).toHaveBeenCalledWith(0)
-    expect(voiceHandler).toHaveBeenCalledWith(2)
+    expect(editorScopeState.currentTrackId).toBe(0)
+    expect(editorScopeState.currentVoiceId).toBe(2)
   })
 })

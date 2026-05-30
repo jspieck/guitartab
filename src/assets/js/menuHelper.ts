@@ -6,6 +6,7 @@ import { revertHandler } from "./revertHandler";
 import classicalNotation from "../../services/legacy/classicalNotationAdapter";
 import EventBus from "./eventBus";
 import { MODALS } from "./modals/modalTypes";
+import { requestBlockRender } from "../../services/legacy/renderCommands";
 
 const effectGroups = [
   ['pullDown', 'slide', 'bend', 'trill', 'tremoloPicking', 'tremoloBar', 'dead'],
@@ -248,7 +249,7 @@ function processEffectSelect(
           );
       }
       for (const blockId of arr.blocks) {
-          svgDrawer.rerenderBlock(Song.currentTrackId, blockId, Song.currentVoiceId);
+          requestBlockRender(Song.currentTrackId, blockId, Song.currentVoiceId);
       }
   }
 }

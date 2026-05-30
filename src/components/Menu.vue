@@ -11,57 +11,57 @@
             <button id="oneMeasureForward" @click="playBackJump(false)" class="voiceButton playChange"><img id="oneMeasureForwardImg"
                     src="../assets/images/statusBar/forward.svg" /></button>
             <div id="barButtons">
-                <div v-for="button in barDict" @click="menuHandler.selectBar(button.id)" :key="button.id" :id="`barButton${button.id}`" :class="button.class">{{ button.label }}</div>
+                <div v-for="button in barDict" @click="selectBar(button.id)" :key="button.id" :id="`barButton${button.id}`" :class="tabBarButtonClass(button.id)">{{ button.label }}</div>
             </div>
         </div>
         <div class="bottomStatusBar">
             <button id="stopButton" @click="playBackLogic.stopSong()" class="checkBoxNote"></button>
-            <button id="recordButton" @click="recordButtonPressed()" class="checkBoxNote"></button>
+            <button id="recordButton" @click="recordButtonPressed()" class="checkBoxNote" :class="{ prepareRecording: isPreparingRecording }"></button>
             <div id="statusBars">
-                <div id="statusBar1" class="statusBar statusBarSelected">
+                <div id="statusBar1" :class="statusBarClass(1)">
                     <div class="checkBoxBar">
-                        <button @click="menuHandler.noteLengthSelect('wholeNote', 'w')" id="wholeNote" data-tooltip="Whole"
-                            class="checkBoxNote"><img id="wholeNoteImg" src="../assets/images/notes/wholeNote.svg" /></button>
-                        <button @click="menuHandler.noteLengthSelect('halfNote', 'h')" id="halfNote" data-tooltip="Half"
-                            class="checkBoxNote"><img id="halfNoteImg" width="15" height="25"
+                        <button @click="selectNoteLength('w')" id="wholeNote" data-tooltip="Whole"
+                            v-bind="menuButtonBindings('wholeNote')"><img id="wholeNoteImg" src="../assets/images/notes/wholeNote.svg" /></button>
+                        <button @click="selectNoteLength('h')" id="halfNote" data-tooltip="Half"
+                            v-bind="menuButtonBindings('halfNote')"><img id="halfNoteImg" width="15" height="25"
                                 src="../assets/images/notes/halfNote.svg" /></button>
-                        <button @click="menuHandler.noteLengthSelect('quarterNote', 'q')" id="quarterNote" data-tooltip="Quarter"
-                            class="checkBoxNote"><img id="quarterNoteImg" width="15" height="25"
+                        <button @click="selectNoteLength('q')" id="quarterNote" data-tooltip="Quarter"
+                            v-bind="menuButtonBindings('quarterNote')"><img id="quarterNoteImg" width="15" height="25"
                                 src="../assets/images/notes/quarterNote.svg" /></button>
-                        <button @click="menuHandler.noteLengthSelect('8thNote', 'e')" id="8thNote" data-tooltip="Eighth"
-                            class="checkBoxNote pressed"><img id="8thNoteImg" class="noteImg"
+                        <button @click="selectNoteLength('e')" id="8thNote" data-tooltip="Eighth"
+                            v-bind="menuButtonBindings('8thNote')"><img id="8thNoteImg" class="noteImg"
                                 src="../assets/images/notes/eighthNote.svg" /></button>
-                        <button @click="menuHandler.noteLengthSelect('16thNote', 's')" id="16thNote" data-tooltip="16th"
-                            class="checkBoxNote"><img id="16thNoteImg" class="noteImg"
+                        <button @click="selectNoteLength('s')" id="16thNote" data-tooltip="16th"
+                            v-bind="menuButtonBindings('16thNote')"><img id="16thNoteImg" class="noteImg"
                                 src="../assets/images/notes/16thNote.svg" /></button>
-                        <button @click="menuHandler.noteLengthSelect('32ndNote', 't')" id="32ndNote" data-tooltip="32nd"
-                            class="checkBoxNote"><img id="32ndNoteImg" class="noteImg"
+                        <button @click="selectNoteLength('t')" id="32ndNote" data-tooltip="32nd"
+                            v-bind="menuButtonBindings('32ndNote')"><img id="32ndNoteImg" class="noteImg"
                                 src="../assets/images/notes/32ndNote.svg" /></button>
-                        <button @click="menuHandler.noteLengthSelect('64thNote', 'z')" id="64thNote" data-tooltip="64th"
-                            class="checkBoxNote"><img id="64thNoteImg" class="noteImg"
+                        <button @click="selectNoteLength('z')" id="64thNote" data-tooltip="64th"
+                            v-bind="menuButtonBindings('64thNote')"><img id="64thNoteImg" class="noteImg"
                                 src="../assets/images/notes/64thNote.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
                         
-                        <button id="dotted" @click="noteLengthSpecialSelect('dotted')" data-tooltip="Dotted" class="checkBoxNote"><img id="dottedImg"
+                        <button id="dotted" @click="noteLengthSpecialSelect('dotted')" data-tooltip="Dotted" v-bind="menuButtonBindings('dotted')"><img id="dottedImg"
                                 src="../assets/images/articulations/dotted.svg" /></button>
-                        <button id="doubleDotted" @click="noteLengthSpecialSelect('doubleDotted')" data-tooltip="Double Dotted" class="checkBoxNote"><img
+                        <button id="doubleDotted" @click="noteLengthSpecialSelect('doubleDotted')" data-tooltip="Double Dotted" v-bind="menuButtonBindings('doubleDotted')"><img
                                 id="doubleDottedImg" src="../assets/images/articulations/doubleDotted.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
                         <div class="checkBoxDov">
-                            <button id="tuplet" @click="noteLengthSpecialSelect('tuplet')" class="checkBoxNote"><img id="tupletImg"
+                            <button id="tuplet" @click="noteLengthSpecialSelect('tuplet')" v-bind="menuButtonBindings('tuplet')"><img id="tupletImg"
                                     src="../assets/images/articulations/tuplet.svg" /></button>
-                            <select id="tupletDropDown">
-                                <option v-for="num in [3, 5, 6, 7, 9, 11]" :value="num">{{ num }}</option>
+                            <select id="tupletDropDown" v-model="selectedTuplet">
+                                <option v-for="num in availableTuplets" :key="num" :value="num.toString()">{{ num }}</option>
                             </select>
                         </div>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="tied" @click="noteLengthSpecialSelect('tied')" data-tooltip="Tied" class="checkBoxNote"><img id="tiedImg"
+                        <button id="tied" @click="noteLengthSpecialSelect('tied')" data-tooltip="Tied" v-bind="menuButtonBindings('tied')"><img id="tiedImg"
                                 src="../assets/images/articulations/tied.svg" /></button>
 
                         <button id="info" @click="modalManager.toggleByModal(MODALS.INFO)" class="checkBoxNote playButton"><img id="infoImg"
@@ -90,106 +90,106 @@
                         </div>-->
                     </div>
                 </div>
-                <div id="statusBar2" class="statusBar">
+                <div id="statusBar2" :class="statusBarClass(2)">
                     <div class="checkBoxBar">
-                        <button id="pullDown" @click="noteEffectSelect('pullDown')" data-tooltip="HammerOn/PullDown" class="checkBoxNote"><img id="pullDownImg"
+                    <button id="pullDown" @click="noteEffectSelect('pullDown')" data-tooltip="HammerOn/PullDown" v-bind="menuButtonBindings('pullDown')"><img id="pullDownImg"
                                 src="../assets/images/articulations/hammerOn.svg" /></button>
-                        <button id="slide" @click="noteEffectSelect('slide')" data-tooltip="Slide" class="checkBoxNote"><img id="slideImg"
+                    <button id="slide" @click="noteEffectSelect('slide')" data-tooltip="Slide" v-bind="menuButtonBindings('slide')"><img id="slideImg"
                                 src="../assets/images/articulations/Slide.svg" /></button>
-                        <button id="bend" @click="noteEffectSelect('bend')" data-tooltip="Bend" class="checkBoxNote"><img id="bendImg"
+                    <button id="bend" @click="noteEffectSelect('bend')" data-tooltip="Bend" v-bind="menuButtonBindings('bend')"><img id="bendImg"
                                 src="../assets/images/articulations/bend.svg" /></button>
-                        <button id="trill" @click="noteEffectSelect('trill')" data-tooltip="Trill" class="checkBoxNote"><img id="trillImg"
+                    <button id="trill" @click="noteEffectSelect('trill')" data-tooltip="Trill" v-bind="menuButtonBindings('trill')"><img id="trillImg"
                                 src="../assets/images/articulations/Triller.svg" /></button>
-                        <button id="tremoloPicking" @click="noteEffectSelect('tremoloPicking')" data-tooltip="Tremolo Picking" class="checkBoxNote"><img
+                    <button id="tremoloPicking" @click="noteEffectSelect('tremoloPicking')" data-tooltip="Tremolo Picking" v-bind="menuButtonBindings('tremoloPicking')"><img
                                 id="tremoloPickingImg" src="../assets/images/articulations/tremoloPicking.svg" /></button>
-                        <button id="tremoloBar" @click="noteEffectSelect('tremoloBar')" data-tooltip="Tremolo Bar" class="checkBoxNote"><img id="tremoloBarImg"
+                    <button id="tremoloBar" @click="noteEffectSelect('tremoloBar')" data-tooltip="Tremolo Bar" v-bind="menuButtonBindings('tremoloBar')"><img id="tremoloBarImg"
                                 src="../assets/images/articulations/tremoloBar.svg" /></button>
-                        <button id="dead" @click="noteEffectSelect('dead')" data-tooltip="Dead Note" class="checkBoxNote"><img id="deadImg"
+                    <button id="dead" @click="noteEffectSelect('dead')" data-tooltip="Dead Note" v-bind="menuButtonBindings('dead')"><img id="deadImg"
                                 src="../assets/images/articulations/dead.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="stacatto" @click="noteEffectSelect('stacatto')" data-tooltip="Stacatto" class="checkBoxNote"><img id="stacattoImg"
+                        <button id="stacatto" @click="noteEffectSelect('stacatto')" data-tooltip="Stacatto" v-bind="menuButtonBindings('stacatto')"><img id="stacattoImg"
                                 src="../assets/images/articulations/Stacatto.svg" /></button>
-                        <button id="palmMute" @click="noteEffectSelect('palmMute')" data-tooltip="Palm Mute" class="checkBoxNote"><img id="palmMuteImg"
+                        <button id="palmMute" @click="noteEffectSelect('palmMute')" data-tooltip="Palm Mute" v-bind="menuButtonBindings('palmMute')"><img id="palmMuteImg"
                                 src="../assets/images/articulations/PalmMute.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="tap" @click="noteEffectSelect('tap')" data-tooltip="Tap" class="checkBoxNote">T</button>
-                        <button id="slap" @click="noteEffectSelect('slap')" data-tooltip="Slap" class="checkBoxNote">S</button>
-                        <button id="pop" @click="noteEffectSelect('pop')" data-tooltip="Pop" class="checkBoxNote">P</button>
+                        <button id="tap" @click="noteEffectSelect('tap')" data-tooltip="Tap" v-bind="menuButtonBindings('tap')">T</button>
+                        <button id="slap" @click="noteEffectSelect('slap')" data-tooltip="Slap" v-bind="menuButtonBindings('slap')">S</button>
+                        <button id="pop" @click="noteEffectSelect('pop')" data-tooltip="Pop" v-bind="menuButtonBindings('pop')">P</button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="fadeIn" @click="noteEffectSelect('fadeIn')" data-tooltip="Fade-In" class="checkBoxNote"><img id="fadeInImg"
+                        <button id="fadeIn" @click="noteEffectSelect('fadeIn')" data-tooltip="Fade-In" v-bind="menuButtonBindings('fadeIn')"><img id="fadeInImg"
                                 src="../assets/images/articulations/fadeIn.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="vibrato" @click="noteEffectSelect('vibrato')" data-tooltip="Vibrato" class="checkBoxNote"><img id="vibratoImg"
+                        <button id="vibrato" @click="noteEffectSelect('vibrato')" data-tooltip="Vibrato" v-bind="menuButtonBindings('vibrato')"><img id="vibratoImg"
                                 src="../assets/images/articulations/vibrato.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="grace" @click="noteEffectSelect('grace')" data-tooltip="Grace" class="checkBoxNote"><img id="graceImg"
+                        <button id="grace" @click="noteEffectSelect('grace')" data-tooltip="Grace" v-bind="menuButtonBindings('grace')"><img id="graceImg"
                                 src="../assets/images/articulations/grace.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="artificial" @click="noteEffectSelect('artificial')" data-tooltip="Harmonics" class="checkBoxNote"><img id="artificialImg"
+                        <button id="artificial" @click="noteEffectSelect('artificial')" data-tooltip="Harmonics" v-bind="menuButtonBindings('artificial')"><img id="artificialImg"
                                 src="../assets/images/articulations/artificial.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="ghost" @click="noteEffectSelect('ghost')" data-tooltip="Ghost Note" class="checkBoxNote"><img id="ghostNoteImg"
+                        <button id="ghost" @click="noteEffectSelect('ghost')" data-tooltip="Ghost Note" v-bind="menuButtonBindings('ghost')"><img id="ghostNoteImg"
                                 src="../assets/images/articulations/brackets.svg" /></button>
-                        <button id="accentuated" @click="noteEffectSelect('accentuated')" data-tooltip="Accentuated" class="checkBoxNote"><img id="accentuatedImg"
+                        <button id="accentuated" @click="noteEffectSelect('accentuated')" data-tooltip="Accentuated" v-bind="menuButtonBindings('accentuated')"><img id="accentuatedImg"
                                 src="../assets/images/articulations/Accentuated.svg" /></button>
-                        <button id="heavyAccentuated" @click="noteEffectSelect('heavyAccentuated')" data-tooltip="Heavy Accentuated" class="checkBoxNote"><img
+                        <button id="heavyAccentuated" @click="noteEffectSelect('heavyAccentuated')" data-tooltip="Heavy Accentuated" v-bind="menuButtonBindings('heavyAccentuated')"><img
                                 id="heavyAccentuatedImg" src="../assets/images/articulations/heavyAccentuated.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="stroke" @click="noteEffectSelect('stroke')" data-tooltip="Stroke" class="checkBoxNote"><img id="strokeImg"
+                        <button id="stroke" @click="noteEffectSelect('stroke')" data-tooltip="Stroke" v-bind="menuButtonBindings('stroke')"><img id="strokeImg"
                                 src="../assets/images/articulations/stroke.svg" /></button>
                         <div class="or-spacer-vertical left">
                             <div class="inner"></div>
                         </div>
-                        <button id="letRing" @click="noteEffectSelect('letRing')" data-tooltip="Let Ring" class="checkBoxNote"><img id="letRingImg"
+                        <button id="letRing" @click="noteEffectSelect('letRing')" data-tooltip="Let Ring" v-bind="menuButtonBindings('letRing')"><img id="letRingImg"
                                 src="../assets/images/articulations/letRing.svg" /></button>
                     </div>
                 </div>
-                <div id="statusBar3" class="statusBar">
+                    <div id="statusBar3" :class="statusBarClass(3)">
                     <div class="checkBoxBar">
-                        <button v-for="note in dynamicNotes" @click="dynamicSelect(note.id)" :key="note.id" :id="note.id" :data-tooltip="note.tooltip" :class="note.class">{{ note.label }}</button>
+                        <button v-for="note in dynamicNotes" @click="dynamicSelect(note.id)" :key="note.id" :id="note.id" :data-tooltip="note.tooltip" v-bind="menuButtonBindings(note.id, ['checkBoxNote', 'dynamicNote'])">{{ note.label }}</button>
                     </div>
                 </div>
-                <div id="statusBar4" class="statusBar">
+                    <div id="statusBar4" :class="statusBarClass(4)">
                     <div class="checkBoxBar">
-                        <button id="timeMeter" @click="notationSelect('timeMeter')" data-tooltip="Time Meter" class="checkBoxNote"><img id="timeMeterImg"
+                        <button id="timeMeter" @click="notationSelect('timeMeter')" data-tooltip="Time Meter" v-bind="menuButtonBindings('timeMeter')"><img id="timeMeterImg"
                                 src="../assets/images/statusBar/denom.svg" /></button>
-                        <button id="bpmMeter" @click="notationSelect('bpmMeter')" data-tooltip="BPM" class="checkBoxNote"><img id="bpmMeterImg"
+                        <button id="bpmMeter" @click="notationSelect('bpmMeter')" data-tooltip="BPM" v-bind="menuButtonBindings('bpmMeter')"><img id="bpmMeterImg"
                                 src="../assets/images/statusBar/bpmMeter.svg" /></button>
                         <button id="addMeasure" @click="tab.addBlock(false)" data-tooltip="Add Measure" class="checkBoxNote"><img id="addMeasureImg"
                                 src="../assets/images/statusBar/addMeasure.svg" /></button>
                         <button id="removeMeasure" @click="tab.removeBlock(false)" data-tooltip="Remove Measure" class="checkBoxNote"><img
                                 id="removeMeasureImg" src="../assets/images/statusBar/removeMeasure.svg" /></button>
-                        <button id="openBar" @click="measureSelect('openBar')" data-tooltip="Add Open Bar" class="checkBoxNote"><img id="openBarImg"
+                        <button id="openBar" @click="measureSelect('openBar')" data-tooltip="Add Open Bar" v-bind="menuButtonBindings('openBar')"><img id="openBarImg"
                                 src="../assets/images/statusBar/openBar.svg" /></button>
-                        <button id="closeBar" @click="notationSelect('closeBar')" data-tooltip="Add Close Bar" class="checkBoxNote"><img id="closeBarImg"
+                        <button id="closeBar" @click="notationSelect('closeBar')" data-tooltip="Add Close Bar" v-bind="menuButtonBindings('closeBar')"><img id="closeBarImg"
                                 src="../assets/images/statusBar/closeBar.svg" /></button>
-                        <button id="repeatAlternative" @click="notationSelect('repeatAlternative')" data-tooltip="Add Repeat Alternative" class="checkBoxNote"><img
+                        <button id="repeatAlternative" @click="notationSelect('repeatAlternative')" data-tooltip="Add Repeat Alternative" v-bind="menuButtonBindings('repeatAlternative')"><img
                                 id="repeatAlternativeImg" src="../assets/images/statusBar/repeatAlternative.svg" /></button>
                     </div>
                 </div>
-                <div id="statusBar5" class="statusBar">
+                    <div id="statusBar5" :class="statusBarClass(5)">
                     <div class="checkBoxBar">
-                        <button id="addChord" @click="notationSelect('addChord')" data-tooltip="Add Chord" class="checkBoxNote"><img id="addChordImg"
+                        <button id="addChord" @click="notationSelect('addChord')" data-tooltip="Add Chord" v-bind="menuButtonBindings('addChord')"><img id="addChordImg"
                                 src="../assets/images/statusBar/chord.svg" /></button>
-                        <button id="addText" @click="notationSelect('addText')" data-tooltip="Add Text" class="checkBoxNote"><img id="addTextImg"
+                        <button id="addText" @click="notationSelect('addText')" data-tooltip="Add Text" v-bind="menuButtonBindings('addText')"><img id="addTextImg"
                                 src="../assets/images/statusBar/text.svg" /></button>
-                        <button id="addMarker" @click="notationSelect('addMarker')" data-tooltip="Add Marker" class="checkBoxNote"><img id="addMarkerImg"
+                        <button id="addMarker" @click="notationSelect('addMarker')" data-tooltip="Add Marker" v-bind="menuButtonBindings('addMarker')"><img id="addMarkerImg"
                                 src="../assets/images/statusBar/marker.svg" /></button>
                     </div>
                 </div>
@@ -198,11 +198,11 @@
     </div>
     <div id="sideBarButtons">
         <label class="bpmSidebarLabel">BPM</label>
-        <div id="tempoMeter" @mousedown="(e: MouseEvent) => { changeTempoFunc(e) }" class="disable-select">90</div>
+        <div id="tempoMeter" @mousedown="(e: MouseEvent) => { changeTempoFunc(e) }" class="disable-select">{{ currentTempo }}</div>
         <button id="classicalToggleButton" @click="classicalNotation.toggleClassicalVisibility()" data-tooltip="Piano Note View" class="classicalButton"><img id="classicalToggle"
                 src="../assets/images/classicalToggle.svg" /></button>
         <button data-tooltip="Chords Menu" class="classicalButton">
-            <img id="chordSection" @click="modalManager.toggleByModal(MODALS.CHORD_MANAGER, {trackId: Song.currentTrackId})" class="classicalButton"
+            <img id="chordSection" @click="modalManager.toggleByModal(MODALS.CHORD_MANAGER, {trackId: currentTrackId})" class="classicalButton"
                 src="../assets/images/chordSection.svg" />
         </button>
         <button id="zoomIn" @click="tab.scaleCompleteTab(true)" data-tooltip="Zoom In" class="classicalButton"><img id="zoomInImg"
@@ -220,8 +220,8 @@
         </button>
 
         <label id="voiceLabel">Voice</label>
-        <button id="voice0" @click="menuHandler.selectVoice(0)" class="voiceButton voiceSelected">1</button>
-        <button id="voice1" @click="menuHandler.selectVoice(1)" class="voiceButton">2</button>
+        <button id="voice0" @click="selectVoice(0)" :class="voiceButtonClass(0)">1</button>
+        <button id="voice1" @click="selectVoice(1)" :class="voiceButtonClass(1)">2</button>
         <!--<div id="pageLayoutToggle"></div>-->
     </div>
     <div id="trackCapsule">
@@ -243,19 +243,165 @@ import { tab, Tab } from '../assets/js/tab';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import AppManager from '../assets/js/appManager';
 import { classicalNotation } from '../services/legacy/classicalNotationAdapter';
+import { ensureLegacyMenuEventBridge } from '../services/menuEventBridge';
 import { SequencerHandler } from '../assets/js/sequencerHandler';
 import { overlayHandler } from '../assets/js/overlayHandler';
-import { onMounted, onBeforeUnmount, ref } from 'vue';
-import EventBus from "../assets/js/eventBus";
+import { onMounted, onBeforeUnmount, reactive, ref } from 'vue';
 import { menuHandler } from '../assets/js/menuHandler';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
-import type { Handler } from 'mitt';
-import type { TabPosition } from '../utils/typedEventBus';
-import type { Note, Measure } from '../types/tab';
+import type { Note, Measure, NoteLengthCode, TabPosition } from '../types/tab';
+import { useEditorScopeState } from '../composables/useEditorScopeState';
+import { setTempoState, useTempoState } from '../composables/useTempoState';
+import {
+    DEFAULT_TUPLET_OPTIONS,
+    MENU_EFFECT_GROUPS,
+    MENU_NOTE_EFFECT_BUTTON_IDS,
+    deriveMenuSelectionState,
+} from '../utils/menuUiState';
 
 // File input ref for opening files
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const isPreparingRecording = ref(false);
+const selectedTuplet = ref('3');
+const selectedBarId = ref(1);
+const availableTuplets = ref([...DEFAULT_TUPLET_OPTIONS]);
+const pressedButtons = reactive<Record<string, boolean>>({
+    '8thNote': true,
+});
+const disabledButtons = reactive<Record<string, boolean>>({});
+const { currentTrackId, currentVoiceId } = useEditorScopeState();
+const { currentTempo } = useTempoState();
+
+function setFlagMap(target: Record<string, boolean>, activeIds: string[]) {
+    Object.keys(target).forEach((key) => {
+        delete target[key];
+    });
+
+    activeIds.forEach((id) => {
+        target[id] = true;
+    });
+}
+
+function isMenuButtonPressed(id: string) {
+    return pressedButtons[id] === true;
+}
+
+function isMenuButtonDisabled(id: string) {
+    return disabledButtons[id] === true;
+}
+
+function menuButtonBindings(id: string, baseClasses: string | string[] = 'checkBoxNote') {
+    const classes = Array.isArray(baseClasses) ? baseClasses : [baseClasses];
+
+    return {
+        class: [...classes, { pressed: isMenuButtonPressed(id) }],
+        disabled: isMenuButtonDisabled(id),
+    };
+}
+
+function tabBarButtonClass(id: number) {
+    return ['tabBarElem', { tabBarElemSelected: selectedBarId.value === id }];
+}
+
+function statusBarClass(id: number) {
+    return ['statusBar', { statusBarSelected: selectedBarId.value === id }];
+}
+
+function voiceButtonClass(voiceId: number) {
+    return ['voiceButton', { voiceSelected: currentVoiceId.value === voiceId }];
+}
+
+function checkForNoteToTie(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatId: number,
+    string: number,
+) {
+    let noteToTie = null;
+    for (let i = blockId; i >= 0; i -= 1) {
+        const startBeatId = i === blockId
+            ? beatId - 1
+            : Song.measures[trackId][i][voiceId].length - 1;
+        for (let j = startBeatId; j >= 0; j -= 1) {
+            const { notes } = Song.measures[trackId][i][voiceId][j];
+            if (notes?.[string] != null) {
+                noteToTie = { blockId: i, beatId: j };
+                break;
+            }
+        }
+        if (noteToTie != null) {
+            break;
+        }
+    }
+
+    return noteToTie;
+}
+
+function syncMenuStateForPosition(position: TabPosition) {
+    const { trackId, blockId, voiceId, beatId, string } = position;
+    const beat = Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatId];
+    const measureMeta = Song.measureMeta?.[blockId];
+    if (!beat || !measureMeta) {
+        return;
+    }
+
+    const note = beat.notes?.[string] ?? null;
+    noteTiedTo = note?.tied ? note.tiedTo : checkForNoteToTie(trackId, blockId, voiceId, beatId, string);
+
+    const derivedState = deriveMenuSelectionState(beat, note, measureMeta, {
+        canTie: note?.tied === true || noteTiedTo != null,
+        hasOverlaySelection: overlayHandler.isNoteSelected(),
+    });
+
+    setFlagMap(pressedButtons, derivedState.pressedButtonIds);
+    setFlagMap(disabledButtons, derivedState.disabledButtonIds);
+    availableTuplets.value = derivedState.availableTuplets;
+    selectedTuplet.value = derivedState.selectedTuplet;
+    AppManager.typeOfNote = beat.duration[0];
+}
+
+function syncMenuStateForMarkedPosition() {
+    if (tab.markedNoteObj == null) {
+        return;
+    }
+
+    syncMenuStateForPosition(tab.markedNoteObj);
+}
+
+function selectBar(id: number) {
+    selectedBarId.value = id;
+}
+
+function selectVoice(voiceId: number) {
+    if (AppManager.duringTrackCreation) {
+        return;
+    }
+
+    AppManager.changeTrack(Song.currentTrackId, voiceId, false, () => {
+        syncMenuStateForMarkedPosition();
+    });
+}
+
+function selectNoteLength(noteLength: NoteLengthCode) {
+    if (AppManager.duringTrackCreation || tab.markedNoteObj == null) {
+        return;
+    }
+
+    const {
+        trackId,
+        blockId,
+        voiceId,
+        beatId,
+        string,
+    } = tab.markedNoteObj;
+
+    if (tab.changeNoteDuration(trackId, blockId, voiceId, beatId, string, noteLength, false)) {
+        AppManager.typeOfNote = noteLength;
+        syncMenuStateForMarkedPosition();
+    }
+}
 
 // Open file dialog
 function openGuitarProFile() {
@@ -274,9 +420,7 @@ function handleFileSelect(event: Event) {
 }
 
 function clickedOnPos(position: {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}) {
-    const {trackId, blockId, voiceId, beatId, string} = position;
-    menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
-    menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, string);
+    syncMenuStateForPosition(position);
 }
 
 function handleSaveTab() {
@@ -288,61 +432,67 @@ function handleCreatePdf() {
 }
 
 const handleActivateEffectsForMarkedBeat = () => {
-    menuHandler.activateEffectsForMarkedBeat();
+    syncMenuStateForMarkedPosition();
 };
 
 const handleActivateEffectsForMarkedPos = () => {
-    menuHandler.activateEffectsForMarkedPos();
+    syncMenuStateForMarkedPosition();
 };
 
-const handleActivateEffectsForBeat: Handler<unknown> = (beat) => {
-    menuHandler.activateEffectsForBeat(beat as Measure);
+const handleActivateEffectsForBeat = (_beat: Measure) => {
+    syncMenuStateForMarkedPosition();
 };
 
 const handleDisableNoteEffectButtons = () => {
-    menuHandler.disableNoteEffectButtons();
+    MENU_NOTE_EFFECT_BUTTON_IDS.forEach((id) => {
+        disabledButtons[id] = true;
+    });
 };
 
 const handleActivateEffectsForBlock = () => {
-    menuHandler.activateEffectsForBlock();
+    syncMenuStateForMarkedPosition();
 };
 
-const handleActivateEffectsForPos: Handler<unknown> = (position) => {
-    const { trackId, blockId, voiceId, beatId, string } = position as TabPosition;
-    menuHandler.activateEffectsForPos(trackId, blockId, voiceId, beatId, string);
+const handleActivateEffectsForPos = (position: TabPosition) => {
+    syncMenuStateForPosition(position);
 };
 
-const handleActivateEffectsForNote: Handler<unknown> = (note) => {
-    menuHandler.activateEffectsForNote(note as Note);
+const handleActivateEffectsForNote = (_note: Note) => {
+    syncMenuStateForMarkedPosition();
 };
 
-const handleClickedOnPos: Handler<unknown> = (position) => {
-    clickedOnPos(position as TabPosition);
+const handleClickedOnPos = (position: TabPosition) => {
+    clickedOnPos(position);
+};
+
+const handleSongDataChanged = () => {
+    syncMenuStateForMarkedPosition();
 };
 
 onMounted(() => {
-    // EventBus.on("menu.applyStyleMode", () => applyStyleMode);
-    // EventBus.on("menu.handleEffectGroupCollision", {notes: arr.notes, property: 'bend', isVariableSet})
-    EventBus.on("menu.activateEffectsForMarkedBeat", handleActivateEffectsForMarkedBeat);
-    EventBus.on("menu.activateEffectsForMarkedPos", handleActivateEffectsForMarkedPos);
-    EventBus.on("menu.activateEffectsForBeat", handleActivateEffectsForBeat);
-    EventBus.on("menu.disableNoteEffectButtons", handleDisableNoteEffectButtons);
-    EventBus.on("menu.activateEffectsForBlock", handleActivateEffectsForBlock);
-    EventBus.on("menu.activateEffectsForPos", handleActivateEffectsForPos);
-    EventBus.on("menu.activateEffectsForNote", handleActivateEffectsForNote);
-    EventBus.on("menu.clickedOnPos", handleClickedOnPos);
-    
+    ensureLegacyMenuEventBridge();
+    typedEventBus.on('menu.activateEffectsForMarkedBeat', handleActivateEffectsForMarkedBeat);
+    typedEventBus.on('menu.activateEffectsForMarkedPos', handleActivateEffectsForMarkedPos);
+    typedEventBus.on('menu.activateEffectsForBeat', handleActivateEffectsForBeat);
+    typedEventBus.on('menu.disableNoteEffectButtons', handleDisableNoteEffectButtons);
+    typedEventBus.on('menu.activateEffectsForBlock', handleActivateEffectsForBlock);
+    typedEventBus.on('menu.activateEffectsForPos', handleActivateEffectsForPos);
+    typedEventBus.on('menu.activateEffectsForNote', handleActivateEffectsForNote);
+    typedEventBus.on('menu.clickedOnPos', handleClickedOnPos);
+    typedEventBus.on('song-data-changed', handleSongDataChanged);
+    syncMenuStateForMarkedPosition();
 })
 
 onBeforeUnmount(() => {
-    EventBus.off("menu.activateEffectsForMarkedBeat", handleActivateEffectsForMarkedBeat);
-    EventBus.off("menu.activateEffectsForMarkedPos", handleActivateEffectsForMarkedPos);
-    EventBus.off("menu.activateEffectsForBeat", handleActivateEffectsForBeat);
-    EventBus.off("menu.disableNoteEffectButtons", handleDisableNoteEffectButtons);
-    EventBus.off("menu.activateEffectsForBlock", handleActivateEffectsForBlock);
-    EventBus.off("menu.activateEffectsForPos", handleActivateEffectsForPos);
-    EventBus.off("menu.activateEffectsForNote", handleActivateEffectsForNote);
-    EventBus.off("menu.clickedOnPos", handleClickedOnPos);
+    typedEventBus.off('menu.activateEffectsForMarkedBeat', handleActivateEffectsForMarkedBeat);
+    typedEventBus.off('menu.activateEffectsForMarkedPos', handleActivateEffectsForMarkedPos);
+    typedEventBus.off('menu.activateEffectsForBeat', handleActivateEffectsForBeat);
+    typedEventBus.off('menu.disableNoteEffectButtons', handleDisableNoteEffectButtons);
+    typedEventBus.off('menu.activateEffectsForBlock', handleActivateEffectsForBlock);
+    typedEventBus.off('menu.activateEffectsForPos', handleActivateEffectsForPos);
+    typedEventBus.off('menu.activateEffectsForNote', handleActivateEffectsForNote);
+    typedEventBus.off('menu.clickedOnPos', handleClickedOnPos);
+    typedEventBus.off('song-data-changed', handleSongDataChanged);
 });
 
 let tempoMoveTmp: (event: MouseEvent) => void = () => { };
@@ -350,72 +500,24 @@ let removeListenersTmp: () => void = () => { };
 let noteTiedTo: {blockId: number, beatId: number} | null = null;
 let initYPos = 0;
 let oldBpm = 90;
-let lastMeasureSelectButton = '';
-
-const effectGroups = [
-    ['pullDown', 'slide', 'bend', 'trill', 'tremoloPicking', 'tremoloBar', 'dead'],
-    ['stacatto', 'palmMute'],
-    ['tap', 'slap', 'pop'],
-    ['fadeIn'],
-    ['grace'],
-    ['vibrato'],
-    ['artificial'],
-    ['accentuated', 'heavyAccentuated', 'ghost'],
-    ['stroke'],
-    ['addChord'],
-    ['addText'],
-    ['addMarker'],
-    ['repeatAlternative'],
-    ['pppDynamic', 'ppDynamic', 'pDynamic', 'mpDynamic', 'mfDynamic', 'fDynamic', 'ffDynamic', 'fffDynamic'],
-    ['openBar'],
-    ['closeBar'],
-    ['timeMeter'],
-    ['bpmMeter'],
-    ['letRing'],
-];
-const secondStatusBar = ['pullDown', 'ghost', 'stacatto', 'accentuated', 'heavyAccentuated', 'palmMute',
-    'vibrato', 'tremoloBar', 'artificial', 'trill', 'bend', 'slide', 'tap', 'fadeIn', 'grace', 'slap', 'pop',
-    'dead', 'tremoloPicking', 'stroke', 'letRing'];
-
-const elementToProperty = {
-    bend: 'bendPresent',
-    artificial: 'artificialPresent',
-    tap: 'tap',
-    slide: 'slide',
-    fadeIn: 'fadeIn',
-    grace: 'grace',
-    pullDown: 'pullDown',
-    stacatto: 'stacatto',
-    accentuated: 'accentuated',
-    trill: 'trillPresent',
-    dead: 'dead',
-    heavyAccentuated: 'heavyAccentuated',
-    palmMute: 'palmMute',
-    vibrato: 'vibrato',
-    slap: 'slap',
-    pop: 'pop',
-    tremoloPicking: 'tremoloPicking',
-    letRing: 'letRing',
-    ghost: 'ghost',
-};
 
 
 const dynamicNotes = [
-  { id: "pppDynamic", tooltip: "Pianississimo", class: "checkBoxNote dynamicNote", label: "¸" },
-  { id: "ppDynamic", tooltip: "Pianissimo", class: "checkBoxNote dynamicNote", label: "pp" },
-  { id: "pDynamic", tooltip: "Piano", class: "checkBoxNote dynamicNote", label: "p" },
-  { id: "mpDynamic", tooltip: "Mezzo Piano", class: "checkBoxNote dynamicNote", label: "P" },
-  { id: "mfDynamic", tooltip: "Mezzo Forte", class: "checkBoxNote dynamicNote", label: "F" },
-  { id: "fDynamic", tooltip: "Forte", class: "checkBoxNote dynamicNote", label: "f" },
-  { id: "ffDynamic", tooltip: "Fortissimo", class: "checkBoxNote dynamicNote", label: "Ä" },
-  { id: "fffDynamic", tooltip: "Fortississimo", class: "checkBoxNote dynamicNote", label: "ì" },
+    { id: "pppDynamic", tooltip: "Pianississimo", label: "¸" },
+    { id: "ppDynamic", tooltip: "Pianissimo", label: "pp" },
+    { id: "pDynamic", tooltip: "Piano", label: "p" },
+    { id: "mpDynamic", tooltip: "Mezzo Piano", label: "P" },
+    { id: "mfDynamic", tooltip: "Mezzo Forte", label: "F" },
+    { id: "fDynamic", tooltip: "Forte", label: "f" },
+    { id: "ffDynamic", tooltip: "Fortissimo", label: "Ä" },
+    { id: "fffDynamic", tooltip: "Fortississimo", label: "ì" },
 ];
 const barDict = [
-    { id: 1, class: "tabBarElem tabBarElemSelected", label: "Basic" },
-    { id: 2, class: "tabBarElem", label: "Articulation" },
-    { id: 3, class: "tabBarElem", label: "Dynamics" },
-    { id: 4, class: "tabBarElem", label: "Measure" },
-    { id: 5, class: "tabBarElem", label: "Text" },
+        { id: 1, label: "Basic" },
+        { id: 2, label: "Articulation" },
+        { id: 3, label: "Dynamics" },
+        { id: 4, label: "Measure" },
+        { id: 5, label: "Text" },
 ];
 
 function playBackJump(isBackwards: boolean) {
@@ -434,12 +536,11 @@ function removeEventListenersTempo() {
 }
 
 function tempoMeterMouseMove(event: MouseEvent) {
-    const tempoMeter = document.getElementById('tempoMeter');
     const mouseYnew = event.pageY;
     Song.bpm = oldBpm + initYPos - mouseYnew;
     Song.bpm = Math.max(Song.bpm, 10);
     Song.bpm = Math.min(Song.bpm, 180);
-    tempoMeter!.textContent = Song.bpm.toString();
+    setTempoState(Song.bpm);
 }
 
 function changeTempoFunc(e: MouseEvent) {
@@ -456,10 +557,10 @@ function changeTempoFunc(e: MouseEvent) {
 
 function recordButtonPressed() {
     if (midiEngine.isRecording) {
-        document.getElementById('recordButton')?.classList.remove('prepareRecording');
+        isPreparingRecording.value = false;
         midiEngine.stopRecording();
     } else {
-        document.getElementById('recordButton')?.classList.add('prepareRecording');
+        isPreparingRecording.value = true;
         midiEngine.recordMidi();
     }
 }
@@ -504,29 +605,30 @@ function processDynamicSelect(
         const note = beat.notes[string];
         beat.dynamic = dynamic;
 
-        // var isVariableSet = false;
-        for (let i = 0; i < effectGroups.length; i += 1) {
-            if (effectGroups[i].includes(id)) {
-                // isVariableSet = getEffectVariable(beat, note, id);
-                menuHandler.deactivateEffects(beat, note, effectGroups[i]);
+        for (let i = 0; i < MENU_EFFECT_GROUPS.length; i += 1) {
+            if (MENU_EFFECT_GROUPS[i].some((effectId) => effectId === id)) {
+                menuHandler.deactivateEffects(beat, note, [...MENU_EFFECT_GROUPS[i]]);
 
                 if (isVariableSet == null || isVariableSet === false) {
                     menuHandler.setEffectVariable(beat, note, id, true);
-                    document.getElementById(id)?.classList.toggle('pressed');
                 } else {
                     menuHandler.setEffectVariable(beat, note, id, false);
                 }
                 break;
             }
         }
+
         if (isRevert == null) {
             revertHandler.addDynamic(trackId, blockId, voiceId, beatId, string, id);
         }
     }
+
     const { trackId, voiceId } = arr.notes[0];
     for (const blockId of arr.blocks) {
         typedEventBus.emit('render.overBar', { trackId, blockId, voiceId, rerender: false });
     }
+
+    syncMenuStateForMarkedPosition();
 }
 
 function dynamicSelect(id: string) {
@@ -538,15 +640,13 @@ function dynamicSelect(id: string) {
 }
 
 function toggleEffectSelect(id: string, beat: Measure) {
-    let isVariableSet = false;
-    for (let i = 0; i < effectGroups.length; i += 1) {
-        if (effectGroups[i].includes(id)) {
-            isVariableSet = menuHandler.getEffectVariable(beat, null, id);
-            menuHandler.deactivateEffects(beat, null, effectGroups[i]);
+    for (let i = 0; i < MENU_EFFECT_GROUPS.length; i += 1) {
+        if (MENU_EFFECT_GROUPS[i].some((effectId) => effectId === id)) {
+            const isVariableSet = menuHandler.getEffectVariable(beat, null, id);
+            menuHandler.deactivateEffects(beat, null, [...MENU_EFFECT_GROUPS[i]]);
 
             if (isVariableSet == null || isVariableSet === false) {
                 menuHandler.setEffectVariable(beat, null, id, true);
-                document.getElementById(id)?.classList.toggle('pressed');
             } else {
                 menuHandler.setEffectVariable(beat, null, id, false);
             }
@@ -622,6 +722,7 @@ function processNotationSelect(
 
         toggleEffectSelect(id, beat);
         typedEventBus.emit('render.block', { trackId, blockId, voiceId });
+        syncMenuStateForMarkedPosition();
     }
 }
 
@@ -700,12 +801,14 @@ function processEffectSelect(
         }
         if (id === 'grace') {
             classicalNotation.computeVexFlowDataStructures(
-                Song.currentTrackId, Song.currentVoiceId,
+                currentTrackId.value, currentVoiceId.value,
             );
         }
         for (const blockId of arr.blocks) {
-            typedEventBus.emit('render.block', { trackId: Song.currentTrackId, blockId, voiceId: Song.currentVoiceId });
+            typedEventBus.emit('render.block', { trackId: currentTrackId.value, blockId, voiceId: currentVoiceId.value });
         }
+
+        syncMenuStateForMarkedPosition();
     }
 }
 
@@ -739,10 +842,8 @@ function processSpecialSelect(
                 } else {
                     return;
                 }
-                document.getElementById('dotted')?.classList.toggle('pressed');
                 if (beat.doubleDotted) {
                     beat.doubleDotted = false;
-                    document.getElementById('doubleDotted')?.classList.toggle('pressed');
                 }
             } else {
                 if (beat.doubleDotted) {
@@ -756,10 +857,8 @@ function processSpecialSelect(
                 } else {
                     return;
                 }
-                document.getElementById('doubleDotted')?.classList.toggle('pressed');
                 if (beat.dotted) {
                     beat.dotted = false;
-                    document.getElementById('dotted')?.classList.toggle('pressed');
                 }
             }
         } else if (id === 'tuplet') {
@@ -773,11 +872,14 @@ function processSpecialSelect(
                     );
                 }
             }
+
+            syncMenuStateForMarkedPosition();
             return;
         } else if (id === 'tied' && noteTiedTo != null) {
             processTiedButtonPress(trackId, blockId, voiceId, beatId, string, noteTiedTo);
-            // document.getElementById("tied").classList.toggle("pressed");
             revertHandler.addTied(trackId, blockId, voiceId, beatId, string, noteTiedTo);
+
+            syncMenuStateForMarkedPosition();
             return;
         } else {
             return;
@@ -799,6 +901,8 @@ function processSpecialSelect(
                 tab.drawTrack(trackId, voiceId, true, null);
             }
         }
+
+        syncMenuStateForMarkedPosition();
     });
 }
 
@@ -857,7 +961,6 @@ function setNotesTied(
                         tiedTo: noteTiedToCopy,
                     },
                 };
-                // eslint-disable-next-line prefer-destructuring
                 beat.duration = beat.duration[0]; // remove rest
             } else {
                 selectedNote.tied = shouldBeTied;
@@ -875,9 +978,7 @@ function setNotesTied(
 
 function noteLengthSpecialSelect(id: string) {
     if (AppManager.duringTrackCreation) { return; }
-    const tupleSel = parseInt(
-        (document.getElementById('tupletDropDown') as HTMLInputElement).value, 10,
-    );
+    const tupleSel = parseInt(selectedTuplet.value, 10);
     if (tab.markedNoteObj == null) {
         alert('Please set note first.');
         return;
@@ -894,17 +995,13 @@ function processMeasureSelect(
     trackId: number, blockId: number, voiceId: number, id: string, isRevert: boolean,
 ) {
     fastdom.mutate(() => {
-        if (lastMeasureSelectButton !== '') {
-            document.getElementById(lastMeasureSelectButton)?.classList.toggle('pressed');
-        }
-        if (lastMeasureSelectButton !== id) {
-            document.getElementById(id)?.classList.toggle('pressed');
-        }
         Song.measureMeta[blockId].repeatOpen = !Song.measureMeta[blockId].repeatOpen;
         if (isRevert == null) {
             revertHandler.addMeasureSelect(trackId, blockId, voiceId, id);
         }
         typedEventBus.emit('render.block', { trackId, blockId, voiceId });
+
+        syncMenuStateForMarkedPosition();
     });
 }
 

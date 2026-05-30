@@ -1,4 +1,5 @@
 import { computed } from 'vue'
+import { useEditorScopeState } from './useEditorScopeState'
 import { useSongData } from './useSongData'
 import { legacyTrackAdapter } from '../services/legacy/trackAdapter'
 import type { TrackViewModel } from '../types/track'
@@ -12,14 +13,12 @@ export type {
 
 export function useTrack() {
   const { reactiveSongData } = useSongData()
+  const { currentTrackId, currentVoiceId } = useEditorScopeState()
 
   const tracks = computed<TrackViewModel[]>(() => legacyTrackAdapter.listTrackViewModels(
     reactiveSongData.tracks,
     reactiveSongData.playBackInstrument,
   ))
-
-  const currentTrackId = computed(() => reactiveSongData.currentTrackId)
-  const currentVoiceId = computed(() => reactiveSongData.currentVoiceId)
 
   const currentTrack = computed<TrackViewModel | null>(() => {
     return tracks.value[currentTrackId.value] || null

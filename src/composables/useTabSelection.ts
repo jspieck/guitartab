@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { typedEventBus, type SelectionChangeData } from '../utils/typedEventBus'
+import { type SelectionChangeData } from '../utils/typedEventBus'
 import { hasRegisteredSelectionSurface } from './useSelectionSurfaceState'
 import legacyEditorCore from '../services/legacy/editorCoreAdapter'
 import { NAME_TO_CODE, DURATION_NAMES } from '../utils/musicUtils'
@@ -12,7 +12,7 @@ import type {
 
 export type TabSelection = TabSelectionData
 
-interface ContextMenuState {
+export interface ContextMenuState {
   visible: boolean
   note: (TabNoteData & { duration?: string }) | null
   x: number
@@ -29,17 +29,6 @@ const contextMenuState = ref<ContextMenuState>({
   note: null,
   x: 0,
   y: 0
-})
-
-typedEventBus.on('navigation.setClickedPos', (pos) => {
-  const { setSelection } = useTabSelection()
-  setSelection({
-    trackId: pos.trackId,
-    voiceId: pos.voiceId,
-    blockId: pos.blockId,
-    beatIndex: pos.beatId,
-    stringIndex: pos.string
-  })
 })
 
 /**

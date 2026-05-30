@@ -5,6 +5,7 @@ import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
 import fastdom from 'fastdom';
 import { MODALS } from './modalTypes';
+import { requestBlockRender } from '../../../services/legacy/renderCommands';
 
 interface TextModalState extends ModalState {
     text: string;
@@ -74,7 +75,7 @@ export class TextModalHandler extends BaseModalHandler {
 
             beat.text = text;
             
-            svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+            requestBlockRender(trackId, blockId, voiceId);
             revertHandler.addText(
                 trackId, 
                 blockId, 
