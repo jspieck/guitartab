@@ -1,9 +1,8 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Song } from '../songData';
-import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
-import { requestBlockRender } from '../../../services/legacy/renderCommands';
+import { requestBlockRender } from '../../../services/editor/renderCommands';
 
 export class RepeatModalHandler extends BaseModalHandler {
     private repititionData = {

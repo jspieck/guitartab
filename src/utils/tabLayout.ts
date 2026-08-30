@@ -4,6 +4,8 @@
 
 import type { RenderedMeasureData, RenderedTabRow, RendererSelectionPosition, TabBeat } from '../types/tab'
 import { getDurationBeats } from './durationUtils'
+import { getBlockRenderLayout } from '../composables/useTabRenderLayout'
+import { getBeatPositionInRow } from './beatPositionInRow'
 
 /**
  * Tab layout constants
@@ -63,7 +65,9 @@ export function getMeasureXOffset(
   let offset = isFirstRow ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
   for (let i = 0; i < measureIndex; i++) {
     const measure = measures[i]
-    offset += measure.width || TAB_CONSTANTS.MEASURE_WIDTH
+    offset += Number.isFinite(measure.width) && measure.width > 0
+      ? measure.width
+      : TAB_CONSTANTS.MEASURE_WIDTH
   }
   return offset
 }
@@ -95,7 +99,9 @@ export function findMeasureAtPosition(
   
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i]
-    const width = measure.width || TAB_CONSTANTS.MEASURE_WIDTH
+    const width = Number.isFinite(measure.width) && measure.width > 0
+      ? measure.width
+      : TAB_CONSTANTS.MEASURE_WIDTH
     
     if (relativeX >= currentX && relativeX < currentX + width) {
       return {
@@ -132,6 +138,49 @@ export function findBeatAtPosition(
   // Default to last beat if past the end, or first if before
   if (beatX < 0) return 0
   return Math.max(0, measureData.length - 1)
+}
+
+function findBeatAtLayoutX(
+  beatPositions: number[],
+  measureRelativeX: number,
+): number {
+  if (beatPositions.length === 0) {
+    return 0
+  }
+
+  let beatIndex = 0
+  for (let i = 0; i < beatPositions.length; i += 1) {
+    const beatX = beatPositions[i]
+    if (!Number.isFinite(beatX)) {
+      continue
+    }
+    if (measureRelativeX >= beatX) {
+      beatIndex = i
+    } else {
+      break
+    }
+  }
+
+  return beatIndex
+}
+
+function resolveBeatIndexInMeasure(
+  trackId: number | undefined,
+  voiceId: number | undefined,
+  blockId: number,
+  measureData: TabBeat[],
+  measureRelativeX: number,
+  contentPadding: number,
+): number {
+  if (trackId != null && voiceId != null) {
+    const beatPositions = getBlockRenderLayout(trackId, voiceId, blockId)?.beatPositions
+    if (Array.isArray(beatPositions) && beatPositions.length > 0) {
+      return findBeatAtLayoutX(beatPositions, measureRelativeX)
+    }
+  }
+
+  const beatX = measureRelativeX - contentPadding
+  return findBeatAtPosition(measureData, beatX)
 }
 
 function getSvgViewportSize(svgElement: SVGSVGElement): { width: number; height: number } {
@@ -196,7 +245,9 @@ export function clickToTabPosition(
   svgElement: SVGSVGElement,
   rowData: Pick<RenderedTabRow, 'measures' | 'startBlockId'>,
   isFirstRow: boolean,
-  getMeasureContentPadding: (blockId: number) => number
+  getMeasureContentPadding: (blockId: number) => number,
+  trackId?: number,
+  voiceId?: number,
 ): { measureIndex: number; blockId: number; beatIndex: number } | null {
   const transformedPoint = getSvgLocalPoint(event, svgElement)
   if (!transformedPoint) {
@@ -217,14 +268,92 @@ export function clickToTabPosition(
   
   const { measureIndex, measureRelativeX } = measureResult
   const blockId = rowData.startBlockId + measureIndex
-  
-  // Find beat
   const padding = getMeasureContentPadding(blockId) + TAB_CONSTANTS.START_PADDING
-  const beatX = measureRelativeX - padding
   const measureData = rowData.measures[measureIndex].data
-  const beatIndex = findBeatAtPosition(measureData, beatX)
+  const beatIndex = resolveBeatIndexInMeasure(
+    trackId,
+    voiceId,
+    blockId,
+    measureData,
+    measureRelativeX,
+    padding,
+  )
   
   return { measureIndex, blockId, beatIndex }
+}
+
+export function findRowAtY(
+  tabRows: RenderedTabRow[],
+  localY: number,
+  rowHeight: number,
+  rowYOffsetAdjust = 0,
+): RenderedTabRow | null {
+  for (const row of tabRows) {
+    const rowTop = row.yOffset + rowYOffsetAdjust
+    if (localY >= rowTop && localY < rowTop + rowHeight) {
+      return row
+    }
+  }
+
+  return tabRows.at(-1) ?? null
+}
+
+export function resolveStringIndexInRow(localY: number, rowYOffset: number, stringSpacing: number): number {
+  const relativeY = localY - rowYOffset
+  const stringIndex = Math.round(relativeY / stringSpacing)
+  return Math.max(0, stringIndex)
+}
+
+export function resolveTabPointerPosition(
+  event: MouseEvent,
+  svgElement: SVGSVGElement,
+  tabRows: RenderedTabRow[],
+  rowHeight: number,
+  stringSpacing: number,
+  getMeasureContentPadding: (blockId: number) => number,
+  rowYOffsetAdjust = 0,
+  trackId?: number,
+  voiceId?: number,
+): {
+  row: RenderedTabRow
+  blockId: number
+  beatIndex: number
+  stringIndex: number
+  isFirstRow: boolean
+} | null {
+  const transformedPoint = getSvgLocalPoint(event, svgElement)
+  if (!transformedPoint) {
+    return null
+  }
+
+  const margins = getSvgPageMargins(svgElement)
+  const localY = transformedPoint.y - margins.top
+  const row = findRowAtY(tabRows, localY, rowHeight, rowYOffsetAdjust)
+  if (!row) {
+    return null
+  }
+
+  const isFirstRow = tabRows[0]?.id === row.id
+  const beatPosition = clickToTabPosition(
+    event,
+    svgElement,
+    row,
+    isFirstRow,
+    getMeasureContentPadding,
+    trackId,
+    voiceId,
+  )
+  if (!beatPosition) {
+    return null
+  }
+
+  return {
+    row,
+    blockId: beatPosition.blockId,
+    beatIndex: beatPosition.beatIndex,
+    stringIndex: resolveStringIndexInRow(localY, row.yOffset + rowYOffsetAdjust, stringSpacing),
+    isFirstRow,
+  }
 }
 
 export function getSelectionRenderPoint(
@@ -233,10 +362,30 @@ export function getSelectionRenderPoint(
   isFirstRow: boolean,
   stringSpacing: number,
   getMeasureContentPadding: (blockId: number) => number,
+  trackId?: number,
+  voiceId?: number,
 ): { x: number; y: number } | null {
   const measure = rowData.measures[selection.measureIndex]
   if (!measure || !measure.data?.[selection.beatIndex]) {
     return null
+  }
+
+  const y = selection.stringIndex * stringSpacing
+
+  if (trackId != null && voiceId != null) {
+    const rowX = getBeatPositionInRow(trackId, voiceId, selection.blockId, selection.beatIndex)
+    const blockLayout = getBlockRenderLayout(trackId, voiceId, selection.blockId)
+    if (rowX != null && blockLayout != null) {
+      const beatPos = blockLayout.beatPositions[selection.beatIndex]
+      const nextPos = blockLayout.beatPositions[selection.beatIndex + 1]
+      const beatWidth = nextPos != null && Number.isFinite(nextPos) && Number.isFinite(beatPos)
+        ? nextPos - beatPos
+        : getDisplayWidth(measure.data[selection.beatIndex]?.duration)
+      return {
+        x: rowX + beatWidth / 2,
+        y,
+      }
+    }
   }
 
   const measureX = getMeasureXOffset(rowData.measures, selection.measureIndex, isFirstRow)
@@ -248,6 +397,6 @@ export function getSelectionRenderPoint(
 
   return {
     x: measureX + beatX + getDisplayWidth(measure.data[selection.beatIndex]?.duration) / 2,
-    y: selection.stringIndex * stringSpacing,
+    y,
   }
 }

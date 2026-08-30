@@ -1,7 +1,11 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
 import { Song } from '../songData';
-import { svgDrawer } from '../svgDrawer';
+import {
+    createChordDiagramElement,
+    refreshChordDiagramsWithBlockFallback,
+    requestChordDiagramRefresh,
+} from '../../../services/editor/chordDiagramAdapter';
 import { reactive } from 'vue';
 
 interface AddChordModalState extends ModalState {
@@ -170,7 +174,7 @@ export class AddChordModalHandler extends BaseModalHandler {
         }
 
         Song.chordsMap[trackId].set(chordObj.name, chordObj);
-        svgDrawer.redrawChordDiagrams();
+        requestChordDiagramRefresh();
         this.closeModal();
     }
 

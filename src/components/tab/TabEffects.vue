@@ -124,6 +124,7 @@
         :font-size="effect.fontSize"
         text-anchor="middle"
         class="effect-text"
+        :class="{ 'effect-text-let-ring': effect.text === 'let ring' }"
       >
         {{ effect.text }}
       </text>
@@ -132,16 +133,6 @@
     <!-- Let Ring indicator -->
     <g v-if="hasLetRing" class="let-ring">
       <g v-for="(lr, index) in letRings" :key="`let-ring-${index}`">
-        <text
-          :x="lr.x"
-          :y="lr.y"
-          font-family="Source Sans Pro"
-          font-size="10px"
-          font-style="italic"
-          class="let-ring-text"
-        >
-          let ring
-        </text>
         <line
           :x1="lr.x + 35"
           :y1="lr.y - 3"
@@ -151,21 +142,6 @@
           stroke-dasharray="3,2"
           class="let-ring-line"
         />
-      </g>
-    </g>
-
-    <!-- Natural Harmonics -->
-    <g v-if="hasHarmonics" class="harmonics">
-      <g v-for="(harm, index) in harmonics" :key="`harmonic-${index}`">
-        <text
-          :x="harm.x"
-          :y="harm.y"
-          font-family="Source Sans Pro"
-          font-size="10px"
-          class="harmonic-text"
-        >
-          {{ harm.text }}
-        </text>
       </g>
     </g>
 
@@ -214,7 +190,6 @@ interface Props {
   trackId: number
   voiceId: number
   blockId: number
-  xOffset: number
   stringSpacing: number
   numStrings: number
   measureWidth: number
@@ -223,7 +198,9 @@ interface Props {
 const props = defineProps<Props>()
 const effectCollections = computed(() => buildTabEffects({
   measureData: props.measureData,
-  xOffset: props.xOffset,
+  trackId: props.trackId,
+  voiceId: props.voiceId,
+  blockId: props.blockId,
   stringSpacing: props.stringSpacing,
   numStrings: props.numStrings,
 }))
@@ -237,7 +214,6 @@ const trills = computed(() => effectCollections.value.trills)
 const tremoloBars = computed(() => effectCollections.value.tremoloBars)
 const textEffects = computed(() => effectCollections.value.textEffects)
 const letRings = computed(() => effectCollections.value.letRings)
-const harmonics = computed(() => effectCollections.value.harmonics)
 const tremoloPickings = computed(() => effectCollections.value.tremoloPickings)
 const graceNotes = computed(() => effectCollections.value.graceNotes)
 
@@ -250,7 +226,6 @@ const hasTrill = computed(() => trills.value.length > 0)
 const hasTremoloBar = computed(() => tremoloBars.value.length > 0)
 const hasTextEffects = computed(() => textEffects.value.length > 0)
 const hasLetRing = computed(() => letRings.value.length > 0)
-const hasHarmonics = computed(() => harmonics.value.length > 0)
 const hasTremoloPicking = computed(() => tremoloPickings.value.length > 0)
 const hasGraceNotes = computed(() => graceNotes.value.length > 0)
 </script>
@@ -314,16 +289,13 @@ const hasGraceNotes = computed(() => graceNotes.value.length > 0)
   user-select: none;
 }
 
-.let-ring-text {
+.effect-text-let-ring {
+  font-style: italic;
   fill: var(--tab-subtle);
 }
 
 .let-ring-line {
   stroke: var(--tab-subtle);
-}
-
-.harmonic-text {
-  fill: var(--tab-tertiary);
 }
 
 .tremolo-picking-line {

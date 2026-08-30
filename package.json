@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "vite",
     "dev:local": "vite --host 127.0.0.1 --port 4173",
+    "dev:e2e": "vite --host 127.0.0.1 --port 4175",
     "typecheck": "vue-tsc --noEmit",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint vite.config.ts src/components/NoteContextMenu.vue src/components/tab/**/*.vue src/composables/**/*.ts src/types/**/*.ts src/utils/**/*.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "build:check": "npm run build && npm run check:bundle",
+    "lint": "eslint vite.config.ts src/components/Menu.vue src/components/tab/**/*.vue src/composables/**/*.ts src/services/**/*.ts src/types/**/*.ts src/utils/**/*.ts",
     "lint:fix": "npm run lint -- --fix"
   },
   "dependencies": {
@@ -32,6 +37,7 @@
     "@types/electron": "^1.6.12",
     "@types/node": "^22.15.29",
     "@types/tinycolor2": "^1.4.6",
+    "@playwright/test": "^1.55.0",
     "@vitejs/plugin-vue": "^4.1.0",
     "eslint": "^10.4.0",
     "eslint-plugin-vue": "^10.9.1",

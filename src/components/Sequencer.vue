@@ -15,7 +15,7 @@
                     <div id="sequencerRevInstrument" v-if="!editModeActive">Rev</div>
                     <div id="sequencerChoInstrument" v-if="!editModeActive">Cho</div>
                 </div>
-                <div id="sequencerMenuBody">
+                <div id="sequencerMenuBody" ref="sequencerMenuBodyRef">
                     <div id="masterRowMenu" class="labelDiv disable-select">
                         <img id="labelImgMaster" class="labelImg" :src="settingsIconSrc" />
                         <div id="instrumentLabelMaster" class="label instrumentLabel">
@@ -58,7 +58,7 @@
             </div>
             <div id="composition">
                 <div id="sequencerMain">
-                    <div id="sequencerMainHeader">
+                    <div id="sequencerMainHeader" ref="sequencerMainHeaderRef">
                         <div class="sequencerOneBlock"
                             @click="sequencerClick($event, reactiveSongData.currentTrackId, reactiveSongData.currentVoiceId)"
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
@@ -67,9 +67,9 @@
                             </span>
                         </div>
                         <span id="indicatorCellHeader" :style="{ left: indicatorLeft + 'px' }"></span>
-                        <SequenceMarker :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="30" />
+                        <SequenceMarker v-if="hasIntervalSelection" :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="30" />
                     </div>
-                    <div id="sequencerMainBody" :key="renderKey" @scroll="sequencerScrollEvent">
+                    <div id="sequencerMainBody" ref="sequencerMainBodyRef" :key="`${renderKey}-${songDataVersion}`" @scroll="sequencerScrollEvent">
                         <div id="masterRowMain" class="sequencerOneBlock"
                             @click="sequencerClick($event, reactiveSongData.currentTrackId, reactiveSongData.currentVoiceId)"
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
@@ -89,7 +89,7 @@
                         </template>
                         <span id="indicator" :style="{ height: indicatorLineHeight + 'px', left: indicatorLeft + 'px' }"></span>
                         <span id="indicatorCell" :style="{ left: indicatorLeft + 'px', top: indicatorCellTop + 'px' }"></span>
-                        <SequenceMarker :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="reactiveSongData.tracks.length * 30 + 30" />
+                        <SequenceMarker v-if="hasIntervalSelection" :block-start="blockIntervalStart" :block-end="blockIntervalEnd" :height="reactiveSongData.tracks.length * 30 + 30" />
                     </div>
                 </div>
             </div>
@@ -102,12 +102,12 @@ import { computed, ref, onMounted, onUpdated, onBeforeUnmount, watch, nextTick }
 import fastdom from 'fastdom';
 import Settings from '../assets/js/settingManager';
 import { audioEngine } from '../assets/js/audioEngine';
-import Song from '../assets/js/songData';
 import { overlayHandler } from '../assets/js/overlayHandler';
 import Helper from '../assets/js/helper';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
+import editorCore from '../services/editor/editorCore';
 import Knob from './Knob.vue';
 import SequenceMarker from './SequenceMarker.vue';
 import Fader from './Fader.vue';
@@ -120,7 +120,7 @@ import changeButtonImage from '../assets/images/change.svg';
 import trashButtonImage from '../assets/images/trashCan.svg';
 import masterSettingsIcon from '../assets/images/instrumentIcons/myMasterDesign.svg';
 
-const { reactiveSongData, syncSongData } = useSongData();
+const { reactiveSongData, syncSongData, songDataVersion } = useSongData();
 
 const colorPalette = ['#F8B195', '#F67280', '#C06C84', '#6C5B7B', '#355C7D', '#99B898', '#FECEAB', '#FF847C', '#E84A5F', '#2A363B'];
 const SEQUENCER_BLOCK_WIDTH = 30;
@@ -134,11 +134,14 @@ const masterFaderRef = ref<InstanceType<typeof Fader> | null>(null);
 const editModeActive = ref(false);
 const sequencerMinimized = ref(false);
 const renderKey = ref(0);
-const blockIntervalStart = ref(0);
-const blockIntervalEnd = ref(0);
+const blockIntervalStart = ref(-1);
+const blockIntervalEnd = ref(-1);
 const indicatorLineHeight = ref(0);
 const indicatorLeft = ref(0);
 const indicatorCellTop = ref(0);
+const sequencerMenuBodyRef = ref<HTMLElement | null>(null);
+const sequencerMainHeaderRef = ref<HTMLElement | null>(null);
+const sequencerMainBodyRef = ref<HTMLElement | null>(null);
 
 // Track names
 const instrumentLabelName = computed(() => {
@@ -162,7 +165,10 @@ watch(() => reactiveSongData.currentTrackId, (newId) => {
 sequencerHandler.registerEditModeActiveRef(editModeActive);
 sequencerHandler.registerSequencerSetIndicatorCallback(setIndicator);
 
-const forceSequencerRedraw = () => { renderKey.value++ };
+const forceSequencerRedraw = () => {
+    syncSongData();
+    renderKey.value++;
+};
 sequencerHandler.registerSequencerRedrawCallback(forceSequencerRedraw);
 
 const setFaderRef = (el: any) => {
@@ -231,13 +237,22 @@ const numBlocks = computed(() => {
     if (!reactiveSongData.measures || reactiveSongData.measures.length === 0 || !reactiveSongData.measures[0])
         return 0;
     return reactiveSongData.measures[0].length;
-})
+});
+
+const hasIntervalSelection = computed(() => blockIntervalStart.value >= 0 && blockIntervalEnd.value >= 0);
+
+function clearIntervalOverlay() {
+    blockIntervalStart.value = -1;
+    blockIntervalEnd.value = -1;
+}
+
+sequencerHandler.registerClearIntervalOverlayCallback(clearIntervalOverlay);
 
 const handleKeyUp = (trackId: number) => {
     if (!reactiveSongData.tracks || !reactiveSongData.tracks[trackId] || !instrumentLabelName.value[trackId]) {
         return;
     }
-    Song.tracks[trackId].name = instrumentLabelName.value[trackId];
+    editorCore.setTrackName(trackId, instrumentLabelName.value[trackId]);
     syncSongData();
 }
 
@@ -245,7 +260,7 @@ const beatStyle = (trackId: number, index: number) => {
     if (!reactiveSongData.measures[trackId] || !reactiveSongData.measures[trackId][index]) {
         return '';
     }
-    return Song.isBeatEmpty(trackId, index)
+    return editorCore.isBeatEmpty(trackId, index)
         ? ''
         : { background: colorPalette[trackId % colorPalette.length] };
 };
@@ -283,7 +298,7 @@ function openAddTrack() {
 }
 
 function deleteTrack(trackId: number) {
-    if (!Song.measures || Song.measures.length <= 1) {
+    if (!editorCore.canDeleteTrack()) {
         alert('At least one track must be available!');
         return;
     }
@@ -307,7 +322,7 @@ function soloButtonClickEvent(e: Event, k: number) {
     } else {
         circleBtn.classList.remove('muted');
     }
-    Song.playBackInstrument[k].solo = !Song.playBackInstrument[k].solo;
+    editorCore.togglePlayBackInstrumentFlag(k, 'solo');
     syncSongData();
 }
 
@@ -328,7 +343,7 @@ function muteButtonClickEvent(e: Event, k: number) {
             }
         }
     }
-    Song.playBackInstrument[k].mute = !Song.playBackInstrument[k].mute;
+    editorCore.togglePlayBackInstrumentFlag(k, 'mute');
     syncSongData();
 }
 
@@ -338,7 +353,7 @@ function panKnobRotate(angle: number, dataId: string) {
         return;
     }
     const scaled = (angle / 360) * 127;
-    Song.playBackInstrument[trackId].balance = scaled;
+    editorCore.setPlayBackInstrumentEffect(trackId, 'balance', scaled);
     audioEngine.setEffectGain(trackId, scaled, 'pan');
     syncSongData();
 }
@@ -349,7 +364,7 @@ function reverbKnobRotate(angle: number, dataId: string) {
         return;
     }
     const scaled = (angle / 360) * 127;
-    Song.playBackInstrument[trackId].reverb = scaled;
+    editorCore.setPlayBackInstrumentEffect(trackId, 'reverb', scaled);
     audioEngine.setEffectGain(trackId, scaled, 'reverb');
     syncSongData();
 }
@@ -360,7 +375,7 @@ function chorusKnobRotate(angle: number, dataId: string) {
         return;
     }
     const scaled = (angle / 360) * 127;
-    Song.playBackInstrument[trackId].chorus = scaled;
+    editorCore.setPlayBackInstrumentEffect(trackId, 'chorus', scaled);
     audioEngine.setEffectGain(trackId, scaled, 'chorus');
     syncSongData();
 }
@@ -368,10 +383,12 @@ function chorusKnobRotate(angle: number, dataId: string) {
 const sequencerScrollEvent = (event: Event) => {
     const target = event.target as HTMLElement;
     fastdom.mutate(() => {
-        const menuBody = document.getElementById('sequencerMenuBody');
-        const mainHeader = document.getElementById('sequencerMainHeader');
-        if (menuBody) menuBody.scrollTop = target.scrollTop;
-        if (mainHeader) mainHeader.scrollLeft = target.scrollLeft;
+        if (sequencerMenuBodyRef.value) {
+            sequencerMenuBodyRef.value.scrollTop = target.scrollTop;
+        }
+        if (sequencerMainHeaderRef.value) {
+            sequencerMainHeaderRef.value.scrollLeft = target.scrollLeft;
+        }
     });
 }
 
@@ -399,7 +416,7 @@ function sequencerClick(e: MouseEvent, trackId: number, voiceId: number) {
             } else {
                 focusEditorPosition({ trackId, blockId, voiceId, beatId: 0, string: 1 });
             }
-            overlayHandler.clearAllOverlays();
+            overlayHandler.resetOverlays();
         }
     });
 }
@@ -449,9 +466,8 @@ function setIndicator(trackId: number, blockId: number) {
         indicatorCellTop.value = (trackId + 1) * 30;
         indicatorPosition = { trackId, blockId };
         fastdom.mutate(() => {
-            const element = document.getElementById('sequencerMainBody');
-            if (element) {
-                element.scrollLeft = (blockId * SEQUENCER_BLOCK_WIDTH);
+            if (sequencerMainBodyRef.value) {
+                sequencerMainBodyRef.value.scrollLeft = (blockId * SEQUENCER_BLOCK_WIDTH);
             }
         });
     }

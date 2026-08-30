@@ -1,22 +1,24 @@
 <template>
     <BaseModal :modal-id="MODALS.MIXER.id">
         <template #title>Mixer</template>
-        <div id="mixerMain">
-            <div v-for="(drumInfo, number) in drumInfos" :key="number" class="mixerColumn" :style="{ order: number }">
-                <div :id="`mixerColumn${number}`" :class="{ 'mixerColumnActive': lastColumnClicked === number }"
-                    @click="mixerColumnClicked(number)">
-                    <div class="slotNumber unselectable">{{ number }}</div>
-                    <div class="slotName unselectable">{{ drumInfo[0] }}</div>
-                    <canvas class="slotVolume" width="20" height="82" :id="`slotVolume${number}`" ref="slotVolume"></canvas>
-                    <div class="slotActive" :class="{ 'slotInActive': drumInfo[4] }" @click="drumInfo[4] = !drumInfo[4];">
-                    </div>
-                    <div class="slotPan">
-                        <Knob :id="`panKnob${number}`" :data-id="number" :rotate-func="mixerPanFunc"
-                            :start="((drumInfo[3] + 1) / 2) * 127" :min="0" :max="127" :mid-knob="true" />
-                    </div>
-                    <div class="slotSlider">
-                        <div class="volume" :id="`slotSlider${number}`">
-                            <!-- Slider content goes here -->
+    <div id="mixerMain">
+      <div class="mixerColumns" ref="mixerMainRef">
+        <div v-for="(drumInfo, number) in drumInfos" :key="number" class="mixerColumn" :style="{ order: number }">
+          <div :id="`mixerColumn${number}`" :class="{ 'mixerColumnActive': lastColumnClicked === number }"
+            @click="mixerColumnClicked(number)">
+            <div class="slotNumber unselectable">{{ number }}</div>
+            <div class="slotName unselectable">{{ drumInfo[0] }}</div>
+            <canvas class="slotVolume" width="20" height="82" :id="`slotVolume${number}`" ref="slotVolume"></canvas>
+            <div class="slotActive" :class="{ 'slotInActive': drumInfo[4] }" @click="drumInfo[4] = !drumInfo[4];">
+            </div>
+            <div class="slotPan">
+              <Knob :id="`panKnob${number}`" :data-id="number" :rotate-func="mixerPanFunc"
+                :start="((drumInfo[3] + 1) / 2) * 127" :min="0" :max="127" :mid-knob="true" />
+            </div>
+            <div class="slotSlider">
+              <div class="volume" :id="`slotSlider${number}`">
+                <!-- Slider content goes here -->
+              </div>
                         </div>
                     </div>
                 </div>
@@ -26,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, Ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, Ref, watch } from 'vue';
 import BaseModal from './BaseModal.vue';
 import audioEngine from '../assets/js/audioEngine';
 import Knob from './Knob.vue';
@@ -37,9 +39,36 @@ import { MixerModalHandler } from '../assets/js/modals/mixerModalHandler';
 const drumInfos = ref(Array.from(audioEngine.noteToDrum.values()));
 const slotVolume: Ref<Array<HTMLCanvasElement> | null> = ref(null);
 const lastColumnClicked = ref(-1);
+const mixerMainRef = ref<HTMLDivElement | null>(null);
+let mixerModalObserver: MutationObserver | null = null;
+let mixerWasActive = false;
 
 const handler = modalManager.getHandler(MODALS.MIXER.id) as MixerModalHandler;
 handler.setSlotVolume(slotVolume);
+
+function updateMixerModalWidth() {
+  const mixerModal = document.getElementById(MODALS.MIXER.id);
+  const mixerMain = mixerMainRef.value;
+  if (mixerModal == null || mixerMain == null) {
+    return;
+  }
+
+  const contentWidth = mixerMain.scrollWidth;
+  if (contentWidth <= 0) {
+    return;
+  }
+
+  const availableWidth = Math.max(window.innerWidth - 32, 320);
+  const boundedWidth = Math.min(contentWidth, availableWidth);
+
+  mixerModal.style.maxWidth = `${boundedWidth}px`;
+}
+
+function scheduleMixerModalWidthUpdate() {
+  void nextTick(() => {
+    requestAnimationFrame(updateMixerModalWidth);
+  });
+}
 
 function mixerPanFunc(angle: number, id: string) {
     const scaled = (angle - 180) / 180;
@@ -54,6 +83,38 @@ function mixerPanFunc(angle: number, id: string) {
 function mixerColumnClicked(number: number) {
     lastColumnClicked.value = number;
 }
+
+onMounted(() => {
+  const mixerModal = document.getElementById(MODALS.MIXER.id);
+  if (mixerModal != null) {
+    mixerWasActive = mixerModal.classList.contains('active');
+    mixerModalObserver = new MutationObserver(() => {
+      const mixerIsActive = mixerModal.classList.contains('active');
+      if (mixerIsActive && !mixerWasActive) {
+        mixerModal.style.width = '';
+        scheduleMixerModalWidthUpdate();
+      }
+      mixerWasActive = mixerIsActive;
+    });
+    mixerModalObserver.observe(mixerModal, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  }
+
+  scheduleMixerModalWidthUpdate();
+  window.addEventListener('resize', updateMixerModalWidth);
+});
+
+onUnmounted(() => {
+  mixerModalObserver?.disconnect();
+  mixerModalObserver = null;
+  window.removeEventListener('resize', updateMixerModalWidth);
+});
+
+watch(() => drumInfos.value.length, () => {
+  scheduleMixerModalWidthUpdate();
+}, { immediate: true });
 /*
   createMixerColumn(number: number, name: string) {
 

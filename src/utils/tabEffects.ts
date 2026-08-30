@@ -1,5 +1,5 @@
 import type { Grace, TabBeat, TabNoteData } from '../types/tab'
-import { getDisplayWidth } from './tabLayout'
+import { getMeasureBeatWidth, getMeasureBeatX } from './measureBeatLayout'
 
 interface BendPoint {
   bendPosition?: number
@@ -50,6 +50,7 @@ export interface TrillEffect {
   textY: number
   path: string
   beatIndex: number
+  stringIndex: number
 }
 
 export interface TremoloBarEffect {
@@ -98,7 +99,9 @@ export interface GraceNoteEffect {
 
 export interface TabEffectsInput {
   measureData: TabBeat[]
-  xOffset: number
+  trackId: number
+  voiceId: number
+  blockId: number
   stringSpacing: number
   numStrings: number
 }
@@ -123,16 +126,34 @@ function getEffectNote(note: TabNoteData | null | undefined): EffectNote | null 
 }
 
 function getBeatX(input: TabEffectsInput, beatIndex: number): number {
-  let x = input.xOffset
-  for (let index = 0; index < beatIndex; index++) {
-    x += getDisplayWidth(input.measureData[index]?.duration)
-  }
-
-  return x
+  return getMeasureBeatX(
+    input.trackId,
+    input.voiceId,
+    input.blockId,
+    beatIndex,
+    input.measureData,
+  )
 }
 
+function getBeatWidth(input: TabEffectsInput, beatIndex: number): number {
+  return getMeasureBeatWidth(
+    input.trackId,
+    input.voiceId,
+    input.blockId,
+    beatIndex,
+    input.measureData,
+  )
+}
+
+const NOTE_TEXT_BASELINE_OFFSET = 6
+const BEAM_OFFSET_FROM_BOTTOM = 15
+
 function getStringY(input: TabEffectsInput, stringIndex: number): number {
-  return (input.numStrings - 1 - stringIndex) * input.stringSpacing
+  return stringIndex * input.stringSpacing + NOTE_TEXT_BASELINE_OFFSET
+}
+
+function getBeamY(input: TabEffectsInput): number {
+  return (input.numStrings - 1) * input.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
 }
 
 function getBendValueText(maxBendValue: number): string {
@@ -149,6 +170,10 @@ export function getFontSizeForEffect(effectText: string): string {
       return '20px'
     case 'P.M.':
       return '11px'
+    case 'let ring':
+    case 'A.H.':
+    case 'N.H.':
+      return '10px'
     case '>':
     case '^':
       return '18px'
@@ -199,7 +224,7 @@ function createBeatEffectContext(
     beat,
     beatIndex,
     beatX: getBeatX(input, beatIndex),
-    beatWidth: getDisplayWidth(beat?.duration),
+    beatWidth: getBeatWidth(input, beatIndex),
   }
 }
 
@@ -302,7 +327,7 @@ function collectTieEffect(context: NoteEffectContext, ties: ArcEffect[]): void {
   }
 
   const prevBeatX = getBeatX(context.input, context.beatIndex - 1)
-  const prevBeatWidth = getDisplayWidth(context.input.measureData[context.beatIndex - 1]?.duration)
+  const prevBeatWidth = getBeatWidth(context.input, context.beatIndex - 1)
   const startX = prevBeatX + prevBeatWidth / 2 + 8
   const endX = context.beatX + context.beatWidth / 2 - 5
   const curveY = context.yPos + 8
@@ -321,7 +346,7 @@ function collectPullDownEffect(context: NoteEffectContext, pullDowns: ArcEffect[
   }
 
   const nextBeatX = getBeatX(context.input, context.beatIndex + 1)
-  const nextBeatWidth = getDisplayWidth(context.input.measureData[context.beatIndex + 1]?.duration)
+  const nextBeatWidth = getBeatWidth(context.input, context.beatIndex + 1)
   const startX = context.beatX + context.beatWidth / 2 + 8
   const endX = nextBeatX + nextBeatWidth / 2 - 5
   const curveY = context.yPos - 12
@@ -350,18 +375,18 @@ function collectVibratoEffect(context: NoteEffectContext, vibratos: VibratoEffec
   })
 }
 
-function collectHarmonicEffect(context: NoteEffectContext, harmonics: HarmonicEffect[]): void {
-  if (!context.note?.artificialPresent && !context.note?.naturalHarmonic) {
-    return
+function collectHarmonicEffect(context: NoteEffectContext, beatEffects: string[]): void {
+  if (context.note?.naturalHarmonic) {
+    beatEffects.push('N.H.')
+  } else if (context.note?.artificialPresent) {
+    beatEffects.push('A.H.')
   }
+}
 
-  harmonics.push({
-    x: context.beatX + context.beatWidth / 2,
-    y: context.yPos - 15,
-    text: context.note.naturalHarmonic ? 'N.H.' : 'A.H.',
-    beatIndex: context.beatIndex,
-    stringIndex: context.stringIndex,
-  })
+function collectLetRingToken(rawNote: TabNoteData | null, beatEffects: string[]): void {
+  if (rawNote?.letRing) {
+    beatEffects.push('let ring')
+  }
 }
 
 function collectTremoloPickingEffect(
@@ -378,7 +403,7 @@ function collectTremoloPickingEffect(
 
   tremoloPickings.push({
     x: context.beatX + context.beatWidth / 2 - 5,
-    y: context.input.numStrings * context.input.stringSpacing + 3,
+    y: getBeamY(context.input) + 4,
     lines,
     beatIndex: context.beatIndex,
     stringIndex: context.stringIndex,
@@ -420,6 +445,24 @@ function collectBeatTextTokens(rawNote: TabNoteData | null, beatEffects: string[
   })
 }
 
+function collectTrillEffect(context: NoteEffectContext, trills: TrillEffect[]): void {
+  if (!context.rawNote?.trillPresent) {
+    return
+  }
+
+  const centerX = context.beatX + context.beatWidth / 2
+  const waveY = context.yPos - 18
+  const width = Math.min(context.beatWidth * 0.6, 25)
+
+  trills.push({
+    textX: centerX - 8,
+    textY: waveY + 5,
+    path: createWavePath(centerX + 4, waveY, width),
+    beatIndex: context.beatIndex,
+    stringIndex: context.stringIndex,
+  })
+}
+
 function collectNoteLevelEffects(
   context: NoteEffectContext,
   collections: TabEffectCollections,
@@ -430,46 +473,74 @@ function collectNoteLevelEffects(
   collectTieEffect(context, collections.ties)
   collectPullDownEffect(context, collections.pullDowns)
   collectVibratoEffect(context, collections.vibratos)
-  collectHarmonicEffect(context, collections.harmonics)
+  collectTrillEffect(context, collections.trills)
+  collectHarmonicEffect(context, beatEffects)
+  collectLetRingToken(context.rawNote, beatEffects)
   collectTremoloPickingEffect(context, collections.tremoloPickings)
   collectGraceNoteEffect(context, collections.graceNotes)
   collectBeatTextTokens(context.rawNote, beatEffects)
 }
+
+const TEXT_EFFECT_BASE_Y = -20
+const TEXT_EFFECT_SECOND_ROW_Y = -32
+const TEXT_EFFECT_HORIZONTAL_GAP = 36
 
 function appendBeatTextEffects(
   context: BeatEffectContext,
   textEffects: TextEffect[],
   beatEffects: string[],
 ): void {
-  ;[...new Set(beatEffects)].forEach((effectText, index) => {
-    textEffects.push({
-      text: effectText,
-      x: context.beatX + context.beatWidth / 2,
-      y: -25 - index * 12,
-      fontSize: getFontSizeForEffect(effectText),
-      beatIndex: context.beatIndex,
-    })
-  })
-}
-
-function hasTrill(beat: TabBeat | undefined): boolean {
-  return beat?.notes?.some((note: TabNoteData | null) => note?.trillPresent) === true
-}
-
-function collectTrillEffect(context: BeatEffectContext, trills: TrillEffect[]): void {
-  if (!hasTrill(context.beat)) {
+  const labels = [...new Set(beatEffects)]
+  if (labels.length === 0) {
     return
   }
 
-  const startX = context.beatX + context.beatWidth / 2
-  const waveY = -25
-  const width = Math.min(context.beatWidth * 0.6, 25)
+  const centerX = context.beatX + context.beatWidth / 2
 
-  trills.push({
-    textX: startX,
-    textY: waveY + 5,
-    path: createWavePath(startX + 12, waveY, width),
-    beatIndex: context.beatIndex,
+  if (labels.length === 1) {
+    textEffects.push({
+      text: labels[0],
+      x: centerX,
+      y: TEXT_EFFECT_BASE_Y,
+      fontSize: getFontSizeForEffect(labels[0]),
+      beatIndex: context.beatIndex,
+    })
+    return
+  }
+
+  if (labels.length <= 3) {
+    const span = (labels.length - 1) * TEXT_EFFECT_HORIZONTAL_GAP
+    labels.forEach((effectText, index) => {
+      textEffects.push({
+        text: effectText,
+        x: centerX - span / 2 + index * TEXT_EFFECT_HORIZONTAL_GAP,
+        y: TEXT_EFFECT_BASE_Y,
+        fontSize: getFontSizeForEffect(effectText),
+        beatIndex: context.beatIndex,
+      })
+    })
+    return
+  }
+
+  const firstRowCount = Math.ceil(labels.length / 2)
+  const rows = [labels.slice(0, firstRowCount), labels.slice(firstRowCount)]
+  const rowYs = [TEXT_EFFECT_BASE_Y, TEXT_EFFECT_SECOND_ROW_Y]
+
+  rows.forEach((rowLabels, rowIndex) => {
+    if (rowLabels.length === 0) {
+      return
+    }
+
+    const span = (rowLabels.length - 1) * TEXT_EFFECT_HORIZONTAL_GAP
+    rowLabels.forEach((effectText, index) => {
+      textEffects.push({
+        text: effectText,
+        x: centerX - span / 2 + index * TEXT_EFFECT_HORIZONTAL_GAP,
+        y: rowYs[rowIndex],
+        fontSize: getFontSizeForEffect(effectText),
+        beatIndex: context.beatIndex,
+      })
+    })
   })
 }
 
@@ -480,7 +551,7 @@ function collectTremoloBarEffect(context: BeatEffectContext, tremoloBars: Tremol
   }
 
   const startX = context.beatX + context.beatWidth / 2
-  const startY = context.input.numStrings * context.input.stringSpacing + 10
+  const startY = getBeamY(context.input) + 10
   let pathData = `M${startX} ${startY}`
 
   tremoloBar.forEach((point: TremoloBarPoint) => {
@@ -520,13 +591,12 @@ function collectLetRingEffect(context: BeatEffectContext, letRings: LetRingEffec
   const endBeatIndex = getLetRingEndBeatIndex(context)
   letRings.push({
     x: context.beatX + context.beatWidth / 2,
-    y: context.input.numStrings * context.input.stringSpacing + 15,
-    lineEndX: getBeatX(context.input, endBeatIndex) + getDisplayWidth(context.input.measureData[endBeatIndex]?.duration),
+    y: (context.input.numStrings - 1) * context.input.stringSpacing + 10,
+    lineEndX: getBeatX(context.input, endBeatIndex) + getBeatWidth(context.input, endBeatIndex),
   })
 }
 
 function collectBeatLevelEffects(context: BeatEffectContext, collections: TabEffectCollections): void {
-  collectTrillEffect(context, collections.trills)
   collectTremoloBarEffect(context, collections.tremoloBars)
   collectLetRingEffect(context, collections.letRings)
 }

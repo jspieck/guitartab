@@ -150,7 +150,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
-import { resizeTrackTuning } from '../../services/legacy/trackAdapter'
+import { resizeTrackTuning } from '../../services/editor/trackAdapter'
 import type { TrackUpdate, TrackViewModel } from '../../types/track'
 
 interface Props {

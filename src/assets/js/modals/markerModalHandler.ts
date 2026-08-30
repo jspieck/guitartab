@@ -2,10 +2,9 @@ import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song, Marker } from '../songData';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
-import { svgDrawer } from '../svgDrawer';
 import { SequencerHandler } from '../sequencerHandler';
 import { MODALS } from './modalTypes';
-import { requestBlockRender } from '../../../services/legacy/renderCommands';
+import { requestBlockRender } from '../../../services/editor/renderCommands';
 
 interface MarkerModalState extends ModalState {
     markerData: Marker;

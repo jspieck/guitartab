@@ -1,6 +1,5 @@
 import tinycolor from 'tinycolor2';
 import fastdom from 'fastdom';
-import LZString from 'lz-string';
 import { tab, Tab } from './tab';
 import { overlayHandler } from './overlayHandler';
 import {
@@ -8,6 +7,7 @@ import {
 } from './songData';
 import { modalManager } from './modals/modalManager';
 import EventBus from "./eventBus";
+import { notifySongDataChanged } from '../../services/appEvents';
 import { typedEventBus } from '../../utils/typedEventBus';
 import { visualInstruments } from './visualInstruments';
 import midiEngine from './midiReceiver';
@@ -18,9 +18,11 @@ import { audioEngine } from './audioEngine';
 import { sequencerHandler } from './sequencerHandler';
 import Duration from './duration';
 import Tuning from './tuning';
-import { menuHandler } from './menuHandler';
+import { applyNoteLengthSelection } from '../../services/menuActionCommands';
+import type { NoteLengthCode } from '../../types/tab';
 import { useTabStore } from '../../stores/tabStore';
 import { setTrackSignIcon } from '../../utils/editorUi';
+import { serializeSongToGtBytes } from '../../utils/gtSerialization';
 
 const AppManager = {
   notificationTimeOut: null as ReturnType<typeof setTimeout> | null,
@@ -113,22 +115,22 @@ const AppManager = {
         case 'x':
           break;
         case 'w':
-          menuHandler.noteLengthSelect('#wholeNote', pressedValue);
+          applyNoteLengthSelection('w' as NoteLengthCode);
           break;
         case 'h':
-          menuHandler.noteLengthSelect('#halfNote', pressedValue);
+          applyNoteLengthSelection('h' as NoteLengthCode);
           break;
         case 'q':
-          menuHandler.noteLengthSelect('#4thNote', pressedValue);
+          applyNoteLengthSelection('q' as NoteLengthCode);
           break;
         case 'e':
-          menuHandler.noteLengthSelect('#8thNote', pressedValue);
+          applyNoteLengthSelection('e' as NoteLengthCode);
           break;
         case 's':
-          menuHandler.noteLengthSelect('#16thNote', pressedValue);
+          applyNoteLengthSelection('s' as NoteLengthCode);
           break;
         case 't':
-          menuHandler.noteLengthSelect('#32ndNote', pressedValue);
+          applyNoteLengthSelection('t' as NoteLengthCode);
           break;
         default:
           break;
@@ -164,6 +166,7 @@ const AppManager = {
           }
           typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
         }
+        notifySongDataChanged();
         EventBus.emit("menu.activateEffectsForPos", {trackId, blockId, voiceId, beatId, string});
       }
     });
@@ -285,9 +288,9 @@ const AppManager = {
 
   setCapo(newCapo: number) {
     const capoTitleDom = document.getElementById('capoTitle');
-    capoTitleDom!.textContent = `Capo: ${newCapo}`;
-    const capoLabelDom = document.getElementById('capoLabel');
-    capoLabelDom!.textContent = `Capo: ${newCapo}`;
+    if (capoTitleDom) {
+      capoTitleDom.textContent = `Capo: ${newCapo}`;
+    }
     visualInstruments.setCapo(newCapo);
   },
 
@@ -300,10 +303,6 @@ const AppManager = {
       const tuningTitleDom = document.getElementById('tuningTitle');
       if (tuningTitleDom) {
         tuningTitleDom.textContent = `Tuning: ${tuningStrings}`;
-      }
-      const tuningFooterDom = document.getElementById('tuningFooter');
-      if (tuningFooterDom) {
-        tuningFooterDom.textContent = `Tuning: ${tuningStrings}`;
       }
       const trackTitleDom = document.getElementById('trackTitle');
       if (trackTitleDom instanceof HTMLElement) {
@@ -381,7 +380,7 @@ const AppManager = {
     
     // Notify that song data has changed to update reactive components
     console.log('Song loaded. Tracks:', Song.tracks.map(t => t.name));
-    EventBus.emit('song-data-changed');
+    notifySongDataChanged();
   },
 
   changeTrack(trackId: number, voiceId: number, force: boolean, callback: (() => void) | null) {
@@ -407,29 +406,13 @@ const AppManager = {
     tab.markedNoteObj.string = 0;
     tab.drawTrack(trackId, voiceId, true, callback);
     
-    EventBus.emit('song-data-changed');
+    notifySongDataChanged();
   },
 
   saveAsGt(promptDialog: boolean) {
-    const limiter = '%%%';
-    let content = '';
-    content += JSON.stringify(Song.songDescription);
-    content += limiter;
-    content += JSON.stringify(Song.measures);
-    content += limiter;
-    content += JSON.stringify(Song.measureMeta);
-    content += limiter;
-    content += JSON.stringify(Song.tracks);
-    content += limiter;
-    content += JSON.stringify(Song.playBackInstrument);
-    content += limiter;
-    content += JSON.stringify(audioEngine.noteToDrum);
-
-    const compressed = LZString.compressToUint8Array(content);
-  const compressedBytes = new Uint8Array(compressed);
-    // TODO save open modals with size/position, write pan from busses
+    const compressedBytes = serializeSongToGtBytes();
     const a = document.createElement('a');
-  const file = new Blob([compressedBytes], { type: 'octet/stream' });
+    const file = new Blob([compressedBytes], { type: 'octet/stream' });
     a.href = URL.createObjectURL(file);
     if (promptDialog) {
       a.download = 'saveAs.gt';
@@ -513,7 +496,7 @@ const AppManager = {
   setTracks(trackId: number) {
     this.setPlayBackInstrument(trackId);
     audioEngine.updateBusses(Song.playBackInstrument);
-    EventBus.emit('song-data-changed');
+    notifySongDataChanged();
   },
 
   setTimeMeterToAllTracks() {
@@ -656,6 +639,7 @@ const AppManager = {
       }
     }
     tab.drawNote(trackId, blockId, voiceId, beatId, string, updatedFretNumber, false);
+    notifySongDataChanged();
     // Playback Note
     const volume = 0.5;
     const noteStart = audioEngine.getCurrentTime();

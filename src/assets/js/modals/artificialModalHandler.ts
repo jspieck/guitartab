@@ -3,8 +3,8 @@ import { Note, Measure } from '../songData';
 import fastdom from 'fastdom';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
-import { svgDrawer } from '../svgDrawer';
 import { MODALS } from './modalTypes';
+import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
 interface NoteData {
     trackId: number;
@@ -111,7 +111,7 @@ export class ArtificialModalHandler extends BaseModalHandler {
             }
 
             const { trackId, voiceId } = this.currentState!.notes[0];
-            svgDrawer.rerenderBlocks(trackId, this.currentState!.blocks, voiceId);
+            requestBlocksRender(trackId, this.currentState!.blocks, voiceId);
         });
     }
 }

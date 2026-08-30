@@ -1,4 +1,4 @@
-import { SvgDrawer } from './svgDrawer';
+import { createCircle, createRect } from '../../utils/svgPrimitives';
 
 class KnobFactory {
   cx: number;
@@ -66,17 +66,17 @@ class KnobFactory {
     svg.setAttribute('id', id);
     svg.setAttribute('data-id', dataId.toString());
     svg.setAttribute('class', 'knobRing');
-    const innerCircle = SvgDrawer.createCircle(
+    const innerCircle = createCircle(
       this.cx, this.cy, this.radiusInner, this.strokeInner, '1', this.fillInner,
     );
     const pointerY = midKnob ? 3 : 14;
-    const pointer = SvgDrawer.createRect(
+    const pointer = createRect(
       this.cx - 1, pointerY, this.pointerWidth, this.pointerHeight, 'none', 'none', this.pointerFill,
     );
     pointer.setAttribute('id', `${id}Pointer`);
     pointer.setAttribute('rx', '1');
     pointer.setAttribute('ry', '1');
-    const outerRing = SvgDrawer.createCircle(
+    const outerRing = createCircle(
       this.cx, this.cy, this.radiusOuter, this.strokeOuter, '2', 'transparent',
     );
     const dashValue = 2 * this.radiusOuter * Math.PI;

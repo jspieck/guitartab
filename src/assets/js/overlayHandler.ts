@@ -6,10 +6,11 @@ import Helper from './helper';
 import playBackLogic from './playBackLogicNew';
 import { tab } from './tab';
 import { sequencerHandler, SequencerHandler } from './sequencerHandler';
-import { svgDrawer } from './svgDrawer';
-import { menuHandler } from './menuHandler';
+import EventBus from './eventBus';
 import { useTabStore } from '../../stores/tabStore';
-import legacyRenderBridge from '../../services/legacy/renderBridge';
+import { requestDurationRender } from '../../services/editor/renderCommands';
+import { buildLoopIntervalFromOverlays } from '../../services/playbackLoopController';
+import { syncPlaybackLoopFromInterval } from '../../composables/playbackLoopState';
 
 class OverlayHandler {
   startPosOverlay: { trackId: number, blockId: number, voiceId: number,
@@ -20,14 +21,6 @@ class OverlayHandler {
 
   copyObject: { array: Measure[]};
 
-  highestBlockOverlay: number;
-
-  overlaysPerRow: SVGRectElement[];
-
-  selectionClicked: boolean;
-
-  lastTriPointer: HTMLElement | null;
-
   isOverlaySet: boolean;
 
   loopingInterval: Interval | null;
@@ -36,11 +29,6 @@ class OverlayHandler {
     this.startPosOverlay = null;
     this.endPosOverlay = null;
     this.copyObject = { array: [] };
-    this.highestBlockOverlay = 0;
-    // TODO: for later
-    this.overlaysPerRow = [];
-    this.selectionClicked = false;
-    this.lastTriPointer = null;
     this.isOverlaySet = false;
     this.loopingInterval = null;
   }
@@ -50,16 +38,14 @@ class OverlayHandler {
   }
 
   initOverlay(trackId: number, blockId: number, voiceId: number, beatId: number) {
-    this.selectionClicked = true;
-    this.clearAllOverlays();
-    this.highestBlockOverlay = blockId;
+    SequencerHandler.removeOverlay();
     this.setStartOverlay(trackId, blockId, voiceId, beatId);
     this.endPosOverlay = null;
     this.isOverlaySet = false;
-    // createTrianglePointer(trackId, blockId, voiceId, startPosOverlay.leftPos);
     if (this.loopingInterval != null) {
       const oldloopingInterval = this.loopingInterval;
       this.loopingInterval = null;
+      syncPlaybackLoopFromInterval(null);
       if (Settings.songPlaying) {
         playBackLogic.adaptPlayBackToLoopIntervalChange(oldloopingInterval, this.loopingInterval);
       }
@@ -67,14 +53,12 @@ class OverlayHandler {
   }
 
   resetOverlays() {
-    this.clearAllOverlays();
     this.startPosOverlay = null;
     this.endPosOverlay = null;
-    this.highestBlockOverlay = 0;
-    this.overlaysPerRow.length = 0;
-    this.selectionClicked = false;
-    this.lastTriPointer = null;
+    this.isOverlaySet = false;
     this.loopingInterval = null;
+    syncPlaybackLoopFromInterval(null);
+    SequencerHandler.removeOverlay();
     useTabStore().incrementSelectionVersion();
   }
 
@@ -121,44 +105,17 @@ class OverlayHandler {
     if (this.startPosOverlay == null || this.endPosOverlay == null) {
       return;
     }
-    const {
-      trackId, blockId: blockIdStart, voiceId: voiceIdStart, beatId: beatIdStart,
-    } = this.startPosOverlay;
-    const {
-      blockId: blockEnd, voiceId: voiceEnd, beatId: beatEnd,
-    } = this.endPosOverlay;
-
-    if (blockIdStart > blockEnd
-      || ((blockIdStart === blockEnd) && beatIdStart > beatEnd)
-    ) {
-      const durEnd = Duration.getDurationOfNote(Song.measures[trackId][blockEnd][voiceEnd][beatEnd],
-        false);
-      const startRatio = this.endPosOverlay.abstractTimePos - durEnd / Duration.getDurationOfType('wr');
-      const durStart = Duration.getDurationOfNote(
-        Song.measures[trackId][blockIdStart][voiceIdStart][beatIdStart],
+    const wholeRestDuration = Duration.getDurationOfType('wr');
+    this.loopingInterval = buildLoopIntervalFromOverlays(
+      this.startPosOverlay,
+      this.endPosOverlay,
+      (trackId, blockId, voiceId, beatId) => Duration.getDurationOfNote(
+        Song.measures[trackId][blockId][voiceId][beatId],
         false,
-      );
-      const endRatio = this.startPosOverlay.abstractTimePos + durStart / Duration.getDurationOfType('wr');
-      this.loopingInterval = {
-        trackId,
-        startBlock: blockEnd,
-        startBeat: beatEnd,
-        startRatio,
-        endBlock: blockIdStart,
-        endBeat: beatIdStart,
-        endRatio,
-      };
-    } else {
-      this.loopingInterval = {
-        trackId,
-        startBlock: this.startPosOverlay.blockId,
-        startBeat: this.startPosOverlay.beatId,
-        startRatio: this.startPosOverlay.abstractTimePos,
-        endBlock: this.endPosOverlay.blockId,
-        endBeat: this.endPosOverlay.beatId,
-        endRatio: this.endPosOverlay.abstractTimePos,
-      };
-    }
+      ),
+      wholeRestDuration,
+    );
+    syncPlaybackLoopFromInterval(this.loopingInterval);
     if (Settings.songPlaying) {
       playBackLogic.adaptPlayBackToLoopIntervalChange(previousInterval, this.loopingInterval);
       const {
@@ -168,103 +125,9 @@ class OverlayHandler {
     }
   }
 
-  drawOverlay(trackId: number, voiceId: number, blockIdStart: number,
-    blockIdEnd: number, beatIdStart: number, beatIdEnd: number) {
-    const rowBegin = legacyRenderBridge.getRowIdForBlock(trackId, voiceId, blockIdStart);
-    const rowEnd = legacyRenderBridge.getRowIdForBlock(trackId, voiceId, blockIdEnd);
-
-    if (rowBegin == null || rowEnd == null) {
-      return;
-    }
-
-    for (let rowId = rowBegin; rowId <= rowEnd; rowId += 1) {
-      let xPosStart;
-      if (rowId === rowBegin) {
-        xPosStart = legacyRenderBridge.getPositionInRow(trackId, voiceId, blockIdStart, beatIdStart);
-      } else {
-        xPosStart = 0;
-      }
-
-      let xPosEnd;
-      if (rowId === rowEnd) {
-        if (Song.measures[trackId][blockIdEnd][voiceId].length === beatIdEnd + 1) {
-          xPosEnd = legacyRenderBridge.getBlockX(trackId, voiceId, blockIdEnd)
-            + legacyRenderBridge.getBlockWidth(trackId, voiceId, blockIdEnd);
-        } else {
-          xPosEnd = legacyRenderBridge.getPositionInRow(trackId, voiceId, blockIdEnd, beatIdEnd + 1);
-        }
-      } else {
-        xPosEnd = legacyRenderBridge.getRowWidth(trackId, voiceId);
-      }
-
-      this.overlaysPerRow[rowId] = svgDrawer.drawOverlayRow(trackId, voiceId, rowId,
-        xPosStart, xPosEnd);
-    }
-  }
-
-  createTrianglePointer(trackId: number, blockId: number, voiceId: number, leftPos: number) {
-    const triPointer = document.createElement('div');
-    triPointer.setAttribute('id', 'triangleUp');
-    triPointer.setAttribute('class', 'triangleUp');
-    triPointer.style.left = `${leftPos}px`;
-
-    let topPosition = tab.heightOfBlock[trackId][voiceId][blockId];
-    if (Song.measureMeta[blockId].bpmPresent) {
-      topPosition -= Settings.OVERBAR_ROW_HEIGHT;
-    }
-    triPointer.style.top = `${-topPosition}px`;
-    document.getElementById(`lineBlock_${trackId}_${blockId}_${voiceId}`)?.appendChild(triPointer);
-    this.lastTriPointer = triPointer;
-  }
-
-  /* static resetTrianglePointer(trackId, voiceId, blockId) {
-    if(document.getElementById("triangleUp") != null){
-      var topPosition = svgDrawer.heightOfRow[trackId][voiceId][blockId];
-      if(Song.measureMeta[blockId].bpmPresent){
-          topPosition -= Settings.OVERBAR_ROW_HEIGHT;
-      }
-      document.getElementById("triangleUp").style.top = (-topPosition)+"px";
-    }
-  } */
-
-  clearAllOverlays() {
-    // empty previous overlays
-    for (let key in this.overlaysPerRow) {
-      if (this.overlaysPerRow.hasOwnProperty(key) && this.overlaysPerRow[key] != null) {
-        let parentNode = this.overlaysPerRow[key].parentNode;
-        if (parentNode) {
-          parentNode.removeChild(this.overlaysPerRow[key]);
-        }
-      }
-    }
-    this.overlaysPerRow.length = 0;
-    SequencerHandler.removeOverlay();
-    // clear triangle pointer
-    if (this.lastTriPointer != null) {
-      this.lastTriPointer.parentNode?.removeChild(this.lastTriPointer);
-      this.lastTriPointer = null;
-    }
-  }
-
   redrawOverlays() {
     if (this.startPosOverlay != null && this.endPosOverlay != null) {
-      this.clearAllOverlays();
-      const {
-        trackId, blockId: blockIdStart, voiceId: voiceIdStart, beatId: beatIdStart,
-      } = this.startPosOverlay;
-      const { blockId: blockEnd, beatId: beatEnd } = this.endPosOverlay;
-      // createTrianglePointer(trackId, blockIdStart, voiceId, this.startPosOverlay.leftPos)
-      if (blockIdStart < blockEnd) {
-        this.drawOverlay(trackId, voiceIdStart, blockIdStart, blockEnd, beatIdStart, beatEnd);
-      } else if (blockIdStart === blockEnd) {
-        if (this.startPosOverlay.beatId <= beatEnd) {
-          this.drawOverlay(trackId, voiceIdStart, blockIdStart, blockEnd, beatIdStart, beatEnd);
-        } else {
-          this.drawOverlay(trackId, voiceIdStart, blockIdStart, blockEnd, beatEnd, beatIdStart);
-        }
-      } else {
-        this.drawOverlay(trackId, voiceIdStart, blockEnd, blockIdStart, beatEnd, beatIdStart);
-      }
+      useTabStore().incrementSelectionVersion();
     }
   }
 
@@ -273,9 +136,9 @@ class OverlayHandler {
     this.setEndOverlay(trackId, blockId, voiceId, beatId);
     this.redrawOverlays();
     if (this.isNoteSelected()) {
-      menuHandler.enableNoteEffectButtons();
+      EventBus.emit('menu.activateEffectsForMarkedPos');
     } else {
-      menuHandler.disableNoteEffectButtons();
+      EventBus.emit('menu.disableNoteEffectButtons');
     }
   }
 
@@ -328,20 +191,12 @@ class OverlayHandler {
           );
         }
       }
-      console.log(copyArray);
       this.copyObject.array = copyArray;
     }
   }
 
   static createFreshMeasure(measureIn: Measure) {
-    const measure = JSON.parse(JSON.stringify(measureIn));
-    // delete old properties saved in the note
-    for (let p = 0; p < measure.notes.length; p += 1) {
-      if (measure.notes[p] != null) {
-        measure.notes[p].noteDrawn = null;
-      }
-    }
-    return measure;
+    return JSON.parse(JSON.stringify(measureIn));
   }
 
   static giveMinNumberOfNotesForDuration(noteSize: number) {
@@ -459,7 +314,6 @@ class OverlayHandler {
       availableSpaceInBlock += Duration.getDurationOfNote(
         Song.measures[trackId][blockId][voiceId][beatId], false,
       );
-      OverlayHandler.deleteBeatObjects(trackId, blockId, voiceId, beatId);
     }
 
     Song.measures[trackId][blockId][voiceId].splice(startIndex, endIndex - startIndex + 1);
@@ -492,7 +346,7 @@ class OverlayHandler {
       noteElemToMoveToTheNextBlock
     );
 
-    svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+    requestDurationRender(trackId, blockId, voiceId);
     tab.fillMeasure(trackId, blockId, voiceId);
   }
 
@@ -665,17 +519,6 @@ class OverlayHandler {
     revertHandler.addCopyPaste(trackId, voiceId, blocksBefore, blocksAfter);
     tab.drawTrack(trackId, voiceId, true, null);
     sequencerHandler.redrawSequencerMain();
-  }
-
-  static deleteBeatObjects(trackId: number, blockId: number, voiceId: number, beatId: number) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
-    if (beat.notes != null) {
-      for (let i = 0; i < beat.notes.length; i += 1) {
-        if (beat.notes[i] != null) {
-          Helper.deleteDOMObject(beat.notes[i]!.noteDrawn);
-        }
-      }
-    }
   }
 
   getNotesInInterval(interval: Interval | null): {

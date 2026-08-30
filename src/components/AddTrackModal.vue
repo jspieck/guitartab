@@ -7,13 +7,14 @@
         :key="i"
         class="instrument-group"
       >
-        <button 
+        <button
+          type="button"
           class="group-header"
           @click="toggleGroup(i)"
           :class="{ 'active': openGroups[i] }"
         >
-          <span>{{ group.title }}</span>
-          <svg 
+          <span class="group-title">{{ group.title }}</span>
+          <svg
             class="arrow-icon"
             :class="{ 'rotated': openGroups[i] }"
             viewBox="0 0 24 24"
@@ -30,12 +31,13 @@
             <button
               v-for="choice in group.choices"
               :key="choice"
+              type="button"
               class="instrument-choice"
               @click="selectInstrument(choice)"
             >
-              <img 
-                class="instrument-icon" 
-                :src="instrumentList[choice][0]" 
+              <img
+                class="instrument-icon"
+                :src="instrumentList[choice][0]"
                 :alt="instrumentList[choice][1]"
               />
               <span class="instrument-name">{{ instrumentList[choice][1] }}</span>
@@ -70,13 +72,16 @@ const selectInstrument = (choice: string) => {
 
 <style scoped>
 .instrumentContainer {
-  max-height: 70vh;
+  display: grid;
+  gap: 0.5rem;
+  max-height: min(66vh, 560px);
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.125rem;
 }
 
 .instrument-group {
-  margin-bottom: 0.5rem;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .group-header {
@@ -84,26 +89,38 @@ const selectInstrument = (choice: string) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: #f5f5f5;
-  border: none;
-  border-radius: 4px;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: linear-gradient(180deg, var(--modal-card-bg) 0%, var(--modal-card-subtle) 100%);
+  color: var(--modal-text-strong);
+  border: 1px solid var(--modal-card-border);
+  border-radius: 12px;
   cursor: pointer;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
 }
 
 .group-header:hover {
-  background: #eeeeee;
+  background: linear-gradient(180deg, var(--modal-card-hover) 0%, var(--modal-card-bg) 100%);
+  transform: translateY(-1px);
 }
 
 .group-header.active {
-  background: #e0e0e0;
+  border-color: var(--modal-accent);
+  background: linear-gradient(180deg, var(--modal-card-hover) 0%, var(--modal-card-subtle) 100%);
+}
+
+.group-title {
+  min-width: 0;
+  text-align: left;
 }
 
 .arrow-icon {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   transition: transform 0.2s;
   fill: currentColor;
 }
@@ -113,36 +130,47 @@ const selectInstrument = (choice: string) => {
 }
 
 .instrument-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0;
 }
 
 .instrument-choice {
-  display: flex;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
-  gap: 1rem;
-  padding: 0.5rem;
-  border: none;
-  background: white;
-  border-radius: 4px;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--modal-card-border);
+  background: linear-gradient(180deg, var(--modal-card-bg) 0%, var(--modal-card-subtle) 100%);
+  color: var(--modal-text-strong);
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  text-align: left;
+  transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
 }
 
 .instrument-choice:hover {
-  background: #f5f5f5;
+  transform: translateY(-1px);
+  border-color: var(--modal-accent);
+  background: linear-gradient(180deg, var(--modal-card-hover) 0%, var(--modal-card-bg) 100%);
 }
 
 .instrument-icon {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  padding: 0.35rem;
+  border-radius: 10px;
+  background: var(--modal-card-hover);
   object-fit: contain;
 }
 
 .instrument-name {
-  font-size: 0.9rem;
+  min-width: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 /* Transitions */

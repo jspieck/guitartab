@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { requestBlockRender, requestBlocksRender } from '../src/services/legacy/renderCommands'
+import {
+  requestBlockRender,
+  requestBlocksRender,
+  requestChordDiagramsRender,
+  requestTrackDeleteRender,
+} from '../src/services/editor/renderCommands'
 import { typedEventBus } from '../src/utils/typedEventBus'
 
 afterEach(() => {
@@ -23,5 +28,23 @@ describe('renderCommands', () => {
     requestBlocksRender(1, [2, 3], 0)
 
     expect(handler).toHaveBeenCalledWith({ trackId: 1, blockIds: [2, 3], voiceId: 0 })
+  })
+
+  it('emits chord diagram refresh requests', () => {
+    const handler = vi.fn()
+    typedEventBus.on('render.chordDiagrams', handler)
+
+    requestChordDiagramsRender()
+
+    expect(handler).toHaveBeenCalledWith(undefined)
+  })
+
+  it('emits track delete render requests', () => {
+    const handler = vi.fn()
+    typedEventBus.on('render.deleteTrack', handler)
+
+    requestTrackDeleteRender(2)
+
+    expect(handler).toHaveBeenCalledWith({ trackId: 2 })
   })
 })

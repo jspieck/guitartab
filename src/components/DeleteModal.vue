@@ -1,11 +1,13 @@
 <template>
   <BaseModal :modal-id="MODALS.DELETE_TRACK.id">
     <template #title>Delete</template>
-    <h4 class="modalCaption">Do you really want to delete the instrument?</h4>
-    <button id="yesDelete" class="deleteButton">
-      Yes, all data will be lost
-    </button>
-    <button id="noDelete" class="deleteButton">No</button>
+    <div class="modal-stack">
+      <p class="modal-body-text">Do you really want to delete this instrument? All of its data will be lost.</p>
+      <div class="modal-button-row">
+        <button id="noDelete" type="button" class="modal-secondary-button">Cancel</button>
+        <button id="yesDelete" type="button" class="modal-danger-button">Delete</button>
+      </div>
+    </div>
   </BaseModal>
 </template>
 

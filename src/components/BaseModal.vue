@@ -1,14 +1,14 @@
 <template>
     <div class="modal" role="alert" :id="modalId">
       <div class="modalTopBar">
-        <label class="modalTopBarLabel"><slot name="title"></slot></label>
-        <div class="modal_close">
-          <div class="icon">
+        <div class="modalTopBarLabel"><slot name="title"></slot></div>
+        <button type="button" class="modal_close" aria-label="Close modal">
+          <span class="icon" aria-hidden="true">
             <svg viewBox="0 0 32 32">
               <use xlink:href="#close-icon"></use>
             </svg>
-          </div>
-        </div>
+          </span>
+        </button>
       </div>
       <div class="modalBody">
         <slot></slot>

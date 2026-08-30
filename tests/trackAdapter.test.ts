@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import Song, { type PlayBackInstrument, type Track } from '../src/assets/js/songData'
 import { resetEditorScopeState, useEditorScopeState } from '../src/composables/useEditorScopeState'
-import { legacyTrackAdapter, resizeTrackTuning, trackToViewModel } from '../src/services/legacy/trackAdapter'
+import { trackAdapter, resizeTrackTuning, trackToViewModel } from '../src/services/editor/trackAdapter'
 
 function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
@@ -80,9 +80,9 @@ describe('trackAdapter helpers', () => {
   })
 })
 
-describe('legacyTrackAdapter', () => {
+describe('trackAdapter', () => {
   it('updates track and playback state through one typed patch', () => {
-    legacyTrackAdapter.updateTrack(0, {
+    trackAdapter.updateTrack(0, {
       name: 'Rhythm',
       capo: 3,
       program: 27,
@@ -110,8 +110,8 @@ describe('legacyTrackAdapter', () => {
   it('updates current track and voice through explicit reactive scope state', () => {
     const { editorScopeState } = useEditorScopeState()
 
-    legacyTrackAdapter.selectTrack(0)
-    legacyTrackAdapter.selectVoice(2)
+    trackAdapter.selectTrack(0)
+    trackAdapter.selectVoice(2)
 
     expect(Song.currentTrackId).toBe(0)
     expect(Song.currentVoiceId).toBe(2)

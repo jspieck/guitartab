@@ -1,5 +1,6 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Song, SongDescription } from '../songData';
+import { notifySongDataChanged } from '../../../services/appEvents';
 import { MODALS } from './modalTypes';
 
 interface SongDescriptionModal extends SongDescription {
@@ -54,9 +55,17 @@ export class InfoModalHandler extends BaseModalHandler {
             }
         });
 
-        // Update UI elements
-        document.getElementById("tabTitle")!.textContent = Song.songDescription.title;
-        document.getElementById("tabAuthor")!.textContent = Song.songDescription.author;
+        const tabTitle = document.getElementById('tabTitle');
+        if (tabTitle) {
+            tabTitle.textContent = Song.songDescription.title;
+        }
+
+        const tabAuthor = document.getElementById('tabAuthor');
+        if (tabAuthor) {
+            tabAuthor.textContent = Song.songDescription.author;
+        }
+
+        notifySongDataChanged();
 
         this.closeModal();
     }

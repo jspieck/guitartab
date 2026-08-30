@@ -9,8 +9,8 @@ import type {
   ChordDiagram 
 } from '../types/tab'
 
-// Import existing Song data to bridge the transition
-import Song from '../assets/js/songData'
+// Bridge to reactive song state
+import { songState } from '../stores/songState'
 
 export const useTabStore = defineStore('tab', {
   state: () => ({
@@ -30,7 +30,7 @@ export const useTabStore = defineStore('tab', {
   getters: {
     // Bridge to existing Song data
     tracks: (): Track[] => {
-      return Song.tracks.map((t: any) => {
+      return songState.tracks.map((t: any) => {
         // Alias strings to tuning
         if (!t.tuning && t.strings) {
           t.tuning = t.strings;
@@ -42,11 +42,11 @@ export const useTabStore = defineStore('tab', {
         return t;
       });
     },
-    songDescription: (): SongDescription => Song.songDescription,
-    measureMeta: (): MeasureMeta[] => Song.measureMeta,
+    songDescription: (): SongDescription => songState.songDescription,
+    measureMeta: (): MeasureMeta[] => songState.measureMeta,
     
     getTrack: (state) => (trackId: number): Track | undefined => {
-      const t: any = Song.tracks[trackId]
+      const t: any = songState.tracks[trackId]
       if (!t) return undefined
       
       // Alias strings to tuning
@@ -63,13 +63,13 @@ export const useTabStore = defineStore('tab', {
     getMeasures: (state) => (trackId: number, voiceId: number): Measure[][] => {
       // Dependency on songDataVersion to trigger updates
       const _ = state.songDataVersion;
-      if (!Song.measures[trackId]) return [];
-      return Song.measures[trackId].map(block => block[voiceId]);
+      if (!songState.measures[trackId]) return [];
+      return songState.measures[trackId].map(block => block[voiceId]);
     },
     
     getChordsMap: (state) => (trackId: number): ChordsMap => {
       const _ = state.songDataVersion;
-      return Song.chordsMap[trackId] || new Map()
+      return songState.chordsMap[trackId] || new Map()
     },
     
     getCurrentPosition: (state): TabPosition => ({
@@ -82,12 +82,12 @@ export const useTabStore = defineStore('tab', {
     
     getMeasure: (state) => (trackId: number, blockId: number, voiceId: number): Measure[] => {
       const _ = state.songDataVersion;
-      return Song.measures[trackId]?.[blockId]?.[voiceId] || []
+      return songState.measures[trackId]?.[blockId]?.[voiceId] || []
     },
     
     getNote: (state) => (trackId: number, blockId: number, voiceId: number, beatId: number, string: number) => {
       const _ = state.songDataVersion;
-      return Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatId]?.notes?.[string]
+      return songState.measures[trackId]?.[blockId]?.[voiceId]?.[beatId]?.notes?.[string]
     }
   },
 
@@ -106,14 +106,12 @@ export const useTabStore = defineStore('tab', {
     
     setCurrentTrack(trackId: number) {
       this.currentTrackId = trackId
-      // Also update Song.currentTrackId to maintain compatibility
-      Song.currentTrackId = trackId
+      songState.currentTrackId = trackId
     },
     
     setCurrentVoice(voiceId: number) {
       this.currentVoiceId = voiceId
-      // Also update Song.currentVoiceId to maintain compatibility
-      Song.currentVoiceId = voiceId
+      songState.currentVoiceId = voiceId
     },
     
     setSelection(selection: TabPosition[]) {
@@ -148,23 +146,23 @@ export const useTabStore = defineStore('tab', {
     
     // Bridge methods to update Song data
     updateNote(trackId: number, blockId: number, voiceId: number, beatId: number, string: number, noteData: any) {
-      if (Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatId]?.notes) {
-        Song.measures[trackId][blockId][voiceId][beatId].notes[string] = noteData
+      if (songState.measures[trackId]?.[blockId]?.[voiceId]?.[beatId]?.notes) {
+        songState.measures[trackId][blockId][voiceId][beatId].notes[string] = noteData
         this.songDataVersion++
       }
     },
     
     updateMeasure(trackId: number, blockId: number, voiceId: number, measureData: Measure[]) {
-      if (Song.measures[trackId]?.[blockId]) {
+      if (songState.measures[trackId]?.[blockId]) {
         // @ts-ignore - Legacy type mismatch
-        Song.measures[trackId][blockId][voiceId] = measureData
+        songState.measures[trackId][blockId][voiceId] = measureData
         this.songDataVersion++
       }
     },
     
     addChord(trackId: number, chordName: string, chord: ChordDiagram) {
-      if (!Song.chordsMap[trackId]) {
-        Song.chordsMap[trackId] = new Map()
+      if (!songState.chordsMap[trackId]) {
+        songState.chordsMap[trackId] = new Map()
       }
       const songChord: any = {
         ...chord,
@@ -172,11 +170,11 @@ export const useTabStore = defineStore('tab', {
         chordRoot: chord.chordRoot || '',
         fingers: chord.fingers || []
       }
-      Song.chordsMap[trackId].set(chordName, songChord)
+      songState.chordsMap[trackId].set(chordName, songChord)
     },
     
     removeChord(trackId: number, chordName: string) {
-      Song.chordsMap[trackId]?.delete(chordName)
+      songState.chordsMap[trackId]?.delete(chordName)
     },
     
     setLoading(loading: boolean) {

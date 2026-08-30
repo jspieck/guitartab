@@ -34,7 +34,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TabBeat, TabNoteData } from '../../types/tab'
-import { getDisplayWidth } from '../../utils/tabLayout'
 
 type RenderableTabNote = TabNoteData & {
   string: number
@@ -44,16 +43,14 @@ interface Props {
   beatData?: TabBeat
   beatIndex: number
   xOffset: number
+  beatWidth: number
   stringSpacing: number
   numStrings: number
 }
 
 const props = defineProps<Props>()
 
-const noteX = computed(() => {
-  const duration = props.beatData?.duration || 'q'
-  return getDisplayWidth(duration) / 2
-})
+const noteX = computed(() => props.beatWidth / 2)
 
 const beatDataHash = computed(() => {
   if (!props.beatData?.notes) return 0

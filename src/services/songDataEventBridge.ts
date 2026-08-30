@@ -1,17 +1,33 @@
 import EventBus from '../assets/js/eventBus'
 import { typedEventBus } from '../utils/typedEventBus'
 
-let isLegacySongDataBridgeRegistered = false
+let isSongDataBridgeRegistered = false
+let isRelayingSongDataChanged = false
 
-const relaySongDataChanged = () => {
+const relayEventBusToTyped = () => {
+  if (isRelayingSongDataChanged) {
+    return
+  }
+  isRelayingSongDataChanged = true
   typedEventBus.emit('song-data-changed')
+  isRelayingSongDataChanged = false
 }
 
-export function ensureLegacySongDataEventBridge(): void {
-  if (isLegacySongDataBridgeRegistered) {
+const relayTypedToEventBus = () => {
+  if (isRelayingSongDataChanged) {
+    return
+  }
+  isRelayingSongDataChanged = true
+  EventBus.emit('song-data-changed')
+  isRelayingSongDataChanged = false
+}
+
+export function ensureSongDataEventBridge(): void {
+  if (isSongDataBridgeRegistered) {
     return
   }
 
-  isLegacySongDataBridgeRegistered = true
-  EventBus.on('song-data-changed', relaySongDataChanged)
+  isSongDataBridgeRegistered = true
+  EventBus.on('song-data-changed', relayEventBusToTyped)
+  typedEventBus.on('song-data-changed', relayTypedToEventBus)
 }

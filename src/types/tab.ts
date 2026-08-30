@@ -6,7 +6,7 @@ import type {
   MeasureEffects as SongMeasureEffects,
   MeasureMetaInfo as SongMeasureMeta,
   Note as SongNote,
-  SongDescription as LegacySongDescription,
+  SongDescription as SongDescriptionSource,
   Track as SongTrack,
   TremoloBar as SongTremoloBar,
 } from '../assets/js/songData'
@@ -20,7 +20,7 @@ export type BeatEffects = SongMeasureEffects
 export type Measure = SongBeat
 export type MeasureMeta = SongMeasureMeta
 export type Track = SongTrack
-export type SongDescription = LegacySongDescription
+export type SongDescription = SongDescriptionSource
 
 export interface ChordDiagram {
   name: string
@@ -41,6 +41,9 @@ export interface TabPosition {
   beatId: number
   string: number
 }
+
+/** Track/voice/block/beat without string — shared by playback, layout, and overlays. */
+export type BeatLocation = Pick<TabPosition, 'trackId' | 'voiceId' | 'blockId' | 'beatId'>
 
 export interface TabRow {
   id: number

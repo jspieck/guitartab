@@ -51,9 +51,10 @@
           :y-offset="row.yOffset"
           :width="tabGroupWidth"
           :is-first-row="rowIndex === 0"
+          :on-string-pointer-down="handleStringPointerDown"
         />
 
-        <!-- Playback Bar (for legacy svgDrawer support) -->
+        <!-- Vue playback bar -->
         <g
           ref="playbackBarGroup"
           id="playBackBarGroup0"
@@ -65,35 +66,34 @@
       </g>
     </svg>
 
-    <!-- Note Context Menu (Single instance outside SVG) -->
-    <NoteContextMenu
-      :is-visible="contextMenuState.visible"
-      :note="contextMenuState.note"
-      :x="contextMenuState.x"
-      :y="contextMenuState.y"
-      @close="hideContextMenu"
-      @toggle-effect="handleToggleEffect"
-      @set-duration="handleContextMenuSetDuration"
-      @delete-note="handleDeleteNote"
-      @copy-note="handleCopyNote"
-      @paste-note="handlePasteNote"
+    <ClassicalNotationLayer
+      :is-active="classicalNotationActive"
+      :track-id="trackId"
+      :tab-rows="tabRows"
+      :padding-left="paddingLeft"
+      :padding-top="paddingTop"
+      :tab-group-width="tabGroupWidth"
     />
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import NoteContextMenu from '../NoteContextMenu.vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import TabRow from './TabRow.vue'
+import ClassicalNotationLayer from './ClassicalNotationLayer.vue'
 import { useGuitarTabLayout } from '../../composables/useGuitarTabLayout'
+import { useClassicalNotation } from '../../composables/useClassicalNotation'
 import { usePlaybackBarState } from '../../composables/usePlaybackBarState'
+import { useTabRangeSelection } from '../../composables/useTabRangeSelection'
 import { registerSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { useTabEditorCommands } from '../../composables/useTabEditorCommands'
 import { useTabRenderInvalidation } from '../../composables/useTabRenderInvalidation'
 import { useTabSelectionBridge } from '../../composables/useTabSelectionBridge'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
-import legacyEditorCore from '../../services/legacy/editorCoreAdapter'
+import { classicalNotationLayoutState } from '../../stores/classicalNotationLayoutState'
+import editorCore from '../../services/editor/editorCore'
 
 interface Props {
   trackId: number
@@ -112,11 +112,9 @@ const { syncSongData } = useSongData()
 const {
   currentSelection,
   selectedNote,
-  contextMenuState,
   clearSelection,
   setSelection,
   toggleToolbar,
-  hideContextMenu,
   copySelection,
   pasteSelection,
 } = useTabSelection()
@@ -124,7 +122,7 @@ const {
 const { playbackBarState } = usePlaybackBarState()
 const {
   renderVersion,
-  registerLegacyRenderInvalidationBridge,
+  registerRenderInvalidationBridge,
 } = useTabRenderInvalidation(syncSongData)
 const { registerNavigationSelectionBridge } = useTabSelectionBridge(setSelection)
 
@@ -146,7 +144,53 @@ const {
   tabRows,
   playbackBarHeight,
   totalHeight,
+  rowHeight,
 } = useGuitarTabLayout(props, renderVersion)
+
+const {
+  isActive: classicalNotationActive,
+  scheduleRedrawRows,
+} = useClassicalNotation(props.trackId, props.voiceId)
+
+watch(
+  [tabRows, classicalNotationActive, songDataVersion, () => classicalNotationLayoutState.version],
+  () => {
+    if (classicalNotationActive.value) {
+      void scheduleRedrawRows()
+    }
+  },
+)
+
+function getMeasureContentPadding(blockId: number): number {
+  const meta = editorCore.getMeasureMeta(blockId)
+  let padding = 10
+
+  if (meta.timeMeterPresent) {
+    padding += 25
+  }
+  if (meta.repeatOpen) {
+    padding += 15
+  }
+
+  return padding
+}
+
+const {
+  handleStringPointerDown,
+  clearRangeSelection,
+} = useTabRangeSelection({
+  svgRoot,
+  tabRows,
+  trackId: props.trackId,
+  voiceId: props.voiceId,
+  rowHeight,
+  getMeasureContentPadding,
+  onSingleSelect: (selection) => {
+    clearRangeSelection()
+    setSelection(selection)
+  },
+})
+
 const playbackBarTransform = computed(() => `translate(${playbackBarState.x}, ${playbackBarState.y})`)
 const playbackBarStyle = computed(() => ({
   display: playbackBarState.visible ? 'block' : 'none',
@@ -155,61 +199,52 @@ const playbackBarStyle = computed(() => ({
 }))
 
 function handleMouseDown(_event: MouseEvent) {
-  // Reserved for drag selection.
+  svgRoot.value?.focus()
 }
 
 function handleMouseMove(_event: MouseEvent) {
-  // Reserved for hover interactions.
+  // Range drag uses window listeners from useTabRangeSelection.
 }
 
 function handleMouseUp(_event: MouseEvent) {
-  // Reserved for drag selection.
+  // Range drag uses window listeners from useTabRangeSelection.
 }
 
 const {
   handleKeyDown,
-  handleToggleEffect,
-  handleContextMenuSetDuration,
-  handleDeleteNote,
-  handleCopyNote,
-  handlePasteNote,
-  handleGlobalClick,
 } = useTabEditorCommands({
   currentSelection,
   selectedNote,
-  contextMenuState,
   clearSelection,
   toggleToolbar,
-  hideContextMenu,
   copySelection,
   pasteSelection,
 })
 
 onMounted(() => {
-  legacyEditorCore.setPlaybackBarObject(playbackBarGroup.value)
+  editorCore.setPlaybackBarObject(playbackBarGroup.value)
   registerSelectionSurface(true)
   unregisterSelectionBridge = registerNavigationSelectionBridge()
-  unregisterRenderInvalidationBridge = registerLegacyRenderInvalidationBridge()
-
-  window.addEventListener('mousedown', handleGlobalClick)
+  unregisterRenderInvalidationBridge = registerRenderInvalidationBridge()
 
   svgRoot.value?.focus()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('mousedown', handleGlobalClick)
   unregisterSelectionBridge()
   unregisterRenderInvalidationBridge()
-  legacyEditorCore.setPlaybackBarObject(null)
+  editorCore.setPlaybackBarObject(null)
   registerSelectionSurface(false)
 })
 </script>
 
 <style scoped>
 .guitar-tab-view {
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: auto;
+  transform-origin: 0 0;
 }
 
 .tab-svg {

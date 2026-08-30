@@ -1,12 +1,25 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Chord, Note } from '../songData';
-import { svgDrawer, SvgDrawer } from '../svgDrawer';
+import {
+  connectPoints,
+  createCircle,
+  createPath,
+  createRect,
+  createText,
+  drawPoint,
+} from '../../../utils/svgPrimitives';
 import { Song, Measure } from '../songData';
 import Helper from '../helper';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
 import { ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
+import { requestBlockRender } from '../../../services/editor/renderCommands';
+import {
+    createChordDiagramElement,
+    refreshChordDiagramsWithBlockFallback,
+    requestChordDiagramRefresh,
+} from '../../../services/editor/chordDiagramAdapter';
 
 const trashCanIconSrc = new URL('../../images/trashCan.svg', import.meta.url).href;
 
@@ -221,7 +234,7 @@ export class ChordModalHandler extends BaseModalHandler {
         const yPos = ((cP.height - 2 * cP.stringPadding) / (cP.numStrings - 1))
             * (cP.numStrings - string - 1) + cP.stringPadding + cP.paddingRight;
         const fingerText = finger != null ? finger.toString() : '';
-        return SvgDrawer.drawPoint(xPos, yPos, 0, 0, 9, chordDisplay as unknown as SVGElement, fingerText);
+        return drawPoint(xPos, yPos, 0, 0, 9, chordDisplay as unknown as SVGElement, fingerText);
     }
 
     drawChord(capo: number, chord: number[], fingers: (number | null)[]) {
@@ -237,7 +250,7 @@ export class ChordModalHandler extends BaseModalHandler {
         (document.getElementById('chordCapoInput') as HTMLInputElement).value = (capo - 1).toString();
         this.modalState.chordDisplayObjects.length = 0;
         const capoText = capo > 1 ? capo - 1 : capo;
-        const capoNum = SvgDrawer.createText(46, 12, capoText.toString(), '12px', '', 'Source Sans Pro');
+        const capoNum = createText(46, 12, capoText.toString(), '12px', '', 'Source Sans Pro');
         chordDisplay.appendChild(capoNum);
         this.modalState.chordDisplayObjects.push(capoNum);
 
@@ -246,7 +259,7 @@ export class ChordModalHandler extends BaseModalHandler {
         } = this.modalState.chordProperties;
         if (capo > 1) {
             const capoHeight = height + 2 * stringPadding - 10;
-            const capoDrawn = SvgDrawer.createRect(46, 15, 7, capoHeight, '#000', '0', '#000');
+            const capoDrawn = createRect(46, 15, 7, capoHeight, '#000', '0', '#000');
             capoDrawn.setAttribute('rx', '4');
             capoDrawn.setAttribute('ry', '4');
             chordDisplay.appendChild(capoDrawn);
@@ -256,7 +269,7 @@ export class ChordModalHandler extends BaseModalHandler {
             if (chord[i] === -1) {
                 const yPos = (height - 2 * stringPadding) / ((numStrings - 1) * (numStrings - i - 1))
                     + stringPadding + paddingRight;
-                const cross = SvgDrawer.createPath(`M13 ${yPos - 3}L19 ${yPos + 3}M13 ${yPos + 3}L19 ${yPos - 3}`, '#333', '1', 'none');
+                const cross = createPath(`M13 ${yPos - 3}L19 ${yPos + 3}M13 ${yPos + 3}L19 ${yPos - 3}`, '#333', '1', 'none');
                 cross.setAttribute('class', 'chordCross');
                 chordDisplay.appendChild(cross);
                 this.modalState.chordDisplayObjects.push(cross);
@@ -279,7 +292,7 @@ export class ChordModalHandler extends BaseModalHandler {
             } else {
                 const yPos = (height - 2 * stringPadding) / ((numStrings - 1)
                     * (numStrings - i - 1)) + stringPadding + paddingRight;
-                const circle = SvgDrawer.createCircle(16, yPos, 4, '#333333', '1', 'white');
+                const circle = createCircle(16, yPos, 4, '#333333', '1', 'white');
                 chordDisplay.appendChild(circle);
                 this.modalState.chordDisplayObjects.push(circle);
 
@@ -332,18 +345,18 @@ export class ChordModalHandler extends BaseModalHandler {
         const { height } = this.modalState.chordProperties;
         const { stringPadding } = this.modalState.chordProperties;
 
-        const rect = SvgDrawer.createRect(paddingLeft, paddingRight, width, height, '', '1', '');
+        const rect = createRect(paddingLeft, paddingRight, width, height, '', '1', '');
         chordDisplay.appendChild(rect);
 
         // draw left side
-        const pathEl = SvgDrawer.createPath(`M${paddingLeft} ${paddingRight}V${height + paddingRight}`, 'rgb(0, 0, 0)', '3', 'none');
+        const pathEl = createPath(`M${paddingLeft} ${paddingRight}V${height + paddingRight}`, 'rgb(0, 0, 0)', '3', 'none');
         chordDisplay.appendChild(pathEl);
         // Draw 5 frets
         const HOSTEPS = this.modalState.chordProperties.horizontalSteps;
         for (let i = 0; i < HOSTEPS; i += 1) {
             const xPos = (width / HOSTEPS) * (i + 1) + paddingLeft;
             const pathStr = `M${xPos} ${paddingRight}L${xPos} ${height + paddingRight}`;
-            const fretEl = SvgDrawer.createPath(pathStr, 'rgb(180, 180, 180)', '1', 'none');
+            const fretEl = createPath(pathStr, 'rgb(180, 180, 180)', '1', 'none');
             fretEl.setAttribute('class', 'gridLine');
             chordDisplay.appendChild(fretEl);
         }
@@ -353,7 +366,7 @@ export class ChordModalHandler extends BaseModalHandler {
             const yPos = ((height - 2 * stringPadding) / (NUMSTRINGS - 1)) * i
                 + stringPadding + paddingRight;
             const pathStr = `M${paddingLeft} ${yPos}L${width + paddingLeft} ${yPos}`;
-            const stringEl = SvgDrawer.createPath(pathStr, 'rgb(60, 60, 60)', '1', 'none');
+            const stringEl = createPath(pathStr, 'rgb(60, 60, 60)', '1', 'none');
             stringEl.setAttribute('class', 'strongGridLine');
             stringEl.style.pointerEvents = 'none';
             chordDisplay.appendChild(stringEl);
@@ -363,7 +376,7 @@ export class ChordModalHandler extends BaseModalHandler {
         for (let i = 0; i < NUMSTRINGS; i += 1) {
             const y = ((height - 2 * stringPadding) / (NUMSTRINGS - 1)) * i
                 + stringPadding + paddingRight + 3;
-            chordDisplay.appendChild(SvgDrawer.createText(0, y, noteNames[NUMSTRINGS - 1 - i], '12px', '', 'Source Sans Pro'));
+            chordDisplay.appendChild(createText(0, y, noteNames[NUMSTRINGS - 1 - i], '12px', '', 'Source Sans Pro'));
         }
         rect.addEventListener('mousedown', (e: MouseEvent) => {
             const fret = (Math.floor((e.offsetX - paddingLeft) / width) * HOSTEPS) + 1;
@@ -443,7 +456,7 @@ export class ChordModalHandler extends BaseModalHandler {
                 Song.chordsMap[trackId].set(chordObj.name, chordObj);
                 this.fillChordsPresets(trackId);
                 this.createChordManager(trackId);
-                svgDrawer.redrawChordDiagrams();
+                requestChordDiagramRefresh();
             }
         });
     }
@@ -480,7 +493,6 @@ export class ChordModalHandler extends BaseModalHandler {
             const previousChord = beat.chord;
             beat.chord = chordObj;
 
-            let trackRerendered = false;
             if (Song.chordsMap[trackId] == null) {
                 Song.chordsMap[trackId] = new Map();
             }
@@ -493,11 +505,9 @@ export class ChordModalHandler extends BaseModalHandler {
                 });
                 this.fillChordsPresets(trackId);
                 this.createChordManager(trackId);
-                trackRerendered = svgDrawer.redrawChordDiagrams();
-            }
-
-            if (!trackRerendered) {
-                svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+                refreshChordDiagramsWithBlockFallback(trackId, blockId, voiceId);
+            } else {
+                requestBlockRender(trackId, blockId, voiceId);
             }
 
             if (previousChord != null) {
@@ -537,7 +547,7 @@ export class ChordModalHandler extends BaseModalHandler {
         this.createChordManager(trackId);
         document.getElementById('chordDiagramSelectButton')!.onclick = null;
         document.getElementById('chordDiagramSelectButton')!.onclick = () => {
-          svgDrawer.redrawChordDiagrams();
+          requestChordDiagramRefresh();
           this.closeModal();
         };
         this.showModal();
@@ -551,7 +561,7 @@ export class ChordModalHandler extends BaseModalHandler {
         if (!chord.display) {
           svg.classList.add('hideChord');
         }
-        const chordDia = svgDrawer.createChordDiagram(chord);
+        const chordDia = createChordDiagramElement(chord);
         chordDia.setAttribute('transform', 'translate(20, 40)');
         svg.appendChild(chordDia);
         box.appendChild(svg);

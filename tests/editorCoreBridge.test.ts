@@ -17,19 +17,15 @@ vi.mock('../src/assets/js/playBackLogicNew', () => ({
   },
 }))
 
-vi.mock('../src/assets/js/svgDrawer', () => ({
-  svgDrawer: {
-    blockToPage: [],
-    blockToX: [],
-    rowToY: [],
-    heightOfRow: [],
-    trackCreated: false,
-    paddingTop: 0,
-    tabInformationHeight: 0,
-    numRows: 0,
-    numPages: 1,
-    playBackBarObjects: [],
-    getRowWidth: vi.fn(() => 800),
+vi.mock('../src/assets/js/overlayHandler', () => ({
+  overlayHandler: {
+    startPosOverlay: null,
+    endPosOverlay: null,
+    copyHandler: vi.fn(),
+    pasteHandler: vi.fn(),
+    resetOverlays: vi.fn(),
+    initOverlay: vi.fn(),
+    selectionMove: vi.fn(),
   },
 }))
 
@@ -45,9 +41,11 @@ vi.mock('../src/assets/js/tab', () => {
     tab: {
       markedNoteObj: { trackId: 0, voiceId: 0, blockId: 0, beatId: 0, string: 0 },
       hasExplicitSelection: false,
-      blockToRow: [],
-      finalBlockWidths: [],
-      measureOffset: [],
+      blockToRow: [[[]]],
+      finalBlockWidths: [[[]]],
+      blocksPerRow: [[[]]],
+      measureOffset: [[]],
+      allWidths: [],
       changeNoteDuration: vi.fn(() => true),
     },
   }
@@ -61,14 +59,14 @@ import Song, {
   type SongDescription,
   type Track,
 } from '../src/assets/js/songData'
-import { svgDrawer } from '../src/assets/js/svgDrawer'
 import { resetPlaybackBarState, usePlaybackBarState } from '../src/composables/usePlaybackBarState'
 import { registerSelectionSurface, resetSelectionSurfaceState } from '../src/composables/useSelectionSurfaceState'
 import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/useTabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
 import { useTabSelectionBridge } from '../src/composables/useTabSelectionBridge'
-import legacyEditorCore from '../src/services/legacy/editorCoreAdapter'
+import editorCore from '../src/services/editor/editorCore'
+import { ensureSongDataEventBridge } from '../src/services/songDataEventBridge'
 import { typedEventBus } from '../src/utils/typedEventBus'
 
 function cloneValue<T>(value: T): T {
@@ -163,34 +161,44 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('legacyEditorCore bridge', () => {
-  it('creates and removes notes through the legacy bridge', () => {
+describe('editorCore bridge', () => {
+  it('creates and removes notes through editorCore', () => {
+    ensureSongDataEventBridge()
     const emitSpy = vi.spyOn(EventBus, 'emit')
 
-    legacyEditorCore.setNoteAtPosition(0, 0, 0, 0, 2, 5)
+    editorCore.setNoteAtPosition(0, 0, 0, 0, 2, 5)
 
     expect(Song.measures[0][0][0][0].duration).toBe('q')
     expect(Song.measures[0][0][0][0].notes[2]?.fret).toBe(5)
     expect(Song.measures[0][0][0][0].notes[2]?.string).toBe(2)
     expect(emitSpy).toHaveBeenCalledWith('song-data-changed')
 
-    legacyEditorCore.setNoteAtPosition(0, 0, 0, 0, 2, -1)
+    editorCore.setNoteAtPosition(0, 0, 0, 0, 2, -1)
 
     expect(Song.measures[0][0][0][0].notes[2]).toBeNull()
   })
 
-  it('returns isolated snapshots for the reactive bridge', () => {
-    legacyEditorCore.setNoteAtPosition(0, 0, 0, 0, 1, 7)
+  it('returns live song-state references for the reactive bridge', () => {
+    editorCore.setNoteAtPosition(0, 0, 0, 0, 1, 7)
 
-    const snapshot = legacyEditorCore.getSongSnapshot()
+    const snapshot = editorCore.getSongSnapshot()
     snapshot.tracks[0].name = 'Changed'
     snapshot.measures[0][0][0][0].notes[1] = null
 
-    expect(Song.tracks[0].name).toBe('Lead')
+    expect(Song.tracks[0].name).toBe('Changed')
+    expect(Song.measures[0][0][0][0].notes[1]).toBeNull()
+  })
+
+  it('still clones beats for clipboard copy', () => {
+    editorCore.setNoteAtPosition(0, 0, 0, 0, 1, 7)
+
+    const copied = editorCore.copyBeat(0, 0, 0, 0)
+    copied!.notes[1] = null
+
     expect(Song.measures[0][0][0][0].notes[1]?.fret).toBe(7)
   })
 
-  it('stores modern layout in the render bridge and keeps legacy arrays synced', () => {
+  it('stores modern layout in the render bridge and keeps tab arrays synced', () => {
     const { getTrackLayout } = useTabRenderLayout()
 
     Song.measures = [
@@ -200,14 +208,14 @@ describe('legacyEditorCore bridge', () => {
       ],
     ]
 
-    const rows = legacyEditorCore.buildModernTabRows(0, 0, Song.measures[0], {
+    const rows = editorCore.buildModernTabRows(0, 0, Song.measures[0], {
       availableWidth: 250,
       headerHeight: 50,
       rowHeight: 120,
       paddingTop: 24,
       tabInformationHeight: 50,
     })
-    const layout = legacyEditorCore.getModernLayout(0, 0)
+    const layout = editorCore.getModernLayout(0, 0)
     const reactiveLayout = getTrackLayout(0, 0)
 
     expect(rows).toHaveLength(2)
@@ -218,28 +226,41 @@ describe('legacyEditorCore bridge', () => {
     expect(layout?.blockLayouts[1]?.rowId).toBe(1)
     expect(reactiveLayout?.blockLayouts[1]?.rowId).toBe(1)
     expect(tab.blockToRow[0][0][1]).toEqual({ rowId: 1, numInRow: 0 })
-    expect(tab.measureOffset[0][1][0]).toBe(40)
-    expect(svgDrawer.rowToY[0][0][1]).toBe(170)
+    expect(tab.blocksPerRow[0][0][0]).toEqual({ start: 0, end: 1 })
+    expect(tab.measureOffset[0][1][0]).toBe(52.5)
+    expect(reactiveLayout?.rowLayouts[1]?.yOffset).toBe(170)
   })
 
   it('routes playback marker ownership through the render bridge', () => {
     const { playbackBarState } = usePlaybackBarState()
     const marker = { id: 'playback-marker' } as unknown as SVGGElement
 
-    legacyEditorCore.setPlaybackBarObject(marker)
+    editorCore.setPlaybackBarObject(marker)
     expect(playbackBarState.registered).toBe(true)
-    expect(svgDrawer.playBackBarObjects).toEqual([])
 
-    legacyEditorCore.setPlaybackBarObject(null)
+    editorCore.setPlaybackBarObject(null)
     expect(playbackBarState.registered).toBe(false)
-    expect(svgDrawer.playBackBarObjects).toEqual([])
+  })
+
+  it('finds the previous note on the same string for tie eligibility', () => {
+    Song.initEmptySong()
+    editorCore.setNoteAtPosition(0, 0, 0, 1, 2, 7)
+    editorCore.setNoteAtPosition(0, 0, 0, 3, 2, 9)
+
+    expect(
+      editorCore.findPreviousNoteOnString(0, 0, 0, 3, 2),
+    ).toEqual({ blockId: 0, beatId: 1 })
+
+    expect(
+      editorCore.findPreviousNoteOnString(0, 0, 0, 0, 2),
+    ).toBeNull()
   })
 })
 
 describe('useTabSelection', () => {
   it('syncs selection state from navigation events without a broadcast loop', () => {
     registerSelectionSurface(true)
-    legacyEditorCore.setNoteAtPosition(0, 0, 0, 0, 2, 9)
+    editorCore.setNoteAtPosition(0, 0, 0, 0, 2, 9)
     Song.measures[0][0][0][0].duration = 'e'
 
     const { currentSelection, selectedNote, setSelection } = useTabSelection()

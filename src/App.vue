@@ -11,12 +11,14 @@
     <div class="entry-content">
       <Menu ref="menu"/>
       <div id="mainContent" class="mainWrapper" ref="mainContent" tabindex="0" @click="focusMainContent">
-        <div id="completeTab" class="dinA4Size">
+        <div id="completeTab" :class="completeTabClass" :style="completeTabStyle">
           <GuitarTabView
             :track-id="currentTrackId"
             :voice-id="currentVoiceId"
-            :width="1200"
-            :height="1600"
+            :width="sheetWidth"
+            :height="sheetHeight"
+            :class="tabViewClass"
+            :style="tabViewStyle"
           />
         </div>
       </div>
@@ -63,12 +65,15 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from 'vue'
+import { defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import Menu from './components/Menu.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
 import { useSongData } from './composables/useSongData'
 import { useEditorScopeState } from './composables/useEditorScopeState'
+import { useTabViewport } from './composables/useTabViewport'
+import { getCloudSongIdFromUrl, loadCloudSongById } from './services/cloudSongLoader'
+import AppManager from './assets/js/appManager'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
 const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
@@ -81,11 +86,32 @@ const { currentTrackId, currentVoiceId } = useEditorScopeState()
 const mainContent = ref<HTMLElement | null>(null)
 const currentBlockId = ref(0)
 
+const {
+  completeTabClass,
+  completeTabStyle,
+  tabViewClass,
+  tabViewStyle,
+  sheetWidth,
+  sheetHeight,
+  registerMainContent,
+} = useTabViewport(mainContent)
+
+watch(mainContent, (element) => {
+  registerMainContent(element)
+}, { immediate: true })
+
 function focusMainContent() {
   mainContent.value?.focus()
 }
 
 onMounted(() => {
   startUp()
+  const cloudSongId = getCloudSongIdFromUrl()
+  if (cloudSongId) {
+    loadCloudSongById(cloudSongId).catch((error) => {
+      const message = error instanceof Error ? error.message : 'Failed to load cloud song'
+      AppManager.showNotification(message)
+    })
+  }
 })
 </script>

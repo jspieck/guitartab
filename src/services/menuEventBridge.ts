@@ -2,7 +2,7 @@ import EventBus from '../assets/js/eventBus'
 import type { Measure, Note } from '../types/tab'
 import { typedEventBus, type TabPosition } from '../utils/typedEventBus'
 
-let isLegacyMenuEventBridgeRegistered = false
+let isMenuEventBridgeRegistered = false
 
 const relayActivateEffectsForMarkedBeat = () => {
   typedEventBus.emit('menu.activateEffectsForMarkedBeat')
@@ -36,12 +36,12 @@ const relayClickedOnPos = (position: unknown) => {
   typedEventBus.emit('menu.clickedOnPos', position as TabPosition)
 }
 
-export function ensureLegacyMenuEventBridge(): void {
-  if (isLegacyMenuEventBridgeRegistered) {
+export function ensureMenuEventBridge(): void {
+  if (isMenuEventBridgeRegistered) {
     return
   }
 
-  isLegacyMenuEventBridgeRegistered = true
+  isMenuEventBridgeRegistered = true
 
   EventBus.on('menu.activateEffectsForMarkedBeat', relayActivateEffectsForMarkedBeat)
   EventBus.on('menu.activateEffectsForMarkedPos', relayActivateEffectsForMarkedPos)

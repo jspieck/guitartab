@@ -2,10 +2,14 @@ import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Measure, TremoloBar } from '../songData';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
-import { svgDrawer, SvgDrawer } from '../svgDrawer';
+import {
+  connectPoints,
+  drawPoint,
+} from '../../../utils/svgPrimitives';
 import Helper from '../helper';
 import menuHandler from '../menuHandler';
 import { MODALS } from './modalTypes';
+import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
 interface TremoloBarModalState extends ModalState {
     tremoloEditorClientWidth: number;
@@ -137,7 +141,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
         }
 
         if (!samePoint) {
-            const point = SvgDrawer.drawPoint(
+            const point = drawPoint(
                 xNearest,
                 yNearest,
                 this.padding,
@@ -177,7 +181,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
         let tremoloPreset = tremoloPresets[presetIndex];
         console.log('preset', width, height);
         for (let {x, y} of tremoloPreset) {
-            this.modalState.tremoloPointsOnLine[x] = [SvgDrawer.drawPoint(width * x, height
+            this.modalState.tremoloPointsOnLine[x] = [drawPoint(width * x, height
                 * (this.NUM_ROWS_TREMOLO - y), this.padding, this.padding, 7, tremoloEditor, ''), y, x];
         }
         this.connectAllTremoloPoints(tremoloEditor);
@@ -212,7 +216,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
             );
         }
 
-        svgDrawer.rerenderBlocks(beats[0].trackId, blocks, beats[0].voiceId);
+        requestBlocksRender(beats[0].trackId, blocks, beats[0].voiceId);
         this.closeModal();
     }
 
@@ -247,7 +251,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
                     firstPoint = currentTremoloPoint;
                 } else {
                     this.modalState.tremoloPointsArr.push(
-                        SvgDrawer.connectPoints(
+                        connectPoints(
                             firstPoint[0].childNodes[0],
                             currentTremoloPoint[0].childNodes[0], svgElem,
                         ),
@@ -332,7 +336,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
                 const xPos = (width * xIndex) / this.NUM_COLUMNS_TREMOLO;
                 const yPos = height * (1 - yValue / this.NUM_ROWS_TREMOLO);
 
-                const svgPoint = SvgDrawer.drawPoint(
+                const svgPoint = drawPoint(
                     xPos,
                     yPos,
                     padding,

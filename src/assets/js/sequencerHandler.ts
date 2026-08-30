@@ -1,6 +1,4 @@
 import { Ref, ref } from 'vue';
-import Helper from './helper';
-import Song from './songData';
 
 class SequencerHandler {
     private static instance: SequencerHandler;
@@ -81,34 +79,30 @@ class SequencerHandler {
     }
 
     // Static methods for compatibility with old sequencer.ts
-    public static setMarker(blockId: number) {
-        const seqMaster = document.getElementById(`sequenceMaster_${blockId}`);
-        Helper.removeAllChildren(seqMaster);
-        if (Song.measureMeta[blockId].marker != null) {
-            const beatText = document.createElement('div');
-            beatText.textContent = Song.measureMeta[blockId].marker.text;
-            beatText.setAttribute('class', 'beatText');
-            seqMaster?.appendChild(beatText);
-        }
+    public static setMarker(_blockId: number) {
+        sequencerHandler.redrawSequencerMain();
     }
 
-    public static removeMarker(blockId: number) {
-        Helper.removeAllChildren(document.getElementById(`sequenceMaster_${blockId}`));
+    public static removeMarker(_blockId: number) {
+        sequencerHandler.redrawSequencerMain();
+    }
+
+    private clearIntervalOverlayCallback: (() => void) | null = null;
+
+    public registerClearIntervalOverlayCallback(callback: () => void) {
+        this.clearIntervalOverlayCallback = callback;
+    }
+
+    public clearIntervalOverlay() {
+        if (this.clearIntervalOverlayCallback) {
+            this.clearIntervalOverlayCallback();
+        }
     }
 
     public static removeOverlay() {
-        const intervalMarkerBody = document.getElementById('intervalMarkerBody');
-        if (intervalMarkerBody != null) {
-            intervalMarkerBody.parentNode?.removeChild(intervalMarkerBody);
-        }
-        const intervalMarkerHeader = document.getElementById('intervalMarkerHeader');
-        if (intervalMarkerHeader != null) {
-            intervalMarkerHeader.parentNode?.removeChild(intervalMarkerHeader);
-        }
+        sequencerHandler.clearIntervalOverlay();
     }
-
-    // TODO: Add other methods to interact with Sequencer.vue
 }
 
 export const sequencerHandler = SequencerHandler.getInstance();
-export { SequencerHandler }; 
+export { SequencerHandler };

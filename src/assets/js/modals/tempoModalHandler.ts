@@ -2,9 +2,8 @@ import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
-import { svgDrawer } from '../svgDrawer';
 import { MODALS } from './modalTypes';
-import { requestBlockRender } from '../../../services/legacy/renderCommands';
+import { requestBlockRender } from '../../../services/editor/renderCommands';
 
 interface TempoModalState extends ModalState {
     bpm: number;

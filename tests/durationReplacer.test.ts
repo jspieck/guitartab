@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   DurationReplacer,
   Beat,
-  DURATION_TICKS,
 } from '../src/utils/durationReplacer'
 
 // ─── Test helpers ───────────────────────────────────────────────────────────
@@ -430,7 +429,7 @@ describe('DurationReplacer.changeDuration', () => {
   })
 
   it('multiple sequential changes preserve measure total', () => {
-    let beats: Beat[] = makeQuarterMeasure()
+    const beats: Beat[] = makeQuarterMeasure()
     beats[0].hasNotes = true
     beats[0].duration = 'q'
 

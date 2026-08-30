@@ -4,29 +4,29 @@
             <button id="oneMeasureBack" @click="playBackJump(true)" class="voiceButton playChange">
                 <img id="oneMeasureBackImg" src='../assets/images/statusBar/backward.svg' />
             </button>
-            <button id="play" @click="playBackLogic.playSongB()" class="playStart">
+            <button id="play" @click="togglePlayback()" class="playStart" :class="{ playing: playbackTransportState.isPlaying }">
                 <img id="playMusicImg" src="../assets/images/playButton.svg" />
                 <img id="pauseMusicImg" src="../assets/images/pause.svg" />
             </button>
             <button id="oneMeasureForward" @click="playBackJump(false)" class="voiceButton playChange"><img id="oneMeasureForwardImg"
                     src="../assets/images/statusBar/forward.svg" /></button>
-            <div id="barButtons">
+            <div id="barButtons" v-show="playbackTransportState.showMenuBars">
                 <div v-for="button in barDict" @click="selectBar(button.id)" :key="button.id" :id="`barButton${button.id}`" :class="tabBarButtonClass(button.id)">{{ button.label }}</div>
             </div>
         </div>
         <div class="bottomStatusBar">
-            <button id="stopButton" @click="playBackLogic.stopSong()" class="checkBoxNote"></button>
-            <button id="recordButton" @click="recordButtonPressed()" class="checkBoxNote" :class="{ prepareRecording: isPreparingRecording }"></button>
-            <div id="statusBars">
+            <button id="stopButton" @click="stopPlayback()" class="checkBoxNote"></button>
+            <button id="recordButton" @click="recordButtonPressed()" class="checkBoxNote" :class="{ prepareRecording: isPreparingRecording, recording: playbackTransportState.isRecordingActive }"></button>
+            <div id="statusBars" v-show="playbackTransportState.showMenuBars">
                 <div id="statusBar1" :class="statusBarClass(1)">
                     <div class="checkBoxBar">
                         <button @click="selectNoteLength('w')" id="wholeNote" data-tooltip="Whole"
-                            v-bind="menuButtonBindings('wholeNote')"><img id="wholeNoteImg" src="../assets/images/notes/wholeNote.svg" /></button>
+                            v-bind="menuButtonBindings('wholeNote')"><img id="wholeNoteImg" class="noteImg" src="../assets/images/notes/wholeNote.svg" /></button>
                         <button @click="selectNoteLength('h')" id="halfNote" data-tooltip="Half"
-                            v-bind="menuButtonBindings('halfNote')"><img id="halfNoteImg" width="15" height="25"
+                            v-bind="menuButtonBindings('halfNote')"><img id="halfNoteImg" class="noteImg"
                                 src="../assets/images/notes/halfNote.svg" /></button>
                         <button @click="selectNoteLength('q')" id="quarterNote" data-tooltip="Quarter"
-                            v-bind="menuButtonBindings('quarterNote')"><img id="quarterNoteImg" width="15" height="25"
+                            v-bind="menuButtonBindings('quarterNote')"><img id="quarterNoteImg" class="noteImg"
                                 src="../assets/images/notes/quarterNote.svg" /></button>
                         <button @click="selectNoteLength('e')" id="8thNote" data-tooltip="Eighth"
                             v-bind="menuButtonBindings('8thNote')"><img id="8thNoteImg" class="noteImg"
@@ -79,6 +79,16 @@
                         />
                         <button id="downloadGP" data-tooltip="Download File" @click="handleSaveTab"
                             class="checkBoxNote playButton"><img id="downloadIDGP" src="../assets/images/saveOwn.svg" /></button>
+
+                        <button
+                            id="cloudSongs"
+                            data-tooltip="Cloud songs"
+                            @click="openCloudSongsModal"
+                            class="checkBoxNote playButton"
+                            title="Open or save tabs in the cloud"
+                        >
+                            <span style="font-size: 16px;">☁</span>
+                        </button>
 
                         <button id="createPDF" data-tooltip="Create PDF" @click="handleCreatePdf"
                             class="checkBoxNote playButton"><img src="../assets/images/pdf.svg" /></button>
@@ -199,7 +209,8 @@
     <div id="sideBarButtons">
         <label class="bpmSidebarLabel">BPM</label>
         <div id="tempoMeter" @mousedown="(e: MouseEvent) => { changeTempoFunc(e) }" class="disable-select">{{ currentTempo }}</div>
-        <button id="classicalToggleButton" @click="classicalNotation.toggleClassicalVisibility()" data-tooltip="Piano Note View" class="classicalButton"><img id="classicalToggle"
+        <button id="classicalToggleButton" @click="toggleClassicalNotationView()" data-tooltip="Piano Note View"
+                :class="['classicalButton', { classicalBack: classicalNotationActive }]"><img id="classicalToggle"
                 src="../assets/images/classicalToggle.svg" /></button>
         <button data-tooltip="Chords Menu" class="classicalButton">
             <img id="chordSection" @click="modalManager.toggleByModal(MODALS.CHORD_MANAGER, {trackId: currentTrackId})" class="classicalButton"
@@ -230,32 +241,28 @@
 </template>
 
 <script setup lang="ts">
-import fastdom from 'fastdom';
-
-import Duration from '../assets/js/duration';
-import midiEngine from '../assets/js/midiReceiver';
-import { revertHandler } from '../assets/js/revertHandler';
-import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
+import { classicalNotation } from '../services/editor/classicalNotationAdapter';
 import Settings from '../assets/js/settingManager';
+import editorCore from '../services/editor/editorCore';
+import midiEngine from '../assets/js/midiReceiver';
+import { typedEventBus } from '../utils/typedEventBus';
 import Song from '../assets/js/songData';
-import { tab, Tab } from '../assets/js/tab';
-import playBackLogic from '../assets/js/playBackLogicNew';
+import { tab } from '../assets/js/tab';
 import AppManager from '../assets/js/appManager';
-import { classicalNotation } from '../services/legacy/classicalNotationAdapter';
-import { ensureLegacyMenuEventBridge } from '../services/menuEventBridge';
-import { SequencerHandler } from '../assets/js/sequencerHandler';
+import { usePlaybackEngine } from '../composables/usePlaybackEngine';
+import { playbackTransportState } from '../composables/playbackTransportState';
+import { ensureMenuEventBridge } from '../services/menuEventBridge';
 import { overlayHandler } from '../assets/js/overlayHandler';
 import { onMounted, onBeforeUnmount, reactive, ref } from 'vue';
-import { menuHandler } from '../assets/js/menuHandler';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
-import type { Note, Measure, NoteLengthCode, TabPosition } from '../types/tab';
+import type { Note, Measure, TabPosition } from '../types/tab';
 import { useEditorScopeState } from '../composables/useEditorScopeState';
 import { setTempoState, useTempoState } from '../composables/useTempoState';
+import { useMenuActions } from '../composables/useMenuActions';
 import {
     DEFAULT_TUPLET_OPTIONS,
-    MENU_EFFECT_GROUPS,
     MENU_NOTE_EFFECT_BUTTON_IDS,
     deriveMenuSelectionState,
 } from '../utils/menuUiState';
@@ -272,6 +279,18 @@ const pressedButtons = reactive<Record<string, boolean>>({
 const disabledButtons = reactive<Record<string, boolean>>({});
 const { currentTrackId, currentVoiceId } = useEditorScopeState();
 const { currentTempo } = useTempoState();
+const { togglePlay: togglePlayback, stop: stopPlayback } = usePlaybackEngine();
+const noteTiedTo = ref<{ blockId: number; beatId: number } | null>(null);
+const classicalNotationActive = ref(Settings.vexFlowIsActive);
+
+async function toggleClassicalNotationView() {
+  await classicalNotation.toggleClassicalVisibility();
+  classicalNotationActive.value = Settings.vexFlowIsActive;
+}
+
+function handleClassicalNotationChanged() {
+  classicalNotationActive.value = Settings.vexFlowIsActive;
+}
 
 function setFlagMap(target: Record<string, boolean>, activeIds: string[]) {
     Object.keys(target).forEach((key) => {
@@ -319,39 +338,22 @@ function checkForNoteToTie(
     beatId: number,
     string: number,
 ) {
-    let noteToTie = null;
-    for (let i = blockId; i >= 0; i -= 1) {
-        const startBeatId = i === blockId
-            ? beatId - 1
-            : Song.measures[trackId][i][voiceId].length - 1;
-        for (let j = startBeatId; j >= 0; j -= 1) {
-            const { notes } = Song.measures[trackId][i][voiceId][j];
-            if (notes?.[string] != null) {
-                noteToTie = { blockId: i, beatId: j };
-                break;
-            }
-        }
-        if (noteToTie != null) {
-            break;
-        }
-    }
-
-    return noteToTie;
+    return editorCore.findPreviousNoteOnString(trackId, blockId, voiceId, beatId, string);
 }
 
 function syncMenuStateForPosition(position: TabPosition) {
     const { trackId, blockId, voiceId, beatId, string } = position;
-    const beat = Song.measures[trackId]?.[blockId]?.[voiceId]?.[beatId];
-    const measureMeta = Song.measureMeta?.[blockId];
+    const beat = editorCore.getBeat(trackId, blockId, voiceId, beatId);
+    const measureMeta = editorCore.getMeasureMeta(blockId);
     if (!beat || !measureMeta) {
         return;
     }
 
-    const note = beat.notes?.[string] ?? null;
-    noteTiedTo = note?.tied ? note.tiedTo : checkForNoteToTie(trackId, blockId, voiceId, beatId, string);
+    const note = editorCore.getNote(trackId, blockId, voiceId, beatId, string) ?? null;
+    noteTiedTo.value = note?.tied ? note.tiedTo : checkForNoteToTie(trackId, blockId, voiceId, beatId, string);
 
     const derivedState = deriveMenuSelectionState(beat, note, measureMeta, {
-        canTie: note?.tied === true || noteTiedTo != null,
+        canTie: note?.tied === true || noteTiedTo.value != null,
         hasOverlaySelection: overlayHandler.isNoteSelected(),
     });
 
@@ -370,6 +372,22 @@ function syncMenuStateForMarkedPosition() {
     syncMenuStateForPosition(tab.markedNoteObj);
 }
 
+const {
+    playBackJump,
+    selectNoteLength,
+    dynamicSelect,
+    notationSelect,
+    noteEffectSelect,
+    noteLengthSpecialSelect,
+    measureSelect,
+} = useMenuActions({
+    currentTrackId,
+    currentVoiceId,
+    selectedTuplet,
+    noteTiedTo,
+    syncMenuState: syncMenuStateForMarkedPosition,
+});
+
 function selectBar(id: number) {
     selectedBarId.value = id;
 }
@@ -382,25 +400,6 @@ function selectVoice(voiceId: number) {
     AppManager.changeTrack(Song.currentTrackId, voiceId, false, () => {
         syncMenuStateForMarkedPosition();
     });
-}
-
-function selectNoteLength(noteLength: NoteLengthCode) {
-    if (AppManager.duringTrackCreation || tab.markedNoteObj == null) {
-        return;
-    }
-
-    const {
-        trackId,
-        blockId,
-        voiceId,
-        beatId,
-        string,
-    } = tab.markedNoteObj;
-
-    if (tab.changeNoteDuration(trackId, blockId, voiceId, beatId, string, noteLength, false)) {
-        AppManager.typeOfNote = noteLength;
-        syncMenuStateForMarkedPosition();
-    }
 }
 
 // Open file dialog
@@ -419,12 +418,12 @@ function handleFileSelect(event: Event) {
     }
 }
 
-function clickedOnPos(position: {trackId: number, blockId: number, voiceId: number, beatId: number, string: number}) {
-    syncMenuStateForPosition(position);
-}
-
 function handleSaveTab() {
     AppManager.saveAsGt(false);
+}
+
+function openCloudSongsModal() {
+    modalManager.displayModal('cloudSongsModal', 'Cloud songs');
 }
 
 function handleCreatePdf() {
@@ -462,7 +461,7 @@ const handleActivateEffectsForNote = (_note: Note) => {
 };
 
 const handleClickedOnPos = (position: TabPosition) => {
-    clickedOnPos(position);
+    syncMenuStateForPosition(position);
 };
 
 const handleSongDataChanged = () => {
@@ -470,7 +469,7 @@ const handleSongDataChanged = () => {
 };
 
 onMounted(() => {
-    ensureLegacyMenuEventBridge();
+    ensureMenuEventBridge();
     typedEventBus.on('menu.activateEffectsForMarkedBeat', handleActivateEffectsForMarkedBeat);
     typedEventBus.on('menu.activateEffectsForMarkedPos', handleActivateEffectsForMarkedPos);
     typedEventBus.on('menu.activateEffectsForBeat', handleActivateEffectsForBeat);
@@ -480,6 +479,7 @@ onMounted(() => {
     typedEventBus.on('menu.activateEffectsForNote', handleActivateEffectsForNote);
     typedEventBus.on('menu.clickedOnPos', handleClickedOnPos);
     typedEventBus.on('song-data-changed', handleSongDataChanged);
+    typedEventBus.on('classical-notation-changed', handleClassicalNotationChanged);
     syncMenuStateForMarkedPosition();
 })
 
@@ -493,11 +493,11 @@ onBeforeUnmount(() => {
     typedEventBus.off('menu.activateEffectsForNote', handleActivateEffectsForNote);
     typedEventBus.off('menu.clickedOnPos', handleClickedOnPos);
     typedEventBus.off('song-data-changed', handleSongDataChanged);
+    typedEventBus.off('classical-notation-changed', handleClassicalNotationChanged);
 });
 
 let tempoMoveTmp: (event: MouseEvent) => void = () => { };
 let removeListenersTmp: () => void = () => { };
-let noteTiedTo: {blockId: number, beatId: number} | null = null;
 let initYPos = 0;
 let oldBpm = 90;
 
@@ -519,15 +519,6 @@ const barDict = [
         { id: 4, label: "Measure" },
         { id: 5, label: "Text" },
 ];
-
-function playBackJump(isBackwards: boolean) {
-    if (!Settings.songPlaying) { return; }
-    if (isBackwards) {
-        playBackLogic.moveOneBackward();
-    } else {
-        playBackLogic.moveOneForward();
-    }
-}
 
 function removeEventListenersTempo() {
     document.body.classList.remove('disableMouseEffects');
@@ -563,455 +554,6 @@ function recordButtonPressed() {
         isPreparingRecording.value = true;
         midiEngine.recordMidi();
     }
-}
-
-function processDynamicSelect(
-    arr: {
-        notes: {
-            trackId: number, blockId: number, voiceId: number, beatId: number,
-            string: number
-        }[],
-        blocks: number[]
-    },
-    id: string,
-    isRevert: boolean,
-) {
-    let dynamic = '';
-    switch (id) {
-        case 'pppDynamic': dynamic = 'ppp'; break;
-        case 'ppDynamic': dynamic = 'pp'; break;
-        case 'pDynamic': dynamic = 'p'; break;
-        case 'mpDynamic': dynamic = 'mp'; break;
-        case 'mfDynamic': dynamic = 'mf'; break;
-        case 'fDynamic': dynamic = 'f'; break;
-        case 'ffDynamic': dynamic = 'ff'; break;
-        case 'fffDynamic': dynamic = 'fff'; break;
-        default: break;
-    }
-
-    let isVariableSet = true;
-    for (const {
-        trackId, blockId, voiceId, beatId,
-    } of arr.notes) {
-        const beat = Song.measures[trackId][blockId][voiceId][beatId];
-        if (!beat.dynamicPresent || beat.dynamic !== dynamic) {
-            isVariableSet = false;
-        }
-    }
-    for (const {
-        trackId, blockId, voiceId, beatId, string,
-    } of arr.notes) {
-        const beat = Song.measures[trackId][blockId][voiceId][beatId];
-        const note = beat.notes[string];
-        beat.dynamic = dynamic;
-
-        for (let i = 0; i < MENU_EFFECT_GROUPS.length; i += 1) {
-            if (MENU_EFFECT_GROUPS[i].some((effectId) => effectId === id)) {
-                menuHandler.deactivateEffects(beat, note, [...MENU_EFFECT_GROUPS[i]]);
-
-                if (isVariableSet == null || isVariableSet === false) {
-                    menuHandler.setEffectVariable(beat, note, id, true);
-                } else {
-                    menuHandler.setEffectVariable(beat, note, id, false);
-                }
-                break;
-            }
-        }
-
-        if (isRevert == null) {
-            revertHandler.addDynamic(trackId, blockId, voiceId, beatId, string, id);
-        }
-    }
-
-    const { trackId, voiceId } = arr.notes[0];
-    for (const blockId of arr.blocks) {
-        typedEventBus.emit('render.overBar', { trackId, blockId, voiceId, rerender: false });
-    }
-
-    syncMenuStateForMarkedPosition();
-}
-
-function dynamicSelect(id: string) {
-    if (AppManager.duringTrackCreation) {
-        return;
-    }
-    const arr = overlayHandler.getNotesInInterval(null);
-    processDynamicSelect(arr!, id, false);
-}
-
-function toggleEffectSelect(id: string, beat: Measure) {
-    for (let i = 0; i < MENU_EFFECT_GROUPS.length; i += 1) {
-        if (MENU_EFFECT_GROUPS[i].some((effectId) => effectId === id)) {
-            const isVariableSet = menuHandler.getEffectVariable(beat, null, id);
-            menuHandler.deactivateEffects(beat, null, [...MENU_EFFECT_GROUPS[i]]);
-
-            if (isVariableSet == null || isVariableSet === false) {
-                menuHandler.setEffectVariable(beat, null, id, true);
-            } else {
-                menuHandler.setEffectVariable(beat, null, id, false);
-            }
-            break;
-        }
-    }
-}
-
-/*  BLOCK: #addMarker, #repeatAlternative
-      BEAT: #stroke, #tremoloBar, #"+beat.dynamic+"Dynamic , !#addText, #addChord
-  } */
-function processNotationSelect(
-    trackId: number, blockId: number, voiceId: number, beatId: number,
-    id: string, isRevert: boolean,
-) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
-    if (id === 'addText' && !isRevert && !beat.textPresent) {
-        modalManager.toggleByModal(MODALS.TEXT, { trackId, blockId, voiceId, beatId, beat });
-    } else if (id === 'addChord' && !isRevert && !beat.chordPresent) {
-        modalManager.toggleByModal(MODALS.ADD_CHORD, { trackId, blockId, voiceId, beatId });
-    } else if (id === 'addMarker' && !isRevert && !Song.measureMeta[blockId].markerPresent) {
-        modalManager.toggleByModal(MODALS.MARKER, { trackId, blockId, voiceId });
-    } else if (id === 'repeatAlternative' && !isRevert && !Song.measureMeta[blockId].repeatAlternativePresent) {
-        modalManager.toggleByModal(MODALS.REPEAT_ALTERNATIVE, { trackId, blockId, voiceId });
-    } else if (id === 'closeBar' && !isRevert && !Song.measureMeta[blockId].repeatClosePresent) {
-        modalManager.toggleByModal(MODALS.REPETITION, { trackId, blockId, voiceId, isRepetition: true });
-    } else if (id === 'timeMeter' && !isRevert && (blockId === 0 || !Song.measureMeta[blockId].timeMeterPresent)) {
-        modalManager.toggleByModal(MODALS.TIME_METER, { trackId, blockId, voiceId });
-    } else if (id === 'bpmMeter' && !isRevert && !Song.measureMeta[blockId].bpmPresent) {
-        modalManager.toggleByModal(MODALS.TEMPO, { trackId, blockId, voiceId });
-    } else {
-        if (isRevert == null && id !== 'timeMeter' && id !== 'addMarker') {
-            revertHandler.addNotationSelect(trackId, blockId, voiceId, beatId, id);
-        }
-        if (id === 'addMarker' && Song.measureMeta[blockId].markerPresent) {
-            revertHandler.addMarker(
-                trackId, blockId, Song.measureMeta[blockId].marker,
-                Song.measureMeta[blockId].marker, true, false,
-            );
-            SequencerHandler.removeMarker(blockId);
-        }
-        // Extra for time meter
-        if (id === 'timeMeter' && isRevert == null && blockId !== 0 && Song.measureMeta[blockId].timeMeterPresent) {
-            // TODO search last time meter and adapt blocks
-            const currentDenominator = Song.measureMeta[blockId].denominator;
-            const currentNumerator = Song.measureMeta[blockId].numerator;
-            let foundBlock = 0;
-            for (let i = blockId - 1; i >= 0; i -= 1) {
-                if (currentNumerator !== Song.measureMeta[i].numerator
-                    || currentDenominator !== Song.measureMeta[i].denominator) {
-                    foundBlock = i;
-                    break;
-                }
-            }
-            const notesBefore = AppManager.checkAndAdaptTimeMeter(foundBlock);
-            const newDenominator = Song.measureMeta[foundBlock].denominator;
-            const newNumerator = Song.measureMeta[foundBlock].numerator;
-            // Set until the end of track/ next timeMeter
-            for (let bId = blockId; bId < Song.measureMeta.length; bId += 1) {
-                if (Song.measureMeta[bId].timeMeterPresent) { break; }
-                Song.measureMeta[bId].numerator = newNumerator;
-                Song.measureMeta[bId].denominator = newDenominator;
-            }
-            if (notesBefore != null) {
-                revertHandler.addTimeMeter(
-                    trackId, blockId, voiceId, currentNumerator, newNumerator, currentDenominator,
-                    newDenominator, true, false, notesBefore,
-                );
-            } else {
-                console.error('Notes before are null');
-            }
-        }
-
-        toggleEffectSelect(id, beat);
-        typedEventBus.emit('render.block', { trackId, blockId, voiceId });
-        syncMenuStateForMarkedPosition();
-    }
-}
-
-function notationSelect(id: string) {
-    if (AppManager.duringTrackCreation) {
-        return;
-    }
-    processNotationSelect(
-        tab.markedNoteObj.trackId, tab.markedNoteObj.blockId, tab.markedNoteObj.voiceId,
-        tab.markedNoteObj.beatId, id, false,
-    );
-}
-
-function processEffectSelect(
-    arr: {
-        notes: {
-            trackId: number, blockId: number, voiceId: number, beatId: number,
-            string: number, note: Note
-        }[],
-        blocks: number[],
-        beats: { trackId: number, blockId: number, voiceId: number, beatId: number, beat: Measure }[]
-    },
-    id: string,
-    isRevert: boolean,
-) {
-    // Variable is only set, if effect is active at every element in arr
-    let isVariableSet: boolean = true;
-    for (const no of arr.notes) {
-        const beat = Song.measures[no.trackId][no.blockId][no.voiceId][no.beatId];
-        const note = beat.notes[no.string];
-        isVariableSet = menuHandler.getEffectVariable(beat, note, id);
-    }
-    if (id === 'bend' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByModal(MODALS.BEND, {
-            notes: arr.notes,
-            blocks: arr.blocks,
-            beats: arr.beats,
-            isVariableSet
-        });
-    } else if (id === 'artificial' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByModal(MODALS.ARTIFICIAL, {
-            notes: arr.notes,
-            blocks: arr.blocks,
-            beats: arr.beats
-        });
-    } else if (id === 'tremoloBar' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByModal(MODALS.TREMOLO_BAR, {
-            notes: arr.notes,
-            blocks: arr.blocks,
-            beats: arr.beats,
-            isVariableSet
-        });
-    } else if (id === 'tremoloPicking' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByModal(MODALS.TREMOLO_PICKING, {
-            notes: arr.notes,
-            blocks: arr.blocks,
-            beats: arr.beats,
-            isVariableSet
-        });
-    } else if (id === 'grace' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByModal(MODALS.GRACE, {
-            notes: arr.notes,
-            blocks: arr.blocks,
-            beats: arr.beats
-        });
-    } else if (id === 'stroke' && (isVariableSet == null || isVariableSet === false) && isRevert === false) {
-        modalManager.toggleByModal(MODALS.STROKE, {
-            notes: arr.notes,
-            blocks: arr.blocks,
-            beats: arr.beats
-        });
-    } else {
-        const changes = menuHandler.handleEffectGroupCollision(arr.notes, id, isVariableSet);
-        if (isRevert === false) {
-            revertHandler.addNoteEffectSelect(arr, id, changes);
-        }
-        if (id === 'grace') {
-            classicalNotation.computeVexFlowDataStructures(
-                currentTrackId.value, currentVoiceId.value,
-            );
-        }
-        for (const blockId of arr.blocks) {
-            typedEventBus.emit('render.block', { trackId: currentTrackId.value, blockId, voiceId: currentVoiceId.value });
-        }
-
-        syncMenuStateForMarkedPosition();
-    }
-}
-
-function noteEffectSelect(id: string): void {
-    if (AppManager.duringTrackCreation) {
-        return;
-    }
-    const arr = overlayHandler.getNotesInInterval(null);
-    processEffectSelect(arr!, id, false);
-}
-
-function processSpecialSelect(
-    trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-    tupleSel: number, id: string, duringRestoration: boolean,
-) {
-    fastdom.mutate(() => {
-        const beat = Song.measures[trackId][blockId][voiceId][beatId];
-        if (beat == null) { return; }
-        const previousDuration = Duration.getDurationOfNote(beat, true);
-        if (id === 'dotted' || id === 'doubleDotted') {
-            if (id === 'dotted') {
-                if (beat.dotted) {
-                    beat.dotted = false;
-                } else if (
-                    tab.isNotePlaceable(
-                        trackId, blockId, voiceId, beatId, string,
-                        previousDuration * 1.5, previousDuration,
-                    )
-                ) {
-                    beat.dotted = true;
-                } else {
-                    return;
-                }
-                if (beat.doubleDotted) {
-                    beat.doubleDotted = false;
-                }
-            } else {
-                if (beat.doubleDotted) {
-                    beat.doubleDotted = false;
-                } else if (
-                    tab.isNotePlaceable(
-                        trackId, blockId, voiceId, beatId, string, previousDuration * 1.75, previousDuration,
-                    )
-                ) {
-                    beat.doubleDotted = true;
-                } else {
-                    return;
-                }
-                if (beat.dotted) {
-                    beat.dotted = false;
-                }
-            }
-        } else if (id === 'tuplet') {
-            const tupletSet = tab.setTuplet(trackId, blockId, voiceId, beatId, tupleSel);
-            if (tupletSet) {
-                typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
-                tab.drawTrack(trackId, voiceId, true, null);
-                if (duringRestoration === false) {
-                    revertHandler.addNoteLengthSpecialSelect(
-                        trackId, blockId, voiceId, beatId, string, tupleSel, id,
-                    );
-                }
-            }
-
-            syncMenuStateForMarkedPosition();
-            return;
-        } else if (id === 'tied' && noteTiedTo != null) {
-            processTiedButtonPress(trackId, blockId, voiceId, beatId, string, noteTiedTo);
-            revertHandler.addTied(trackId, blockId, voiceId, beatId, string, noteTiedTo);
-
-            syncMenuStateForMarkedPosition();
-            return;
-        } else {
-            return;
-        }
-
-        if (duringRestoration === false) {
-            revertHandler.addNoteLengthSpecialSelect(trackId, blockId, voiceId,
-                beatId, string, tupleSel, id);
-        }
-
-        const newDuration = Duration.getDurationOfNote(beat, true);
-        if (previousDuration !== newDuration) {
-            const rescaleNecessary = tab.changeBeatDuration(trackId, blockId, voiceId, beatId,
-                string, newDuration, previousDuration, beat.duration);
-            typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
-            classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId);
-
-            if (rescaleNecessary) {
-                tab.drawTrack(trackId, voiceId, true, null);
-            }
-        }
-
-        syncMenuStateForMarkedPosition();
-    });
-}
-
-function processTiedButtonPress(
-    trackId: number, blockId: number, voiceId: number, beatId: number,
-    string: number, noteTiedTo: { blockId: number, beatId: number },
-) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
-    // create note if not existent
-    let shouldBeTied = false;
-    if (beat.notes[string] == null || beat.notes[string]!.tied == null
-        || beat.notes[string]!.tied === false) {
-        shouldBeTied = true;
-    }
-    const tiedToNote = Song.measures[trackId][noteTiedTo.blockId][voiceId][
-        noteTiedTo.beatId].notes[string];
-    if (tiedToNote != null) {
-        tiedToNote.tieBegin = shouldBeTied;
-        // TODO check if null
-        const { fret } = tiedToNote;
-        setNotesTied(
-            trackId, voiceId, noteTiedTo.blockId, blockId, noteTiedTo.beatId + 1,
-            beatId, string, fret, shouldBeTied,
-        );
-    }
-
-    const blocks = [];
-    for (let bId = noteTiedTo.blockId; bId <= blockId; bId += 1) {
-        blocks.push(bId);
-    }
-    typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
-}
-
-function setNotesTied(
-    trackId: number, voiceId: number, blockIdBegin: number, blockIdEnd: number,
-    beatIdStart: number, beatIdEnd: number, string: number, fret: number, shouldBeTied: boolean,
-) {
-    for (let blockId = blockIdBegin; blockId <= blockIdEnd; blockId += 1) {
-        const firstBeatId = blockId === blockIdBegin ? beatIdStart : 0;
-        const lastBeatId = blockId === blockIdEnd
-            ? beatIdEnd
-            : Song.measures[trackId][blockId][voiceId].length - 1;
-        for (let beatId = firstBeatId; beatId <= lastBeatId; beatId += 1) {
-            const beat = Song.measures[trackId][blockId][voiceId][beatId];
-            const selectedNote = beat.notes[string];
-            if (noteTiedTo == null) {
-                break;
-            }
-            const noteTiedToCopy = { ...noteTiedTo };
-            if (selectedNote == null) { // TODO shouldbetied should be true???
-                beat.notes[string] = {
-                    ...Song.defaultNote(),
-                    ...{
-                        fret,
-                        tied: true,
-                        tiedTo: noteTiedToCopy,
-                    },
-                };
-                beat.duration = beat.duration[0]; // remove rest
-            } else {
-                selectedNote.tied = shouldBeTied;
-                selectedNote.tiedTo = noteTiedToCopy;
-                if (shouldBeTied === false) {
-                    Tab.deleteNote(trackId, blockId, voiceId, beatId, string, false);
-                    // return beacuse deleteNote already recursively clears
-                    return;
-                }
-                selectedNote.fret = fret;
-            }
-        }
-    }
-}
-
-function noteLengthSpecialSelect(id: string) {
-    if (AppManager.duringTrackCreation) { return; }
-    const tupleSel = parseInt(selectedTuplet.value, 10);
-    if (tab.markedNoteObj == null) {
-        alert('Please set note first.');
-        return;
-    }
-    const {
-        trackId, blockId, voiceId, beatId, string,
-    } = tab.markedNoteObj;
-    processSpecialSelect(
-        trackId, blockId, voiceId, beatId, string, tupleSel, id, false,
-    );
-}
-
-function processMeasureSelect(
-    trackId: number, blockId: number, voiceId: number, id: string, isRevert: boolean,
-) {
-    fastdom.mutate(() => {
-        Song.measureMeta[blockId].repeatOpen = !Song.measureMeta[blockId].repeatOpen;
-        if (isRevert == null) {
-            revertHandler.addMeasureSelect(trackId, blockId, voiceId, id);
-        }
-        typedEventBus.emit('render.block', { trackId, blockId, voiceId });
-
-        syncMenuStateForMarkedPosition();
-    });
-}
-
-function measureSelect(id: string) {
-    if (AppManager.duringTrackCreation) {
-        return;
-    }
-    processMeasureSelect(
-        tab.markedNoteObj.trackId, tab.markedNoteObj.blockId, tab.markedNoteObj.voiceId, id, false,
-    );
 }
 </script>
 <style scoped>

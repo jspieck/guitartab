@@ -463,8 +463,8 @@ body {
 #graceSelect label{
     display: block;
 }
-#trackInfoModal{
-    width: 350px;
+#infoModal{
+    width: min(560px, calc(100vw - 32px));
 
     label{
         display: block;
@@ -662,7 +662,6 @@ body {
     z-index: 200;
     top: 200px;
     left: 200px;
-    background: #0a0c14;
 }
 #compressorModal .knob{
     /* scale handled in scoped styles */
@@ -693,7 +692,9 @@ body {
     background: #ebebeb;
 }
 #content button.checkBoxNote{
-	display:inline-block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	vertical-align: top;
 	margin-right:10px;
     width: 28px;
@@ -706,9 +707,37 @@ body {
 	/*box-shadow: 2px 2px 5px 0px rgb(175, 175, 175);*/
 	border-radius: 20px;
 	text-align: center;
-	line-height: 20px;
-    padding: 2px;
+	line-height: 1;
+    padding: 0;
     margin: 4px;
+    box-sizing: border-box;
+}
+#content button.checkBoxNote > img {
+    display: block;
+    margin: 0;
+    object-fit: contain;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+#content button.checkBoxNote > img.noteImg {
+    width: 12px;
+    height: 20px;
+}
+#content #statusBar2 button.checkBoxNote > img,
+#content #statusBar4 button.checkBoxNote > img,
+#content #statusBar5 button.checkBoxNote > img,
+#content button.checkBoxNote.playButton > img {
+    width: 20px;
+    height: 20px;
+}
+#content #statusBar1 button.checkBoxNote:not(.playButton) > img:not(.noteImg) {
+    width: 20px;
+    height: 20px;
+}
+#content #statusBar2 button.checkBoxNote,
+#content #statusBar4 button.checkBoxNote,
+#content #statusBar5 button.checkBoxNote {
+    padding: 0;
 }
 #content .checkBoxDov{
     display:inline-block;
@@ -792,6 +821,11 @@ body {
 .modalTopBarLabel{
     font-size: 12px;
     padding-left: 15px;
+    padding-right: 40px;
+    min-height: 25px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
     pointer-events: none;
 }
 .modalCaption{
@@ -820,31 +854,525 @@ body {
     animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
 }
 .modal {
+    --modal-ui-font: "Source Sans Pro", "Segoe UI Variable", "Segoe UI", sans-serif;
+    --modal-card-bg: #ffffff;
+    --modal-card-subtle: #f8fafc;
+    --modal-card-border: #d8e0ea;
+    --modal-card-hover: #f3f6fa;
+    --modal-divider: #e4eaf1;
+    --modal-text-strong: #111827;
+    --modal-text-muted: #64748b;
+    --modal-accent: #2f5cce;
+    --modal-accent-strong: #2449a8;
+    --modal-control-height: 30px;
+    --modal-control-padding-x: 10px;
+    --modal-textarea-min-height: 72px;
     position: fixed;
     background-color: white;
     -moz-box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
     -webkit-box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
     box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
-        box-shadow: 0 6px 14px rgba(0,0,0,0.15), 0 6px 6px rgba(0,0,0,0.19);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(214, 220, 230, 0.9);
+    border-radius: 16px;
+    color: #1f2937;
     z-index: 100;
     /*transition: 0.5s ease-out;*/
     transform: translateY(45px);
     display:inline-block;
     box-sizing: border-box;
     display:none;
+    overflow: hidden;
+    font-family: var(--modal-ui-font);
+}
+.modal button,
+.modal input,
+.modal select,
+.modal textarea {
+    font: inherit;
 }
 .modalBody{
-    padding: 15px;
-    padding-right: 15px;
-
-    input, .select{
-        margin-bottom: 10px;
-        margin-top: 5px;
-    }
+    padding: 14px 16px 16px;
+    display: grid;
+    gap: 12px;
 }
-#instrumentSettingsModal .modalBody, #trackInfoModal .modalBody, #addTremoloPickingModal .modalBody,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal){
+    min-width: 300px;
+    max-width: min(420px, calc(100vw - 32px));
+    max-height: 78vh;
+    background: #ffffff;
+    color: var(--modal-text-strong);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
+    border: 1px solid var(--modal-card-border);
+    border-radius: 12px;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalTopBar{
+    min-height: 44px;
+    height: auto;
+    line-height: normal;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 8px 0 16px;
+    border-bottom: 1px solid var(--modal-divider);
+    background: #ffffff;
+    width: 100%;
+    box-sizing: border-box;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalTopBarLabel{
+    min-height: 44px;
+    padding: 0;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    color: var(--modal-text-strong);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody{
+    gap: 0;
+    padding: 16px;
+    max-height: calc(78vh - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 0;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close:hover {
+    background: var(--modal-card-hover);
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close .icon {
+    fill: #64748b;
+    stroke: #64748b;
+    width: 14px;
+    height: 14px;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close:hover .icon {
+    fill: #1e293b;
+    stroke: #1e293b;
+}
+.modal-stack {
+    display: grid;
+    gap: 14px;
+}
+.modal-stack-compact {
+    gap: 12px;
+}
+.modal-section {
+    display: grid;
+    gap: 12px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+}
+.modal-stack > .modal-section + .modal-section {
+    padding-top: 14px;
+    border-top: 1px solid var(--modal-divider);
+}
+.modal-field-grid {
+    display: grid;
+    gap: 12px;
+}
+.modal-field-grid.two-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.modal-field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+.modal-field.field-span-two {
+    grid-column: 1 / -1;
+}
+.modal-field-compact {
+    gap: 6px;
+}
+.modal-field label,
+.modal-field-label,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) label {
+    color: var(--modal-text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    line-height: 1.3;
+}
+.modal-field input:not([type=checkbox]):not(.styled-checkbox),
+.modal-field textarea,
+.modal-field .select,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select,
+.modal-surface-block {
+    width: 100%;
+    min-width: 0;
+    border-radius: 10px;
+    border: 1px solid var(--modal-card-border);
+    background: var(--modal-card-bg);
+    box-sizing: border-box;
+}
+.modal-field input:not([type=checkbox]):not(.styled-checkbox),
+.modal-field textarea,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea {
+    margin: 0;
+    padding: 0 var(--modal-control-padding-x);
+    font: inherit;
+    font-size: 13px;
+    color: inherit;
+    outline: none;
+    box-sizing: border-box;
+}
+.modal-field input:not([type=checkbox]):not(.styled-checkbox),
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox) {
+    height: var(--modal-control-height);
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input::placeholder,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea::placeholder {
+    color: #94a3b8;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea {
+    min-height: var(--modal-textarea-min-height);
+    padding-top: 8px;
+    padding-bottom: 8px;
+    resize: vertical;
+    line-height: 1.45;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select {
+    position: relative;
+    display: block;
+    height: var(--modal-control-height);
+    color: inherit;
+    background: var(--modal-card-bg);
+    overflow: hidden;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: var(--modal-control-height);
+    padding: 0 30px 0 var(--modal-control-padding-x);
+    margin: 0;
+    border: 0;
+    background: transparent;
+    box-sizing: border-box;
+    color: inherit;
+    font-size: 13px;
+    line-height: var(--modal-control-height);
+    cursor: pointer;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select__arrow {
+    top: 50%;
+    transform: translateY(-50%);
+    right: 11px;
+    border-width: 5px 4px 0 4px;
+    border-color: #64748b transparent transparent transparent;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:hover,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:focus-within {
+    color: inherit;
+    background: var(--modal-card-hover);
+    border-color: #c7d2e0;
+}
+.modal-primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--modal-accent);
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.modal-primary-button:hover {
+    background: var(--modal-accent-strong);
+}
+.modal-primary-button:focus-visible {
+    outline: 2px solid rgba(47, 92, 206, 0.35);
+    outline-offset: 2px;
+}
+.modal-secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    height: 28px;
+    padding: 0 12px;
+    border: 1px solid #9aa8bc;
+    border-radius: 7px;
+    background: #eef1f6;
+    color: #1f2937;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.modal-secondary-button:hover {
+    background: #e2e8f0;
+    border-color: #7a8799;
+    color: #111827;
+}
+.modal-secondary-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.modal-secondary-button:focus-visible {
+    outline: 2px solid rgba(47, 92, 206, 0.25);
+    outline-offset: 2px;
+}
+.modal-danger-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 64px;
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 7px;
+    background: #c53030;
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.modal-danger-button:hover {
+    background: #9b2c2c;
+}
+.modal-body-text {
+    margin: 0;
+    color: var(--modal-text-strong);
+    font-size: 14px;
+    line-height: 1.5;
+}
+.modal-button-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 14px;
+    margin-top: 2px;
+    border-top: 1px solid var(--modal-divider);
+}
+.modal-inline-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 10px 12px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+.modal-submit-row {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 14px;
+    margin-top: 2px;
+    border-top: 1px solid var(--modal-divider);
+}
+.modal-submit-row .selectButton,
+.modal-submit-row .modal-primary-button,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .selectButton {
+    margin-top: 0;
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .checkmark {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(180deg, var(--modal-accent) 0%, var(--modal-accent-strong) 100%);
+    box-shadow: 0 10px 18px rgba(22, 95, 190, 0.2);
+}
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .checkmark__circle {
+    stroke: rgba(255, 255, 255, 0.3);
+}
+.modal-checkbox-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.modal-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.modal-checkbox-row label {
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-size: 13px;
+    font-weight: 500;
+}
+.modal-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: var(--modal-control-height);
+    cursor: pointer;
+    user-select: none;
+}
+.modal-toggle-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.modal-toggle-track {
+    position: relative;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 20px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    transition: background-color 0.15s ease;
+}
+.modal-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+    transition: transform 0.15s ease;
+}
+.modal-toggle-label {
+    color: var(--modal-text-strong);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+.modal-toggle-input:focus-visible + .modal-toggle-track {
+    outline: 2px solid rgba(47, 92, 206, 0.35);
+    outline-offset: 2px;
+}
+.modal-toggle-input:checked + .modal-toggle-track {
+    background: var(--modal-accent);
+}
+.modal-toggle-input:checked + .modal-toggle-track .modal-toggle-thumb {
+    transform: translateX(16px);
+}
+#instrumentSettingsModal .modalBody, #infoModal .modalBody, #addTremoloPickingModal .modalBody,
 #addGraceModal .modalBody, #addStrokeModal .modalBody, #bpmModal .modalBody{
-    padding-bottom: 35px;
+    padding-bottom: 16px;
+}
+#infoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) {
+    width: min(640px, calc(100vw - 32px));
+    max-width: min(640px, calc(100vw - 32px));
+}
+#infoModal .modalBody,
+#instrumentSettingsModal .modalBody {
+    padding-bottom: 14px;
+}
+#infoModal .modalBody {
+    gap: 8px;
+}
+#infoModal .modal-section {
+    padding: 9px;
+}
+#infoModal .modal-field-grid.two-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#infoModal textarea {
+    min-height: 60px;
+}
+#instrumentSettingsModal {
+    width: min(520px, calc(100vw - 32px));
+    max-width: min(520px, calc(100vw - 32px));
+    overflow: visible !important;
+}
+#instrumentSettingsModal .modalBody {
+    gap: 0;
+    padding: 16px;
+    overflow: visible !important;
+}
+#instrumentSettingsModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody {
+    overflow: visible !important;
+}
+#instrumentSettingsModal .picker_wrapper.popup {
+    z-index: 10001;
+}
+#instrumentSettingsModal #tuningAreaModal {
+    margin: 0;
+    padding: 0;
+    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
+}
+#instrumentSettingsModal #tuningAreaModal .tuning-slot {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--modal-card-border);
+    background: var(--modal-card-subtle);
+}
+#instrumentSettingsModal #tuningAreaModal .tuning-slot__label {
+    color: var(--modal-text-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+#instrumentSettingsModal #tuningAreaModal .select {
+    margin: 0;
+}
+#instrumentSettingsModal .jscolor {
+    border: none;
+}
+.classical-notation-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 2;
+}
+#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody,
+#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody {
+    gap: 6px;
+    padding: 10px;
+}
+#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal-submit-row,
+#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal-submit-row {
+    padding-top: 0;
+}
+#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal-inline-display {
+    min-height: 44px;
+    padding: 6px 10px;
+    font-size: 22px;
+    letter-spacing: 0.02em;
+}
+#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea {
+    min-height: 44px;
+    padding: 6px 10px;
 }
 #numberOfRepititionsModal .modalBody, #addTextModal .modalBody, #addMarkerModal .modalBody{
     padding-right: 35px;
@@ -879,17 +1407,30 @@ body {
 .modal_close{
     position: absolute;
     top: 0;
-    right: 8px;
+    right: 6px;
+    width: 25px;
     height: 25px;
     display: flex;
     align-items: center;
+    justify-content: center;
     cursor: pointer;
+    border: 0;
+    padding: 0;
+    background: transparent;
 }
 .modal_close .icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 13px;
     height: 13px;
     fill: #222;
     stroke: #222;
+}
+.modal_close .icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 .modal_close:hover {
     cursor: pointer;
@@ -940,11 +1481,18 @@ body {
     z-index: 200;
     top: 200px;
     left: 200px;
-    width: 1176px;
+    width: min(1176px, calc(100vw - 32px));
+    min-width: min(980px, calc(100vw - 32px));
+    max-width: calc(100vw - 32px);
     background: white;
 }
 #pianoModal .modalBody{
     padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+#piano {
+    min-width: 1064px;
 }
 .hideTopBar{
     position: absolute;
@@ -1008,7 +1556,7 @@ body {
     color: #7b7b7b;
 }
  .harmonicSelect select{
-    width: 186px;
+    width: 100%;
  }
  body.disableMouseEffects{
     pointer-events: none;
@@ -1300,37 +1848,55 @@ button[data-tooltip] {
       display: block;
     }
 }
-#mixerModal{
+#mixerModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal){
     position: fixed;
     z-index: 200;
     top: 200px;
     left: 200px;
-    width: 800px;
+    width: min(760px, calc(100vw - 32px));
+    min-width: 360px;
+    max-width: calc(100vw - 32px);
     background: white;
 
     .modalBody{
         padding: 0;
+        overflow: hidden;
     }
 }
 /*#mixerModal div.panKnobInner:after {
     background: #5862b9;
 }*/
 div.mixerColumnActive{
-    background: #f7af9b;
+    background: #ffd7cf;
 }
 .mixerColumn{
-    display: inline-block;
-    width: 24px;
+    display: block;
+    width: 42px;
+    flex: 0 0 42px;
     background: #f7f7f7;
-    font-size: 12px;
+    font-size: 11px;
     border-right: 1px solid #f0f0f0;
     height: 100%;
 }
+.mixerColumn > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
 #mixerMain{
+    width: 100%;
+    max-width: 100%;
     font-size: 0px;
     white-space: nowrap;
-    overflow-x: scroll;
+    overflow-x: auto;
+    overflow-y: hidden;
     height: 100%;
+}
+.mixerColumns {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
 }
 .panContainer, .reverbContainer, .chorusContainer{
     width: 30px;
@@ -1344,39 +1910,51 @@ div.mixerColumnActive{
 }
 .slotName{
     writing-mode: vertical-lr;
-    padding: 3px;
-    padding-top: 7px;
-    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 7px 0 4px;
+    min-height: 78px;
     transform: rotate(180deg);
     overflow: hidden;
+    text-align: center;
+    line-height: 1.1;
     font-size:11px;
 }
 .slotNumber {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding-top: 4px;
     text-align: center;
     /*background: rgba(196, 196, 196, 0.16);*/
     color: #3d3d3d;
 }
 .slotVolume {
-    height: 80px;
+    height: 68px;
     border: 1px solid rgba(255, 255, 255, 0.84);
     background: rgb(238, 238, 238);
     background: rgb(226, 226, 226);
-    margin-left: 2px;
+    margin-left: 0;
     width: 18px;
 }
 .slotSlider{
-    height: 70px;
-    width: 24px;
+    height: 56px;
+    width: 100%;
     position: relative;
-    margin-top: 10px;
+    margin-top: 5px;
+    display: flex;
+    justify-content: center;
 
     .volume {
         position: absolute;
-        left: 10px;
+        left: 50%;
         width: 5px;
         height: 80%;
         background: #555;
         border-radius: 15px;
+        transform: translateX(-50%);
         /*background: #aaa3a3;*/
 
         .ui-slider-range-min {
@@ -1406,9 +1984,12 @@ div.mixerColumnActive{
     background: #555555;
 }
 .slotPan{
-    height: 25px;
-    transform: scale(0.9);
-    margin-left: -2px;
+    height: 20px;
+    transform: scale(0.8);
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
 
     div.panKnob{
         float: none;
@@ -1451,8 +2032,7 @@ transform-origin: 11px center 0px;
 .slotActive{
     height: 12px;
     width: 12px;
-    margin: 3px;
-    margin-left: 6px;
+    margin: 6px auto 2px;
     border-radius: 50%;
     background: #F44336;
 }
@@ -1769,7 +2349,15 @@ document, img {
     margin-right: 15px;
 }
 #chordManagerModal{
-    width:430px;
+    width: min(580px, calc(100vw - 32px));
+    max-width: min(580px, calc(100vw - 32px));
+}
+#chordManagerModal .modal-submit-row {
+    border-top: none;
+    padding-top: 4px;
+}
+#chordManagerModal .chords-grid {
+    min-height: 220px;
 }
 .displayChord{
     position: absolute;
@@ -1970,27 +2558,22 @@ document, img {
     font-size: 10px;
     padding: 0px 13px;
 }
-#tempoMeterModal{
+#tempoModal #tempoMeterModal{
 	font-size: 18px;
-	width: 40px;
-    height: 30px;
-    margin: 10px;
-    /* margin: 5px; */
-    margin-left: 0;
-    border-radius: 4px;
+	width: auto;
+    min-width: 58px;
+    height: auto;
+    margin: 0;
+    border-radius: 10px;
     text-align: center;
-    border-bottom: 1px solid #4481eb;
+    border-bottom: 0;
     cursor: n-resize;
 }
-#instrumentColorPicker {
-    border: 1px solid black;
-}
-#instrumentNameInput, #instrumentColorPicker, .select #stringCountSelect, .select #capoSelect{
-    display: block;
-    width: 50px;
-    height: 25px;
-    box-sizing: border-box;
-    margin-bottom: 10px;
+.instrument-color-picker .picker_editor,
+.instrument-color-picker .picker_sample,
+.instrument-color-picker .picker_done,
+.instrument-color-picker .picker_cancel {
+    display: none;
 }
 .jscolor{
 	cursor: pointer;
@@ -1998,53 +2581,65 @@ document, img {
 }
 #stringCountSelectBox, #capoSelectBox{
 	display: block;
-	width: 50px;
 }
 #stringCountSelectBox .select__arrow, #capoSelectBox .select__arrow{
-    top: 9px;
+    top: 50%;
     right: 12px;
+    transform: translateY(-50%);
     border-width: 6px 3px 0 3px;
-}
-.select #stringCountSelect, .select #capoSelect{
-	padding: 1px 2px;
-    padding-left: 10px;
-}
-#instrumentNameInput{
-	width: 150px;
 }
 #tuningAreaModal{
     display: flex;
     flex-wrap: wrap;
     width: 100%;
-    margin-left: -5px;
-    margin-right: 5px;
+    margin-left: 0;
+    margin-right: 0;
 
     .select{
     	display: block;
-        width: 50px;
-        height: 30px;
-        margin: 5px;
+        width: 100%;
+        height: var(--modal-control-height);
+        margin: 0;
     }
     .select select{
-    	padding: 1px 2px;
-        padding-left: 10px;
-
     	display: block;
-        width: 50px;
-        height: 25px;
+        width: 100%;
+        height: 100%;
         box-sizing: border-box;
-        margin-bottom: 10px;
+        margin-bottom: 0;
     }
     .select .select__arrow{
-        top: 9px;
+        top: 50%;
         right: 12px;
+        transform: translateY(-50%);
         border-width: 6px 3px 0 3px;
     }
 }
-
-.currentMarkedBlock{
-	background: rgba(255, 255, 129, 0.25);
+#instrumentSettingsModal #instrumentNameInput {
+    width: 100%;
 }
+
+#addChordModal .modalBody {
+    gap: 8px;
+    padding-bottom: 12px;
+}
+
+#addChordModal .modal-section {
+    padding: 8px;
+}
+
+#addChordModal .modal-submit-row {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding-top: 6px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--modal-card-bg) 42%);
+}
+
+#addChordModal #chordDisplay {
+    max-width: 200px;
+}
+
 svg text {
     /*cursor: default;*/
     -webkit-user-select: none;
@@ -2130,13 +2725,7 @@ input:focus, textarea:focus{
 }
 .labelTopMargin{
     display: block;
-    margin-top: 10px;
-}
-#graceSelect select{
-    width: 120px;
-}
-#addStrokeModal select{
-    width: 100px;
+    margin-top: 0;
 }
 #strokeSelectButton{
     margin-left: 10px;
@@ -2154,24 +2743,21 @@ img{
 #content #accentuated{
     padding: 5px 2px 2px 5px;
 }
-#content #ghost{
-    padding-left: 7px;
-    padding-right: 4px;
-}
-#content #fadeIn, #content #pop, #content #slap, #content #tap, #content #stacatto{
-    padding: 5px;
-}
-#content #dead{
-    padding: 6px;
-}
-#content #pullDown, #content #slide{
-    padding-left: 4px;
-    padding-right: 4px;
+#content #ghost,
+#content #fadeIn,
+#content #pop,
+#content #slap,
+#content #tap,
+#content #stacatto,
+#content #dead,
+#content #pullDown,
+#content #slide {
+    padding: 0;
 }
 #content .noteImg{
     width: 12px;
-    height: 22px;
-    margin: auto;
+    height: 20px;
+    margin: 0;
 }
 /*TABLE*/
 table{
@@ -2318,6 +2904,11 @@ table{
 }
 .vexFlowRow{
     position:absolute;
+    overflow: visible;
+}
+.vexFlowRow svg{
+    overflow: visible;
+    display: block;
 }
 #content button.checkBoxNote{
     background: none;
@@ -2404,9 +2995,12 @@ svg.svgPage .blockNumber{
         height: 57px;
     }
 	#pianoModal{
-		height: 62px;
-		width: 1064px;
+        width: min(1064px, calc(100vw - 32px));
+        min-width: min(920px, calc(100vw - 32px));
 	}
+    #pianoModal .modalBody {
+        height: 62px;
+    }
     .piano ul li .upper-key {
         height: 41px;
     }
@@ -2415,6 +3009,7 @@ svg.svgPage .blockNumber{
     }
     #content .piano ul {
         height: 65px;
+        min-width: 1004px;
     }
     #sequencerBar{
         zoom: 0.9;

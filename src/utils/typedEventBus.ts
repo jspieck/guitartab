@@ -1,5 +1,5 @@
 import mitt, { Emitter, Handler, WildcardHandler } from 'mitt'
-import type { TabBeat, TabNoteData, TabPosition } from '../types/tab'
+import type { TabBeat, TabNoteData, TabPosition, NoteLengthCode } from '../types/tab'
 
 export type { TabPosition } from '../types/tab'
 
@@ -33,6 +33,7 @@ export interface SelectionChangeData {
 export type AppEvents = {
   // Song data events
   'song-data-changed': void
+  'classical-notation-changed': void
   'song-loaded': void
   'song-saved': void
   
@@ -45,6 +46,7 @@ export type AppEvents = {
   'menu.activateEffectsForBlock': void
   'menu.activateEffectsForNote': TabNoteData
   'menu.activateEffectsForBeat': TabBeat
+  'menu.selectNoteLength': NoteLengthCode
   'menu.setEffectOnCollision': EffectCollisionData
   
   // Selection events
@@ -59,6 +61,7 @@ export type AppEvents = {
   
   // UI events
   'ui.zoomChanged': number
+  'ui.pageModeChanged': boolean
   'ui.disablePageMode': void
   
   // Navigation events - for scrolling/clicking position in tab view
@@ -72,6 +75,8 @@ export type AppEvents = {
   'render.all': void
   'render.overBar': { trackId: number; blockId: number; voiceId: number; rerender?: boolean }
   'render.durations': { trackId: number; blockId: number; voiceId: number }
+  'render.chordDiagrams': void
+  'render.deleteTrack': { trackId: number }
   
   // Modal events
   'modal.opened': string

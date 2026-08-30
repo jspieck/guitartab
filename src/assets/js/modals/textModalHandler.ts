@@ -1,11 +1,10 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Measure } from '../songData';
-import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import EventBus from '../eventBus';
 import fastdom from 'fastdom';
 import { MODALS } from './modalTypes';
-import { requestBlockRender } from '../../../services/legacy/renderCommands';
+import { requestBlockRender } from '../../../services/editor/renderCommands';
 
 interface TextModalState extends ModalState {
     text: string;

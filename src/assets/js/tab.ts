@@ -1,17 +1,27 @@
 import fastdom from 'fastdom';
 import Song, { Measure } from './songData';
 import { sequencerHandler } from './sequencerHandler';
-import { svgDrawer } from './svgDrawer';
+import { TAB_SHEET, getAvailableRowWidth } from '../../utils/tabSheetConstants';
+import { recomputeTrackLayoutFromSong } from '../../services/editor/measureLayoutEngine';
+import { requestDurationRender } from '../../services/editor/renderCommands';
+import { changeNoteDuration as changeNoteDurationCommand } from '../../services/editor/durationCommands';
+import {
+  addNoteToBlock as addNoteToBlockCommand,
+  deleteNote as deleteNoteCommand,
+  tupletOnlyRests as tupletOnlyRestsCommand,
+} from '../../services/editor/noteCommands';
 import { revertHandler } from './revertHandler';
 import AppManager from './appManager';
 import Duration from './duration';
 import Helper from './helper';
 import Settings from './settingManager';
-import { classicalNotation } from '../../services/legacy/classicalNotationAdapter';
+import { classicalNotation } from '../../services/editor/classicalNotationAdapter';
 import { overlayHandler } from './overlayHandler';
-import { menuHandler } from './menuHandler';
+import { invalidateTrackLayout } from '../../services/editor/layoutInvalidation';
 import EventBus from './eventBus';
+import { menuHandler } from './menuHandler';
 import { changeBeatDurationViaReplacer } from './durationReplacerAdapter';
+import { typedEventBus } from '../../utils/typedEventBus';
 
 class Tab {
   currentZoom: number;
@@ -88,18 +98,8 @@ class Tab {
     }
     AppManager.showNotification(`${Math.round(this.currentZoom * 100)}%`);
     if (beginZoom !== this.currentZoom) {
-      const parent = document.getElementById('mainContent');
-      const svgTestAreaDom = document.getElementById('svgTestArea');
-      const complateTabDom = document.getElementById('completeTab');
-      if (parent != null) {
-        const scrollPosBefore = parent.scrollTop;
-        svgTestAreaDom!.style.transform = `scale(${this.currentZoom})`;
-        complateTabDom!.style.width = `${this.currentZoom * 31.5}cm`;
-        parent.scrollLeft = (parent.scrollWidth - parent.clientWidth) / 2;
-        const scrollTopPos = scrollPosBefore * (this.currentZoom / beginZoom);
-        parent.scrollTop = scrollTopPos;
-        svgDrawer.setScrollTop(scrollTopPos);
-      }
+      Settings.currentZoom = this.currentZoom;
+      typedEventBus.emit('ui.zoomChanged', this.currentZoom);
     }
   }
 
@@ -113,7 +113,7 @@ class Tab {
         this.addTakt(trackId, blockId, voiceId);
         Song.initEmptyMeasure(trackId, blockId, voiceId);
         this.fillMeasure(trackId, blockId, voiceId);
-        svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
+        requestDurationRender(trackId, blockId, voiceId);
       }
     }
     Song.measureMeta[blockId].numerator = Song.measureMeta[blockId - 1].numerator;
@@ -274,9 +274,7 @@ class Tab {
 
     // only draw when current track is visible
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-      menuHandler.enableNoteEffectButtons();
-      // svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-      // svgDrawer.rerenderBlock(trackId, blockId, voiceId);
+      EventBus.emit('menu.activateEffectsForMarkedPos');
     }
     if (redrawSequencer) {
       sequencerHandler.redrawSequencerMain();
@@ -462,9 +460,6 @@ class Tab {
       this.markedNoteObj.beatId = beatId;
     }
     menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
-
-    const tupletDom = document.getElementById('tuplet');
-    tupletDom?.classList.toggle('pressed');
     return true;
   }
 
@@ -912,25 +907,20 @@ class Tab {
           blockId][voiceId].length; beatId += 1) {
           const { notes } = Song.measures[trackId][blockId][voiceId][beatId];
           if (notes != null) {
-            for (let m = 0; m < 8; m += 1) {
-              if (notes[m] != null) {
-                notes[m]!.noteDrawn = null;
+            let isRest = true;
+            for (let i = 0; i < Song.tracks[trackId].numStrings; i += 1) {
+              if (notes[i] != null) {
+                isRest = false;
+                break;
               }
             }
-          }
-          let isRest = true;
-          for (let i = 0; i < Song.tracks[trackId].numStrings; i += 1) {
-            if (notes[i] != null) {
-              isRest = false;
-              break;
+            const beat = Song.measures[trackId][blockId][voiceId][beatId];
+            if (isRest && beat.duration.length < 2) {
+              beat.duration += 'r';
+            } else if (!isRest) {
+              // eslint-disable-next-line prefer-destructuring
+              beat.duration = beat.duration[0];
             }
-          }
-          const beat = Song.measures[trackId][blockId][voiceId][beatId];
-          if (isRest && beat.duration.length < 2) {
-            beat.duration += 'r';
-          } else if (!isRest) {
-            // eslint-disable-next-line prefer-destructuring
-            beat.duration = beat.duration[0];
           }
         }
       }
@@ -972,32 +962,15 @@ class Tab {
     trackId: number, blockId: number, voiceId: number, newBeatId: number,
     duration: string, isTuplet: boolean, beat: Measure, dotted: boolean, doubleDotted: boolean,
   ) {
-    console.log(`Tab.addNoteToBlock called: trackId=${trackId}, blockId=${blockId}, voiceId=${voiceId}, newBeatId=${newBeatId}, duration=${duration}`);
-    const blockObj = Song.measures[trackId][blockId][voiceId];
-    Song.setBeat(trackId, blockId, voiceId, newBeatId, duration);
-    blockObj[newBeatId].dotted = dotted;
-    blockObj[newBeatId].doubleDotted = doubleDotted;
-    if (isTuplet) {
-      blockObj[newBeatId].tuplet = beat.tuplet;
-      blockObj[newBeatId].tupletId = beat.tupletId;
-    }
+    addNoteToBlockCommand(
+      trackId, blockId, voiceId, newBeatId, duration, isTuplet, beat, dotted, doubleDotted,
+    );
   }
 
   static tupletOnlyRests(
     startBeatId: number, blockObj: {tuplet: number | null, duration: string}[],
   ) {
-    let lastIndex = startBeatId;
-    let onlyRests = true;
-    for (let x = startBeatId; x < blockObj.length; x += 1) {
-      if (blockObj[x].tuplet == null) {
-        break;
-      }
-      if (blockObj[x].duration.length === 1) {
-        onlyRests = false;
-      }
-      lastIndex += 1;
-    }
-    return { lastIndex: lastIndex - 1, onlyRests };
+    return tupletOnlyRestsCommand(startBeatId, blockObj);
   }
 
   static fillAvailableSpaceWithRests(
@@ -1019,101 +992,22 @@ class Tab {
     trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, noteLength: string, duringRevert: boolean,
   ) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
-    const previousDuration = Duration.getDurationOfNote(beat, true);
-    // trick to get duration with all additional effects (dots, ...)
-    const previousDur = beat.duration;
-    beat.duration = noteLength;
-    const newDuration = Duration.getDurationOfNote(beat, true);
-    beat.duration = previousDur;
-
-    if (!this.isNotePlaceable(
-      trackId, blockId, voiceId, beatId, string, newDuration, previousDuration,
-    )) {
-      return false;
-    }
-    const measureBefore = JSON.parse(JSON.stringify(Song.measures[trackId][blockId][voiceId]));
-
-    overlayHandler.initOverlay(trackId, blockId, voiceId, beatId);
-
-    this.changeBeatDuration(
-      trackId, blockId, voiceId, beatId, string, newDuration, previousDuration, noteLength,
+    return changeNoteDurationCommand(
+      this, trackId, blockId, voiceId, beatId, string, noteLength, duringRevert,
     );
-    // svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-    menuHandler.showAvailableTupletSizes(newDuration);
-
-    if (this.trackRerenderNecessary(trackId, blockId, voiceId)) {
-      this.drawTrack(trackId, voiceId, true, null);
-    } else {
-      // svgDrawer.rerenderRow(trackId, voiceId, this.blockToRow[trackId][voiceId][blockId].rowId);
-      EventBus.emit('song-data-changed');
-
-      if (Settings.vexFlowIsActive) {
-        classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId);
-      }
-      // svgDrawer.renderOverBar(trackId, blockId, voiceId, false);
-    }
-
-    if (duringRevert === false) {
-      const measureAfter = JSON.parse(JSON.stringify(Song.measures[trackId][blockId][voiceId]));
-      revertHandler.addNoteLengthChange(trackId, blockId, voiceId, measureBefore, measureAfter);
-    }
-    return true;
   }
 
   drawTrack(trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null) {
-    const svgWidth = svgDrawer.completeWidth;
-    const svgHeight = document.getElementById('completeTab')!.offsetHeight;
-    this.drawTrackMain(trackId, voiceId, forceScale, svgWidth, svgHeight, callback);
+    this.drawTrackMain(trackId, voiceId, forceScale, callback);
   }
 
   drawTrackMain(
-    trackId: number, voiceId: number, forceScale: boolean, width: number,
-    height: number, callback: (() => void) | null,
+    trackId: number,
+    voiceId: number,
+    _forceScale: boolean,
+    callback: (() => void) | null,
   ) {
-    console.trace('Draw track called');
-    
-    EventBus.emit('song-data-changed');
-    
-    // Call the callback since the actual drawing code is commented out
-    // This prevents the loading wheel from spinning forever
-    if (callback != null) {
-      callback();
-    }
-    
-    /*
-    if (AppManager.duringTrackCreation) {
-      // Reschedule, we do not want the prior drawing to disturb the new
-      console.log('During creation');
-      this.drawTrackCall = [trackId, voiceId, forceScale, callback];
-      return;
-    }
-    console.log('Draw track');
-    AppManager.duringTrackCreation = true;
-    const classicalToggleButton = document.getElementById('classicalToggleButton') as HTMLButtonElement;
-    if (classicalToggleButton) {
-      classicalToggleButton.disabled = true;
-    }
-    this.initRowArrays(trackId, voiceId);
-    // even compute if not shown, so switching is quicker
-    if (Settings.vexFlowIsActive) {
-      classicalNotation.computeVexFlowDataStructures(trackId, voiceId);
-    }
-    this.assignBlocksToRows(trackId, voiceId);
-
-    const BLOCK_HEIGHT = svgDrawer.getBlockHeight(trackId);
-    for (let rowId = 0; rowId < svgDrawer.numRows; rowId += 1) {
-      let maxHeight = -1;
-      const rowStart = this.blocksPerRow[trackId][voiceId][rowId].start;
-      const rowEnd = this.blocksPerRow[trackId][voiceId][rowId].end;
-      for (let blockId = rowStart; blockId < rowEnd; blockId += 1) {
-        maxHeight = Math.max(maxHeight, this.computeHeightOfBlock(trackId, blockId, voiceId));
-        svgDrawer.setDurationsOfBlock(trackId, blockId, voiceId);
-      }
-      svgDrawer.heightOfRow[trackId][voiceId][rowId] = maxHeight + BLOCK_HEIGHT;
-    }
-    svgDrawer.createTrack(trackId, voiceId, width, height, callback);
-    */
+    invalidateTrackLayout(this, trackId, voiceId, callback);
   }
 
   initRowArrays(trackId: number, voiceId: number) {
@@ -1130,14 +1024,12 @@ class Tab {
       this.heightOfBlock[trackId] = [];
     }
     this.heightOfBlock[trackId][voiceId] = [];
-    if (svgDrawer.heightOfRow[trackId] == null) {
-      svgDrawer.heightOfRow[trackId] = [];
-    }
-    svgDrawer.heightOfRow[trackId][voiceId] = [];
   }
 
   trackRerenderNecessary(trackId: number, blockId: number, voiceId: number): boolean {
-    classicalNotation.convertBlockToNotation(trackId, blockId, voiceId);
+    if (Settings.vexFlowIsActive) {
+      classicalNotation.convertBlockToNotation(trackId, blockId, voiceId);
+    }
     if (!this.allWidths[blockId]) {
       return true;
     }
@@ -1146,12 +1038,10 @@ class Tab {
     if (completeRerenderNecessary) {
       const { rowId } = this.blockToRow[trackId][voiceId][blockId];
       const oldMapping = this.blocksPerRow[trackId][voiceId][rowId];
-      this.assignBlocksToRows(trackId, voiceId);
+      recomputeTrackLayoutFromSong(trackId, voiceId, getAvailableRowWidth());
       completeRerenderNecessary = oldMapping.start
         !== this.blocksPerRow[trackId][voiceId][rowId].start
         || oldMapping.end !== this.blocksPerRow[trackId][voiceId][rowId].end;
-      console.log(completeRerenderNecessary, oldMapping,
-        this.blocksPerRow[trackId][voiceId][rowId]);
     }
     return completeRerenderNecessary;
   }
@@ -1221,7 +1111,9 @@ class Tab {
     }
     if (Settings.vexFlowIsActive) {
       const vexFlowOffset = classicalNotation.calculateLargestBeatWidth(trackId, blockId, voiceId);
-      minOffsetPerNote = Math.max(minOffsetPerNote, vexFlowOffset);
+      if (Number.isFinite(vexFlowOffset) && vexFlowOffset > minOffsetPerNote) {
+        minOffsetPerNote = vexFlowOffset;
+      }
     }
     const minWidth = numOf16th * minOffsetPerNote + padding;
     return {
@@ -1230,125 +1122,14 @@ class Tab {
   }
 
   assignBlocksToRows(trackId: number, voiceId: number) {
-    const width = svgDrawer.completeWidth - 2 * svgDrawer.PAGE_MARGIN_SIDE;//* 19/21;
-    console.log(width);
-    let reachedWidth = 0;
-    let groupStartIndex = 0;
-    const numBlocks = Song.measures[0].length;
-    let rowId = 0;
-    this.allWidths.length = 0;
-    this.blocksPerRow[trackId][voiceId] = [];
-    this.finalBlockWidths[trackId][voiceId] = [];
-    for (let blockId = 0; blockId < numBlocks; blockId += 1) {
-      if (blockId === 0) {
-        reachedWidth = 32; // TABBLOCK
-      }
-      this.allWidths[blockId] = Tab.computeWidthOfBlock(trackId, blockId, voiceId);
-      if (reachedWidth + this.allWidths[blockId].minWidth > width) {
-        const diff = width - reachedWidth;
-        const numMeasures = blockId - groupStartIndex;
-        const extraWidth = Math.floor(diff / numMeasures);
-
-        this.blocksPerRow[trackId][voiceId][rowId] = {
-          start: groupStartIndex,
-          end: blockId,
-        };
-        for (let j = groupStartIndex; j < blockId; j += 1) {
-          this.finalBlockWidths[trackId][voiceId][j] = this.allWidths[j].minWidth + extraWidth;
-          this.measureOffset[trackId][j][voiceId] = this.allWidths[j].minOffset
-            + extraWidth / this.allWidths[j].num16ths;
-        }
-        groupStartIndex = blockId;
-        reachedWidth = 0;
-        rowId += 1;
-      }
-      reachedWidth += this.allWidths[blockId].minWidth;
-      this.setBlockToRow(trackId, blockId, voiceId, rowId);
-    }
-    // last measure
-    const blockIdEnd = Song.measures[trackId].length;
-    const diff = width - reachedWidth;
-    const numMeasures = blockIdEnd - groupStartIndex;
-    const extraWidth = Math.floor(diff / numMeasures);
-
-    this.blocksPerRow[trackId][voiceId][rowId] = {
-      start: groupStartIndex,
-      end: blockIdEnd,
-    };
-    for (let j = groupStartIndex; j < blockIdEnd; j += 1) {
-      const num16ths = Math.max(1, this.allWidths[j].num16ths || 0);
-      this.finalBlockWidths[trackId][voiceId][j] = this.allWidths[j].minWidth + extraWidth;
-      this.measureOffset[trackId][j][voiceId] = this.allWidths[j].minOffset
-        + extraWidth / num16ths;
-    }
-    rowId += 1;
-    svgDrawer.numRows = rowId;
+    recomputeTrackLayoutFromSong(trackId, voiceId, getAvailableRowWidth());
   }
 
   static deleteNote(
     trackId: number, blockId: number, voiceId: number,
     beatId: number, string: number, calledDuringRestore: boolean,
   ) {
-    const beatObj = Song.measures[trackId][blockId][voiceId][beatId];
-    if (beatObj != null && beatObj.notes.length > 0) {
-      if (beatObj.notes[string] != null) {
-        const drawnNote = beatObj.notes[string]!.noteDrawn;
-        if (drawnNote != null
-          && drawnNote.parentNode != null
-          && trackId === Song.currentTrackId
-          && voiceId === Song.currentVoiceId
-        ) { // null if tied
-          drawnNote.parentNode.removeChild(drawnNote);
-        }
-        if (calledDuringRestore == null) {
-          const clonedNote = JSON.parse(JSON.stringify(beatObj.notes[string]));
-          const clonedEffect = JSON.parse(JSON.stringify(beatObj.effects));
-          revertHandler.deleteNote(
-            trackId, blockId, voiceId, beatId, string, clonedNote, clonedEffect,
-          );
-        }
-        beatObj.notes[string] = null;
-      }
-
-      // check if ties must be removed
-      let currentBlockId = blockId; let
-        currentBeatId = beatId;
-      if (currentBeatId + 1 >= Song.measures[trackId][currentBlockId][voiceId].length) {
-        currentBlockId += 1;
-        currentBeatId = 0;
-      } else {
-        currentBeatId += 1;
-      }
-      if (currentBlockId < Song.measures[trackId].length) {
-        const note = Song.measures[trackId][currentBlockId][voiceId][currentBeatId].notes[string];
-        if (note != null) {
-          if (note.tied) {
-            // recursive call until all is deleted
-            Tab.deleteNote(trackId, currentBlockId, voiceId, currentBeatId, string, false);
-          }
-        }
-      }
-      let noteSet = false;
-      for (let i = 0; i < Song.tracks[trackId].numStrings; i += 1) {
-        if (beatObj.notes[i] != null) {
-          noteSet = true;
-          break;
-        }
-      }
-      if (!noteSet) {
-        beatObj.effects = Song.defaultMeasureEffects();
-        // set rest
-        beatObj.duration = `${beatObj.duration.charAt(0)}r`;
-        beatObj.notes = [];
-      }
-    }
-    if (Song.isBeatEmpty(trackId, blockId)) {
-      sequencerHandler.redrawSequencerMain();
-    }
-    if (Settings.vexFlowIsActive && trackId === Song.currentTrackId
-      && voiceId === Song.currentVoiceId) {
-      classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId);
-    }
+    deleteNoteCommand(trackId, blockId, voiceId, beatId, string, calledDuringRestore);
   }
 
   // hierarchy - 1: Marker, 2: Beat Text, 3: Repeat Alternative, 4: Chord, 5: Rest of effects
@@ -1369,23 +1150,10 @@ class Tab {
     return maxHeight;
   }
 
-  setBlockToRow(trackId: number, blockId: number, voiceId: number, rowId: number) {
-    if (this.blockToRow[trackId][voiceId] == null) {
-      this.blockToRow[trackId][voiceId] = [];
-    }
-    let numInRow = 0;
-    if (blockId !== 0 && this.blockToRow[trackId][voiceId][blockId - 1].rowId === rowId) {
-      numInRow = this.blockToRow[trackId][voiceId][blockId - 1].numInRow + 1;
-    }
-    this.blockToRow[trackId][voiceId][blockId] = { rowId, numInRow };
-  }
-
   applyBeatAndNoteEffects(trackId: number, blockId: number, voiceId: number) {
     let rowOverBarHeight = 0;
     if (this.blockToRow != null && this.blockToRow[trackId] != null
       && this.blockToRow[trackId][voiceId] != null) {
-      // console.trace(trackId, blockId, voiceId, blockToRow);
-      // blockToRow[trackId][voiceId][blockId]);
       rowOverBarHeight = Helper.getNumberOfOverbarRows(
         trackId, voiceId, this.blockToRow[trackId][voiceId][blockId].rowId,
       ).numberOfOverbarRows;

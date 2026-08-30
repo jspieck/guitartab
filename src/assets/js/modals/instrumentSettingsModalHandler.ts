@@ -5,6 +5,7 @@ import { tab } from '../tab';
 import Picker from 'vanilla-picker';
 import Settings from '../settingManager';
 import AppManager from '../appManager';
+import { notifySongDataChanged } from '../../../services/appEvents';
 import { modalManager } from './modalManager';
 import { TuningModalHandler } from './tuningModalHandler';
 import { MODALS } from './modalTypes';
@@ -21,6 +22,8 @@ interface InstrumentSettingsState extends ModalState {
 }
 
 export class InstrumentSettingsModalHandler extends BaseModalHandler {
+    private colorPicker: Picker | null = null;
+
     constructor() {
         super(MODALS.INSTRUMENT_SETTINGS.id, MODALS.INSTRUMENT_SETTINGS.name);
         this.modalState = {
@@ -39,11 +42,19 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
     openModal(params: { trackId: number }) {
         const trackId = params ? params.trackId : Song.currentTrackId;
         this.modalState.trackId = trackId;
+        this.initializeIfNeeded(() => {
+            this.setupModalContent();
+        });
+        this.setInstrumentSettingsState();
         this.showModal();
     }
 
+    public submitFromModal() {
+        this.handleSettingsSubmit();
+        this.closeModal();
+    }
+
     protected setupModalContent(): void {
-        this.setInstrumentSettingsState();
         this.setupEventListeners();
     }
 
@@ -76,21 +87,93 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
     private setupColorPicker() {
         const { color } = this.modalState.instrumentSettingData;
         const pickerParent = document.getElementById('instrumentColorPicker')!;
-        
-        const picker = new Picker({
+
+        pickerParent.style.backgroundColor = `rgb(${color.red},${color.green},${color.blue})`;
+
+        if (this.colorPicker) {
+            this.colorPicker.setColor(`rgb(${color.red},${color.green},${color.blue})`, true);
+            return;
+        }
+
+        this.colorPicker = new Picker({
             parent: pickerParent,
             color: `rgb(${color.red},${color.green},${color.blue})`,
             popup: 'bottom',
+            alpha: false,
         });
 
-        picker.onChange = (color: { rgba: number[] }) => {
-            pickerParent.style.backgroundColor = `rgb(${color.rgba[0]},${color.rgba[1]},${color.rgba[2]})`;
+        this.colorPicker.onChange = (pickerColor: { rgba: number[] }) => {
+            pickerParent.style.backgroundColor = `rgb(${pickerColor.rgba[0]},${pickerColor.rgba[1]},${pickerColor.rgba[2]})`;
             this.modalState.instrumentSettingData.color = {
-                red: color.rgba[0],
-                green: color.rgba[1],
-                blue: color.rgba[2],
+                red: pickerColor.rgba[0],
+                green: pickerColor.rgba[1],
+                blue: pickerColor.rgba[2],
             };
         };
+
+        this.colorPicker.onOpen = () => {
+            requestAnimationFrame(() => this.repositionColorPickerPopup());
+        };
+
+        this.colorPicker.onClose = () => {
+            this.restoreColorPickerPopup();
+        };
+    }
+
+    private findColorPickerPopup(): HTMLElement | null {
+        const pickerParent = document.getElementById('instrumentColorPicker');
+        if (!pickerParent) {
+            return null;
+        }
+
+        return pickerParent.querySelector('.picker_wrapper.popup') as HTMLElement | null
+            ?? document.body.querySelector('.picker_wrapper.popup') as HTMLElement | null;
+    }
+
+    private repositionColorPickerPopup(): void {
+        const pickerParent = document.getElementById('instrumentColorPicker');
+        const wrapper = this.findColorPickerPopup();
+        if (!pickerParent || !wrapper) {
+            return;
+        }
+
+        if (wrapper.parentElement !== document.body) {
+            document.body.appendChild(wrapper);
+        }
+
+        const rect = pickerParent.getBoundingClientRect();
+        const wrapperWidth = wrapper.offsetWidth || 200;
+        const wrapperHeight = wrapper.offsetHeight || 220;
+        const left = Math.min(
+            Math.max(8, rect.left),
+            window.innerWidth - wrapperWidth - 8,
+        );
+        const topBelow = rect.bottom + 6;
+        const topAbove = rect.top - wrapperHeight - 6;
+        const top = topBelow + wrapperHeight > window.innerHeight - 8 && topAbove > 8
+            ? topAbove
+            : topBelow;
+
+        wrapper.style.position = 'fixed';
+        wrapper.style.left = `${left}px`;
+        wrapper.style.top = `${top}px`;
+        wrapper.style.zIndex = '10001';
+        wrapper.style.margin = '0';
+    }
+
+    private restoreColorPickerPopup(): void {
+        const pickerParent = document.getElementById('instrumentColorPicker');
+        const wrapper = this.findColorPickerPopup();
+        if (!pickerParent || !wrapper || wrapper.parentElement !== document.body) {
+            return;
+        }
+
+        pickerParent.appendChild(wrapper);
+        wrapper.style.position = '';
+        wrapper.style.left = '';
+        wrapper.style.top = '';
+        wrapper.style.zIndex = '';
+        wrapper.style.margin = '';
     }
 
     private setupEventListeners() {
@@ -107,10 +190,6 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
 
         this.setupSelect('capoSelect', (value) => {
             instrumentSettingData.capo = parseInt(value, 10);
-        });
-
-        this.setupSelectButton('instrumentSettingsSelectButton', () => {
-            this.handleSettingsSubmit();
         });
     }
 
@@ -139,10 +218,15 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
         // Update UI
         if (Settings.sequencerTrackColor) {
             const { red, green, blue } = track.color;
-            document.getElementById(`labelImg${trackId}`)!.style.borderLeft = 
-                `3px solid rgb(${red}, ${green}, ${blue})`;
+            const labelImage = document.getElementById(`labelImg${trackId}`);
+            if (labelImage instanceof HTMLElement) {
+                labelImage.style.borderLeft = `3px solid rgb(${red}, ${green}, ${blue})`;
+            }
         }
-        document.getElementById(`instrumentLabel${trackId}`)!.textContent = track.name;
+        const instrumentLabel = document.getElementById(`instrumentLabel${trackId}`);
+        if (instrumentLabel) {
+            instrumentLabel.textContent = track.name;
+        }
         
         // Handle state changes
         revertHandler.addInstrumentSettings(trackId, trackBefore, track);
@@ -157,5 +241,7 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
                 AppManager.setTrackInstrument(trackId);
             });
         }
+
+        notifySongDataChanged();
     }
 }

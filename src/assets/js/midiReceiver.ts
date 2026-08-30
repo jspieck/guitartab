@@ -49,7 +49,7 @@ import Settings from './settingManager';
 import { audioEngine } from './audioEngine';
 import { GpxReader } from './GPXReader';
 import playBackLogic from './playBackLogicNew';
-import { svgDrawer } from './svgDrawer';
+import { requestBlockRender } from '../../services/editor/renderCommands';
 import { modalManager } from './modals/modalManager';
 import { MODALS } from './modals/modalTypes';
 
@@ -319,13 +319,7 @@ class MidiEngine {
     const arrangedNotes = GpxReader.arrangeAndSetNotesToGuitar(Song.currentTrackId, blockId,
       Song.currentVoiceId, beatId, pianoArrangedNotes, usedStrings);
     if (notes != null) {
-      for (let i = 0; i < arrangedNotes.length; i += 1) {
-        const { string } = arrangedNotes[i];
-        if (notes[string] != null) {
-          svgDrawer.createNote(Song.currentTrackId, blockId, Song.currentVoiceId,
-            beatId, string, notes[string]!);
-        }
-      }
+      requestBlockRender(Song.currentTrackId, blockId, Song.currentVoiceId);
     }
     this.midiNoteBuffer.length = 0;
   }

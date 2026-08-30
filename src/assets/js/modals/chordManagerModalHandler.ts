@@ -1,6 +1,7 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
 import { Chord } from '../songData';
+import { typedEventBus } from '../../../utils/typedEventBus';
 
 interface ChordManagerState extends ModalState {
     trackId: number;
@@ -20,6 +21,7 @@ export class ChordManagerModalHandler extends BaseModalHandler {
     openModal(params: { trackId: number }): void {
         this.modalState.trackId = params.trackId;
         this.showModal();
+        typedEventBus.emit('render.chordDiagrams');
     }
 
     public getTrackId(): number {

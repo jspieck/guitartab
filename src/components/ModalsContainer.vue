@@ -33,6 +33,7 @@
     <Compressor id="compressorModal" class="modal" role="alert"/>
     <Equalizer id="equalizerModal" class="modal" role="alert" ref="equalizer"/>
     <InstrumentSettingsModal class="modal" role="alert" />
+    <CloudSongsModal />
   </div>
 </template>
 
@@ -63,6 +64,7 @@ import AddTrackModal from './AddTrackModal.vue'
 import RepititionModal from './RepititionModal.vue'
 import DeleteModal from './DeleteModal.vue'
 import BendModal from './BendModal.vue'
+import CloudSongsModal from './CloudSongsModal.vue'
 
 defineProps<{
   trackId: number

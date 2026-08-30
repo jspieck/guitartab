@@ -16,10 +16,12 @@ export { useSelectionSurfaceState } from './useSelectionSurfaceState'
 export { useDurationHandler } from './useDurationHandler'
 
 // Playback control
+export { usePlaybackEngine } from './usePlaybackEngine'
+export type { PlaybackPosition, PlaybackTransportState } from './usePlaybackEngine'
 export { usePlayback } from './usePlayback'
-export type { PlaybackPosition, PlaybackState } from './usePlayback'
 export { usePlaybackBarState } from './usePlaybackBarState'
 export type { PlaybackBarState } from './usePlaybackBarState'
+export { useClassicalNotation } from './useClassicalNotation'
 
 // Track management
 export { useTrack } from './useTrack'

@@ -1,47 +1,231 @@
 <template>
-    <BaseModal :modalId="MODALS.INSTRUMENT_SETTINGS.id">
-        <template #title>Instrument Settings</template>
-        <label>Name:</label>
-        <input id="instrumentNameInput" />
-        <label>Color:</label>
-        <div id="instrumentColorPicker" readonly="readonly"></div>
-        <div id="alternativeContainer">
-          <ul class="unstyled">
-            <li><input class="styled-checkbox" id="ringCheckbox" type="checkbox"><label for="ringCheckbox">Let it
-                ring</label></li>
-          </ul>
-        </div>
-        <label>String Count:</label>
-        <div id="stringCountSelectBox" class="select">
-          <select id="stringCountSelect">
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-          </select>
-          <div class="select__arrow"></div>
-        </div>
-        <label>Capo:</label>
-        <div id="capoSelectBox" class="select">
-          <select id="capoSelect">
-            <option v-for="num in 16" :value="num - 1">{{ num - 1 }}</option>
-          </select>
-          <div class="select__arrow"></div>
-        </div>
-        <label>String Tuning:</label>
-        <div id="tuningAreaModal"></div>
 
-        <svg id="instrumentSettingsSelectButton" class="checkmark selectButton" xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 52 52">
-          <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-          <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-        </svg>
-    </BaseModal>
+  <BaseModal :modal-id="MODALS.INSTRUMENT_SETTINGS.id">
+
+    <template #title>Instrument Settings</template>
+
+    <div class="modal-stack instrument-settings-layout">
+
+      <div class="modal-section">
+
+        <div class="modal-field-grid instrument-settings-identity">
+
+          <div class="modal-field">
+
+            <label for="instrumentNameInput">Name</label>
+
+            <input id="instrumentNameInput" />
+
+          </div>
+
+          <div class="modal-field instrument-settings-color-field">
+
+            <label for="instrumentColorPicker">Color</label>
+
+            <div id="instrumentColorPicker" class="instrument-color-picker" readonly="readonly"></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="modal-section">
+
+        <div class="instrument-settings-controls">
+
+          <ModalToggle input-id="ringCheckbox" label="Let it ring" />
+
+          <div class="instrument-settings-select-row">
+
+            <ModalSelectField label="String count" select-id="stringCountSelect">
+
+              <select id="stringCountSelect">
+
+                <option v-for="count in stringCounts" :key="count" :value="count">{{ count }}</option>
+
+              </select>
+
+            </ModalSelectField>
+
+            <ModalSelectField label="Capo" select-id="capoSelect">
+
+              <select id="capoSelect">
+
+                <option v-for="num in 16" :key="num" :value="num - 1">{{ num - 1 }}</option>
+
+              </select>
+
+            </ModalSelectField>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="modal-section">
+
+        <label class="modal-field-label instrument-settings-section-label">String tuning</label>
+
+        <p class="instrument-settings-help">Set the pitch of each open string.</p>
+
+        <div class="instrument-settings-tuning-shell modal-surface-block">
+
+          <div id="tuningAreaModal"></div>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="modal-submit-row">
+
+        <SubmitButton @submit-info="submitSettings" />
+
+      </div>
+
+    </div>
+
+  </BaseModal>
+
 </template>
 
+
+
 <script setup lang="ts">
-import BaseModal from './BaseModal.vue';
-import { MODALS } from '../assets/js/modals/modalTypes';
+
+import BaseModal from './BaseModal.vue'
+
+import SubmitButton from './SubmitButton.vue'
+
+import ModalToggle from './ModalToggle.vue'
+
+import ModalSelectField from './ModalSelectField.vue'
+
+import { MODALS } from '../assets/js/modals/modalTypes'
+
+import { modalManager } from '../assets/js/modals/modalManager'
+
+import { InstrumentSettingsModalHandler } from '../assets/js/modals/instrumentSettingsModalHandler'
+
+
+
+const stringCounts = [4, 5, 6, 7, 8, 9]
+
+const handler = modalManager.getHandler(MODALS.INSTRUMENT_SETTINGS.id) as InstrumentSettingsModalHandler
+
+
+
+function submitSettings() {
+
+  handler.submitFromModal()
+
+}
+
 </script>
+
+
+
+<style scoped>
+
+.instrument-settings-layout {
+
+  gap: 12px;
+
+}
+
+
+
+.instrument-settings-identity {
+
+  grid-template-columns: minmax(0, 1fr) 112px;
+
+}
+
+
+
+.instrument-settings-color-field {
+
+  min-width: 0;
+
+}
+
+
+
+.instrument-color-picker {
+
+  width: 100%;
+
+  min-height: var(--modal-control-height);
+
+  border: 1px solid #9aa8bc;
+
+  border-radius: 10px;
+
+  background: #eef1f6;
+
+  box-sizing: border-box;
+
+  cursor: pointer;
+
+}
+
+
+
+.instrument-settings-controls {
+
+  display: grid;
+
+  gap: 12px;
+
+}
+
+
+
+.instrument-settings-select-row {
+
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 12px;
+
+  align-items: end;
+
+}
+
+
+
+.instrument-settings-section-label {
+  font-weight: 600;
+  color: var(--modal-text-strong);
+}
+
+.instrument-settings-help {
+
+  margin: 4px 0 8px;
+
+  color: var(--modal-text-muted);
+
+  font-size: 13px;
+
+  line-height: 1.4;
+
+}
+
+
+
+.instrument-settings-tuning-shell {
+
+  padding: 10px;
+
+}
+
+</style>
+

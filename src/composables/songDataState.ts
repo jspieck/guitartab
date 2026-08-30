@@ -1,21 +1,6 @@
-import type { LegacySongSnapshot } from '../services/legacy/editorCoreAdapter'
-import { editorScopeState, syncEditorScope } from './useEditorScopeState'
+import type { SongStateData } from '../stores/songState'
 
-export type ReactiveSongData = LegacySongSnapshot
-
-export function applySongSnapshotToState(
-  reactiveSongData: ReactiveSongData,
-  snapshot: LegacySongSnapshot,
-): void {
-  reactiveSongData.measures = snapshot.measures
-  reactiveSongData.songDescription = snapshot.songDescription
-  reactiveSongData.tracks = snapshot.tracks
-  reactiveSongData.measureMeta = snapshot.measureMeta
-  reactiveSongData.playBackInstrument = snapshot.playBackInstrument
-  syncEditorScope(snapshot.currentTrackId, snapshot.currentVoiceId)
-  reactiveSongData.currentTrackId = editorScopeState.currentTrackId
-  reactiveSongData.currentVoiceId = editorScopeState.currentVoiceId
-}
+export type ReactiveSongData = SongStateData
 
 export function getMeasuresForTrackVoice(
   reactiveSongData: ReactiveSongData,

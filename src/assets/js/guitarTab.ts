@@ -77,7 +77,6 @@ const startUp = function startUp() {
 
   document.fonts.load('10pt "musicFont"');
   document.fonts.load('10pt "notesFont"');
-  Settings.darkMode = Settings.load('darkMode') === 'true';
   // audioEngine.initSound();
   midiEngine.init();
   // document.getElementById('files').addEventListener('change', handleFileSelect, false);
@@ -126,61 +125,3 @@ const startUp = function startUp() {
 // window.setInstrumentColor = setInstrumentColor;
 export { startUp };
 export default startUp;
-
-/* function createPDF() {
-  document.getElementById('loadingWheel')!.style.display = 'block';
-  const numPages = svgDrawer.getNumOfPages();
-  const pages = [];
-  for (let i = 0; i < numPages; i += 1) {
-    const serializer = new XMLSerializer();
-    const svg = svgDrawer.getSvgPage(Song.currentTrackId, Song.currentVoiceId, i);
-    const str = serializer.serializeToString(svg);
-    pages.push(str);
-  }
-  const w = new Worker('./js/pdfCreationWorker');
-  // console.log(pages);
-  w.postMessage({
-    type: 'start',
-    numPages,
-    pages,
-  });
-  w.onmessage = (event) => {
-    const blob = event.data;
-    document.getElementById('loadingWheel')!.style.display = 'none';
-    const a = document.createElement('a');
-    document.body.appendChild(a);
-    a.style.display = 'none';
-    const url = window.URL.createObjectURL(blob);
-    a.href = url;
-    a.download = 'pdfCreation';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-} */
-
-/* function downloadXML() {
-  // TODO
-  var xmltext = buildXML(song);
-  var pom = document.createElement('a');
-  var filename = "guitarTab.xml";
-  var pom = document.createElement('a');
-  var bb = new Blob([xmltext], {type: 'text/plain'});
-  pom.setAttribute('href', window.URL.createObjectURL(bb));
-  pom.setAttribute('download', filename);
-  pom.dataset.downloadurl = ['text/plain', pom.download, pom.href].join(':');
-  pom.draggable = true;
-  pom.classList.add('dragout');
-  pom.click();
-} */
-
-// Area for functions if not electron is used
-/* $(document).keydown(function(e){
-  if( e.which === 89 && e.ctrlKey ){
-     //Control + Y
-     revertHandler.restoreState();
-  }
-  else if( e.which === 90 && e.ctrlKey ){
-     //Control + Z
-     revertHandler.revertState();
-  }
-}); */

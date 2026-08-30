@@ -1,6 +1,12 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Note, Measure } from '../songData';
-import { SvgDrawer, svgDrawer } from '../svgDrawer';
+import {
+  connectPoints,
+  createPath,
+  createRect,
+  createText,
+  drawPoint,
+} from '../../../utils/svgPrimitives';
 import Helper from '../helper';
 import fastdom from 'fastdom';
 import menuHandler from '../menuHandler';
@@ -9,6 +15,7 @@ import EventBus from '../eventBus';
 import { Song } from '../songData';
 import { tab } from '../tab';
 import { MODALS } from './modalTypes';
+import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
 interface BendEditorProps {
     HORIZONTAL_STEPS: number;
@@ -133,7 +140,7 @@ export class BendModalHandler extends BaseModalHandler {
             this.editorProps.pointsOnLine[xIndex] = null;
         }
         if (!samePoint) {
-            const point = SvgDrawer.drawPoint(xNearest, yNearest, paddingTop,
+            const point = drawPoint(xNearest, yNearest, paddingTop,
                 paddingLeft, 7, bendEditor as unknown as SVGElement, '');
             this.editorProps.pointsOnLine[xIndex] = [point, this.editorProps.VERTICAL_STEPS - yIndex, xIndex];
         }
@@ -162,7 +169,7 @@ export class BendModalHandler extends BaseModalHandler {
             );
 
             this.applyBendToNotes(bendObjs, notesBefore);
-            svgDrawer.rerenderBlocks(
+            requestBlocksRender(
                 this.currentNotes.notes[0].trackId,
                 this.currentNotes.blocks,
                 this.currentNotes.notes[0].voiceId
@@ -224,7 +231,7 @@ export class BendModalHandler extends BaseModalHandler {
         this.editorProps.bendPointsArr = [];
 
         // Setup basic elements
-        const rect = SvgDrawer.createRect(paddingLeft, paddingTop, width, height, '', '1', '');
+        const rect = createRect(paddingLeft, paddingTop, width, height, '', '1', '');
         bendEditor.appendChild(rect);
 
         // Add axis labels
@@ -247,7 +254,7 @@ export class BendModalHandler extends BaseModalHandler {
 
         labels.forEach(label => {
             bendEditor.appendChild(
-                SvgDrawer.createText(0, label.y, label.text, '12px', '')
+                createText(0, label.y, label.text, '12px', '')
             );
         });
     }
@@ -271,7 +278,7 @@ export class BendModalHandler extends BaseModalHandler {
             const pathStr = `M${xPos} ${paddingTop}L${xPos} ${height + paddingTop}`;
             let stroke = '#4a4a4a';
             if ((i + 1) % 3 !== 0) stroke = '#d6d6d6';
-            const pathEl = SvgDrawer.createPath(pathStr, stroke, '1', 'none');
+            const pathEl = createPath(pathStr, stroke, '1', 'none');
             if ((i + 1) % 3 !== 0) {
                 pathEl.setAttribute('class', 'gridLine');
             } else {
@@ -289,7 +296,7 @@ export class BendModalHandler extends BaseModalHandler {
             if ((i + 1) % 4 !== 0) {
                 stroke = '#d6d6d6';
             }
-            const pathEl = SvgDrawer.createPath(pathStr, stroke, '1', 'none');
+            const pathEl = createPath(pathStr, stroke, '1', 'none');
             if ((i + 1) % 4 !== 0) {
                 pathEl.setAttribute('strokeDasharray', '5, 5');
                 pathEl.setAttribute('class', 'gridLine');
@@ -333,7 +340,7 @@ export class BendModalHandler extends BaseModalHandler {
             const xVal = bendPreset[i].x;
             const yVal = bendPreset[i].y; // 0,0 is at the upper-left
             this.editorProps.pointsOnLine[xVal] = [
-                SvgDrawer.drawPoint(
+                drawPoint(
                     width * xVal,
                     height * (this.editorProps.VERTICAL_STEPS - yVal),
                     paddingTop,
@@ -363,7 +370,7 @@ export class BendModalHandler extends BaseModalHandler {
                 if (firstPoint == null) {
                     firstPoint = this.editorProps.pointsOnLine[i];
                 } else {
-                    this.editorProps.bendPointsArr.push(SvgDrawer.connectPoints(
+                    this.editorProps.bendPointsArr.push(connectPoints(
                         firstPoint[0].childNodes[0] as SVGElement,
                         this.editorProps.pointsOnLine[i]![0].childNodes[0] as SVGElement,
                         svgElem,

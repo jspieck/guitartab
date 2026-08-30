@@ -1,5 +1,5 @@
 import Song, { type PlayBackInstrument, type Track as SongTrack } from '../../assets/js/songData'
-import EventBus from '../../assets/js/eventBus'
+import { notifySongDataChanged } from '../appEvents'
 import { setCurrentTrack, setCurrentVoice } from '../../composables/useEditorScopeState'
 import type { TrackColor, TrackInstrumentSettings, TrackUpdate, TrackViewModel } from '../../types/track'
 
@@ -90,7 +90,7 @@ export function trackToViewModel(
 }
 
 function emitSongDataChanged() {
-  EventBus.emit('song-data-changed')
+  notifySongDataChanged()
 }
 
 function listTrackViewModels(
@@ -314,7 +314,7 @@ function isTrackAudible(trackId: number, tracks: TrackViewModel[] = listTrackVie
   return true
 }
 
-const legacyTrackAdapter = {
+const trackAdapter = {
   listTrackViewModels,
   getTrackViewModel,
   selectTrack,
@@ -334,5 +334,5 @@ const legacyTrackAdapter = {
   isTrackAudible,
 }
 
-export { legacyTrackAdapter }
-export default legacyTrackAdapter
+export { trackAdapter }
+export default trackAdapter

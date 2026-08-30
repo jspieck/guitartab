@@ -4,7 +4,7 @@ import { tab } from '../tab';
 import AppManager from '../appManager';
 import { instrumentGroups, instrumentList } from '../instrumentData';
 import { sequencerHandler } from '../sequencerHandler';
-import EventBus from '../eventBus';
+import { notifySongDataChanged } from '../../../services/appEvents';
 
 interface InstrumentGroup {
     title: string;
@@ -57,7 +57,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
         tab.createTakte(numTracks, 0);
         tab.fillMeasures(numTracks, 0);
         sequencerHandler.drawBeat();
-        EventBus.emit('song-data-changed');
+        notifySongDataChanged();
     }
 
     private changeInstrumentForTrack(
@@ -120,7 +120,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
         AppManager.setTracks(trackNumber);
         sequencerHandler.drawBeat();
         tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-        EventBus.emit('song-data-changed');
+        notifySongDataChanged();
     }
 
     setNumberOfTrackToAdd(trackNumber: number) {

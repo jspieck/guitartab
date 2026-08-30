@@ -1,12 +1,12 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Measure } from '../songData';
-import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
 import { menuHandler } from '../menuHandler';
 import { tab } from '../tab';
 import EventBus from '../eventBus';
 import fastdom from 'fastdom';
 import { MODALS } from './modalTypes';
+import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
 interface NoteInfo {
     trackId: number;
@@ -86,7 +86,7 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
                 this.processNoteSelection(noteInfo, notesBefore as { [key: string]: Note });
             }
 
-            svgDrawer.rerenderBlocks(notes[0].trackId, blocks, notes[0].voiceId);
+            requestBlocksRender(notes[0].trackId, blocks, notes[0].voiceId);
         });
     }
 

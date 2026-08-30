@@ -10,10 +10,10 @@ export class EqualizerModalHandler extends BaseModalHandler {
     private highshelf!: BiquadFilterNode;
 
     // Constants
-    public readonly CANVAS_WIDTH = 700;
+    public readonly CANVAS_WIDTH = 560;
     public readonly DECIBEL_WIDTH = 20;
-    public readonly CANVAS_HEIGHT = 350;
-    public readonly FREQUENCY_HEIGHT = 20;
+    public readonly CANVAS_HEIGHT = 250;
+    public readonly FREQUENCY_HEIGHT = 18;
     public readonly SAMPLERATE = 44100;
 
     public readonly frequencyLines = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];

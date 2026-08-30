@@ -3,8 +3,8 @@ import { Measure, Stroke } from '../songData';
 import fastdom from 'fastdom';
 import EventBus from '../eventBus';
 import { revertHandler } from '../revertHandler';
-import { svgDrawer } from '../svgDrawer';
 import { MODALS } from './modalTypes';
+import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
 interface StrokeModalState extends ModalState {
     strokeData: Stroke;
@@ -132,7 +132,7 @@ export class StrokeModalHandler extends BaseModalHandler {
             }
 
             const { trackId, voiceId } = this.modalState.beats[0];
-            svgDrawer.rerenderBlocks(trackId, this.modalState.blocks, voiceId);
+            requestBlocksRender(trackId, this.modalState.blocks, voiceId);
         });
     }
 }

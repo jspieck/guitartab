@@ -1,214 +1,290 @@
 <template>
   <BaseModal :modal-id="MODALS.CHORD_MANAGER.id">
     <template #title>Chord Manager</template>
-    <div class="chord-manager">
-      <label>Chord diagrams to display:</label>
-      <div class="chord-overview">
-        <div class="chords-grid">
-          <div 
-            v-for="[name, chord] in chords" 
-            :key="name" 
-            class="chord-box"
-          >
-            <div class="chord-name">{{ name }}</div>
-            <svg 
-              class="chord-diagram" 
-              width="100" 
-              height="120" 
-              ref="chordRefs"
-            ></svg>
-            <div class="chord-buttons">
-              <button 
-                class="edit-chord"
-                @click="editChord(name, chord)"
-              >
-                Edit
-              </button>
-              <button 
-                class="delete-chord"
-                @click="deleteChord(name)"
-              >
-                Delete
-              </button>
-              <button 
-                class="toggle-visibility"
-                @click="toggleChordVisibility(chord)"
-              >
-                {{ chord.display ? 'Hide' : 'Show' }}
-              </button>
-            </div>
-          </div>
+    <div class="modal-stack chord-manager-modal">
+      <div class="chord-manager-header">
+        <div>
+          <p class="chord-manager-caption">Show, hide, or edit saved chord shapes.</p>
         </div>
-        <button 
-          class="add-chord"
+        <button
+          type="button"
+          class="modal-secondary-button"
           @click="addNewChord"
-          title="Add Chord Diagram"
+          title="Add chord diagram"
         >
-          +
+          New chord
         </button>
       </div>
+
+      <div v-if="chordEntries.length === 0" class="chord-empty-state modal-surface-block">
+        No chord diagrams yet. Create one with <strong>New chord</strong>.
+      </div>
+
+      <div v-else class="chords-grid">
+        <div
+          v-for="[name, chord] in chordEntries"
+          :key="name"
+          class="chord-box modal-surface-block"
+          :class="{ 'chord-box-hidden': !chord.display }"
+        >
+          <div class="chord-name">{{ name }}</div>
+          <svg
+            class="chord-diagram"
+            width="100"
+            height="120"
+            viewBox="0 0 100 120"
+            :data-chord-name="name"
+            :ref="(element) => registerChordDiagram(name, element)"
+          ></svg>
+          <div class="chord-actions">
+            <button
+              type="button"
+              class="chord-action-button"
+              title="Edit chord"
+              @click="editChord(name, chord)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20h4l10.5-10.5a1.8 1.8 0 0 0 0-2.6l-1.4-1.4a1.8 1.8 0 0 0-2.6 0L4 16v4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="chord-action-button chord-action-button-danger"
+              title="Delete chord"
+              @click="deleteChord(name)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16M9 7V5h6v2M8 7l1 12h6l1-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="chord-action-button"
+              :title="chord.display ? 'Hide chord' : 'Show chord'"
+              @click="toggleChordVisibility(chord)"
+            >
+              <svg v-if="chord.display" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8" />
+                <circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+              <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3 3l18 18M10.6 10.6A4 4 0 0 0 12 16a4 4 0 0 0 3.4-1.8M6.7 6.8C4.1 8.4 2.4 10.6 2 12s3.5 6 10 6c1.8 0 3.4-.4 4.8-1.1M17.3 17.2C19.9 15.6 21.6 13.4 22 12s-3.5-6-10-6c-1.1 0-2.1.2-3 .5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-submit-row">
+        <SubmitButton label="Done" variant="secondary" @submitInfo="handleSubmit" />
+      </div>
     </div>
-    <SubmitButton @submitInfo="handleSubmit" />
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
-import BaseModal from "./BaseModal.vue";
-import SubmitButton from "./SubmitButton.vue";
-import { MODALS } from "../assets/js/modals/modalTypes";
-import { modalManager } from "../assets/js/modals/modalManager";
-import { ChordManagerModalHandler } from "../assets/js/modals/chordManagerModalHandler";
-import { Song } from "../assets/js/songData";
-import EventBus from "../assets/js/eventBus";
-import type { Chord } from "../types/tab";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import BaseModal from './BaseModal.vue'
+import SubmitButton from './SubmitButton.vue'
+import { MODALS } from '../assets/js/modals/modalTypes'
+import { modalManager } from '../assets/js/modals/modalManager'
+import { ChordManagerModalHandler } from '../assets/js/modals/chordManagerModalHandler'
+import { Song } from '../assets/js/songData'
+import { notifySongDataChanged } from '../services/appEvents'
+import { createChordDiagramSvg } from '../services/editor/chordDiagramSvg'
+import { typedEventBus } from '../utils/typedEventBus'
+import type { Chord } from '../types/tab'
 
-const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler;
-const chordRefs = ref<SVGElement[]>([]);
-const chords = ref<Map<string, Chord>>(new Map());
+const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler
+const chords = ref<Map<string, Chord>>(new Map())
+const diagramElements = ref<Map<string, SVGSVGElement>>(new Map())
 
-const notifyChordChange = () => {
-  EventBus.emit('song-data-changed')
-};
+const chordEntries = computed(() => [...chords.value.entries()].sort(([left], [right]) => left.localeCompare(right)))
 
-const drawChordDiagram = (svg: SVGElement, chord: Chord) => {
-  handler.drawChordDiagram(svg, chord);
-};
+function registerChordDiagram(name: string, element: Element | { $el?: Element } | null) {
+  if (element instanceof SVGSVGElement) {
+    diagramElements.value.set(name, element)
+    return
+  }
 
-const updateChordDiagrams = () => {
-  if (!chordRefs.value.length) return;
-  
-  chordRefs.value.forEach((svg, index) => {
-    const chord = Array.from(chords.value.values())[index];
-    if (chord && svg) {
-      svg.innerHTML = '';
-      drawChordDiagram(svg, chord);
+  diagramElements.value.delete(name)
+}
+
+function drawChordDiagram(svg: SVGSVGElement, chord: Chord) {
+  while (svg.firstChild) {
+    svg.removeChild(svg.firstChild)
+  }
+
+  const diagram = createChordDiagramSvg(chord)
+  diagram.setAttribute('transform', 'translate(12, 22) scale(0.95)')
+  svg.appendChild(diagram)
+}
+
+async function updateChordDiagrams() {
+  await nextTick()
+
+  for (const [name, chord] of chordEntries.value) {
+    const svg = diagramElements.value.get(name)
+    if (svg) {
+      drawChordDiagram(svg, chord)
     }
-  });
-};
+  }
+}
 
-const editChord = (name: string, chord: Chord) => {
+function reloadChords() {
+  const trackId = handler.getTrackId()
+  const trackChords = Song.chordsMap[trackId]
+  chords.value = trackChords ? new Map(trackChords) : new Map()
+  void updateChordDiagrams()
+}
+
+function notifyChordChange() {
+  notifySongDataChanged()
+}
+
+function editChord(name: string, chord: Chord) {
   modalManager.toggleByModal(MODALS.ADD_CHORD, {
     trackId: handler.getTrackId(),
-    existingChord: { ...chord, name }
-  });
-};
+    existingChord: { ...chord, name },
+  })
+}
 
-const deleteChord = async (name: string) => {
+async function deleteChord(name: string) {
   if (await confirm(`Delete chord ${name}?`)) {
-    Song.chordsMap[handler.getTrackId()].delete(name);
-    chords.value = new Map(Song.chordsMap[handler.getTrackId()]);
-    notifyChordChange();
+    Song.chordsMap[handler.getTrackId()]?.delete(name)
+    reloadChords()
+    notifyChordChange()
   }
-};
+}
 
-const toggleChordVisibility = (chord: Chord) => {
-  chord.display = !chord.display;
-  notifyChordChange();
-};
+function toggleChordVisibility(chord: Chord) {
+  chord.display = !chord.display
+  notifyChordChange()
+}
 
-const addNewChord = () => {
-  modalManager.toggleByModal(MODALS.ADD_CHORD, { 
-    trackId: handler.getTrackId() 
-  });
-};
+function addNewChord() {
+  modalManager.toggleByModal(MODALS.ADD_CHORD, {
+    trackId: handler.getTrackId(),
+  })
+}
 
-const handleSubmit = () => {
-  notifyChordChange();
-  handler.closeModal();
-};
-
-watch(() => chords.value, updateChordDiagrams, { deep: true });
+function handleSubmit() {
+  notifyChordChange()
+  handler.closeModal()
+}
 
 onMounted(() => {
-  chords.value = Song.chordsMap[handler.getTrackId()];
-  updateChordDiagrams();
-});
+  reloadChords()
+  typedEventBus.on('song-data-changed', reloadChords)
+  typedEventBus.on('render.chordDiagrams', reloadChords)
+})
+
+watch(chordEntries, () => {
+  void updateChordDiagrams()
+}, { flush: 'post' })
+
+onUnmounted(() => {
+  typedEventBus.off('song-data-changed', reloadChords)
+  typedEventBus.off('render.chordDiagrams', reloadChords)
+})
 </script>
 
 <style scoped>
-.chord-manager {
-  padding: 1rem;
+.chord-manager-modal {
+  gap: 14px;
 }
 
-.chord-overview {
-  margin-top: 1rem;
+.chord-manager-header {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chord-manager-caption {
+  margin: 0;
+  color: var(--modal-text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.chord-empty-state {
+  padding: 18px 14px;
+  color: var(--modal-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .chords-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 12px;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .chord-box {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 1rem;
+  padding: 12px 10px 10px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 8px;
+}
+
+.chord-box-hidden {
+  opacity: 0.55;
 }
 
 .chord-name {
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   text-align: center;
+  color: var(--modal-text-strong);
 }
 
 .chord-diagram {
-  align-self: center;
+  display: block;
 }
 
-.chord-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.chord-buttons button {
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.edit-chord {
-  background: #e3f2fd;
-}
-
-.delete-chord {
-  background: #ffebee;
-}
-
-.toggle-visibility {
-  background: #f5f5f5;
-}
-
-.add-chord {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px dashed #ccc;
-  background: none;
-  font-size: 1.5rem;
-  cursor: pointer;
+.chord-actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: center;
-  transition: all 0.2s;
+  gap: 6px;
+  width: 100%;
 }
 
-.add-chord:hover {
-  border-color: #999;
-  background: #f5f5f5;
+.chord-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #9aa8bc;
+  border-radius: 8px;
+  background: #eef1f6;
+  color: #475569;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-button:hover {
-  filter: brightness(0.95);
+.chord-action-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.chord-action-button:hover {
+  background: #e2e8f0;
+  color: #111827;
+  border-color: #7a8799;
+}
+
+.chord-action-button-danger:hover {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(220, 38, 38, 0.08);
 }
 </style>

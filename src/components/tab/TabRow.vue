@@ -35,6 +35,18 @@
       <text x="15" :y="stringSpacing * 4.5" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">B</text>
     </g>
     
+    <!-- Range selection overlay (loop / copy-paste) -->
+    <g v-if="rangeOverlayRect" class="range-selection-overlay" style="pointer-events: none">
+      <rect
+        :x="rangeOverlayRect.x"
+        :y="rangeOverlayRect.y"
+        :width="rangeOverlayRect.width"
+        :height="rangeOverlayRect.height"
+        fill="rgba(62, 173, 255, 0.19)"
+        stroke="none"
+      />
+    </g>
+
     <!-- Selection indicator -->
     <g v-if="selectionRenderPoint" class="selection-indicator" style="pointer-events: none">
       <rect
@@ -88,7 +100,7 @@
         :height="12"
         fill="rgba(0, 0, 0, 0)"
         class="string-click-area"
-        @click="(event: MouseEvent) => handleStringClick(event, stringIndex - 1)"
+        @mousedown="(event: MouseEvent) => handleStringPointerDown(event, stringIndex - 1)"
         style="cursor: pointer"
       />
     </g>
@@ -96,23 +108,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
+import { useOverlaySelection } from '../../composables/useOverlaySelection'
 import { useTabSelection } from '../../composables/useTabSelection'
-import legacyEditorCore from '../../services/legacy/editorCoreAdapter'
+import editorCore from '../../services/editor/editorCore'
 import type {
   RenderedTabRow,
   RendererSelectionPosition,
   TabMeasureMetaData,
-  TabNoteData,
 } from '../../types/tab'
 import {
   clickToTabPosition,
   getMeasureXOffset as getLayoutMeasureXOffset,
   getSelectionRenderPoint,
-  getSvgPageMargins,
-  getSvgScreenPoint,
   TAB_CONSTANTS,
 } from '../../utils/tabLayout'
 
@@ -124,10 +134,12 @@ interface Props {
   yOffset: number
   width: number
   isFirstRow?: boolean
+  onStringPointerDown?: (event: MouseEvent, stringIndex: number) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isFirstRow: false,
+  onStringPointerDown: undefined,
 })
 
 const { STRING_SPACING } = TAB_CONSTANTS
@@ -136,9 +148,37 @@ const stringSpacing = STRING_SPACING
 const {
   currentSelection,
   setSelection,
-  showContextMenu,
-  hideContextMenu,
 } = useTabSelection()
+
+const numStrings = computed(() => editorCore.getTrackStringCount(props.trackId))
+
+function getMeasureMeta(blockId: number): TabMeasureMetaData {
+  return editorCore.getMeasureMeta(blockId)
+}
+
+function getMeasureContentPadding(blockId: number): number {
+  const meta = getMeasureMeta(blockId)
+  let padding = 10
+
+  if (meta.timeMeterPresent) {
+    padding += 25
+  }
+  if (meta.repeatOpen) {
+    padding += 15
+  }
+
+  return padding
+}
+
+const { rangeOverlayRect } = useOverlaySelection({
+  trackId: props.trackId,
+  voiceId: props.voiceId,
+  rowId: props.rowData.id,
+  rowData: computed(() => props.rowData),
+  isFirstRow: computed(() => props.isFirstRow),
+  numStrings,
+  getMeasureContentPadding,
+})
 
 const selectionRenderPoint = computed(() => {
   if (!selectedPosition.value) {
@@ -151,6 +191,8 @@ const selectionRenderPoint = computed(() => {
     props.isFirstRow,
     stringSpacing,
     getMeasureContentPadding,
+    props.trackId,
+    props.voiceId,
   )
 })
 
@@ -193,57 +235,6 @@ const selectedPosition = computed<RendererSelectionPosition | null>({
   },
 })
 
-watch(() => currentSelection.value, (selection) => {
-  if (!selection) {
-    hideContextMenu()
-    return
-  }
-
-  if (
-    selection.trackId !== props.trackId
-    || selection.voiceId !== props.voiceId
-    || selection.blockId < props.rowData.startBlockId
-    || selection.blockId > props.rowData.endBlockId
-  ) {
-    return
-  }
-
-  const measureIndex = selection.blockId - props.rowData.startBlockId
-  const beat = props.rowData.measures[measureIndex]?.data?.[selection.beatIndex]
-  const note = beat?.notes?.[selection.stringIndex] as TabNoteData | null | undefined
-
-  if (!note) {
-    hideContextMenu()
-    return
-  }
-
-  window.setTimeout(() => {
-    const pos = getSelectionScreenPos()
-    if (pos) {
-      showContextMenu({ ...note, duration: beat?.duration || 'q' }, pos.x, pos.y)
-    }
-  }, 0)
-}, { deep: true })
-
-function getSelectionScreenPos(): { x: number; y: number } | null {
-  if (!selectionRenderPoint.value) {
-    return null
-  }
-
-  const svgElement = props.svgRoot
-  if (!svgElement) {
-    return null
-  }
-
-  const margins = getSvgPageMargins(svgElement)
-  return getSvgScreenPoint(svgElement, {
-    x: selectionRenderPoint.value.x + margins.left,
-    y: selectionRenderPoint.value.y + props.yOffset + margins.top,
-  })
-}
-
-const numStrings = computed(() => legacyEditorCore.getTrackStringCount(props.trackId))
-
 const measureSeparators = computed(() => {
   const separators: Array<{ x: number }> = []
   for (let index = 0; index <= props.rowData.measures.length; index++) {
@@ -259,22 +250,13 @@ function getMeasureXOffset(measureIndex: number): number {
   return getLayoutMeasureXOffset(props.rowData.measures, measureIndex, props.isFirstRow)
 }
 
-function getMeasureMeta(blockId: number): TabMeasureMetaData {
-  return legacyEditorCore.getMeasureMeta(blockId)
-}
-
-function getMeasureContentPadding(blockId: number): number {
-  const meta = getMeasureMeta(blockId)
-  let padding = 10
-
-  if (meta.timeMeterPresent) {
-    padding += 25
-  }
-  if (meta.repeatOpen) {
-    padding += 15
+function handleStringPointerDown(event: MouseEvent, stringIndex: number): void {
+  if (props.onStringPointerDown) {
+    props.onStringPointerDown(event, stringIndex)
+    return
   }
 
-  return padding
+  handleStringClick(event, stringIndex)
 }
 
 function handleStringClick(event: MouseEvent, stringIndex: number): void {
@@ -291,6 +273,8 @@ function handleStringClick(event: MouseEvent, stringIndex: number): void {
     props.rowData,
     props.isFirstRow,
     getMeasureContentPadding,
+    props.trackId,
+    props.voiceId,
   )
   if (!targetPosition) {
     return

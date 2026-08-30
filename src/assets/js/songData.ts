@@ -1,5 +1,6 @@
 import fastdom from 'fastdom';
 import { setTempoState } from '../../composables/useTempoState';
+import { songState } from '../../stores/songState';
 
 interface Interval {
   trackId: number,
@@ -99,7 +100,6 @@ interface Note {
   graceObj: Grace,
   bendPresent: boolean,
   bendObj: Bend,
-  noteDrawn: SVGGElement | null,
   tieBegin: boolean,
   tiedTo: { blockId: number, beatId: number },
   palmMute: boolean,
@@ -210,33 +210,17 @@ interface MeasureMetaInfo {
   automations: Automation[]
 }
 
-const Song = {
-  tracks: [] as Track[],
-  currentTrackId: 0,
-  currentVoiceId: 0,
-  measures: [] as Measure[][][][],
-  measureMeta: [] as MeasureMetaInfo[],
-  measureMoveHelper: [] as number[][][][],
-  songDescription: {} as SongDescription,
-  bpm: 100,
-  numVoices: 2,
-  chordsMap: [] as Map<string, Chord>[],
-  playBackInstrument: [
-    { instrument: 'guitar', solo: false, mute: false },
-  ] as PlayBackInstrument[],
-  allChannels: [] as Channel[],
-  numMeasures: 12,
-
+const songMethods = {
   setTempo(bpm: number) {
     fastdom.mutate(() => {
       setTempoState(bpm);
     });
-    this.bpm = bpm;
+    songState.bpm = bpm;
   },
 
   initEmptySong() {
-    this.numMeasures = 12;
-    this.songDescription = {
+    songState.numMeasures = 12;
+    songState.songDescription = {
       title: '[Title]',
       author: '[Author]',
       subtitle: '',
@@ -250,9 +234,9 @@ const Song = {
       wordsAndMusic: '',
     };
 
-    this.allChannels = [];
+    songState.allChannels = [];
     for (let i = 0; i < 64; i += 1) {
-      this.allChannels[i] = {
+      songState.allChannels[i] = {
         cInstrument: 24,
         volume: 127,
         balance: 63,
@@ -263,7 +247,7 @@ const Song = {
       };
     }
     // create one basic track
-    this.tracks = [{
+    songState.tracks = [{
       numStrings: 6,
       capo: 0,
       strings: [40, 45, 50, 55, 59, 64],
@@ -277,12 +261,12 @@ const Song = {
       primaryChannel: 0,
       letItRing: false,
     }];
-    this.measureMoveHelper = [[]];
+    songState.measureMoveHelper = [[]];
     
     // Initialize measureMeta for all measures
-    this.measureMeta = [];
-    for (let i = 0; i < this.numMeasures; i += 1) {
-      this.measureMeta[i] = {
+    songState.measureMeta = [];
+    for (let i = 0; i < songState.numMeasures; i += 1) {
+      songState.measureMeta[i] = {
         denominator: 4,
         numerator: 4,
         timeMeterPresent: i === 0, // Only first measure has time meter present
@@ -300,27 +284,27 @@ const Song = {
       };
     }
     
-    this.measures = [[]];
-    for (let i = 0; i < this.numMeasures; i += 1) {
-      for (let j = 0; j < this.numVoices; j += 1) {
-        this.initEmptyMeasure(0, i, j);
+    songState.measures = [[]];
+    for (let i = 0; i < songState.numMeasures; i += 1) {
+      for (let j = 0; j < songState.numVoices; j += 1) {
+        songMethods.initEmptyMeasure(0, i, j);
       }
     }
-    this.chordsMap = [
+    songState.chordsMap = [
       new Map<string, Chord>(),
     ];
 
-    this.setTempo(this.measureMeta[0].bpm);
+    songMethods.setTempo(songState.measureMeta[0].bpm);
   },
 
   initEmptyMeasure(trackId: number, blockId: number, voiceId: number) {
-    if (this.measures[trackId][blockId] == null) {
-      this.measures[trackId][blockId] = [];
+    if (songState.measures[trackId][blockId] == null) {
+      songState.measures[trackId][blockId] = [];
     }
-    this.measures[trackId][blockId][voiceId] = [];
+    songState.measures[trackId][blockId][voiceId] = [];
 
-    if (this.measureMeta[blockId] == null) {
-      this.measureMeta[blockId] = {
+    if (songState.measureMeta[blockId] == null) {
+      songState.measureMeta[blockId] = {
         denominator: 4,
         numerator: 4,
         timeMeterPresent: false,
@@ -338,29 +322,29 @@ const Song = {
       };
     }
 
-    if (this.measureMoveHelper[trackId][blockId] == null) {
-      this.measureMoveHelper[trackId][blockId] = [];
+    if (songState.measureMoveHelper[trackId][blockId] == null) {
+      songState.measureMoveHelper[trackId][blockId] = [];
     }
-    this.measureMoveHelper[trackId][blockId][voiceId] = [];
+    songState.measureMoveHelper[trackId][blockId][voiceId] = [];
 
     for (let p = 0; p < 8; p += 1) {
-      this.measures[trackId][blockId][voiceId][p] = Song.defaultMeasure();
+      songState.measures[trackId][blockId][voiceId][p] = songMethods.defaultMeasure();
     }
   },
 
   addChord(trackId: number, chord: Chord) {
-    if (this.chordsMap[trackId] == null) {
-      this.chordsMap[trackId] = new Map();
+    if (songState.chordsMap[trackId] == null) {
+      songState.chordsMap[trackId] = new Map();
     }
-    this.chordsMap[trackId].set(chord.name, { ...chord, display: true });
+    songState.chordsMap[trackId].set(chord.name, { ...chord, display: true });
   },
 
   setBeat(trackId: number, blockId: number, voiceId: number, beatId: number, duration: string) {
-    this.measures[trackId][blockId][voiceId].splice(
+    songState.measures[trackId][blockId][voiceId].splice(
       beatId,
       0,
       {
-        ...Song.defaultMeasure(),
+        ...songMethods.defaultMeasure(),
         ...{
           duration,
         },
@@ -369,10 +353,14 @@ const Song = {
   },
 
   isBeatEmpty(trackId: number, blockId: number): boolean {
-    for (let voiceId = 0, n = this.measures[trackId][blockId].length; voiceId < n; voiceId += 1) {
-      for (let beatId = 0, m = this.measures[trackId][blockId][voiceId].length;
+    for (let voiceId = 0, n = songState.measures[trackId][blockId].length; voiceId < n; voiceId += 1) {
+      for (let beatId = 0, m = songState.measures[trackId][blockId][voiceId].length;
         beatId < m; beatId += 1) {
-        if (this.measures[trackId][blockId][voiceId][beatId].duration.length < 2) {
+        const beat = songState.measures[trackId][blockId][voiceId][beatId];
+        const hasNotes = Array.isArray(beat.notes) && beat.notes.some((note: Note | null) => note != null);
+        const hasOtherNotes = Array.isArray(beat.otherNotes) && beat.otherNotes.length > 0;
+
+        if (hasNotes || hasOtherNotes || beat.duration.length < 2) {
           return false;
         }
       }
@@ -430,7 +418,7 @@ const Song = {
     return {
       duration: 'er',
       notes: [],
-      effects: this.defaultMeasureEffects(),
+      effects: songMethods.defaultMeasureEffects(),
       otherNotes: [],
       tuplet: null,
       tupletId: 0,
@@ -458,11 +446,10 @@ const Song = {
       height: 0,
       tied: false,
       gracePresent: false,
-      graceObj: Song.defaultGrace(),
+      graceObj: songMethods.defaultGrace(),
       bendPresent: false,
       ghost: false,
       dead: false,
-      noteDrawn: null,
       tieBegin: false,
       tiedTo: { blockId: -1, beatId: -1 },
       palmMute: false,
@@ -520,6 +507,23 @@ const Song = {
     };
   },
 };
+
+type SongFacade = typeof songState & typeof songMethods;
+
+const Song = new Proxy(songState, {
+  get(target, prop, receiver) {
+    if (prop in songMethods) {
+      const member = songMethods[prop as keyof typeof songMethods];
+      return typeof member === 'function'
+        ? member.bind(receiver)
+        : member;
+    }
+    return Reflect.get(target, prop, receiver);
+  },
+  set(target, prop, value, receiver) {
+    return Reflect.set(target, prop, value, receiver);
+  },
+}) as SongFacade;
 
 export { Song };
 export type {

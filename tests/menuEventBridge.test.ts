@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import EventBus from '../src/assets/js/eventBus'
-import { ensureLegacyMenuEventBridge } from '../src/services/menuEventBridge'
+import { ensureMenuEventBridge } from '../src/services/menuEventBridge'
 import { typedEventBus } from '../src/utils/typedEventBus'
 
 afterEach(() => {
   typedEventBus.clearAll()
 })
 
-describe('ensureLegacyMenuEventBridge', () => {
+describe('ensureMenuEventBridge', () => {
   it('relays legacy clickedOnPos events to the typed menu bus', () => {
-    ensureLegacyMenuEventBridge()
+    ensureMenuEventBridge()
 
     const handler = vi.fn()
     typedEventBus.on('menu.clickedOnPos', handler)
@@ -32,7 +32,7 @@ describe('ensureLegacyMenuEventBridge', () => {
   })
 
   it('relays legacy block activation events to the typed menu bus', () => {
-    ensureLegacyMenuEventBridge()
+    ensureMenuEventBridge()
 
     const handler = vi.fn()
     typedEventBus.on('menu.activateEffectsForBlock', handler)

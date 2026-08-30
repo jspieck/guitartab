@@ -173,7 +173,7 @@ export class ModalManager {
                 allowFrom: '.modalTopBar',
             });
 
-        if (id === 'mixerModal' || id === 'trackInfoModal' || id === 'chordManagerModal' || id === 'pianoModal') {
+        if (id === 'mixerModal' || id === 'infoModal' || id === 'chordManagerModal' || id === 'pianoModal') {
             this.addResizable(id, {
                 left: true, right: true, bottom: false, top: false,
             });
@@ -219,18 +219,18 @@ export class ModalManager {
             inertia: true,
         }).on('resizemove', (event) => {
             const { target } = event;
-            const x = (parseFloat(target.getAttribute('data-x')) || 0);
-            const y = (parseFloat(target.getAttribute('data-y')) || 0);
+            const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.deltaRect.left;
+            const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.deltaRect.top;
 
             // update the element's style
             target.style.width = `${event.rect.width}px`;
-            if (options.bottom) target.style.height = `${event.rect.height}px`;
+            if (options.bottom || options.top) target.style.height = `${event.rect.height}px`;
 
             target.style.left = `${x}px`;
             target.style.top = `${y}px`;
 
-            target.setAttribute('data-x', x);
-            target.setAttribute('data-y', y);
+            target.setAttribute('data-x', x.toString());
+            target.setAttribute('data-y', y.toString());
         });
     }
 

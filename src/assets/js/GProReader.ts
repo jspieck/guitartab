@@ -10,7 +10,7 @@ import { Gp5Reader } from './GP5Reader';
 import { Gp4Reader } from './GP4Reader';
 import { Gp3Reader } from './GP3Reader';
 import midiReader from './MidiReader';
-import EventBus from './eventBus';
+import { notifySongDataChanged } from '../../services/appEvents';
 import { setLoadingWheelVisible } from '../../utils/editorUi';
 
 class GProReader {
@@ -55,6 +55,12 @@ class GProReader {
       audioEngine.noteToDrum = JSON.parse(arr[5]);
       // menuHandler.applyStyleMode();
     }
+  }
+
+  loadGtFromBytes(bytes: Uint8Array) {
+    this.bytePosition = 0;
+    this.readerBuffer = bytes;
+    this.readGt();
   }
 
   /**
@@ -112,7 +118,7 @@ class GProReader {
           AppManager.resetVariables();
           GProReader.writeNoteInfoToBeat();
           AppManager.createGuitarTab(0);
-          EventBus.emit('song-data-changed');
+          notifySongDataChanged();
           
           // Hide loading indicator
           setLoadingWheelVisible(false);

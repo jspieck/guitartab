@@ -1,4 +1,4 @@
-import legacyEditorCore from '../services/legacy/editorCoreAdapter'
+import editorCore from '../services/editor/editorCore'
 import { DURATION_BEATS } from '../utils/durationUtils'
 import { NAME_TO_CODE } from '../utils/musicUtils'
 import type { TabBeat } from '../types/tab'
@@ -21,7 +21,7 @@ export function useDurationHandler() {
     duration: string
   ): boolean {
     const shortDuration = durationToCode(duration)
-    return legacyEditorCore.changeNoteDuration(
+    return editorCore.changeNoteDuration(
       trackId, blockId, voiceId, beatIndex, stringIndex, shortDuration
     )
   }

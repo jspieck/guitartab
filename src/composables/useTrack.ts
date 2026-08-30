@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { useEditorScopeState } from './useEditorScopeState'
 import { useSongData } from './useSongData'
-import { legacyTrackAdapter } from '../services/legacy/trackAdapter'
+import { trackAdapter } from '../services/editor/trackAdapter'
 import type { TrackViewModel } from '../types/track'
 
 export type {
@@ -15,7 +15,7 @@ export function useTrack() {
   const { reactiveSongData } = useSongData()
   const { currentTrackId, currentVoiceId } = useEditorScopeState()
 
-  const tracks = computed<TrackViewModel[]>(() => legacyTrackAdapter.listTrackViewModels(
+  const tracks = computed<TrackViewModel[]>(() => trackAdapter.listTrackViewModels(
     reactiveSongData.tracks,
     reactiveSongData.playBackInstrument,
   ))
@@ -41,7 +41,7 @@ export function useTrack() {
    */
   function selectTrack(trackId: number): void {
     if (trackId >= 0 && trackId < trackCount.value) {
-      legacyTrackAdapter.selectTrack(trackId)
+      trackAdapter.selectTrack(trackId)
     }
   }
 
@@ -50,7 +50,7 @@ export function useTrack() {
    */
   function selectVoice(voiceId: number): void {
     if (voiceId >= 0 && voiceId < 4) {
-      legacyTrackAdapter.selectVoice(voiceId)
+      trackAdapter.selectVoice(voiceId)
     }
   }
 
@@ -76,84 +76,84 @@ export function useTrack() {
    * Set track name
    */
   function setTrackName(trackId: number, name: string): void {
-    legacyTrackAdapter.setTrackName(trackId, name)
+    trackAdapter.setTrackName(trackId, name)
   }
 
   /**
    * Set track volume
    */
   function setTrackVolume(trackId: number, volume: number): void {
-    legacyTrackAdapter.setTrackVolume(trackId, volume)
+    trackAdapter.setTrackVolume(trackId, volume)
   }
 
   /**
    * Set track balance (pan)
    */
   function setTrackBalance(trackId: number, balance: number): void {
-    legacyTrackAdapter.setTrackBalance(trackId, balance)
+    trackAdapter.setTrackBalance(trackId, balance)
   }
 
   /**
    * Toggle track mute
    */
   function toggleMute(trackId: number): void {
-    legacyTrackAdapter.toggleMute(trackId)
+    trackAdapter.toggleMute(trackId)
   }
 
   /**
    * Toggle track solo
    */
   function toggleSolo(trackId: number): void {
-    legacyTrackAdapter.toggleSolo(trackId)
+    trackAdapter.toggleSolo(trackId)
   }
 
   /**
    * Set track instrument
    */
   function setInstrument(trackId: number, program: number | string): void {
-    legacyTrackAdapter.setInstrument(trackId, program)
+    trackAdapter.setInstrument(trackId, program)
   }
 
   /**
    * Set track capo
    */
   function setCapo(trackId: number, capo: number): void {
-    legacyTrackAdapter.setCapo(trackId, capo)
+    trackAdapter.setCapo(trackId, capo)
   }
 
   /**
    * Set track tuning
    */
   function setTuning(trackId: number, tuning: number[]): void {
-    legacyTrackAdapter.setTuning(trackId, tuning)
+    trackAdapter.setTuning(trackId, tuning)
   }
 
   /**
    * Set track color
    */
   function setTrackColor(trackId: number, color: import('../types/track').TrackColor): void {
-    legacyTrackAdapter.setTrackColor(trackId, color)
+    trackAdapter.setTrackColor(trackId, color)
   }
 
   /**
    * Get track color as CSS string
    */
   function getTrackColorCSS(trackId: number): string {
-    return legacyTrackAdapter.getTrackColorCSS(trackId, tracks.value)
+    return trackAdapter.getTrackColorCSS(trackId, tracks.value)
   }
 
   /**
    * Get track instrument settings
    */
   function getInstrumentSettings(trackId: number) {
-    return legacyTrackAdapter.getInstrumentSettings(trackId)
+    return trackAdapter.getInstrumentSettings(trackId)
   }
 
   /**
    * Check if a track should be audible (considering solo/mute states)
    */
   function isTrackAudible(trackId: number): boolean {
-    return legacyTrackAdapter.isTrackAudible(trackId, tracks.value)
+    return trackAdapter.isTrackAudible(trackId, tracks.value)
   }
 
   return {

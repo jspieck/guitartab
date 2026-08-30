@@ -5,13 +5,19 @@ import tseslint from 'typescript-eslint'
 
 const lintTargets = [
   'vite.config.ts',
+  'src/App.vue',
+  'src/components/BaseModal.vue',
+  'src/components/CloudSongsModal.vue',
+  'src/components/Compressor.vue',
+  'src/components/Equalizer.vue',
+  'src/components/Footer.vue',
   'src/components/Menu.vue',
-  'src/components/NoteContextMenu.vue',
   'src/components/tab/**/*.vue',
   'src/composables/**/*.ts',
   'src/services/**/*.ts',
   'src/types/**/*.ts',
   'src/utils/**/*.ts',
+  'tests/**/*.ts',
 ]
 
 export default [
@@ -53,6 +59,12 @@ export default [
         argsIgnorePattern: '^_',
         ignoreRestSiblings: true,
       }],
+    },
+  },
+  {
+    files: ['tests/**/*.ts'],
+    rules: {
+      'max-lines-per-function': 'off',
     },
   },
 ]

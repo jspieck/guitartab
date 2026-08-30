@@ -50,12 +50,6 @@ class Helper {
     animateScroll();
   }
 
-  static deleteDOMObject(object: HTMLElement | SVGGElement | null) {
-    if (object != null && object.parentNode != null) {
-      object.parentNode.removeChild(object);
-    }
-  }
-
   static getGreatestNotelengthToFit(spaceToFill: number): number {
     return 2 ** Math.min(6, Math.floor(Math.log2(spaceToFill)));
   }

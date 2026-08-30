@@ -1,10 +1,19 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RenderedTabRow, TabBeat } from '../src/types/tab'
 import {
   clickToTabPosition,
   findBeatAtPosition,
   getSelectionRenderPoint,
 } from '../src/utils/tabLayout'
+
+const { getBlockRenderLayout } = vi.hoisted(() => ({
+  getBlockRenderLayout: vi.fn(),
+}))
+
+vi.mock('../src/composables/useTabRenderLayout', () => ({
+  getBlockRenderLayout: (...args: unknown[]) => getBlockRenderLayout(...args),
+  getTrackRenderLayout: () => null,
+}))
 
 function createBeat(duration: string): TabBeat {
   return {
@@ -49,6 +58,10 @@ function createSvgElement(width: number, height: number): SVGSVGElement {
 }
 
 describe('tabLayout', () => {
+  beforeEach(() => {
+    getBlockRenderLayout.mockReset()
+    getBlockRenderLayout.mockReturnValue(null)
+  })
   it('uses displayed beat widths when hit-testing short notes', () => {
     const measure = [createBeat('s'), createBeat('s'), createBeat('q')]
 
@@ -96,6 +109,83 @@ describe('tabLayout', () => {
     expect(position).toEqual({
       x: 87,
       y: 24,
+    })
+  })
+
+  it('maps clicks to layout beat positions when measure slots are stretched', () => {
+    getBlockRenderLayout.mockReturnValue({
+      xOffset: 32,
+      rowId: 0,
+      numInRow: 0,
+      width: 400,
+      minOffset: 50,
+      pageId: 0,
+      beatPositions: [53, 103, 203, 303],
+    })
+
+    const rowData = createRow([[
+      createBeat('e'),
+      createBeat('e'),
+      createBeat('q'),
+      createBeat('q'),
+    ]])
+    rowData.measures[0].width = 400
+    const svgElement = createSvgElement(1200, 1600)
+    const paddingLeft = 1200 / 21
+    const tabLabel = 32
+    const clickInThirdBeat = paddingLeft + tabLabel + 220
+
+    const position = clickToTabPosition(
+      {
+        clientX: clickInThirdBeat,
+        clientY: 100,
+      } as MouseEvent,
+      svgElement,
+      rowData,
+      true,
+      () => 10,
+      0,
+      0,
+    )
+
+    expect(position).toEqual({
+      measureIndex: 0,
+      blockId: 0,
+      beatIndex: 2,
+    })
+  })
+
+  it('centers the selection on layout beat positions', () => {
+    getBlockRenderLayout.mockReturnValue({
+      xOffset: 32,
+      rowId: 0,
+      numInRow: 0,
+      width: 400,
+      minOffset: 50,
+      pageId: 0,
+      beatPositions: [53, 153, 253],
+    })
+
+    const rowData = createRow([[createBeat('q'), createBeat('q')]])
+
+    const position = getSelectionRenderPoint(
+      rowData,
+      {
+        stringIndex: 1,
+        measureIndex: 0,
+        beatIndex: 1,
+        blockId: 0,
+      },
+      true,
+      12,
+      () => 10,
+      0,
+      0,
+    )
+
+    expect(position).toEqual({
+      x: 32 + 153 + 50,
+      y: 12,
     })
   })
 })

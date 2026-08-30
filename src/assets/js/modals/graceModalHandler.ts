@@ -1,10 +1,10 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Measure } from '../songData';
-import { svgDrawer } from '../svgDrawer';
 import { revertHandler } from '../revertHandler';
-import { classicalNotation } from '../../../services/legacy/classicalNotationAdapter';
+import { classicalNotation } from '../../../services/editor/classicalNotationAdapter';
 import EventBus from '../eventBus';
 import { MODALS } from './modalTypes';
+import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
 interface GraceModalState extends ModalState {
     graceData: {
@@ -61,6 +61,10 @@ export class GraceModalHandler extends BaseModalHandler {
             ...this.modalState.graceData,
             ...data
         };
+    }
+
+    getModalState(): GraceModalState {
+        return this.modalState as GraceModalState;
     }
 
     openModal(params: {
@@ -137,6 +141,6 @@ export class GraceModalHandler extends BaseModalHandler {
 
         const { trackId, voiceId } = this.modalState.notes[0];
         classicalNotation.computeVexFlowDataStructures(trackId, voiceId);
-        svgDrawer.rerenderBlocks(trackId, this.modalState.blocks, voiceId);
+        requestBlocksRender(trackId, this.modalState.blocks, voiceId);
     }
 } 

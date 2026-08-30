@@ -20,3 +20,11 @@ export function requestOverBarRender(
 export function requestDurationRender(trackId: number, blockId: number, voiceId: number): void {
   typedEventBus.emit('render.durations', { trackId, blockId, voiceId })
 }
+
+export function requestChordDiagramsRender(): void {
+  typedEventBus.emit('render.chordDiagrams')
+}
+
+export function requestTrackDeleteRender(trackId: number): void {
+  typedEventBus.emit('render.deleteTrack', { trackId })
+}

@@ -5,30 +5,47 @@ import Song, {
 import EventBus from './eventBus';
 import { tab, Tab } from './tab';
 import AppManager from './appManager';
-import { svgDrawer } from './svgDrawer';
 import { sequencerHandler, SequencerHandler } from './sequencerHandler';
 import { menuHandler } from './menuHandler';
 import { processEffectSelect, setEffectVariable, handleEffectGroupCollisionBeat, handleEffectGroupCollision } from './menuHelper';
+import { requestBlockRender, requestDurationRender } from '../../services/editor/renderCommands';
+import { RevertStack } from '../../services/editor/revertStack';
+
+function requestCurrentVoiceBlockRender(trackId: number, blockId: number) {
+  requestBlockRender(trackId, blockId, Song.currentVoiceId);
+}
 
 class RevertHandler {
-  reverStackSize: number;
-
-  revertStack: any[];
-
-  revertStackIndex: number;
+  private stack: RevertStack;
 
   constructor() {
-    this.reverStackSize = 20;
-    this.revertStack = [];
-    this.revertStackIndex = -1;
+    this.stack = new RevertStack(20);
   }
 
   addToState(type: string, infoObj: any) {
-    // delete old future states
-    this.revertStack.splice(this.revertStackIndex + 1,
-      this.revertStack.length - this.revertStackIndex);
-    this.revertStack.push({ type, info: infoObj });
-    this.revertStackIndex = this.revertStack.length - 1;
+    this.stack.push(type, infoObj);
+  }
+
+  /** @deprecated Use RevertStack via stack; kept for tests and direct callers. */
+  get revertStack(): Array<{ type: string; info: unknown }> {
+    return this.stack.getMutableEntries();
+  }
+
+  set revertStack(entries: Array<{ type: string; info: unknown }>) {
+    this.stack.clear();
+    entries.forEach((entry) => this.stack.push(entry.type, entry.info));
+  }
+
+  /** @deprecated Use stack.currentIndex; kept for tests and direct callers. */
+  get revertStackIndex(): number {
+    return this.stack.currentIndex;
+  }
+
+  set revertStackIndex(index: number) {
+    const delta = index - this.stack.currentIndex;
+    if (delta !== 0) {
+      this.stack.adjustIndex(delta);
+    }
   }
 
   addTied(
@@ -367,112 +384,114 @@ class RevertHandler {
 
   // Called when a track is deleted, so the stack is repaired
   adaptStackToTrackRemove(trackId: number) {
-    for (let i = this.revertStack.length - 1; i >= 0; i -= 1) {
-      const trackIdOfReversion = this.revertStack[i].info.trackId;
+    const entries = this.stack.getMutableEntries();
+    for (let i = entries.length - 1; i >= 0; i -= 1) {
+      const trackIdOfReversion = (entries[i].info as { trackId?: number }).trackId;
       if (trackIdOfReversion != null) {
         if (trackIdOfReversion === trackId) {
-          this.revertStack.splice(i, 1);
-          if (this.revertStackIndex >= i) {
-            this.revertStackIndex -= 1;
+          entries.splice(i, 1);
+          if (this.stack.currentIndex >= i) {
+            this.stack.adjustIndex(-1);
           }
         } else if (trackIdOfReversion > trackId) {
-          this.revertStack[i].info.trackId -= 1;
+          (entries[i].info as { trackId: number }).trackId -= 1;
         }
       }
     }
   }
 
   revertState() {
-    console.log(this.revertStackIndex);
+    console.log(this.stack.currentIndex);
     if (AppManager.duringTrackCreation) return;
-    if (this.revertStack.length > 0 && this.revertStackIndex >= 0) {
-      const revertObj = this.revertStack[this.revertStackIndex];
+    const revertObj = this.stack.peek();
+    if (revertObj) {
+      const info = revertObj.info as any;
 
       switch (revertObj.type) {
         case 'NotePlacement':
-          RevertHandler.revertNotePlacement(revertObj.info);
+          RevertHandler.revertNotePlacement(info);
           break;
         case 'NoteLength':
-          RevertHandler.revertNoteLength(revertObj.info);
+          RevertHandler.revertNoteLength(info);
           break;
         case 'CopyPaste':
-          RevertHandler.revertCopyPaste(revertObj.info);
+          RevertHandler.revertCopyPaste(info);
           break;
         case 'DeleteNote':
-          RevertHandler.revertDeleteNote(revertObj.info);
+          RevertHandler.revertDeleteNote(info);
           break;
         case 'Tied':
-          RevertHandler.revertTied(revertObj.info);
+          RevertHandler.revertTied(info);
           break;
         case 'SpecialSelect':
-          RevertHandler.setSpecialSelect(revertObj.info);
+          RevertHandler.setSpecialSelect(info);
           break;
         case 'Zoom':
-          RevertHandler.revertZoom(revertObj.info);
+          RevertHandler.revertZoom(info);
           break;
         case 'NoteSelect':
-          RevertHandler.revertNoteEffectSelect(revertObj.info);
+          RevertHandler.revertNoteEffectSelect(info);
           break;
         case 'NotationSelect':
-          RevertHandler.revertNotationSelect(revertObj.info);
+          RevertHandler.revertNotationSelect(info);
           break;
         case 'Dynamic':
-          RevertHandler.revertDynamicSelect(revertObj.info);
+          RevertHandler.revertDynamicSelect(info);
           break;
         case 'MeasureSelect':
-          RevertHandler.toggleMeasureSelect(revertObj.info);
+          RevertHandler.toggleMeasureSelect(info);
           break;
         case 'Text':
-          RevertHandler.revertText(revertObj.info);
+          RevertHandler.revertText(info);
           break;
         case 'Marker':
-          RevertHandler.revertMarker(revertObj.info);
+          RevertHandler.revertMarker(info);
           break;
         case 'Chord':
-          RevertHandler.revertChord(revertObj.info);
+          RevertHandler.revertChord(info);
           break;
         case 'RepeatAlternative':
-          RevertHandler.revertRepeatAlternative(revertObj.info);
+          RevertHandler.revertRepeatAlternative(info);
           break;
         case 'RepeatClose':
-          RevertHandler.revertRepeatClose(revertObj.info);
+          RevertHandler.revertRepeatClose(info);
           break;
         case 'Stroke':
-          RevertHandler.revertStroke(revertObj.info);
+          RevertHandler.revertStroke(info);
           break;
         case 'Artificial':
-          RevertHandler.revertArtificial(revertObj.info);
+          RevertHandler.revertArtificial(info);
           break;
         case 'Grace':
-          RevertHandler.revertGrace(revertObj.info);
+          RevertHandler.revertGrace(info);
           break;
         case 'TremoloBar':
-          RevertHandler.revertTremoloBar(revertObj.info);
+          RevertHandler.revertTremoloBar(info);
           break;
         case 'TremoloPicking':
-          RevertHandler.revertTremoloPicking(revertObj.info);
+          RevertHandler.revertTremoloPicking(info);
           break;
         case 'Bend':
-          RevertHandler.revertBend(revertObj.info);
+          RevertHandler.revertBend(info);
           break;
         case 'TimeMeter':
-          RevertHandler.revertTimeMeter(revertObj.info);
+          RevertHandler.revertTimeMeter(info);
           break;
         case 'BpmMeter':
-          RevertHandler.revertBpmMeter(revertObj.info);
+          RevertHandler.revertBpmMeter(info);
           break;
         case 'InstrumentSetting':
-          RevertHandler.revertInstrumentSetting(revertObj.info);
+          RevertHandler.revertInstrumentSetting(info);
           break;
         case 'AddBlock':
           RevertHandler.revertAddBlock();
           break;
         case 'RemoveBlock':
-          RevertHandler.revertRemoveBlock(revertObj.info);
+          RevertHandler.revertRemoveBlock(info);
           break;
         default:
       }
-      this.revertStackIndex -= 1;
+      this.stack.stepBack();
     }
   }
 
@@ -480,84 +499,84 @@ class RevertHandler {
     if (AppManager.duringTrackCreation) {
       return;
     }
-    if (this.revertStack.length > 0 && this.revertStackIndex < this.revertStack.length - 1) {
-      this.revertStackIndex += 1;
-      const revertObj = this.revertStack[this.revertStackIndex];
+    const revertObj = this.stack.stepForward();
+    if (revertObj) {
+      const info = revertObj.info as any;
       switch (revertObj.type) {
         case 'NotePlacement':
-          RevertHandler.restoreNotePlacement(revertObj.info);
+          RevertHandler.restoreNotePlacement(info);
           break;
         case 'NoteLength':
-          RevertHandler.restoreNoteLength(revertObj.info);
+          RevertHandler.restoreNoteLength(info);
           break;
         case 'CopyPaste':
-          RevertHandler.restoreCopyPaste(revertObj.info);
+          RevertHandler.restoreCopyPaste(info);
           break;
         case 'DeleteNote':
-          RevertHandler.restoreDeleteNote(revertObj.info);
+          RevertHandler.restoreDeleteNote(info);
           break;
         case 'Tied':
-          RevertHandler.restoreTied(revertObj.info);
+          RevertHandler.restoreTied(info);
           break;
         case 'SpecialSelect':
-          RevertHandler.setSpecialSelect(revertObj.info);
+          RevertHandler.setSpecialSelect(info);
           break;
         case 'Zoom':
-          RevertHandler.restoreZoom(revertObj.info);
+          RevertHandler.restoreZoom(info);
           break;
         case 'NoteSelect':
-          RevertHandler.restoreNoteEffectSelect(revertObj.info);
+          RevertHandler.restoreNoteEffectSelect(info);
           break;
         case 'NotationSelect':
-          RevertHandler.restoreNotationSelect(revertObj.info);
+          RevertHandler.restoreNotationSelect(info);
           break;
         case 'Dynamic':
-          RevertHandler.restoreDynamicSelect(revertObj.info);
+          RevertHandler.restoreDynamicSelect(info);
           break;
         case 'MeasureSelect':
-          RevertHandler.toggleMeasureSelect(revertObj.info);
+          RevertHandler.toggleMeasureSelect(info);
           break;
         case 'Text':
-          RevertHandler.restoreText(revertObj.info);
+          RevertHandler.restoreText(info);
           break;
         case 'Marker':
-          RevertHandler.restoreMarker(revertObj.info);
+          RevertHandler.restoreMarker(info);
           break;
         case 'Chord':
-          RevertHandler.restoreChord(revertObj.info);
+          RevertHandler.restoreChord(info);
           break;
         case 'RepeatAlternative':
-          RevertHandler.restoreRepeatAlternative(revertObj.info);
+          RevertHandler.restoreRepeatAlternative(info);
           break;
         case 'RepeatClose':
-          RevertHandler.restoreRepeatClose(revertObj.info);
+          RevertHandler.restoreRepeatClose(info);
           break;
         case 'Stroke':
-          RevertHandler.restoreStroke(revertObj.info);
+          RevertHandler.restoreStroke(info);
           break;
         case 'Artificial':
-          RevertHandler.restoreArtificial(revertObj.info);
+          RevertHandler.restoreArtificial(info);
           break;
         case 'Grace':
-          RevertHandler.restoreGrace(revertObj.info);
+          RevertHandler.restoreGrace(info);
           break;
         case 'TremoloBar':
-          RevertHandler.restoreTremoloBar(revertObj.info);
+          RevertHandler.restoreTremoloBar(info);
           break;
         case 'TremoloPicking':
-          RevertHandler.restoreTremoloPicking(revertObj.info);
+          RevertHandler.restoreTremoloPicking(info);
           break;
         case 'Bend':
-          RevertHandler.restoreBend(revertObj.info);
+          RevertHandler.restoreBend(info);
           break;
         case 'TimeMeter':
-          RevertHandler.restoreTimeMeter(revertObj.info);
+          RevertHandler.restoreTimeMeter(info);
           break;
         case 'BpmMeter':
-          RevertHandler.restoreBpmMeter(revertObj.info);
+          RevertHandler.restoreBpmMeter(info);
           break;
         case 'InstrumentSetting':
-          RevertHandler.restoreInstrumentSetting(revertObj.info);
+          RevertHandler.restoreInstrumentSetting(info);
           break;
         case 'AddBlock':
           RevertHandler.restoreAddBlock();
@@ -602,7 +621,7 @@ class RevertHandler {
     beatObj.notes[string] = noteObj;
     beatObj.effects = effectObj;
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
     }
     if (redrawSequencer) {
       sequencerHandler.redrawSequencerMain();
@@ -617,7 +636,7 @@ class RevertHandler {
       infoObj.trackId, infoObj.blockId, infoObj.voiceId, infoObj.beatId, infoObj.string, true,
     );
     if (infoObj.trackId === Song.currentTrackId && infoObj.voiceId === Song.currentVoiceId) {
-      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     }
   }
 
@@ -659,7 +678,7 @@ class RevertHandler {
     if (note != null) {
       note.tied = !note.tied;
       note.tiedTo = note.tied ? infoObj.noteTiedTo : { blockId: -1, beatId: -1 };
-      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     }
   }
@@ -674,7 +693,7 @@ class RevertHandler {
     if (note != null) {
       note.tied = !note.tied;
       note.tiedTo = note.tied ? infoObj.noteTiedTo : { blockId: -1, beatId: -1 };
-      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     }
   }
@@ -690,7 +709,7 @@ class RevertHandler {
     } else {
       Tab.deleteNote(infoObj.trackId, infoObj.blockId, infoObj.voiceId, infoObj.beatId,
         infoObj.string, true);
-      svgDrawer.setDurationsOfBlock(infoObj.trackId, infoObj.blockId, infoObj.voiceId);
+      requestDurationRender(infoObj.trackId, infoObj.blockId, infoObj.voiceId);
     }
   }
 
@@ -713,12 +732,12 @@ class RevertHandler {
     if (infoObj.id === 'tuplet') {
       const tupletSet = tab.setTuplet(infoObj.trackId, infoObj.blockId, infoObj.voiceId, infoObj.beatId, infoObj.tupleSel);
       if (tupletSet) {
-        svgDrawer.setDurationsOfBlock(infoObj.trackId, infoObj.blockId, infoObj.voiceId);
+        requestDurationRender(infoObj.trackId, infoObj.blockId, infoObj.voiceId);
         tab.drawTrack(infoObj.trackId, infoObj.voiceId, true, null);
       }
     }
     
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -780,7 +799,7 @@ class RevertHandler {
       Song.measureMeta[infoObj.blockId].bpmPresent = !Song.measureMeta[infoObj.blockId].bpmPresent;
     }
     
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -796,7 +815,7 @@ class RevertHandler {
       Song.measureMeta[infoObj.blockId].bpmPresent = !Song.measureMeta[infoObj.blockId].bpmPresent;
     }
     
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -812,7 +831,7 @@ class RevertHandler {
     if (beat.dynamicPresent) {
       beat.dynamic = id.replace('Dynamic', '');
     }
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -827,7 +846,7 @@ class RevertHandler {
     if (beat.dynamicPresent) {
       beat.dynamic = id.replace('Dynamic', '');
     }
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -838,7 +857,7 @@ class RevertHandler {
     if (infoObj.id === 'openBar') {
       Song.measureMeta[infoObj.blockId].repeatOpen = !Song.measureMeta[infoObj.blockId].repeatOpen;
     }
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -851,7 +870,7 @@ class RevertHandler {
   }) {
     Song.measures[trackId][blockId][voiceId][beatId].text = previousText;
     Song.measures[trackId][blockId][voiceId][beatId].textPresent = textPresentBefore;
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -863,7 +882,7 @@ class RevertHandler {
   }) {
     Song.measures[trackId][blockId][voiceId][beatId].text = nextText;
     Song.measures[trackId][blockId][voiceId][beatId].textPresent = textPresentAfter;
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -899,7 +918,7 @@ class RevertHandler {
     } else {
       SequencerHandler.setMarker(infoObj.blockId);
     }
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -954,7 +973,7 @@ class RevertHandler {
   ) {
     Song.measureMeta[infoObj.blockId].bpmPresent = infoObj.bpmPresentBefore;
     Song.measureMeta[infoObj.blockId].bpm = infoObj.bpmBefore;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
@@ -965,7 +984,7 @@ class RevertHandler {
   ) {
     Song.measureMeta[infoObj.blockId].bpmPresent = infoObj.bpmPresentAfter;
     Song.measureMeta[infoObj.blockId].bpm = infoObj.bpmAfter;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
@@ -979,7 +998,7 @@ class RevertHandler {
   }) {
     Song.measures[trackId][blockId][voiceId][beatId].chord = chordBefore;
     Song.measures[trackId][blockId][voiceId][beatId].chordPresent = chordPresentBefore;
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -991,7 +1010,7 @@ class RevertHandler {
   }) {
     Song.measures[trackId][blockId][voiceId][beatId].chord = chordAfter;
     Song.measures[trackId][blockId][voiceId][beatId].chordPresent = chordPresentAfter;
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -1004,7 +1023,7 @@ class RevertHandler {
   }) {
     Song.measureMeta[blockId].repeatAlternativePresent = repeatAlternativePresentBefore;
     Song.measureMeta[blockId].repeatAlternative = repeatAlternativeBefore;
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -1016,7 +1035,7 @@ class RevertHandler {
   }) {
     Song.measureMeta[blockId].repeatAlternativePresent = repeatAlternativePresentAfter;
     Song.measureMeta[blockId].repeatAlternative = repeatAlternativeAfter;
-    svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(trackId, blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -1027,7 +1046,7 @@ class RevertHandler {
   ) {
     Song.measureMeta[infoObj.blockId].repeatClosePresent = infoObj.repeatClosePresentBefore;
     Song.measureMeta[infoObj.blockId].repeatClose = infoObj.repeatCloseBefore;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -1037,7 +1056,7 @@ class RevertHandler {
   ) {
     Song.measureMeta[infoObj.blockId].repeatClosePresent = infoObj.repeatClosePresentAfter;
     Song.measureMeta[infoObj.blockId].repeatClose = infoObj.repeatCloseAfter;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedPos");
   }
 
@@ -1050,7 +1069,7 @@ class RevertHandler {
     const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
     beat.effects.stroke = infoObj.strokeBefore;
     beat.effects.strokePresent = infoObj.strokePresentBefore;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
@@ -1059,7 +1078,7 @@ class RevertHandler {
     const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
     beat.effects.stroke = infoObj.strokeAfter;
     beat.effects.strokePresent = infoObj.strokePresentAfter;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
@@ -1074,7 +1093,7 @@ class RevertHandler {
     if (note != null) {
       note.artificialStyle = artificialBefore;
       note.artificialPresent = artificialPresentBefore;
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
@@ -1091,7 +1110,7 @@ class RevertHandler {
     if (note != null) {
       note.artificialStyle = artificialAfter;
       note.artificialPresent = artificialPresentAfter;
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is nul');
@@ -1109,7 +1128,7 @@ class RevertHandler {
     if (note != null) {
       note.graceObj = graceBefore;
       note.gracePresent = gracePresentBefore;
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
@@ -1126,7 +1145,7 @@ class RevertHandler {
     if (note != null) {
       note.graceObj = graceAfter;
       note.gracePresent = gracePresentAfter;
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
@@ -1149,7 +1168,7 @@ class RevertHandler {
         }
       }
     }
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
@@ -1162,7 +1181,7 @@ class RevertHandler {
     const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
     beat.effects.tremoloBar = infoObj.tremoloBarAfter;
     beat.effects.tremoloBarPresent = infoObj.tremoloBarPresentAfter;
-    svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+    requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
     EventBus.emit("menu.activateEffectsForMarkedBeat");
   }
 
@@ -1182,7 +1201,7 @@ class RevertHandler {
           setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
         }
       }
-      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
@@ -1201,7 +1220,7 @@ class RevertHandler {
     if (note != null) {
       note.tremoloPickingLength = tremoloPickingAfter;
       note.tremoloPicking = tremoloPickingPresentAfter;
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
@@ -1223,7 +1242,7 @@ class RevertHandler {
           setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
         }
       }
-      svgDrawer.rerenderBlock(infoObj.trackId, infoObj.blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');
@@ -1242,7 +1261,7 @@ class RevertHandler {
     if (note != null) {
       note.bendObj = bendAfter;
       note.bendPresent = bendPresentAfter;
-      svgDrawer.rerenderBlock(trackId, blockId, Song.currentVoiceId);
+      requestCurrentVoiceBlockRender(trackId, blockId);
       EventBus.emit("menu.activateEffectsForMarkedPos");
     } else {
       console.error('Note is null');

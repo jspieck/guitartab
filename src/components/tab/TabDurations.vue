@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TabBeat } from '../../types/tab'
-import { getDisplayWidth } from '../../utils/tabLayout'
+import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
 import {
   getRestSymbol,
   getBeamCount,
@@ -134,7 +134,6 @@ interface Props {
   trackId: number
   voiceId: number
   blockId: number
-  xOffset: number
   stringSpacing: number
   numStrings: number
   measureWidth: number
@@ -151,18 +150,24 @@ function getBeamY(): number {
 }
 
 function calculateBeatX(beatIndex: number): number {
-  let cumulativeX = 0
-  for (let i = 0; i < beatIndex; i++) {
-    const beat = props.measureData[i]
-    cumulativeX += getDisplayWidth(beat?.duration)
-  }
-  return props.xOffset + cumulativeX
+  return getMeasureBeatX(
+    props.trackId,
+    props.voiceId,
+    props.blockId,
+    beatIndex,
+    props.measureData,
+  )
 }
 
 function getNoteCenterX(beatIndex: number): number {
-  const beat = props.measureData[beatIndex]
-  const displayWidth = getDisplayWidth(beat?.duration)
   const beatStartX = calculateBeatX(beatIndex)
+  const displayWidth = getMeasureBeatWidth(
+    props.trackId,
+    props.voiceId,
+    props.blockId,
+    beatIndex,
+    props.measureData,
+  )
   return beatStartX + displayWidth / 2
 }
 

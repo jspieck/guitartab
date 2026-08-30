@@ -29,6 +29,7 @@
         :beat-data="beat"
         :beat-index="beatIndex"
         :x-offset="getBeatXOffset(beatIndex)"
+        :beat-width="getBeatWidth(beatIndex)"
         :string-spacing="stringSpacing"
         :num-strings="numStrings"
       />
@@ -40,7 +41,6 @@
       :track-id="trackId"
       :voice-id="voiceId"
       :block-id="blockId"
-      :x-offset="0"
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :measure-width="measureWidth"
@@ -52,7 +52,6 @@
       :track-id="trackId"
       :voice-id="voiceId"
       :block-id="blockId"
-      :x-offset="contentPadding + START_PADDING"
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :measure-width="measureWidth"
@@ -67,7 +66,7 @@ import TabEffects from './TabEffects.vue'
 import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
 import type { TabBeat, TabChordData } from '../../types/tab'
-import { getDisplayWidth, TAB_CONSTANTS } from '../../utils/tabLayout'
+import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
 
 interface RenderedChordDiagramData {
   name: string
@@ -100,13 +99,32 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 // Constants
-const { START_PADDING } = TAB_CONSTANTS
 const measureWidth = computed(() => props.width)
 
-// Computed properties
+// Methods
+function getBeatXOffset(beatIndex: number): number {
+  return getMeasureBeatX(
+    props.trackId,
+    props.voiceId,
+    props.blockId,
+    beatIndex,
+    props.measureData,
+  )
+}
+
+function getBeatWidth(beatIndex: number): number {
+  return getMeasureBeatWidth(
+    props.trackId,
+    props.voiceId,
+    props.blockId,
+    beatIndex,
+    props.measureData,
+  )
+}
+
 const chordsToShow = computed<RenderedChordPlacement[]>(() => {
   const chords: RenderedChordPlacement[] = []
-  
+
   props.measureData.forEach((beat, beatIndex) => {
     const chord = beat?.chord as TabChordData | null | undefined
 
@@ -122,19 +140,9 @@ const chordsToShow = computed<RenderedChordPlacement[]>(() => {
       })
     }
   })
-  
+
   return chords
 })
-
-// Methods
-function getBeatXOffset(beatIndex: number): number {
-  let x = 0
-  for (let i = 0; i < beatIndex; i++) {
-    const beat = props.measureData[i]
-    x += getDisplayWidth(beat?.duration)
-  }
-  return props.contentPadding + START_PADDING + x
-}
 </script>
 
 <style scoped>

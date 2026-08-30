@@ -4,8 +4,15 @@ import Settings from './settingManager';
 import playBackLogic from './playBackLogicNew';
 import { tab } from './tab';
 import Helper from './helper';
-import { svgDrawer } from './svgDrawer';
+import renderBridge from '../../services/editor/renderBridge';
+import { getClassicalRowSurface } from '../../stores/classicalNotationSurfaceState';
+import { scrollToSvgBlock } from '../../services/editor/navigationController';
+import { TAB_SHEET } from '../../utils/tabSheetConstants';
 import AppManager from './appManager';
+import {
+  publishClassicalLayoutMetrics,
+  setClassicalBeatWidth,
+} from '../../stores/classicalNotationLayoutState';
 
 class ClassicalNotation {
   vexFlowHeight: number;
@@ -80,66 +87,143 @@ class ClassicalNotation {
   }
 
   toggleClassicalVisibility(): void {
-    /** Toggles if the classical notation rendered by Vexflow is visible in the tab */
     if (AppManager.duringTrackCreation) {
       return;
     }
-    const classicalToggleButton = document.getElementById('classicalToggleButton');
-    if (classicalToggleButton != null) {
-      classicalToggleButton.classList.toggle('classicalBack');
-    }
-    // The classical notation needs some space, so the guitar rows are shifted on toggle
-    // This is why we scroll to the current position after toggling
+
+    Settings.vexFlowIsActive = !Settings.vexFlowIsActive;
+
     if (Settings.songPlaying) {
-      svgDrawer.scrollToSvgBlock(
+      scrollToSvgBlock(
         Song.currentTrackId, Song.currentVoiceId, playBackLogic.currentBlockPP,
       );
     } else {
-      svgDrawer.scrollToSvgBlock(Song.currentTrackId, Song.currentVoiceId,
+      scrollToSvgBlock(Song.currentTrackId, Song.currentVoiceId,
         tab.markedNoteObj.blockId);
     }
-    Settings.vexFlowIsActive = !Settings.vexFlowIsActive;
-    if (Settings.vexFlowIsActive) {
-      this.computeVexFlowDataStructures(Song.currentTrackId, Song.currentVoiceId);
+  }
+
+  syncLayoutMetrics(): void {
+    const trackId = Song.currentTrackId;
+    const voiceId = Song.currentVoiceId;
+    const beatWidthByBlock: Record<number, number> = {};
+    const numBlocks = Song.measures[trackId]?.length ?? 0;
+
+    for (let blockId = 0; blockId < numBlocks; blockId += 1) {
+      const notes = this.allVoices[blockId];
+      if (notes == null || notes.length === 0) {
+        continue;
+      }
+      beatWidthByBlock[blockId] = ClassicalNotation.calculateLargestBeatWidthOfNotes(
+        trackId,
+        blockId,
+        voiceId,
+        notes,
+      );
     }
-    const completeTab = document.getElementById('completeTab');
-    if (completeTab != null) {
-      const svgHeight = completeTab.offsetHeight;
-      AppManager.duringTrackCreation = true;
-      (document.getElementById('classicalToggleButton') as HTMLButtonElement).disabled = true;
-      svgDrawer.createTrack(Song.currentTrackId, Song.currentVoiceId,
-        svgDrawer.completeWidth, svgHeight, null);
+
+    publishClassicalLayoutMetrics({
+      staveBeginByBlock: { ...this.topLineY },
+      marginTopByRow: Object.fromEntries(
+        Object.entries(this.marginTopPerRow).map(([rowId, marginTop]) => [
+          Number(rowId),
+          marginTop + this.MARGIN_TOP_PADDING,
+        ]),
+      ),
+      beatWidthByBlock,
+    }, { bumpVersion: false });
+  }
+
+  private getRowBlockRange(
+    trackId: number,
+    voiceId: number,
+    rowId: number,
+  ): { start: number, end: number } | null {
+    const layout = renderBridge.getTrackLayout(trackId, voiceId)
+    if (layout) {
+      const blockIds = layout.blockLayouts
+        .map((blockLayout, blockId) => ({ blockId, rowId: blockLayout.rowId }))
+        .filter((entry) => entry.rowId === rowId)
+        .map((entry) => entry.blockId)
+        .sort((left, right) => left - right)
+
+      if (blockIds.length > 0) {
+        return {
+          start: blockIds[0],
+          end: blockIds[blockIds.length - 1] + 1,
+        }
+      }
     }
+
+    return tab.blocksPerRow[trackId]?.[voiceId]?.[rowId] ?? null
+  }
+
+  private getMeasureDrawWidth(
+    trackId: number,
+    voiceId: number,
+    blockId: number,
+  ): number {
+    const layoutWidth = renderBridge.getBlockWidth(trackId, voiceId, blockId)
+    const legacyWidth = tab.finalBlockWidths[trackId]?.[voiceId]?.[blockId]
+    const width = (Number.isFinite(layoutWidth) && layoutWidth > 0)
+      ? layoutWidth
+      : (Number.isFinite(legacyWidth) && (legacyWidth ?? 0) > 0 ? legacyWidth! : 200)
+    return width
+  }
+
+  private getMeasureDrawX(
+    trackId: number,
+    voiceId: number,
+    blockId: number,
+    fallbackX: number,
+  ): number {
+    const blockLayout = renderBridge.getBlockLayout(trackId, voiceId, blockId)
+    if (blockLayout != null && Number.isFinite(blockLayout.xOffset)) {
+      return blockLayout.xOffset
+    }
+    return fallbackX
   }
 
   drawVexFlowRow(
     trackId: number, voiceId: number, rowId: number, vexFlowArea: HTMLElement,
   ) {
-    // PREPARE ELEMENT
-    // var vexFlowArea = document.getElementById("vexFlowBar"+trackId+"_"+voiceId+"_"+rowId);
     Helper.removeAllChildren(vexFlowArea);
+
+    const rowBlocks = this.getRowBlockRange(trackId, voiceId, rowId);
+    if (!rowBlocks) {
+      return;
+    }
+
+    const { start, end } = rowBlocks;
+    let totalWidth = 0;
+    for (let blockId = start; blockId < end; blockId += 1) {
+      totalWidth += this.getMeasureDrawWidth(trackId, voiceId, blockId);
+    }
 
     const renderer = new Vex.Flow.Renderer(vexFlowArea, Vex.Flow.Renderer.Backends.SVG);
     this.rendererPerRow[rowId] = renderer;
+    renderer.resize(Math.max(totalWidth, 100), this.VEXFLOW_HEIGHT + 40);
     const context = renderer.getContext();
     context.setFont('Arial', 10).setBackgroundFillStyle('#eed');
 
-    // RENDER AREA
     this.allNoteRows[rowId] = [];
-    const { start, end } = tab.blocksPerRow[trackId][voiceId][rowId];
     for (let blockId = start; blockId < end; blockId += 1) {
-      // this.allNotes[blockId] = [];
-      // classicalNotation.convertBlockToNotation(trackId, blockId, voiceId);
       for (let j = 0; j < this.allNotes[blockId].length; j += 1) {
         this.allNoteRows[rowId].push(this.allNotes[blockId][j]);
       }
     }
+    this.marginTopPerRow[rowId] = 0;
     this.drawVexFlow(trackId, voiceId, rowId, context);
-    // finally draw ties
     if (this.lastContext != null) {
       this.drawVexTies(trackId, voiceId, rowId, context, this.lastContext);
     }
     this.lastContext = context;
+
+    const rowHeight = Math.max(
+      this.VEXFLOW_HEIGHT + 40,
+      this.marginTopPerRow[rowId] + this.VEXFLOW_HEIGHT,
+    );
+    renderer.resize(Math.max(totalWidth, 100), rowHeight);
   }
 
   computeVexFlowDataStructures(trackId: number, voiceId: number): void {
@@ -301,24 +385,17 @@ class ClassicalNotation {
         // eslint-disable-next-line prefer-destructuring
         strings[j] = heightSorted[j].string;
       }
-      // Fake note for rests
-      if (keys.length === 0) {
-        keys.push('e/4');
-      }
-
       let clefType = 'treble';
       if (Song.playBackInstrument[Song.currentTrackId].instrument === 'drums') {
         clefType = 'percussion';
       } else if (Song.tracks[Song.currentTrackId].numStrings < 6) {
         clefType = 'bass';
       }
-      /* var note;
-      if(realNotes[u] != null && realNotes[u].ghost){
-          note = new Vex.Flow.GhostNote({clef: clefType, keys: keys, duration: dur});
-          console.log(note);
-      }else{
-          note = new Vex.Flow.StaveNote({clef: clefType, keys: keys,duration: dur});
-      } */
+      // Rests need a pitch placeholder but must keep the rest duration suffix.
+      if (keys.length === 0) {
+        keys.push('b/4');
+      }
+
       const staveNote = new Vex.Flow.StaveNote({
         clef: clefType,
         keys,
@@ -410,6 +487,13 @@ class ClassicalNotation {
       });
       this.allVoices[blockId].push(staveNote);
     }
+
+    setClassicalBeatWidth(
+      blockId,
+      ClassicalNotation.calculateLargestBeatWidthOfNotes(
+        trackId, blockId, voiceId, this.allVoices[blockId],
+      ),
+    );
   }
 
   static generateVexFlowTuple(
@@ -443,11 +527,26 @@ class ClassicalNotation {
   }
 
   static getNoteWidth(note: Vex.Flow.StaveNote) {
-    const {
-      noteWidth, extraRightPx, modRightPx, modLeftPx, extraLeftPx,
-    } = note.getMetrics();
-    const alignment = 10;
-    return noteWidth + extraRightPx + modRightPx + modLeftPx + extraLeftPx + alignment;
+    const metrics = note.getMetrics() as {
+      width?: number
+      notePx?: number
+      noteWidth?: number
+      extraRightPx?: number
+      extraLeftPx?: number
+      modRightPx?: number
+      modLeftPx?: number
+      leftDisplacedHeadPx?: number
+      rightDisplacedHeadPx?: number
+    }
+    const alignment = 10
+    const total = metrics.width
+      ?? ((metrics.notePx ?? metrics.noteWidth ?? 0)
+        + (metrics.modRightPx ?? 0)
+        + (metrics.modLeftPx ?? 0)
+        + (metrics.rightDisplacedHeadPx ?? metrics.extraRightPx ?? 0)
+        + (metrics.leftDisplacedHeadPx ?? metrics.extraLeftPx ?? 0))
+    const width = (Number.isFinite(total) ? total : 0) + alignment
+    return width > 0 ? width : alignment
   }
 
   calculateLargestBeatWidth(trackId: number, blockId: number, voiceId: number) {
@@ -459,24 +558,24 @@ class ClassicalNotation {
   static calculateLargestBeatWidthOfNotes(
     trackId: number, blockId: number, voiceId: number, notes: Vex.Flow.StaveNote[],
   ) {
+    if (!Array.isArray(notes) || notes.length === 0) {
+      return 0
+    }
+
     let maxVoiceWidth = 0;
-    // Vex.Flow.Formatter.SimpleFormat(notes, 0, { paddingBetween: 0});
     const voice = new Vex.Flow.Voice({
       num_beats: Song.measureMeta[blockId].numerator,
       beat_value: Song.measureMeta[blockId].denominator,
     });
     voice.setStrict(false);
-    // const tuplets = generateVexFlowTuple(trackId, blockId, voiceId, notes);
-    // const beams = Vex.Flow.Beam.generateBeams(notes);
     voice.addTickables(notes);
     (new Vex.Flow.Formatter()).joinVoices([voice]).format([voice], 0);
 
     for (let i = 0, n = notes.length; i < n; i += 1) {
       const noteWidth = ClassicalNotation.getNoteWidth(notes[i]);
-      // console.log(noteWidth);
       maxVoiceWidth = Math.max(noteWidth, maxVoiceWidth);
     }
-    return maxVoiceWidth;
+    return Number.isFinite(maxVoiceWidth) ? maxVoiceWidth : 0;
   }
 
   drawVexFlow(trackId: number, voiceId: number, rowId: number, context: IRenderContext) {
@@ -486,7 +585,12 @@ class ClassicalNotation {
       notes: Vex.Flow.StaveNote[], width: number, voice: any, beams: any[], tuplets: any[]
     }[] = [];
     this.formatter = new Vex.Flow.Formatter();
-    const { start, end } = tab.blocksPerRow[trackId][voiceId][rowId];
+    const rowBlocks = this.getRowBlockRange(trackId, voiceId, rowId);
+    if (!rowBlocks) {
+      return;
+    }
+
+    const { start, end } = rowBlocks;
     for (let i = start; i < end; i += 1) {
       const voice = new Vex.Flow.Voice({
         num_beats: Song.measureMeta[i].numerator,
@@ -515,31 +619,30 @@ class ClassicalNotation {
       });
     }
     // generate row
-    // add same extra width to every bar
-    // var extraWidth = Math.floor(diff/notePack.length);
     this.marginTopPerRow[rowId] = 0;
-    const yPos = 10;
+    const yPos = 10 + this.marginTopPerRow[rowId];
     let xPos = 0;
     for (let j = 0; j < notePack.length; j += 1) {
-      // var width = notePack[j].width + extraWidth;
-      const blockId = tab.blocksPerRow[trackId][voiceId][rowId].start + j;
-      let width = tab.finalBlockWidths[trackId][voiceId][blockId];
-      if (blockId === 0) width += 30;
-      // console.log(trackId+" "+voiceId+" "+j+" :"+width+ " "+xPos);
+      const blockId = start + j;
+      const width = this.getMeasureDrawWidth(trackId, voiceId, blockId);
+      xPos = this.getMeasureDrawX(trackId, voiceId, blockId, xPos);
       this.drawStave(
-        notePack[j].notes, xPos, yPos, width, trackId, blockId, context, notePack[j].voice,
-        // notePack[j].beams, notePack[j].tuplets,
+        notePack[j].notes, xPos, yPos, width, trackId, voiceId, blockId, context, notePack[j].voice,
         rowId,
       );
       xPos += width;
-      // staveBarWidth -= width;
     }
   }
 
   updateVexFlowBlock(trackId: number, voiceId: number, blockId: number) {
     /** Redraw row with classical notation to consider changes in given block */
-    const { rowId } = tab.blockToRow[trackId][voiceId][blockId];
-    const vexFlowArea = document.getElementById(`vexFlowRow${rowId}`);
+    const rowId = renderBridge.getRowIdForBlock(trackId, voiceId, blockId)
+      ?? tab.blockToRow[trackId]?.[voiceId]?.[blockId]?.rowId
+    if (rowId == null) {
+      console.error('VexFlow row mapping is missing')
+      return
+    }
+    const vexFlowArea = getClassicalRowSurface(rowId);
     if (vexFlowArea != null) {
       this.drawVexFlowRow(trackId, voiceId, rowId, vexFlowArea);
     } else {
@@ -557,39 +660,27 @@ class ClassicalNotation {
     yPos: number,
     width: number,
     trackId: number,
+    voiceId: number,
     blockId: number,
     ctx: IRenderContext,
     voice: Vex.Flow.Voice,
-    // beamsIn: Vex.Flow.Beam[],
-    // tuplets: number,
     rowId: number,
   ) {
     const stave = ClassicalNotation.generateStave(xPos, yPos, width, blockId);
     this.drawnStaves[blockId] = stave;
     stave.setContext(ctx).draw();
 
-    // Vex.Flow.Formatter.FormatAndDraw(ctx, stave, notes);
-    // formatter.joinVoices([voice]).formatToStave([voice], stave, { align_rests: false, stave });
-    console.log('Voice', blockId, voice);
-    this.formatter!.joinVoices([voice]).format([voice], 0);
-    // align notes to right position
+    const formatter = new Vex.Flow.Formatter();
+    this.formatter = formatter;
+    formatter.joinVoices([voice]).format([voice], 0);
     const numNotes = notes.length;
-    // const tickables = voice.getTickables();
+    const alignment = 8;
     for (let beatId = 0; beatId < numNotes; beatId += 1) {
-      // const absoluteX = notes[beatId].getAbsoluteX();
-      const blockInPos = svgDrawer.getPositionInRow(trackId, Song.currentVoiceId, blockId, beatId);
-      // const xShift = blockInPos - absoluteX;
-      // notes[beatId].extraLeftPx  = extraPx;
-      // console.log(blockInPos, beatPosX, absoluteX, extraPx);
-      // console.log(trackId, blockId, Song.currentVoiceId, beatId, beatPosX);
-      // console.log(blockPos, beatPosX, stave.start_x);
-      const alignment = 8;
-      const xShift = blockInPos - alignment - stave.getNoteStartX();
-      console.log(beatId, xShift, blockInPos, stave.getNoteStartX());
+      const blockInPos = renderBridge.getPositionInRow(trackId, voiceId, blockId, beatId);
+      // getAbsoluteX() already adds stave.getNoteStartX() (which includes stave.x).
+      // Do not also subtract xPos, or later-bar notes collapse into the first measure.
+      const xShift = blockInPos - stave.getNoteStartX() - alignment;
       notes[beatId].getTickContext().setX(xShift);
-      // tickables[beatId].setXShift(xShift);
-      // console.log(blockInPos);
-      // console.log(voice.getTickables());
     }
     voice.draw(ctx, stave);
     let minNote = 1000;

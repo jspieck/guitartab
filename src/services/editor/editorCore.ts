@@ -1,5 +1,4 @@
-import Helper from '../../assets/js/helper'
-import Duration from '../../assets/js/duration'
+import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
 import EventBus from '../../assets/js/eventBus'
 import playBackLogic from '../../assets/js/playBackLogicNew'
 import Song, {
@@ -10,10 +9,10 @@ import Song, {
   type SongDescription,
   type Track,
 } from '../../assets/js/songData'
-import { Tab, tab } from '../../assets/js/tab'
+import { tab } from '../../assets/js/tab'
 import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
+import { songState } from '../../stores/songState'
 import { DURATION_NAMES } from '../../utils/musicUtils'
-import { TAB_CONSTANTS } from '../../utils/tabLayout'
 import type {
   RenderedTabRow,
   SelectedNoteState,
@@ -22,14 +21,14 @@ import type {
   TabNoteData,
   TabSelectionData,
 } from '../../types/tab'
-import legacyRenderBridge, {
-  createRenderTrackLayoutState,
-  type RenderBlockLayout,
-  type RenderRowLayout,
+import renderBridge, {
   type RenderTrackLayoutState,
 } from './renderBridge'
+import {
+  computeTrackLayout,
+} from './measureLayoutEngine'
 
-export interface LegacySongSnapshot {
+export interface SongSnapshot {
   measures: SongBeat[][][][]
   songDescription: SongDescription
   tracks: Track[]
@@ -47,55 +46,24 @@ interface ModernLayoutOptions {
   tabInformationHeight: number
 }
 
-type BlockWidthInfo = ReturnType<typeof Tab.computeWidthOfBlock>
-
-function getBeatRenderPositions(
-  trackId: number,
-  blockId: number,
-  voiceId: number,
-  beats: TabBeat[],
-  minOffset: number,
-): number[] {
-  const leftOffset = Helper.getLeftOffset(blockId)
-  const moveHelper = Song.measureMoveHelper?.[trackId]?.[blockId]?.[voiceId]
-
-  if (Array.isArray(moveHelper) && moveHelper.length >= beats.length) {
-    return beats.map((_, beatIndex) => {
-      const beatOffset = moveHelper[beatIndex]
-      return Number.isFinite(beatOffset) ? leftOffset + beatOffset * minOffset : leftOffset
-    })
-  }
-
-  let position = leftOffset
-  return beats.map((beat) => {
-    const currentPosition = position
-    position += Duration.getDurationWidth(beat) * minOffset
-    return currentPosition
-  })
-}
-
 function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function notifySongDataChanged(): void {
-  EventBus.emit('song-data-changed')
-}
-
-function getSongSnapshot(): LegacySongSnapshot {
+function getSongSnapshot(): SongSnapshot {
   return {
-    measures: cloneValue(Song.measures),
-    songDescription: cloneValue(Song.songDescription),
-    tracks: cloneValue(Song.tracks),
-    measureMeta: cloneValue(Song.measureMeta),
-    playBackInstrument: cloneValue(Song.playBackInstrument),
-    currentTrackId: Song.currentTrackId,
-    currentVoiceId: Song.currentVoiceId,
+    measures: songState.measures,
+    songDescription: songState.songDescription,
+    tracks: songState.tracks,
+    measureMeta: songState.measureMeta,
+    playBackInstrument: songState.playBackInstrument,
+    currentTrackId: songState.currentTrackId,
+    currentVoiceId: songState.currentVoiceId,
   }
 }
 
 function getTrackStringCount(trackId: number): number {
-  return Song.tracks?.[trackId]?.numStrings || Song.tracks?.[trackId]?.strings?.length || 6
+  return songState.tracks?.[trackId]?.numStrings || songState.tracks?.[trackId]?.strings?.length || 6
 }
 
 function defaultNote(): TabNoteData {
@@ -103,7 +71,7 @@ function defaultNote(): TabNoteData {
 }
 
 function getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): SongBeat | undefined {
-  return Song.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
+  return songState.measures?.[trackId]?.[blockId]?.[voiceId]?.[beatIndex]
 }
 
 function getNote(
@@ -164,18 +132,18 @@ function ensureBeatAtPosition(
   beatIndex: number,
   numStrings: number,
 ): TabBeat {
-  if (!Song.measures[trackId]) Song.measures[trackId] = []
-  if (!Song.measures[trackId][blockId]) Song.measures[trackId][blockId] = []
-  if (!Song.measures[trackId][blockId][voiceId]) Song.measures[trackId][blockId][voiceId] = []
+  if (!songState.measures[trackId]) songState.measures[trackId] = []
+  if (!songState.measures[trackId][blockId]) songState.measures[trackId][blockId] = []
+  if (!songState.measures[trackId][blockId][voiceId]) songState.measures[trackId][blockId][voiceId] = []
 
-  if (!Song.measures[trackId][blockId][voiceId][beatIndex]) {
+  if (!songState.measures[trackId][blockId][voiceId][beatIndex]) {
     const defaultBeat = Song.defaultMeasure() as TabBeat
     defaultBeat.duration = 'q'
     defaultBeat.notes = new Array(numStrings).fill(null)
-    Song.measures[trackId][blockId][voiceId][beatIndex] = defaultBeat
+    songState.measures[trackId][blockId][voiceId][beatIndex] = defaultBeat
   }
 
-  const beat = Song.measures[trackId][blockId][voiceId][beatIndex] as TabBeat
+  const beat = songState.measures[trackId][blockId][voiceId][beatIndex] as TabBeat
   if (!beat.notes) {
     beat.notes = new Array(numStrings).fill(null)
   }
@@ -183,9 +151,36 @@ function ensureBeatAtPosition(
   return beat
 }
 
-const legacyEditorCore = {
+function getVoiceBeatCount(trackId: number, blockId: number, voiceId: number): number {
+  return songState.measures?.[trackId]?.[blockId]?.[voiceId]?.length ?? 0
+}
+
+function findPreviousNoteOnString(
+  trackId: number,
+  blockId: number,
+  voiceId: number,
+  beatId: number,
+  stringIndex: number,
+): { blockId: number; beatId: number } | null {
+  for (let currentBlockId = blockId; currentBlockId >= 0; currentBlockId -= 1) {
+    const startBeatId = currentBlockId === blockId
+      ? beatId - 1
+      : getVoiceBeatCount(trackId, currentBlockId, voiceId) - 1
+
+    for (let currentBeatId = startBeatId; currentBeatId >= 0; currentBeatId -= 1) {
+      const note = getNote(trackId, currentBlockId, voiceId, currentBeatId, stringIndex)
+      if (note != null) {
+        return { blockId: currentBlockId, beatId: currentBeatId }
+      }
+    }
+  }
+
+  return null
+}
+
+const editorCore = {
   ensureSongInitialized(): boolean {
-    if (!Song.measures || Song.measures.length === 0) {
+    if (!songState.measures || songState.measures.length === 0) {
       Song.initEmptySong()
       return true
     }
@@ -194,10 +189,10 @@ const legacyEditorCore = {
   },
 
   notifySongDataChanged(): void {
-    notifySongDataChanged()
+    publishSongDataChanged()
   },
 
-  getSongSnapshot(): LegacySongSnapshot {
+  getSongSnapshot(): SongSnapshot {
     return getSongSnapshot()
   },
 
@@ -206,7 +201,17 @@ const legacyEditorCore = {
   },
 
   getMeasureMeta(blockId: number): TabMeasureMetaData {
-    return Song.measureMeta?.[blockId] || Song.defaultMeasureMeta()
+    return songState.measureMeta?.[blockId] || Song.defaultMeasureMeta()
+  },
+
+  findPreviousNoteOnString(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatId: number,
+    stringIndex: number,
+  ): { blockId: number; beatId: number } | null {
+    return findPreviousNoteOnString(trackId, blockId, voiceId, beatId, stringIndex)
   },
 
   defaultMeasure(): TabBeat {
@@ -250,7 +255,7 @@ const legacyEditorCore = {
     syncSelectionEffects(selection)
   },
 
-  shouldUseLegacySelectionPresentation(): boolean {
+  shouldUseDomSelectionPresentation(): boolean {
     return !hasRegisteredSelectionSurface()
   },
 
@@ -264,99 +269,11 @@ const legacyEditorCore = {
     measures: Array<TabBeat[][] | undefined>,
     options: ModernLayoutOptions,
   ): RenderedTabRow[] {
-    const rows: RenderedTabRow[] = []
-    const state = createRenderTrackLayoutState({
-      availableWidth: options.availableWidth,
-      paddingTop: options.paddingTop,
-      tabInformationHeight: options.tabInformationHeight,
-    })
-
-    if (measures.length === 0) {
-      legacyRenderBridge.setTrackLayout(trackId, voiceId, state)
-      return rows
-    }
-
-    let currentRowMeasures: RenderedTabRow['measures'] = []
-    let currentWidth = TAB_CONSTANTS.TAB_LABEL_WIDTH
-    let startBlockId = 0
-
-    for (let blockId = 0; blockId < measures.length; blockId++) {
-      const measure = measures[blockId]
-      const voiceMeasures = (measure?.[voiceId] || []) as TabBeat[]
-
-      let widthInfo: BlockWidthInfo | null = null
-      try {
-        Helper.groupMeasureBeats(trackId, blockId, voiceId)
-        widthInfo = Tab.computeWidthOfBlock(trackId, blockId, voiceId)
-      } catch {
-        console.warn(`Failed to compute width for measure ${blockId}, using default.`)
-      }
-
-      const measureWidth = widthInfo && Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
-        ? widthInfo.minWidth
-        : 200
-      const minOffset = widthInfo && Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
-        ? widthInfo.minOffset
-        : 40
-
-      if (currentWidth + measureWidth > options.availableWidth && currentRowMeasures.length > 0) {
-        const rowId = rows.length
-        const yOffset = options.headerHeight + rowId * options.rowHeight
-        const rowLayout: RenderRowLayout = { yOffset, height: options.rowHeight }
-        state.rowLayouts[rowId] = rowLayout
-        rows.push({
-          id: rowId,
-          measures: currentRowMeasures,
-          startBlockId,
-          endBlockId: blockId - 1,
-          yOffset,
-        })
-        currentRowMeasures = []
-        currentWidth = 0
-        startBlockId = blockId
-      }
-
-      const rowId = rows.length
-      const blockLayout: RenderBlockLayout = {
-        xOffset: currentWidth,
-        rowId,
-        numInRow: currentRowMeasures.length,
-        width: measureWidth,
-        minOffset,
-        pageId: 0,
-        beatPositions: getBeatRenderPositions(trackId, blockId, voiceId, voiceMeasures, minOffset),
-      }
-      state.blockLayouts[blockId] = blockLayout
-
-      currentRowMeasures.push({
-        data: voiceMeasures,
-        width: measureWidth,
-      })
-      currentWidth += measureWidth
-    }
-
-    if (currentRowMeasures.length > 0) {
-      const rowId = rows.length
-      const yOffset = options.headerHeight + rowId * options.rowHeight
-      const rowLayout: RenderRowLayout = { yOffset, height: options.rowHeight }
-      state.rowLayouts[rowId] = rowLayout
-      rows.push({
-        id: rowId,
-        measures: currentRowMeasures,
-        startBlockId,
-        endBlockId: measures.length - 1,
-        yOffset,
-      })
-    }
-
-    state.numRows = rows.length
-    legacyRenderBridge.setTrackLayout(trackId, voiceId, state)
-
-    return rows
+    return computeTrackLayout(trackId, voiceId, measures, options).rows
   },
 
   getModernLayout(trackId: number, voiceId: number): RenderTrackLayoutState | null {
-    return legacyRenderBridge.getTrackLayout(trackId, voiceId)
+    return renderBridge.getTrackLayout(trackId, voiceId)
   },
 
   changeNoteDuration(
@@ -389,11 +306,11 @@ const legacyEditorCore = {
           string: stringIndex,
         }
 
-    notifySongDataChanged()
+    publishSongDataChanged()
   },
 
   setPlaybackBarObject(object: SVGGElement | null) {
-    legacyRenderBridge.setPlaybackBarObject(object)
+    renderBridge.setPlaybackBarObject(object)
   },
 
   ensureBeatAtPosition(
@@ -405,7 +322,52 @@ const legacyEditorCore = {
   ): TabBeat {
     return ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
   },
+
+  getPlayBackInstrument(trackId: number) {
+    return songState.playBackInstrument?.[trackId] ?? null
+  },
+
+  getTrackCount(): number {
+    return songState.measures?.length ?? 0
+  },
+
+  canDeleteTrack(): boolean {
+    return (songState.measures?.length ?? 0) > 1
+  },
+
+  setTrackName(trackId: number, name: string): void {
+    if (!songState.tracks?.[trackId]) {
+      return
+    }
+    songState.tracks[trackId].name = name
+    publishSongDataChanged()
+  },
+
+  isBeatEmpty(trackId: number, blockId: number): boolean {
+    return Song.isBeatEmpty(trackId, blockId)
+  },
+
+  togglePlayBackInstrumentFlag(trackId: number, flag: 'solo' | 'mute'): void {
+    const instrument = songState.playBackInstrument?.[trackId]
+    if (!instrument) {
+      return
+    }
+    instrument[flag] = !instrument[flag]
+    publishSongDataChanged()
+  },
+
+  setPlayBackInstrumentEffect(
+    trackId: number,
+    effect: 'balance' | 'reverb' | 'chorus' | 'phaser',
+    value: number,
+  ): void {
+    const instrument = songState.playBackInstrument?.[trackId]
+    if (!instrument) {
+      return
+    }
+    instrument[effect] = value
+  },
 }
 
-export { legacyEditorCore }
-export default legacyEditorCore
+export { editorCore }
+export default editorCore

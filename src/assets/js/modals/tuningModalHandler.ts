@@ -78,6 +78,13 @@ export class TuningModalHandler extends BaseModalHandler {
         hasStringNumberChanged: boolean,
         numStrings: number
     ): HTMLElement {
+        const tuningSlot = document.createElement('div');
+        tuningSlot.className = 'tuning-slot';
+
+        const tuningLabel = document.createElement('span');
+        tuningLabel.className = 'tuning-slot__label';
+        tuningLabel.textContent = `String ${stringIndex + 1}`;
+
         const selectBox = document.createElement('div');
         selectBox.className = 'select';
         
@@ -90,8 +97,11 @@ export class TuningModalHandler extends BaseModalHandler {
         
         selectBox.appendChild(select);
         selectBox.appendChild(this.createSelectArrow());
-        
-        return selectBox;
+
+        tuningSlot.appendChild(tuningLabel);
+        tuningSlot.appendChild(selectBox);
+
+        return tuningSlot;
     }
 
     createSelectElement(

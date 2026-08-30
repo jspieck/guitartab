@@ -2,7 +2,11 @@ import Duration from '../assets/js/duration'
 import type { Measure, MeasureMeta, Note, NoteLengthCode } from '../types/tab'
 
 export const MENU_EFFECT_GROUPS = [
-  ['pullDown', 'slide', 'bend', 'trill', 'tremoloPicking', 'tremoloBar', 'dead'],
+  ['pullDown', 'slide', 'bend'],
+  ['trill'],
+  ['tremoloPicking'],
+  ['tremoloBar'],
+  ['dead'],
   ['stacatto', 'palmMute'],
   ['tap', 'slap', 'pop'],
   ['fadeIn'],
