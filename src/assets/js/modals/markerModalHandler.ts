@@ -1,6 +1,6 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song, Marker } from '../songData';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import { SequencerHandler } from '../sequencerHandler';
 import { MODALS } from './modalTypes';
@@ -75,7 +75,7 @@ export class MarkerModalHandler extends BaseModalHandler {
 
         if (!Song.measureMeta[blockId].markerPresent) {
             Song.measureMeta[blockId].markerPresent = true;
-            EventBus.emit("menu.activateEffectsForBlock");
+            typedEventBus.emit("menu.activateEffectsForBlock");
         }
 
         const markerBefore = Song.measureMeta[blockId].marker;

@@ -81,7 +81,7 @@ class AppSettingsStore implements AppSettings {
 
   constructor() {
     for (const key of PERSISTED_KEYS) {
-      this[key] = readPersisted(key)
+      Object.assign(this, { [key]: readPersisted(key) })
     }
   }
 

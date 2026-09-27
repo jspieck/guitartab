@@ -1,6 +1,6 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Measure, TremoloBar } from '../songData';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import {
   connectPoints,
@@ -34,6 +34,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
     private readonly NUM_COLUMNS_TREMOLO: number = 12;
     private readonly padding: number = 20;
     private tremoloEditor: SVGElement | null = null;
+    private pointsLayer: SVGGElement | null = null;
 
     constructor() {
         super(MODALS.TREMOLO_BAR.id, MODALS.TREMOLO_BAR.name);
@@ -92,26 +93,31 @@ export class TremoloBarModalHandler extends BaseModalHandler {
         const xNearest = xIndex * oneXPort;
         const yNearest = yIndex * oneYPort;
 
-        this.updateTremoloPoint(xIndex, yIndex, xNearest, yNearest, tremoloEditor);
+        const layer = this.pointsLayer ?? tremoloEditor;
+        this.updateTremoloPoint(xIndex, yIndex, xNearest, yNearest, layer);
     }
 
-    public initializeTremoloEditor(tremoloEditor: SVGElement) {
-        // this.modalState.tremoloEditorClientWidth = tremoloEditor.clientWidth;
+    public initializeTremoloEditor(tremoloEditor: SVGElement, pointsLayer?: SVGGElement) {
         this.tremoloEditor = tremoloEditor;
-        this.drawTremoloEditor(tremoloEditor);
+        this.pointsLayer = pointsLayer
+          ?? (tremoloEditor.querySelector('.tremolo-points') as SVGGElement | null)
+          ?? tremoloEditor as unknown as SVGGElement;
+        this.drawTremoloEditor();
     }
 
-    private drawTremoloEditor(tremoloEditor: SVGElement) {
-        Helper.removeAllChildren(tremoloEditor);
+    private drawTremoloEditor() {
+        const layer = this.pointsLayer ?? this.tremoloEditor;
+        if (layer == null) {
+            return;
+        }
+        // Clear interactive points only — Vue owns the grid/frame/labels.
+        Helper.removeAllChildren(layer);
         this.modalState.tremoloPointsArr = [];
 
         const width = this.modalState.tremoloEditorClientWidth - 2 * this.padding;
         const height = 300 - 2 * this.padding;
 
-        this.drawEditorFrame(tremoloEditor, this.padding, width, height);
-        this.drawAxisLabels(tremoloEditor, this.padding, height);
-        this.drawGrid(tremoloEditor, this.padding, width, height);
-        this.initializeTremoloPoints(this.padding, width, height, tremoloEditor);
+        this.initializeTremoloPoints(this.padding, width, height, layer);
     }
 
     private setupEventListeners() {        
@@ -169,6 +175,10 @@ export class TremoloBarModalHandler extends BaseModalHandler {
                 }
             }
         }
+        for (const path of this.modalState.tremoloPointsArr) {
+            path.parentNode?.removeChild(path);
+        }
+        this.modalState.tremoloPointsArr = [];
         const tremoloPresets = [
             [{ x: 0, y: 16 }, { x: 9, y: 14 }, { x: 12, y: 14 }], // Dive
             [{ x: 0, y: 16 }, { x: 6, y: 14 }, { x: 12, y: 16 }], // DIP
@@ -177,14 +187,13 @@ export class TremoloBarModalHandler extends BaseModalHandler {
             [{ x: 0, y: 16 }, { x: 9, y: 18 }, { x: 12, y: 18 }], // return
             [{ x: 0, y: 18 }, { x: 9, y: 18 }, { x: 12, y: 16 }], // release Down
         ];
-        const tremoloEditor = this.tremoloEditor!;
-        let tremoloPreset = tremoloPresets[presetIndex];
-        console.log('preset', width, height);
-        for (let {x, y} of tremoloPreset) {
+        const layer = this.pointsLayer ?? this.tremoloEditor!;
+        const tremoloPreset = tremoloPresets[presetIndex];
+        for (const { x, y } of tremoloPreset) {
             this.modalState.tremoloPointsOnLine[x] = [drawPoint(width * x, height
-                * (this.NUM_ROWS_TREMOLO - y), this.padding, this.padding, 7, tremoloEditor, ''), y, x];
+                * (this.NUM_ROWS_TREMOLO - y), this.padding, this.padding, 7, layer, ''), y, x];
         }
-        this.connectAllTremoloPoints(tremoloEditor);
+        this.connectAllTremoloPoints(layer);
     }
 
     public applyTremoloChanges() {
@@ -200,7 +209,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
 
             if (!beat.effects.tremoloBarPresent) {
                 beat.effects.tremoloBarPresent = true;
-                EventBus.emit("menu.activateEffectsForBeat", beat);
+                typedEventBus.emit("menu.activateEffectsForBeat", beat);
             }
 
             revertHandler.addTremoloBar(
@@ -262,70 +271,10 @@ export class TremoloBarModalHandler extends BaseModalHandler {
         }
     }
 
-    private drawEditorFrame(tremoloEditor: SVGElement, padding: number, width: number, height: number) {
-        const frame = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        frame.setAttribute('x', padding.toString());
-        frame.setAttribute('y', padding.toString());
-        frame.setAttribute('width', width.toString());
-        frame.setAttribute('height', height.toString());
-        frame.setAttribute('fill', 'none');
-        frame.setAttribute('stroke', 'black');
-        frame.setAttribute('stroke-width', '1');
-        tremoloEditor.appendChild(frame);
-    }
-
-    private drawAxisLabels(tremoloEditor: SVGElement, padding: number, height: number) {
-        const labels = [
-            { text: '+16', y: padding },
-            { text: '+8', y: height / 3 + padding },
-            { text: '0', y: (2 * height) / 3 + padding },
-            { text: '-8', y: height + padding }
-        ];
-
-        labels.forEach(label => {
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', (padding - 5).toString());
-            text.setAttribute('y', label.y.toString());
-            text.setAttribute('text-anchor', 'end');
-            text.setAttribute('alignment-baseline', 'middle');
-            text.setAttribute('font-size', '12');
-            text.textContent = label.text;
-            tremoloEditor.appendChild(text);
-        });
-    }
-
-    private drawGrid(tremoloEditor: SVGElement, padding: number, width: number, height: number) {
-        // Draw vertical lines
-        for (let i = 0; i <= this.NUM_COLUMNS_TREMOLO; i++) {
-            const x = (width * i) / this.NUM_COLUMNS_TREMOLO + padding;
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', x.toString());
-            line.setAttribute('y1', padding.toString());
-            line.setAttribute('x2', x.toString());
-            line.setAttribute('y2', (height + padding).toString());
-            line.setAttribute('stroke', '#ddd');
-            line.setAttribute('stroke-width', '1');
-            tremoloEditor.appendChild(line);
-        }
-
-        // Draw horizontal lines
-        for (let i = 0; i <= this.NUM_ROWS_TREMOLO; i++) {
-            const y = (height * i) / this.NUM_ROWS_TREMOLO + padding;
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', padding.toString());
-            line.setAttribute('y1', y.toString());
-            line.setAttribute('x2', (width + padding).toString());
-            line.setAttribute('y2', y.toString());
-            line.setAttribute('stroke', '#ddd');
-            line.setAttribute('stroke-width', '1');
-            tremoloEditor.appendChild(line);
-        }
-    }
-
-    private initializeTremoloPoints(padding: number, width: number, height: number, tremoloEditor: SVGElement) {
+    private initializeTremoloPoints(padding: number, width: number, height: number, layer: SVGElement) {
         this.modalState.tremoloPointsOnLine = new Array(this.NUM_COLUMNS_TREMOLO + 1).fill(null);
         
-        // If there's existing tremolo data in the first beat, initialize points
+        // If there is existing tremolo data in the first beat, initialize points
         const firstBeat = this.modalState.beats[0]?.beat;
         if (firstBeat?.effects?.tremoloBar) {
             const tremoloBar = firstBeat.effects.tremoloBar;
@@ -342,14 +291,14 @@ export class TremoloBarModalHandler extends BaseModalHandler {
                     padding,
                     padding,
                     7,
-                    tremoloEditor,
+                    layer,
                     ''
                 );
 
                 this.modalState.tremoloPointsOnLine[xIndex] = [svgPoint, yValue, xIndex];
             });
 
-            this.connectAllTremoloPoints(tremoloEditor);
+            this.connectAllTremoloPoints(layer);
         }
     }
 }

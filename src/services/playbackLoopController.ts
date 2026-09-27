@@ -80,7 +80,7 @@ export function resolveNextBlockAfterCurrent(
   measureMeta: MeasureMetaSlice[],
   jumpBackPositions: Record<number, number | null | undefined>,
 ): { nextBlock: number; playingIteration: number } {
-  let nextBlock = currentBlock
+  let nextBlock: number
   let newPlayingIteration = playingIteration
 
   if (loopInterval != null && currentBlock === loopInterval.endBlock) {

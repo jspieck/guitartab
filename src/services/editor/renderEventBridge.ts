@@ -1,9 +1,7 @@
-import EventBus from '../../assets/js/eventBus'
 import playBackLogic from '../../assets/js/playBackLogicNew'
 import { tab } from '../../assets/js/tab'
 import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { typedEventBus } from '../../utils/typedEventBus'
-import { ensureSongDataEventBridge } from '../songDataEventBridge'
 import { disablePageMode } from './pageModeController'
 import { scrollToSvgBlock } from './navigationController'
 
@@ -15,7 +13,6 @@ export function ensureRenderEventBridge(): void {
   }
 
   isRenderEventBridgeRegistered = true
-  ensureSongDataEventBridge()
 
   typedEventBus.on('navigation.setClickedPos', (pos) => {
     if (!pos || hasRegisteredSelectionSurface()) {
@@ -30,7 +27,7 @@ export function ensureRenderEventBridge(): void {
       string: pos.string,
     }
     playBackLogic.setPlayPosition(pos.trackId, pos.blockId, pos.voiceId, pos.beatId)
-    EventBus.emit('menu.clickedOnPos', pos)
+    typedEventBus.emit('menu.clickedOnPos', pos)
   })
 
   typedEventBus.on('navigation.scrollToBlock', (data) => {

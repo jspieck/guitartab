@@ -9,6 +9,15 @@ import sf2Parser from './sf2parser';
 import { MODALS } from './modals/modalTypes';
 import { MixerModalHandler } from './modals/mixerModalHandler';
 import { EqualizerModalHandler } from './modals/equalizerModalHandler';
+import {
+  generateCurve,
+  makeBend,
+  makeTrill,
+  makeVibrato,
+  makeDistortion,
+  smoothDistortion,
+  setEffectGain as applyEffectGain,
+} from '../../services/editor/audioModulation';
 
 type EventFunction = (e: Event) => void;
 
@@ -178,13 +187,20 @@ class AudioEngine {
 
   async ensureContextRunning() {
     if (this.context.state === 'closed') {
+      void import('../../services/userNotifications').then(({ showUserError }) => {
+        showUserError('Audio context is closed. Reload the page to restore playback.');
+      });
       return;
     }
 
     if (this.context.state !== 'running') {
       try {
         await this.context.resume();
-      } catch {
+      } catch (error) {
+        console.error('AudioContext resume failed', error);
+        void import('../../services/userNotifications').then(({ showUserError }) => {
+          showUserError('Could not start audio. Click play again after interacting with the page.');
+        });
         return;
       }
     }
@@ -413,27 +429,7 @@ class AudioEngine {
   }
 
   setEffectGain(trackIndex: number, value: number, type: string) {
-    switch (type) {
-      case 'reverb':
-        this.busses[trackIndex].convolver.wetGain = value / 127;
-        break;
-      case 'chorus':
-        this.busses[trackIndex].chorus.dry = 1 - value / 127;
-        break;
-      case 'phaser':
-        /* TODO currently not supported
-        this.busses[trackIndex].phaser[1].gain.value = value / 127;
-        if (value !== 0) {
-          this.busses[trackIndex].phaser[0].bypass = 0;
-        } else {
-          this.busses[trackIndex].phaser[0].bypass = 1;
-        } */
-        break;
-      case 'pan':
-        this.busses[trackIndex].pan.pan.value = -1 + (value / 127) * 2;
-        break;
-      default:
-    }
+    applyEffectGain(this.busses[trackIndex], value, type);
   }
 
   playDrums(
@@ -742,16 +738,16 @@ class AudioEngine {
         trillGain.gain.setValueAtTime(0, start);
         sf2Gain.connect(trillGain);
         finalGain = trillGain;
-        AudioEngine.makeTrill(trillGain, duration + volEndTime, start);
+        makeTrill(trillGain, duration + volEndTime, start);
       } else if (noteEffects.bendPresent) { // do not allow bend and vibrato at the same time
-        AudioEngine.makeBend(noteEffects.bendObj, source, duration, start, res.playBackRate);
+        makeBend(noteEffects.bendObj, source, duration, start, res.playBackRate);
       } else if (noteEffects.slide && nextFret != null) {
         source.playbackRate.setValueAtTime(source.playbackRate.value, start + duration * 0.8);
         source.playbackRate.exponentialRampToValueAtTime(source.playbackRate.value
           * 2 ** ((nextFret - fret) / 12), start + duration);
       } else if (noteEffects.vibrato) {
         // I do not want these effects to overlap during playback
-        AudioEngine.makeVibrato(source, duration, start);
+        makeVibrato(source, duration, start);
       }
     }
 
@@ -853,7 +849,7 @@ class AudioEngine {
     source.connect(gainNode);
     if (instr === 'disteguitar2') { // channel.distortion !== undefined){
       const waveShaper = this.context.createWaveShaper();
-      waveShaper.curve = AudioEngine.smoothDistortion(0.5); // 0, channel.distortion;
+      waveShaper.curve = smoothDistortion(0.5); // 0, channel.distortion;
       gainNode.gain.value *= 0.4; // PRE
       gainNode.connect(waveShaper);
       const postNode = this.context.createGain();
@@ -870,10 +866,10 @@ class AudioEngine {
     const isVibrato = (beat.effects != null && beat.effects.vibrato);
     if (noteEffects != null) {
       if (noteEffects.trillPresent) {
-        AudioEngine.makeTrill(gainNode, duration, startpoint);
+        makeTrill(gainNode, duration, startpoint);
       } else if (noteEffects.bendPresent && !isVibrato) {
         // do not allow bend and vibrato at the same time
-        AudioEngine.makeBend(noteEffects.bendObj, source, duration,
+        makeBend(noteEffects.bendObj, source, duration,
           startpoint, source.playbackRate.value);
       } else if (noteEffects.slide && nextNote !== -1) {
         source.playbackRate.setValueAtTime(source.playbackRate.value, startpoint + duration * 0.8);
@@ -882,7 +878,7 @@ class AudioEngine {
       }
     }
     if (isVibrato) {
-      AudioEngine.makeVibrato(source, duration, startpoint);
+      makeVibrato(source, duration, startpoint);
     }
 
     if (instr !== 'drums' && !Song.tracks[trackId].letItRing && (noteEffects == null || !noteEffects.letRing)) {
@@ -935,18 +931,7 @@ class AudioEngine {
   static generateCurve(
     base: number, FREQUENCY: number, SCALE: number, duration: number,
   ): Float32Array {
-    // Split the time into valueCount discrete steps.
-    const valueCount = 4096;
-    const values = new Float32Array(valueCount);
-    for (let i = 0; i < valueCount; i += 1) {
-      const percent = (i / valueCount) * duration * FREQUENCY;
-      values[i] = base + (Math.sin(percent * 2 * Math.PI) * SCALE);
-      // Set the last value to one, to restore playbackRate to normal at the end.
-      if (i === valueCount - 1) {
-        values[i] = 1;
-      }
-    }
-    return values;
+    return generateCurve(base, FREQUENCY, SCALE, duration);
   }
 
   static makeBend(
@@ -956,63 +941,25 @@ class AudioEngine {
     startpoint: number,
     playBackRate: number,
   ): void {
-    // TODO maybe curve
-    // sixties of the note duration /60
-    const lastTime = startpoint + duration * (bendObj[0].bendPosition / 60);
-    const pBrate = playBackRate * 2 ** ((bendObj[0].bendValue / 100) / 12);
-    source.playbackRate.setValueAtTime(pBrate, lastTime);
-
-    for (let i = 1; i < bendObj.length; i += 1) {
-      const newTime = startpoint + duration * (bendObj[i].bendPosition / 60);
-      const newValue = playBackRate * 2 ** ((bendObj[i].bendValue / 100) / 12);
-      source.playbackRate.exponentialRampToValueAtTime(newValue, newTime);
-    }
+    makeBend(bendObj, source, duration, startpoint, playBackRate);
   }
 
   static makeTrill(gainNode: GainNode, trillDuration: number, startpoint: number): void {
-    const FREQUENCY = (Song.bpm / 60) * 2;
-    const SCALE = 0.6;
-    const volume = gainNode.gain.value;
-    // Create a sinusoidal value curve.
-    const values = AudioEngine.generateCurve(volume, FREQUENCY, SCALE, trillDuration);
-    const trillDur = trillDuration !== -1 ? trillDuration : 3;
-    gainNode.gain.setValueCurveAtTime(values, startpoint, trillDur);
+    makeTrill(gainNode, trillDuration, startpoint);
   }
 
   static makeVibrato(
     source: AudioBufferSourceNode, vibratoDuration: number, startpoint: number,
   ): void {
-    const FREQUENCY = (Song.bpm / 60) * 2;
-    const SCALE = 0.01;
-    const playBackRate = source.playbackRate.value;
-    // Create a sinusoidal value curve.
-    const values = AudioEngine.generateCurve(playBackRate, FREQUENCY, SCALE, vibratoDuration);
-    const vibratoDur = (vibratoDuration !== -1) ? vibratoDuration : 3;
-    source.playbackRate.setValueCurveAtTime(values, startpoint, vibratoDur);
+    makeVibrato(source, vibratoDuration, startpoint);
   }
 
   static makeDistortion(distValue: number): Float32Array {
-    const nSamples = 44100;
-    const curve = new Float32Array(nSamples);
-    const deg = Math.PI / 180;
-
-    for (let i = 0; i < nSamples; i += 1) {
-      const x = (i * 2) / nSamples - 1;
-      curve[i] = (3 + distValue) * x * 57 * (deg / (Math.PI + distValue * Math.abs(x)));
-    }
-    return curve;
+    return makeDistortion(distValue);
   }
 
   static smoothDistortion(distAmount: number): Float32Array {
-    const nSamples = 44100;
-    const curve = new Float32Array(nSamples);
-    const amount = Math.min(distAmount, 0.9);
-    const k = (2 * amount) / (1 - amount);
-    for (let i = 0; i < nSamples; i += 1) {
-      const x = (i * 2) / nSamples - 1;
-      curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
-    }
-    return curve;
+    return smoothDistortion(distAmount);
   }
 }
 

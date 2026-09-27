@@ -1,7 +1,7 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Song } from '../songData';
 import { revertHandler } from '../revertHandler';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
 
 export class RepeatModalHandler extends BaseModalHandler {
@@ -76,7 +76,7 @@ export class RepeatModalHandler extends BaseModalHandler {
 
         if (!meta.repeatAlternativePresent) {
             meta.repeatAlternativePresent = true;
-            EventBus.emit("menu.activateEffectsForMarkedPos");
+            typedEventBus.emit("menu.activateEffectsForMarkedPos");
         }
 
         meta.repeatAlternative = this.calculateRepeatAlternative();
@@ -124,7 +124,7 @@ export class RepeatModalHandler extends BaseModalHandler {
           const repeatClosePresentBefore = Song.measureMeta[blockId].repeatClosePresent;
           if (!repeatClosePresentBefore) {
             Song.measureMeta[blockId].repeatClosePresent = true;
-            EventBus.emit("menu.activateEffectsForBlock")
+            typedEventBus.emit("menu.activateEffectsForBlock")
           }
           this.closeModal();
           const repeatCloseBefore = Song.measureMeta[blockId].repeatClose;

@@ -6,7 +6,7 @@ import Helper from './helper';
 import playBackLogic from './playBackLogicNew';
 import { tab } from './tab';
 import { sequencerHandler, SequencerHandler } from './sequencerHandler';
-import EventBus from './eventBus';
+import { typedEventBus } from '../../utils/typedEventBus';
 import { useTabStore } from '../../stores/tabStore';
 import { requestDurationRender } from '../../services/editor/renderCommands';
 import { buildLoopIntervalFromOverlays } from '../../services/playbackLoopController';
@@ -136,9 +136,9 @@ class OverlayHandler {
     this.setEndOverlay(trackId, blockId, voiceId, beatId);
     this.redrawOverlays();
     if (this.isNoteSelected()) {
-      EventBus.emit('menu.activateEffectsForMarkedPos');
+      typedEventBus.emit('menu.activateEffectsForMarkedPos');
     } else {
-      EventBus.emit('menu.disableNoteEffectButtons');
+      typedEventBus.emit('menu.disableNoteEffectButtons');
     }
   }
 

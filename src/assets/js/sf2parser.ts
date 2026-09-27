@@ -1631,10 +1631,28 @@ const sf2Parser = {
 
     xhr.addEventListener('load', (ev) => {
       /** @type {XMLHttpRequest} */
-      const xhrInner = ev.target;
-      if (xhrInner != null) {
-        this.onload(xhrInner.response);
+      const xhrInner = ev.target as XMLHttpRequest | null;
+      if (xhrInner == null) {
+        return;
       }
+      if (xhrInner.status < 200 || xhrInner.status >= 300) {
+        void import('../../services/userNotifications').then(({ showUserError }) => {
+          showUserError(`SoundFont missing (${xhrInner.status}). Place the SF2 under /audio/ — see DEPLOYMENT.md.`);
+        });
+        return;
+      }
+      if (!xhrInner.response || (xhrInner.response as ArrayBuffer).byteLength === 0) {
+        void import('../../services/userNotifications').then(({ showUserError }) => {
+          showUserError('SoundFont file was empty. Check /audio/ hosting for deploy.');
+        });
+        return;
+      }
+      this.onload(xhrInner.response);
+    }, false);
+    xhr.addEventListener('error', () => {
+      void import('../../services/userNotifications').then(({ showUserError }) => {
+        showUserError('Could not load SoundFont. Playback instruments may be silent.');
+      });
     }, false);
     xhr.send();
   },

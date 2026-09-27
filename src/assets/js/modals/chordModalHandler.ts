@@ -1,7 +1,6 @@
 import { BaseModalHandler } from './baseModalHandler';
-import { Chord, Note } from '../songData';
+import { Chord } from '../songData';
 import {
-  connectPoints,
   createCircle,
   createPath,
   createRect,
@@ -10,18 +9,15 @@ import {
 } from '../../../utils/svgPrimitives';
 import { Song, Measure } from '../songData';
 import Helper from '../helper';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import { ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
 import {
-    createChordDiagramElement,
     refreshChordDiagramsWithBlockFallback,
     requestChordDiagramRefresh,
 } from '../../../services/editor/chordDiagramAdapter';
-
-const trashCanIconSrc = new URL('../../images/trashCan.svg', import.meta.url).href;
 
 interface ChordModalState extends ModalState {
     chordModalData: {
@@ -455,7 +451,7 @@ export class ChordModalHandler extends BaseModalHandler {
             if (!Song.chordsMap[trackId].has(chordObj.name)) {
                 Song.chordsMap[trackId].set(chordObj.name, chordObj);
                 this.fillChordsPresets(trackId);
-                this.createChordManager(trackId);
+                typedEventBus.emit('render.chordDiagrams');
                 requestChordDiagramRefresh();
             }
         });
@@ -482,7 +478,7 @@ export class ChordModalHandler extends BaseModalHandler {
 
             if (!beat.chordPresent) {
                 beat.chordPresent = true;
-                EventBus.emit("menu.activateEffectsForBeat", beat);
+                typedEventBus.emit("menu.activateEffectsForBeat", beat);
             }
 
             chordObj.frets = this.computeFretsFromNotesAndCapo(
@@ -504,7 +500,7 @@ export class ChordModalHandler extends BaseModalHandler {
                     display: true,
                 });
                 this.fillChordsPresets(trackId);
-                this.createChordManager(trackId);
+                typedEventBus.emit('render.chordDiagrams');
                 refreshChordDiagramsWithBlockFallback(trackId, blockId, voiceId);
             } else {
                 requestBlockRender(trackId, blockId, voiceId);
@@ -527,74 +523,6 @@ export class ChordModalHandler extends BaseModalHandler {
 
     private computeFretsFromNotesAndCapo(notes: number[], capo: number): number[] {
         return notes.map(note => note === -1 ? -1 : note === 0 ? 0 : note + (capo - 1));
-    }
-
-    createChordManager(trackId: number) {
-        const container = document.getElementById('chordsContainer')!;
-        Helper.removeAllChildren(container);
-        
-        Array.from(Song.chordsMap[trackId].entries())
-            .forEach(([chordName, chord], index) => {
-                const chordBox = this.createChordBox(trackId, chordName, chord, index);
-                container.appendChild(chordBox);
-            });
-        document.getElementById('addChordDiagram')?.addEventListener('click', () => {
-            this.openChordModalGlobal(trackId);
-        });
-    }
-
-    openChordManager(trackId: number) {
-        this.createChordManager(trackId);
-        document.getElementById('chordDiagramSelectButton')!.onclick = null;
-        document.getElementById('chordDiagramSelectButton')!.onclick = () => {
-          requestChordDiagramRefresh();
-          this.closeModal();
-        };
-        this.showModal();
-    }
-
-    private createChordBox(trackId: number, chordName: string, chord: Chord, chordCounter: number): HTMLElement {
-        const box = document.createElement('div');
-        box.className = 'chordBox';
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('id', `chordOverview${chordCounter}`);
-        if (!chord.display) {
-          svg.classList.add('hideChord');
-        }
-        const chordDia = createChordDiagramElement(chord);
-        chordDia.setAttribute('transform', 'translate(20, 40)');
-        svg.appendChild(chordDia);
-        box.appendChild(svg);
-        const removeChord = document.createElement('div');
-        const removeImg = document.createElement('img');
-        removeImg.setAttribute('src', trashCanIconSrc);
-        removeChord.appendChild(removeImg);
-        removeChord.setAttribute('class', 'removeChord');
-        const displayChord = document.createElement('div');
-        displayChord.textContent = 'Hide';
-        displayChord.setAttribute('class', 'displayChord');
-        box.appendChild(displayChord);
-        box.appendChild(removeChord);
-
-  
-        const chordOvDom = document.getElementById(`chordOverview${chordCounter}`);
-        displayChord.addEventListener('click', () => {
-          if (!chord.display) {
-            displayChord.textContent = 'Hide';
-            chord.display = true;
-          } else {
-            displayChord.textContent = 'Show';
-            chord.display = false;
-          }
-          // console.log(`chordOverview${chordCounter}`);
-          chordOvDom?.classList.toggle('hideChord');
-        });
-  
-        removeChord.addEventListener('click', () => {
-          Song.chordsMap[trackId].delete(chordName);
-          this.createChordManager(trackId);
-        });
-        return box;
     }
 
     public getChordRoot(): string {

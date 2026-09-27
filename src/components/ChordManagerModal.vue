@@ -34,8 +34,9 @@
             height="120"
             viewBox="0 0 100 120"
             :data-chord-name="name"
-            :ref="(element) => registerChordDiagram(name, element)"
-          ></svg>
+          >
+            <ChordThumbnail :chord="chord" />
+          </svg>
           <div class="chord-actions">
             <button
               type="button"
@@ -83,59 +84,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
+import ChordThumbnail from './ChordThumbnail.vue'
 import { MODALS } from '../assets/js/modals/modalTypes'
 import { modalManager } from '../assets/js/modals/modalManager'
 import { ChordManagerModalHandler } from '../assets/js/modals/chordManagerModalHandler'
 import { Song } from '../assets/js/songData'
 import { notifySongDataChanged } from '../services/appEvents'
-import { createChordDiagramSvg } from '../services/editor/chordDiagramSvg'
 import { typedEventBus } from '../utils/typedEventBus'
 import type { Chord } from '../types/tab'
 
 const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler
 const chords = ref<Map<string, Chord>>(new Map())
-const diagramElements = ref<Map<string, SVGSVGElement>>(new Map())
 
 const chordEntries = computed(() => [...chords.value.entries()].sort(([left], [right]) => left.localeCompare(right)))
-
-function registerChordDiagram(name: string, element: Element | { $el?: Element } | null) {
-  if (element instanceof SVGSVGElement) {
-    diagramElements.value.set(name, element)
-    return
-  }
-
-  diagramElements.value.delete(name)
-}
-
-function drawChordDiagram(svg: SVGSVGElement, chord: Chord) {
-  while (svg.firstChild) {
-    svg.removeChild(svg.firstChild)
-  }
-
-  const diagram = createChordDiagramSvg(chord)
-  diagram.setAttribute('transform', 'translate(12, 22) scale(0.95)')
-  svg.appendChild(diagram)
-}
-
-async function updateChordDiagrams() {
-  await nextTick()
-
-  for (const [name, chord] of chordEntries.value) {
-    const svg = diagramElements.value.get(name)
-    if (svg) {
-      drawChordDiagram(svg, chord)
-    }
-  }
-}
 
 function reloadChords() {
   const trackId = handler.getTrackId()
   const trackChords = Song.chordsMap[trackId]
   chords.value = trackChords ? new Map(trackChords) : new Map()
-  void updateChordDiagrams()
 }
 
 function notifyChordChange() {
@@ -178,10 +147,6 @@ onMounted(() => {
   typedEventBus.on('song-data-changed', reloadChords)
   typedEventBus.on('render.chordDiagrams', reloadChords)
 })
-
-watch(chordEntries, () => {
-  void updateChordDiagrams()
-}, { flush: 'post' })
 
 onUnmounted(() => {
   typedEventBus.off('song-data-changed', reloadChords)

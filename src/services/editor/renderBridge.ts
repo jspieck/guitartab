@@ -103,8 +103,13 @@ const renderBridge = {
   },
 
   getPositionInRow(trackId: number, voiceId: number, blockId: number, beatId: number): number {
-    return getBeatPositionInRow(trackId, voiceId, blockId, beatId)
-      ?? (Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + this.getBlockX(trackId, voiceId, blockId))
+    const layoutPosition = getBeatPositionInRow(trackId, voiceId, blockId, beatId)
+    if (layoutPosition != null) {
+      return layoutPosition
+    }
+
+    // Fallback: Helper.getBeatPosX is block-local; add measure origin for row X.
+    return Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + this.getBlockX(trackId, voiceId, blockId)
   },
 
   setPlaybackBarObject(object: SVGGElement | null) {

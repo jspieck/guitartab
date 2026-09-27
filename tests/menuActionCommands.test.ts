@@ -26,8 +26,8 @@ vi.mock('../src/assets/js/tab', () => ({
   },
 }))
 
-vi.mock('../src/assets/js/eventBus', () => ({
-  default: {
+vi.mock('../src/utils/typedEventBus', () => ({
+  typedEventBus: {
     emit: vi.fn(),
   },
 }))
@@ -39,7 +39,7 @@ describe('menuActionCommands', () => {
   })
 
   it('applies a note-length change and requests menu resync', async () => {
-    const EventBus = (await import('../src/assets/js/eventBus')).default
+    const { typedEventBus } = await import('../src/utils/typedEventBus')
     const AppManager = (await import('../src/assets/js/appManager')).default
 
     const applied = applyNoteLengthSelection('q')
@@ -47,7 +47,7 @@ describe('menuActionCommands', () => {
     expect(applied).toBe(true)
     expect(changeNoteDuration).toHaveBeenCalledWith(0, 1, 0, 2, 3, 'q', false)
     expect(AppManager.typeOfNote).toBe('q')
-    expect(EventBus.emit).toHaveBeenCalledWith('menu.activateEffectsForMarkedPos')
+    expect(typedEventBus.emit).toHaveBeenCalledWith('menu.activateEffectsForMarkedPos')
   })
 
   it('returns false when no marked note is available', async () => {

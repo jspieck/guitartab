@@ -1,7 +1,7 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
 import { revertHandler } from '../revertHandler';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { MODALS } from './modalTypes';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
 
@@ -60,7 +60,7 @@ export class RepetitionModalHandler extends BaseModalHandler {
         
         if (!repeatClosePresentBefore) {
             meta.repeatClosePresent = true;
-            EventBus.emit("menu.activateEffectsForBlock");
+            typedEventBus.emit("menu.activateEffectsForBlock");
         }
         
         const repeatCloseBefore = meta.repeatClose;

@@ -1,7 +1,7 @@
 import Song, { Measure, Note } from './songData';
 import { tab } from './tab';
 import AppManager from './appManager';
-import EventBus from './eventBus';
+import { typedEventBus } from '../../utils/typedEventBus';
 import Settings from './settingManager';
 import { applyNoteLengthSelection } from '../../services/menuActionCommands';
 import type { NoteLengthCode } from '../../types/tab';
@@ -42,7 +42,7 @@ function getMeasureMeta(blockId: number) {
 }
 
 function requestMenuResync() {
-  EventBus.emit('menu.activateEffectsForMarkedPos');
+  typedEventBus.emit('menu.activateEffectsForMarkedPos');
 }
 
 class MenuHandler {
@@ -88,7 +88,7 @@ class MenuHandler {
   }
 
   public disableNoteEffectButtons() {
-    EventBus.emit('menu.disableNoteEffectButtons');
+    typedEventBus.emit('menu.disableNoteEffectButtons');
   }
 
   public deactivateAllEffects() {

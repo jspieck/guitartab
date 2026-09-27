@@ -1,6 +1,6 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import { MODALS } from './modalTypes';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
@@ -95,7 +95,7 @@ export class TempoModalHandler extends BaseModalHandler {
         
         if (!bpmPresent) {
             Song.measureMeta[blockId].bpmPresent = true;
-            EventBus.emit("menu.activateEffectsForBlock");
+            typedEventBus.emit("menu.activateEffectsForBlock");
         }
 
         const bpmBefore = Song.measureMeta[blockId].bpm;

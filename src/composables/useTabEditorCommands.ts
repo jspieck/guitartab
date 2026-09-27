@@ -6,7 +6,6 @@ import editorCore from '../services/editor/editorCore'
 import type {
   SelectedNoteState,
   TabClipboardData,
-  TabNoteData,
 } from '../types/tab'
 
 interface UseTabEditorCommandsOptions {

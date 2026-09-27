@@ -392,10 +392,16 @@ body {
     height: 25px;
     line-height: 25px;
     text-align: center;
-    background: #9dd39d;
     background: #5ed490;
     border-radius: 6px;
     color: white;
+    max-width: min(420px, calc(100vw - 120px));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#notificationEmblem.notification-error{
+    background: #d45e5e;
 }
 #infoNotification{
     width: 15px;

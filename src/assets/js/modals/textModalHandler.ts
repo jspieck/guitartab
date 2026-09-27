@@ -1,7 +1,7 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Measure } from '../songData';
 import { revertHandler } from '../revertHandler';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import fastdom from 'fastdom';
 import { MODALS } from './modalTypes';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
@@ -69,7 +69,7 @@ export class TextModalHandler extends BaseModalHandler {
 
             if (!beat.textPresent) {
                 beat.textPresent = true;
-                EventBus.emit("menu.activateEffectsForBeat", beat);
+                typedEventBus.emit("menu.activateEffectsForBeat", beat);
             }
 
             beat.text = text;

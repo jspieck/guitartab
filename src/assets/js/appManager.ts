@@ -6,9 +6,8 @@ import {
   Song, PlayBackInstrument, Note,
 } from './songData';
 import { modalManager } from './modals/modalManager';
-import EventBus from "./eventBus";
-import { notifySongDataChanged } from '../../services/appEvents';
 import { typedEventBus } from '../../utils/typedEventBus';
+import { notifySongDataChanged } from '../../services/appEvents';
 import { visualInstruments } from './visualInstruments';
 import midiEngine from './midiReceiver';
 import playBackLogic from './playBackLogicNew';
@@ -49,7 +48,7 @@ const AppManager = {
     playBackLogic.resetPlayBack();
   },
 
-  showNotification(text: string) {
+  showNotification(text: string, kind: 'info' | 'error' = 'info') {
     const notificationLabel = document.getElementById('notificationLabel');
     if (notificationLabel) {
       notificationLabel.textContent = text;
@@ -57,21 +56,22 @@ const AppManager = {
     if (this.notificationTimeOut != null) {
       clearTimeout(this.notificationTimeOut);
     }
-    // Fade-in and fade-out
-    let notificationEmblem = document.getElementById('notificationEmblem');
+    const notificationEmblem = document.getElementById('notificationEmblem');
     if (notificationEmblem) {
+      notificationEmblem.classList.toggle('notification-error', kind === 'error');
       notificationEmblem.style.opacity = '0';
       notificationEmblem.style.transition = 'opacity 0.5s';
       notificationEmblem.style.display = 'block';
       setTimeout(() => {
-        notificationEmblem!.style.opacity = '1';
+        notificationEmblem.style.opacity = '1';
       }, 0);
       this.notificationTimeOut = setTimeout(() => {
-        notificationEmblem!.style.opacity = '0';
+        notificationEmblem.style.opacity = '0';
         setTimeout(() => {
-          notificationEmblem!.style.display = 'none';
+          notificationEmblem.style.display = 'none';
+          notificationEmblem.classList.remove('notification-error');
         }, 500);
-      }, 5000);
+      }, kind === 'error' ? 8000 : 5000);
     }
   },
 
@@ -167,7 +167,7 @@ const AppManager = {
           typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
         }
         notifySongDataChanged();
-        EventBus.emit("menu.activateEffectsForPos", {trackId, blockId, voiceId, beatId, string});
+        typedEventBus.emit("menu.activateEffectsForPos", {trackId, blockId, voiceId, beatId, string});
       }
     });
     // left = 37, up = 38, right = 39, down = 40

@@ -1,15 +1,21 @@
-import fastdom from 'fastdom';
 import Song, { Measure } from './songData';
 import { sequencerHandler } from './sequencerHandler';
 import { TAB_SHEET, getAvailableRowWidth } from '../../utils/tabSheetConstants';
 import { recomputeTrackLayoutFromSong } from '../../services/editor/measureLayoutEngine';
-import { requestDurationRender } from '../../services/editor/renderCommands';
 import { changeNoteDuration as changeNoteDurationCommand } from '../../services/editor/durationCommands';
 import {
   addNoteToBlock as addNoteToBlockCommand,
   deleteNote as deleteNoteCommand,
   tupletOnlyRests as tupletOnlyRestsCommand,
 } from '../../services/editor/noteCommands';
+import {
+  addBlock as addBlockCommand,
+  removeBlock as removeBlockCommand,
+  addTakt as addTaktCommand,
+  createTakte as createTakteCommand,
+  createNewTrack as createNewTrackCommand,
+  initEmptyTab as initEmptyTabCommand,
+} from '../../services/editor/measureStructureCommands';
 import { revertHandler } from './revertHandler';
 import AppManager from './appManager';
 import Duration from './duration';
@@ -18,10 +24,9 @@ import Settings from './settingManager';
 import { classicalNotation } from '../../services/editor/classicalNotationAdapter';
 import { overlayHandler } from './overlayHandler';
 import { invalidateTrackLayout } from '../../services/editor/layoutInvalidation';
-import EventBus from './eventBus';
+import { typedEventBus } from '../../utils/typedEventBus';
 import { menuHandler } from './menuHandler';
 import { changeBeatDurationViaReplacer } from './durationReplacerAdapter';
-import { typedEventBus } from '../../utils/typedEventBus';
 
 class Tab {
   currentZoom: number;
@@ -104,70 +109,15 @@ class Tab {
   }
 
   addBlock(duringRestoration: boolean) {
-    if (AppManager.duringTrackCreation) {
-      return;
-    }
-    const blockId = Song.numMeasures;
-    for (let trackId = 0; trackId < Song.tracks.length; trackId += 1) {
-      for (let voiceId = 0; voiceId < Song.numVoices; voiceId += 1) {
-        this.addTakt(trackId, blockId, voiceId);
-        Song.initEmptyMeasure(trackId, blockId, voiceId);
-        this.fillMeasure(trackId, blockId, voiceId);
-        requestDurationRender(trackId, blockId, voiceId);
-      }
-    }
-    Song.measureMeta[blockId].numerator = Song.measureMeta[blockId - 1].numerator;
-    Song.measureMeta[blockId].denominator = Song.measureMeta[blockId - 1].denominator;
-    Song.numMeasures += 1;
-    this.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    sequencerHandler.redrawSequencerMain();
-    if (duringRestoration === false) {
-      revertHandler.addBlock();
-    }
+    addBlockCommand(this, duringRestoration);
   }
 
   removeBlock(duringRestoration: boolean) {
-    if (AppManager.duringTrackCreation) {
-      return;
-    }
-    fastdom.mutate(() => {
-      if (Song.numMeasures <= 1) return;
-      const blocksBefore: Measure[][][] = [];
-      Song.numMeasures -= 1;
-      if (this.markedNoteObj != null) {
-        if (this.markedNoteObj.blockId === Song.numMeasures) {
-          this.markedNoteObj.blockId -= 1;
-          this.markedNoteObj.beatId = 0;
-        }
-      }
-      for (let i = 0; i < Song.measures.length; i += 1) {
-        blocksBefore.push(Song.measures[i].splice(-1)[0]);
-      }
-      const measureMetaBefore = Song.measureMeta.splice(-1)[0];
-      this.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-      sequencerHandler.redrawSequencerMain();
-      if (duringRestoration === false) {
-        revertHandler.removeBlock(blocksBefore, measureMetaBefore);
-      }
-    });
+    removeBlockCommand(this, duringRestoration);
   }
 
   addTakt(trackId: number, blockId: number, voiceId: number) {
-    if (this.measureOffset[trackId] == null) {
-      this.measureOffset[trackId] = [];
-    }
-    if (this.measureOffset[trackId][blockId] == null) {
-      this.measureOffset[trackId][blockId] = [];
-    }
-    // Default value, will be overwritten on change - ensure it's a valid number
-    const defaultOffset = 20;
-    this.measureOffset[trackId][blockId][voiceId] = defaultOffset;
-    
-    // Verify the value is finite
-    if (!isFinite(this.measureOffset[trackId][blockId][voiceId])) {
-      console.warn(`Setting invalid measureOffset, using default: ${defaultOffset}`);
-      this.measureOffset[trackId][blockId][voiceId] = defaultOffset;
-    }
+    addTaktCommand(this, trackId, blockId, voiceId);
   }
 
   /**
@@ -175,67 +125,18 @@ class Tab {
    * @param  {int} trackId [description]
   */
   createTakte(trackId: number, voiceId: number) {
-    if (this.measureOffset[trackId] == null) {
-      this.measureOffset[trackId] = [];
-    }
-    for (let i = 0; i < Song.numMeasures; i += 1) {
-      this.addTakt(trackId, i, voiceId);
-    }
+    createTakteCommand(this, trackId, voiceId);
   }
 
   createNewTrack(
     trackId: number,
     instrObj: {name: string, channel: number, numStrings: number, strings: number[]},
   ) {
-    let channelId = (trackId >= 9) ? trackId + 1 : trackId;
-    if (instrObj.name === 'Drums') {
-      channelId = 9;
-    }
-    Song.allChannels[channelId] = {
-      cInstrument: instrObj.channel,
-      volume: 127,
-      balance: 63,
-      chorus: 0,
-      reverb: 0,
-      phaser: 0,
-      tremolo: 0,
-    };
-    Song.tracks[trackId] = {
-      numStrings: instrObj.numStrings,
-      strings: instrObj.strings,
-      capo: 0,
-      volume: 127,
-      balance: 63,
-      reverb: 0,
-      name: instrObj.name,
-      color: { red: 0, blue: 127, green: 0 },
-      channel: { index: channelId, effectChannel: 0 },
-      program: 0,
-      primaryChannel: 0,
-      letItRing: false,
-    };
-
-    Song.measures[trackId] = [];
-    Song.measureMoveHelper[trackId] = [];
-
-    for (let i = 0; i < Song.numMeasures; i += 1) {
-      for (let j = 0; j < Song.numVoices; j += 1) {
-        Song.initEmptyMeasure(trackId, i, j);
-      }
-    }
-    this.createTakte(trackId, 0);
-    AppManager.setTracks(trackId);
+    createNewTrackCommand(this, trackId, instrObj);
   }
 
   static initEmptyTab() {
-    Song.measureMoveHelper.length = 0;
-    Song.measureMoveHelper[0] = [];
-
-    for (let i = 0; i < Song.numMeasures; i += 1) {
-      for (let j = 0; j < Song.numVoices; j += 1) {
-        Song.initEmptyMeasure(0, i, j);
-      }
-    }
+    initEmptyTabCommand();
   }
 
   toggleDinA4Layout() {
@@ -274,7 +175,7 @@ class Tab {
 
     // only draw when current track is visible
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-      EventBus.emit('menu.activateEffectsForMarkedPos');
+      typedEventBus.emit('menu.activateEffectsForMarkedPos');
     }
     if (redrawSequencer) {
       sequencerHandler.redrawSequencerMain();

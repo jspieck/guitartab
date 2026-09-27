@@ -244,6 +244,11 @@ class Helper {
     return leftOFF + indexX * measureOffset;
   }
 
+  /**
+   * Block-local X of a beat within its measure (not row-absolute).
+   * Prefer `getBeatPositionInRow` / `getMeasureBeatX` for new code.
+   * When layout state exists this returns `beatPositions[beatId]`.
+   */
   static getBeatPosX(trackId: number, blockId: number, voiceId: number, beatId: number): number {
     const renderPosition = getBeatRenderPosition(trackId, voiceId, blockId, beatId);
     if (renderPosition != null && isFinite(renderPosition)) {

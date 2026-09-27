@@ -427,7 +427,7 @@ function openCloudSongsModal() {
 }
 
 function handleCreatePdf() {
-    AppManager.showNotification('PDF export is not available in the Vue renderer yet.');
+    void import('../services/pdfExport').then(({ exportTabAsPdf }) => exportTabAsPdf())
 }
 
 const handleActivateEffectsForMarkedBeat = () => {

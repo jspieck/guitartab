@@ -51,7 +51,6 @@ vi.mock('../src/assets/js/tab', () => {
   }
 })
 
-import EventBus from '../src/assets/js/eventBus'
 import playBackLogic from '../src/assets/js/playBackLogicNew'
 import Song, {
   type MeasureMetaInfo,
@@ -66,7 +65,6 @@ import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/u
 import { useTabSelection } from '../src/composables/useTabSelection'
 import { useTabSelectionBridge } from '../src/composables/useTabSelectionBridge'
 import editorCore from '../src/services/editor/editorCore'
-import { ensureSongDataEventBridge } from '../src/services/songDataEventBridge'
 import { typedEventBus } from '../src/utils/typedEventBus'
 
 function cloneValue<T>(value: T): T {
@@ -163,8 +161,7 @@ afterEach(() => {
 
 describe('editorCore bridge', () => {
   it('creates and removes notes through editorCore', () => {
-    ensureSongDataEventBridge()
-    const emitSpy = vi.spyOn(EventBus, 'emit')
+    const emitSpy = vi.spyOn(typedEventBus, 'emit')
 
     editorCore.setNoteAtPosition(0, 0, 0, 0, 2, 5)
 
@@ -265,7 +262,7 @@ describe('useTabSelection', () => {
 
     const { currentSelection, selectedNote, setSelection } = useTabSelection()
     const unregisterBridge = useTabSelectionBridge(setSelection).registerNavigationSelectionBridge()
-    const emitSpy = vi.spyOn(EventBus, 'emit')
+    const emitSpy = vi.spyOn(typedEventBus, 'emit')
 
     typedEventBus.emit('navigation.setClickedPos', {
       trackId: 0,

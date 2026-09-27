@@ -1,7 +1,6 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import Settings from '../assets/js/settingManager'
 import { classicalNotation } from '../services/editor/classicalNotationAdapter'
-import { classicalNotationLayoutState } from '../stores/classicalNotationLayoutState'
 import { typedEventBus } from '../utils/typedEventBus'
 
 export function useClassicalNotation(trackId: number, voiceId: number) {
@@ -77,11 +76,7 @@ export function useClassicalNotation(trackId: number, voiceId: number) {
     syncActiveState()
     typedEventBus.on('classical-notation-changed', handleClassicalNotationChanged)
     if (Settings.vexFlowIsActive) {
-      void classicalNotation.preload().then(() => {
-        classicalNotation.computeVexFlowDataStructures(trackId, voiceId)
-        classicalNotationLayoutState.version += 1
-        return scheduleRedrawRows()
-      })
+      void classicalNotation.ensurePrepared(trackId, voiceId).then(() => scheduleRedrawRows())
     }
   })
 

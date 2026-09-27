@@ -1,4 +1,5 @@
 export type { BeatLocation } from './tab'
+import type { BeatLocation } from './tab'
 
 export interface PlaybackInterpolationInput {
   jumpToNewPos: boolean

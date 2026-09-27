@@ -1,52 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-vi.mock('vanilla-picker', () => ({
-  default: class PickerMock {},
-}))
-
-vi.mock('../src/assets/js/audioEngine', () => ({
-  audioEngine: {
-    getCurrentTime: () => 0,
-    setEffectGain: () => {},
-  },
-}))
-
-vi.mock('../src/assets/js/playBackLogicNew', () => ({
-  default: {
-    setPlayPosition: vi.fn(),
-    getCurrentBlock: () => 0,
-    currentBlockPP: 0,
-  },
-}))
-
-vi.mock('../src/assets/js/midiReceiver', () => ({
-  default: {
-    isRecording: false,
-    midiToNote: vi.fn(),
-  },
-}))
-
-vi.mock('../src/assets/js/modals/modalManager', () => ({
-  modalManager: {
-    toggleByModal: vi.fn(),
-    toggleModal: vi.fn(),
-    getHandler: vi.fn(),
-  },
-}))
-
-vi.mock('../src/assets/js/appManager', () => ({
-  default: {
-    duringTrackCreation: false,
-    typeOfNote: 'e',
-    changeTrack: vi.fn(),
-    checkAndAdaptTimeMeter: vi.fn(),
-  },
-}))
-
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
 import { recomputeTrackLayoutFromSong } from '../src/services/editor/measureLayoutEngine'
-import { getMeasureBeatX, getMeasureBeatWidth } from '../src/utils/measureBeatLayout'
+import { getMeasureBeatWidth, getMeasureBeatX } from '../src/utils/measureBeatLayout'
 import { getBlockRenderLayout } from '../src/composables/useTabRenderLayout'
 
 const TRACK_ID = 0

@@ -125,7 +125,7 @@ interface Note {
   element: number,
   octave: number,
   tone: number,
-  [a: string]: any
+  [a: string]: unknown
 }
 
 interface Chord {

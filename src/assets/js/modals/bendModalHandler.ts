@@ -2,16 +2,13 @@ import { BaseModalHandler } from './baseModalHandler';
 import { Note, Measure } from '../songData';
 import {
   connectPoints,
-  createPath,
-  createRect,
-  createText,
   drawPoint,
 } from '../../../utils/svgPrimitives';
 import Helper from '../helper';
 import fastdom from 'fastdom';
 import menuHandler from '../menuHandler';
 import { revertHandler } from '../revertHandler';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { Song } from '../songData';
 import { tab } from '../tab';
 import { MODALS } from './modalTypes';
@@ -66,9 +63,21 @@ export class BendModalHandler extends BaseModalHandler {
     };
     private isVariableSet: boolean = false;
     private bendPresentBefore: { [a: string]: boolean } = {};
+    private pointsLayer: SVGGElement | null = null;
 
     constructor() {
         super(MODALS.BEND.id, MODALS.BEND.name);
+    }
+
+    /** Vue owns the grid; interactive points/lines go in this layer. */
+    setPointsLayer(layer: SVGGElement) {
+        this.pointsLayer = layer;
+    }
+
+    private getPointsTarget(): SVGElement {
+        return this.pointsLayer
+          ?? (document.querySelector('#bendEditor .bend-points') as SVGGElement | null)
+          ?? (document.getElementById('bendEditor') as unknown as SVGElement);
     }
 
     openModal(params: BendModalParams) {
@@ -120,7 +129,7 @@ export class BendModalHandler extends BaseModalHandler {
         });
     }
 
-    private handleBendEditorClick(paddingTop: number, paddingLeft: number, width: number, height: number, bendEditor: HTMLElement) {
+    private handleBendEditorClick(paddingTop: number, paddingLeft: number, width: number, height: number, _bendEditor: HTMLElement) {
         const xPos = Math.min(Math.max(this.mouseOffsetX - paddingLeft, 0), width);
         const yPos = Math.min(Math.max(this.mouseOffsetY - paddingTop, 0), height);
         const oneXPort = width / this.editorProps.HORIZONTAL_STEPS;
@@ -141,10 +150,10 @@ export class BendModalHandler extends BaseModalHandler {
         }
         if (!samePoint) {
             const point = drawPoint(xNearest, yNearest, paddingTop,
-                paddingLeft, 7, bendEditor as unknown as SVGElement, '');
+                paddingLeft, 7, this.getPointsTarget(), '');
             this.editorProps.pointsOnLine[xIndex] = [point, this.editorProps.VERTICAL_STEPS - yIndex, xIndex];
         }
-        this.connectAllBendPoints(bendEditor as unknown as SVGElement);
+        this.connectAllBendPoints(this.getPointsTarget());
     }
 
     private setupBendSelectionListener(paddingTop: number, paddingLeft: number, width: number, height: number) {
@@ -202,8 +211,7 @@ export class BendModalHandler extends BaseModalHandler {
         height: number,
     ) {
         fastdom.mutate(() => {
-            const bendEditor = document.getElementById('bendEditor')!;
-            this.setupBendEditor(bendEditor, paddingTop, paddingLeft, width, height);
+            this.setupBendEditor();
 
             const { note } = arr.notes[0];
             if (note.bendObj == null) {
@@ -216,95 +224,15 @@ export class BendModalHandler extends BaseModalHandler {
                 this.applyBendPreset(0, paddingTop, paddingLeft, width, height, preset);
             }
 
-            this.connectAllBendPoints(bendEditor as unknown as SVGElement);
+            this.connectAllBendPoints(this.getPointsTarget());
         });
     }
 
-    private setupBendEditor(
-        bendEditor: HTMLElement,
-        paddingTop: number,
-        paddingLeft: number,
-        width: number,
-        height: number
-    ) {
-        Helper.removeAllChildren(bendEditor);
+    private setupBendEditor() {
+        const layer = this.getPointsTarget();
+        Helper.removeAllChildren(layer);
         this.editorProps.bendPointsArr = [];
-
-        // Setup basic elements
-        const rect = createRect(paddingLeft, paddingTop, width, height, '', '1', '');
-        bendEditor.appendChild(rect);
-
-        // Add axis labels
-        this.drawAxisLabels(bendEditor, height, paddingTop);
-
-        // Draw grid
-        this.drawGrid(bendEditor, width, height, paddingTop, paddingLeft);
-
-        // Initialize points array
         this.editorProps.pointsOnLine = new Array(this.editorProps.HORIZONTAL_STEPS + 1).fill(null);
-    }
-
-    private drawAxisLabels(bendEditor: HTMLElement, height: number, paddingTop: number) {
-        const labels = [
-            { text: '0', y: height + paddingTop },
-            { text: 'Half', y: (height * 2) / 3 + paddingTop },
-            { text: 'Full', y: paddingTop + height / 3 },
-            { text: '1.5', y: paddingTop }
-        ];
-
-        labels.forEach(label => {
-            bendEditor.appendChild(
-                createText(0, label.y, label.text, '12px', '')
-            );
-        });
-    }
-
-    private drawGrid(
-        bendEditor: HTMLElement,
-        width: number,
-        height: number,
-        paddingTop: number,
-        paddingLeft: number
-    ) {
-        // Draw vertical lines
-        this.drawVerticalGridLines(bendEditor, width, height, paddingTop, paddingLeft);
-        // Draw horizontal lines
-        this.drawHorizontalGridLines(bendEditor, width, height, paddingTop, paddingLeft);
-    }
-
-    private drawVerticalGridLines(bendEditor: HTMLElement, width: number, height: number, paddingTop: number, paddingLeft: number) {
-        for (let i = 0; i < this.editorProps.HORIZONTAL_STEPS - 1; i += 1) {
-            const xPos = (width / this.editorProps.HORIZONTAL_STEPS) * (i + 1) + paddingLeft;
-            const pathStr = `M${xPos} ${paddingTop}L${xPos} ${height + paddingTop}`;
-            let stroke = '#4a4a4a';
-            if ((i + 1) % 3 !== 0) stroke = '#d6d6d6';
-            const pathEl = createPath(pathStr, stroke, '1', 'none');
-            if ((i + 1) % 3 !== 0) {
-                pathEl.setAttribute('class', 'gridLine');
-            } else {
-                pathEl.setAttribute('class', 'strongGridLine');
-            }
-            bendEditor?.appendChild(pathEl);
-        }
-    }
-
-    private drawHorizontalGridLines(bendEditor: HTMLElement, width: number, height: number, paddingTop: number, paddingLeft: number) {
-        for (let i = 0; i < this.editorProps.VERTICAL_STEPS - 1; i += 1) {
-            const yPos = (height / this.editorProps.VERTICAL_STEPS) * (i + 1) + paddingTop;
-            const pathStr = `M${paddingLeft} ${yPos}L${width + paddingLeft} ${yPos}`;
-            let stroke = '#4a4a4a';
-            if ((i + 1) % 4 !== 0) {
-                stroke = '#d6d6d6';
-            }
-            const pathEl = createPath(pathStr, stroke, '1', 'none');
-            if ((i + 1) % 4 !== 0) {
-                pathEl.setAttribute('strokeDasharray', '5, 5');
-                pathEl.setAttribute('class', 'gridLine');
-            } else {
-                pathEl.setAttribute('class', 'strongGridLine');
-            }
-            bendEditor?.appendChild(pathEl);
-        }
     }
 
     private applyBendPreset(
@@ -329,13 +257,12 @@ export class BendModalHandler extends BaseModalHandler {
             [{ x: 0, y: 4 }, { x: 12, y: 4 }],
             [{ x: 0, y: 4 }, { x: 4, y: 4 }, { x: 8, y: 0 }, { x: 12, y: 0 }],
         ];
-        const bendEditor = document.getElementById('bendEditor')! as unknown as SVGElement;
+        const bendEditor = this.getPointsTarget();
 
         let bendPreset = bendPresets[index];
         if (preset != null && preset.length > 0) {
             bendPreset = preset;
         }
-        console.log('Bend Preset', bendPreset);
         for (let i = 0; i < bendPreset.length; i += 1) {
             const xVal = bendPreset[i].x;
             const yVal = bendPreset[i].y; // 0,0 is at the upper-left
@@ -346,14 +273,14 @@ export class BendModalHandler extends BaseModalHandler {
                     paddingTop,
                     paddingLeft,
                     7,
-                    bendEditor as unknown as SVGElement,
+                    bendEditor,
                     '',
                 ),
                 yVal,
                 xVal,
             ];
         }
-        this.connectAllBendPoints(bendEditor as unknown as SVGElement);
+        this.connectAllBendPoints(bendEditor);
     }
 
     private connectAllBendPoints(svgElem: SVGElement) {
@@ -381,8 +308,8 @@ export class BendModalHandler extends BaseModalHandler {
         }
     }
 
-    private createBendObjects() {
-        const bendObjs = [];
+    private createBendObjects(): { bendPosition: number, bendValue: number, vibrato: number }[] {
+        const bendObjs: { bendPosition: number, bendValue: number, vibrato: number }[] = [];
         for (let i = 0; i < this.editorProps.pointsOnLine.length; i += 1) {
             const currentPoint = this.editorProps.pointsOnLine[i];
             if (currentPoint != null) {
@@ -396,7 +323,10 @@ export class BendModalHandler extends BaseModalHandler {
         return bendObjs;
     }
 
-    private applyBendToNotes(bendObjs: any[], notesBefore: any) {
+    private applyBendToNotes(
+        bendObjs: { bendPosition: number, bendValue: number, vibrato: number }[],
+        notesBefore: { [noteKey: string]: { [effect: string]: boolean } },
+    ) {
         if (!this.currentNotes) return;
 
         for (const no of this.currentNotes.notes) {
@@ -412,7 +342,7 @@ export class BendModalHandler extends BaseModalHandler {
             if (!note.bendPresent) {
                 note.bendPresent = true;
                 if (tab.markedNoteObj.blockId === blockId && tab.markedNoteObj.beatId === beatId) {
-                    EventBus.emit("menu.activateEffectsForNote", note);
+                    typedEventBus.emit("menu.activateEffectsForNote", note);
                 }
             }
 
@@ -422,8 +352,8 @@ export class BendModalHandler extends BaseModalHandler {
                 trackId, blockId, voiceId, beatId, string,
                 bendBefore, note.bendObj,
                 this.bendPresentBefore[noteStr], note.bendPresent,
-                notesBefore[noteStr]
+                notesBefore[noteStr] ?? {},
             );
         }
     }
-} 
+}

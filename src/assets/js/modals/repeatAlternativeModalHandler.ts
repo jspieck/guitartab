@@ -1,7 +1,7 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
 import { revertHandler } from '../revertHandler';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { MODALS } from './modalTypes';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
 
@@ -65,7 +65,7 @@ export class RepeatAlternativeModalHandler extends BaseModalHandler {
 
         if (!meta.repeatAlternativePresent) {
             meta.repeatAlternativePresent = true;
-            EventBus.emit("menu.activateEffectsForMarkedPos");
+            typedEventBus.emit("menu.activateEffectsForMarkedPos");
         }
 
         meta.repeatAlternative = this.calculateRepeatAlternative();

@@ -2,7 +2,7 @@ import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Measure } from '../songData';
 import { revertHandler } from '../revertHandler';
 import { classicalNotation } from '../../../services/editor/classicalNotationAdapter';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { MODALS } from './modalTypes';
 import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
@@ -122,7 +122,7 @@ export class GraceModalHandler extends BaseModalHandler {
 
             if (!noteInArr.gracePresent) {
                 noteInArr.gracePresent = true;
-                EventBus.emit("menu.activateEffectsForNote", noteInArr);
+                typedEventBus.emit("menu.activateEffectsForNote", noteInArr);
             }
 
             const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;

@@ -29,8 +29,7 @@ class Gp3Reader {
     const numTracks = gProReader.readInt();
     
     if (numMeasures > 10000 || numTracks > 100 || numMeasures === 0) {
-      console.error(`Invalid GP3 header: NM=${numMeasures}, NT=${numTracks}`);
-      return false;
+      throw new Error(`Invalid Guitar Pro 3 file (measures=${numMeasures}, tracks=${numTracks})`);
     }
     
     // Initialize per track

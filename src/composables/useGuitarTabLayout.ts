@@ -48,7 +48,8 @@ export function useGuitarTabLayout(
   ))
 
   const tabRows = computed<RenderedTabRow[]>(() => {
-    void renderVersion.value + songDataVersion.value
+    void renderVersion.value
+    void songDataVersion.value
 
     if (Settings.vexFlowIsActive) {
       void classicalNotationLayoutState.version
@@ -79,6 +80,9 @@ export function useGuitarTabLayout(
     }
 
     const lastRow = rowLayouts[rowLayouts.length - 1]
+    if (!lastRow) {
+      return rowHeight.value
+    }
     return Math.max(rowHeight.value, lastRow.yOffset + lastRow.height)
   })
 

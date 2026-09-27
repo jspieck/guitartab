@@ -3,7 +3,7 @@ import { Note, Measure } from '../songData';
 import { revertHandler } from '../revertHandler';
 import { menuHandler } from '../menuHandler';
 import { tab } from '../tab';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import fastdom from 'fastdom';
 import { MODALS } from './modalTypes';
 import { requestBlocksRender } from '../../../services/editor/renderCommands';
@@ -83,21 +83,27 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
 
         fastdom.mutate(() => {
             for (const noteInfo of notes) {
-                this.processNoteSelection(noteInfo, notesBefore as { [key: string]: Note });
+                this.processNoteSelection(
+                    noteInfo,
+                    notesBefore as { [key: string]: { [effect: string]: boolean } },
+                );
             }
 
             requestBlocksRender(notes[0].trackId, blocks, notes[0].voiceId);
         });
     }
 
-    private processNoteSelection(noteInfo: NoteInfo, notesBefore: { [key: string]: Note }) {
+    private processNoteSelection(
+        noteInfo: NoteInfo,
+        notesBefore: { [key: string]: { [effect: string]: boolean } },
+    ) {
         const { note } = noteInfo;
         const noteStr = this.getNoteString(noteInfo);
 
         if (!note.tremoloPicking) {
             note.tremoloPicking = true;
             if (this.isMarkedNote(noteInfo)) {
-                EventBus.emit("menu.activateEffectsForNote", note);
+                typedEventBus.emit("menu.activateEffectsForNote", note);
             }
         }
 
@@ -114,7 +120,7 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
             note.tremoloPickingLength,
             this.modalState.presentBefore[noteStr],
             note.tremoloPicking,
-            notesBefore[noteStr]
+            notesBefore[noteStr] ?? {},
         );
     }
 

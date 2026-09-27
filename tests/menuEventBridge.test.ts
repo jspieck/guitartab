@@ -1,20 +1,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import EventBus from '../src/assets/js/eventBus'
-import { ensureMenuEventBridge } from '../src/services/menuEventBridge'
 import { typedEventBus } from '../src/utils/typedEventBus'
 
 afterEach(() => {
   typedEventBus.clearAll()
 })
 
-describe('ensureMenuEventBridge', () => {
-  it('relays legacy clickedOnPos events to the typed menu bus', () => {
-    ensureMenuEventBridge()
-
+describe('typedEventBus menu events', () => {
+  it('delivers clickedOnPos to menu listeners', () => {
     const handler = vi.fn()
     typedEventBus.on('menu.clickedOnPos', handler)
 
-    EventBus.emit('menu.clickedOnPos', {
+    typedEventBus.emit('menu.clickedOnPos', {
       trackId: 1,
       blockId: 2,
       voiceId: 0,
@@ -31,13 +27,11 @@ describe('ensureMenuEventBridge', () => {
     })
   })
 
-  it('relays legacy block activation events to the typed menu bus', () => {
-    ensureMenuEventBridge()
-
+  it('delivers activateEffectsForBlock to menu listeners', () => {
     const handler = vi.fn()
     typedEventBus.on('menu.activateEffectsForBlock', handler)
 
-    EventBus.emit('menu.activateEffectsForBlock')
+    typedEventBus.emit('menu.activateEffectsForBlock')
 
     expect(handler).toHaveBeenCalledOnce()
   })

@@ -1,7 +1,7 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Measure, Stroke } from '../songData';
 import fastdom from 'fastdom';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import { MODALS } from './modalTypes';
 import { requestBlocksRender } from '../../../services/editor/renderCommands';
@@ -116,7 +116,7 @@ export class StrokeModalHandler extends BaseModalHandler {
 
                 if (!beat.effects.strokePresent) {
                     beat.effects.strokePresent = true;
-                    EventBus.emit("menu.activateEffectsForBeat", beat);
+                    typedEventBus.emit("menu.activateEffectsForBeat", beat);
                 }
 
                 revertHandler.addStroke(

@@ -12,6 +12,7 @@ import { Gp3Reader } from './GP3Reader';
 import midiReader from './MidiReader';
 import { notifySongDataChanged } from '../../services/appEvents';
 import { setLoadingWheelVisible } from '../../utils/editorUi';
+import { showUserError } from '../../services/userNotifications';
 
 class GProReader {
   readerBuffer: Uint8Array | null;
@@ -69,11 +70,11 @@ class GProReader {
    */
   handleFiles(files: FileList) {
     if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
-      alert('The File APIs are not fully supported in this browser.');
+      showUserError('File APIs are not supported in this browser.');
       return;
     }
     if (files == null || files.length === 0) {
-      console.error('No files provided');
+      showUserError('No file selected.');
       return;
     }
     const f = files[0];
@@ -81,7 +82,9 @@ class GProReader {
     
     const supportedFormats = ['gp3', 'gp4', 'gp5', 'gpx', 'mid', 'gt'];
     if (!supportedFormats.includes(ending)) {
-      alert(`Unsupported format: .${ending}\nSupported formats: ${supportedFormats.map(f => `.${f}`).join(', ')}`);
+      showUserError(
+        `Unsupported format .${ending}. Use .gp3, .gp4, .gp5, .gpx, .mid, or .gt.`,
+      );
       return;
     }
     
@@ -92,45 +95,51 @@ class GProReader {
     this.bytePosition = 0;
     const reader = new FileReader();
     reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (e.target != null) {
-        const bufferToConvert = e.target.result as ArrayBuffer;
-        if (bufferToConvert != null) {
-          this.readerBuffer = new Uint8Array(bufferToConvert);
-          
-          if (ending === 'gp5') {
-            Gp5Reader.read();
-          } else if (ending === 'gp4') {
-            Gp4Reader.read();
-          } else if (ending === 'gp3') {
-            Gp3Reader.read();
-          } else if (ending === 'mid') {
-            midiReader.decodeSMF(bufferToConvert);
-          } else if (ending === 'gpx') {
-            gpxReader.read(this.readerBuffer);
-          } else if (ending === 'gt') {
-            this.readGt();
-            // Hide loading for gt format since it handles its own flow
-            setLoadingWheelVisible(false);
-            return;
-          }
-          
-          // For non-gt formats, complete the loading process
-          AppManager.resetVariables();
-          GProReader.writeNoteInfoToBeat();
-          AppManager.createGuitarTab(0);
-          notifySongDataChanged();
-          
-          // Hide loading indicator
-          setLoadingWheelVisible(false);
-        } else {
-          console.error('Buffer empty');
-          setLoadingWheelVisible(false);
+      try {
+        if (e.target == null) {
+          throw new Error('Empty file read result');
         }
+        const bufferToConvert = e.target.result as ArrayBuffer;
+        if (bufferToConvert == null) {
+          throw new Error('File buffer was empty');
+        }
+        this.readerBuffer = new Uint8Array(bufferToConvert);
+
+        if (ending === 'gp5') {
+          Gp5Reader.read();
+        } else if (ending === 'gp4') {
+          Gp4Reader.read();
+        } else if (ending === 'gp3') {
+          Gp3Reader.read();
+        } else if (ending === 'mid') {
+          midiReader.decodeSMF(bufferToConvert);
+        } else if (ending === 'gpx') {
+          gpxReader.read(this.readerBuffer);
+        } else if (ending === 'gt') {
+          this.readGt();
+          setLoadingWheelVisible(false);
+          return;
+        }
+
+        AppManager.resetVariables();
+        GProReader.writeNoteInfoToBeat();
+        AppManager.createGuitarTab(0);
+        notifySongDataChanged();
+        setLoadingWheelVisible(false);
+      } catch (error) {
+        console.error('Import failed', error);
+        setLoadingWheelVisible(false);
+        showUserError(
+          error instanceof Error
+            ? `Could not import file: ${error.message}`
+            : 'Could not import file.',
+        );
       }
     };
     reader.onerror = () => {
       console.error('Error reading file');
       setLoadingWheelVisible(false);
+      showUserError('Could not read the selected file.');
     };
     reader.readAsArrayBuffer(f);
   }
@@ -254,6 +263,7 @@ class GProReader {
   readByte() {
     if (this.readerBuffer == null) {
       console.error('GProReader Buffer is null!');
+      throw new Error('Import buffer was empty');
       return 0;
     }
     const byte = this.readerBuffer[this.bytePosition];

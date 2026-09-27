@@ -5,13 +5,17 @@ import { tab } from '../../assets/js/tab'
 import renderBridge from './renderBridge'
 import { typedEventBus } from '../../utils/typedEventBus'
 import {
-  clearClassicalLayoutMetrics,
-  classicalNotationLayoutState,
   getClassicalBeatWidth,
   getClassicalRowMarginTop,
   getClassicalStaveBeginY,
 } from '../../stores/classicalNotationLayoutState'
 import { getClassicalRowSurface } from '../../stores/classicalNotationSurfaceState'
+import {
+  activateClassicalNotation,
+  deactivateClassicalNotation,
+  ensureClassicalPreparedWhenActive,
+  prepareClassicalLayoutMetrics,
+} from './classicalNotationLifecycle'
 
 interface LoadedClassicalNotation {
   toggleClassicalVisibility(): void
@@ -28,6 +32,7 @@ interface LoadedClassicalNotation {
 interface ClassicalNotationAdapter {
   preload(): Promise<void>
   toggleClassicalVisibility(): Promise<void>
+  ensurePrepared(trackId: number, voiceId: number): Promise<void>
   computeVexFlowDataStructures(trackId: number, voiceId: number): void
   updateVexFlowBlock(trackId: number, voiceId: number, blockId: number): void
   convertBlockToNotation(trackId: number, blockId: number, voiceId: number): void
@@ -77,29 +82,45 @@ function getLoadedNotation(): LoadedClassicalNotation | null {
   return null
 }
 
+function invalidateClassicalConsumers(): void {
+  notifySongDataChanged()
+  typedEventBus.emit('classical-notation-changed')
+  typedEventBus.emit('render.all')
+}
+
 const classicalNotation: ClassicalNotationAdapter = {
   async preload() {
     await loadClassicalNotation()
   },
 
+  /**
+   * Toggle classical notation using the documented lifecycle order.
+   * @see classicalNotationLifecycle.ts
+   */
   async toggleClassicalVisibility() {
     const notation = await loadClassicalNotation()
     const trackId = Song.currentTrackId
     const voiceId = Song.currentVoiceId
+    const turningOn = !Settings.vexFlowIsActive
 
-    notation.toggleClassicalVisibility()
-
-    if (Settings.vexFlowIsActive) {
-      notation.computeVexFlowDataStructures(trackId, voiceId)
-      notation.syncLayoutMetrics()
-      classicalNotationLayoutState.version += 1
+    if (turningOn) {
+      activateClassicalNotation(notation, trackId, voiceId)
     } else {
-      clearClassicalLayoutMetrics()
+      deactivateClassicalNotation(notation)
     }
 
-    notifySongDataChanged()
-    typedEventBus.emit('classical-notation-changed')
-    typedEventBus.emit('render.all')
+    invalidateClassicalConsumers()
+  },
+
+  /** Cold start / remount when classical is already enabled in settings. */
+  async ensurePrepared(trackId: number, voiceId: number) {
+    if (!Settings.vexFlowIsActive) {
+      return
+    }
+
+    const notation = await loadClassicalNotation()
+    ensureClassicalPreparedWhenActive(notation, trackId, voiceId)
+    invalidateClassicalConsumers()
   },
 
   computeVexFlowDataStructures(trackId: number, voiceId: number) {
@@ -108,8 +129,7 @@ const classicalNotation: ClassicalNotationAdapter = {
     }
 
     withLoadedNotation((notation) => {
-      notation.computeVexFlowDataStructures(trackId, voiceId)
-      notation.syncLayoutMetrics()
+      prepareClassicalLayoutMetrics(notation, trackId, voiceId, { bumpVersion: false })
     })
   },
 
@@ -183,10 +203,13 @@ const classicalNotation: ClassicalNotationAdapter = {
         return
       }
 
+      // Structures may already be ready from activate/ensurePrepared; recompute
+      // keeps notation in sync after edits without requiring a full toggle.
       notation.computeVexFlowDataStructures(trackId, voiceId)
 
       for (let rowId = 0; rowId < rowCount; rowId += 1) {
         const vexFlowArea = getClassicalRowSurface(rowId)
+        // Only draw into surfaces ClassicalNotationLayer has registered.
         if (vexFlowArea != null) {
           notation.drawVexFlowRow(trackId, voiceId, rowId, vexFlowArea)
         }
@@ -197,11 +220,7 @@ const classicalNotation: ClassicalNotationAdapter = {
 }
 
 if (Settings.vexFlowIsActive) {
-  void loadClassicalNotation().then((notation) => {
-    notation.computeVexFlowDataStructures(Song.currentTrackId, Song.currentVoiceId)
-    notation.syncLayoutMetrics()
-    classicalNotationLayoutState.version += 1
-  })
+  void classicalNotation.ensurePrepared(Song.currentTrackId, Song.currentVoiceId)
 }
 
 export { classicalNotation, loadClassicalNotation }

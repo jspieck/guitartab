@@ -1,5 +1,5 @@
 import AppManager from '../assets/js/appManager'
-import EventBus from '../assets/js/eventBus'
+import { typedEventBus } from '../utils/typedEventBus';
 import { tab } from '../assets/js/tab'
 import type { NoteLengthCode } from '../types/tab'
 
@@ -21,6 +21,6 @@ export function applyNoteLengthSelection(noteLength: NoteLengthCode): boolean {
   }
 
   AppManager.typeOfNote = noteLength
-  EventBus.emit('menu.activateEffectsForMarkedPos')
+  typedEventBus.emit('menu.activateEffectsForMarkedPos')
   return true
 }

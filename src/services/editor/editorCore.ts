@@ -1,5 +1,5 @@
 import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
-import EventBus from '../../assets/js/eventBus'
+import { typedEventBus } from '../../utils/typedEventBus';
 import playBackLogic from '../../assets/js/playBackLogicNew'
 import Song, {
   type Measure as SongBeat,
@@ -116,7 +116,7 @@ function syncSelectionEffects(selection: TabSelectionData | null): void {
     string: selection.stringIndex,
   }
 
-  EventBus.emit('menu.clickedOnPos', payload)
+  typedEventBus.emit('menu.clickedOnPos', payload)
   playBackLogic.setPlayPosition(
     selection.trackId,
     selection.blockId,

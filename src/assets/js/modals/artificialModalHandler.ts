@@ -1,7 +1,7 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Note, Measure } from '../songData';
 import fastdom from 'fastdom';
-import EventBus from '../eventBus';
+import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import { MODALS } from './modalTypes';
 import { requestBlocksRender } from '../../../services/editor/renderCommands';
@@ -92,7 +92,7 @@ export class ArtificialModalHandler extends BaseModalHandler {
 
                 if (!noteInArr.artificialPresent) {
                     noteInArr.artificialPresent = true;
-                    EventBus.emit("menu.activateEffectsForNote", noteInArr);
+                    typedEventBus.emit("menu.activateEffectsForNote", noteInArr);
                 }
 
                 noteInArr.artificialStyle = this.artificialStyle;

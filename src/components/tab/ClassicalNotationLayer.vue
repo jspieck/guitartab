@@ -7,7 +7,7 @@
     <div
       v-for="row in tabRows"
       :key="`vexflow-row-${row.id}`"
-      :ref="(element) => registerClassicalRowSurface(row.id, element)"
+      :ref="(element: Element | null) => registerClassicalRowSurface(row.id, element)"
       class="vexFlowRow"
       :style="getRowStyle(row)"
     />

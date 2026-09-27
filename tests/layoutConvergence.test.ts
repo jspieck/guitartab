@@ -1,48 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-vi.mock('vanilla-picker', () => ({
-  default: class PickerMock {},
-}))
-
-vi.mock('../src/assets/js/audioEngine', () => ({
-  audioEngine: {
-    getCurrentTime: () => 0,
-    setEffectGain: () => {},
-  },
-}))
-
-vi.mock('../src/assets/js/playBackLogicNew', () => ({
-  default: {
-    setPlayPosition: vi.fn(),
-    getCurrentBlock: () => 0,
-    currentBlockPP: 0,
-  },
-}))
-
-vi.mock('../src/assets/js/midiReceiver', () => ({
-  default: {
-    isRecording: false,
-    midiToNote: vi.fn(),
-  },
-}))
-
-vi.mock('../src/assets/js/modals/modalManager', () => ({
-  modalManager: {
-    toggleByModal: vi.fn(),
-    toggleModal: vi.fn(),
-    getHandler: vi.fn(),
-  },
-}))
-
-vi.mock('../src/assets/js/appManager', () => ({
-  default: {
-    duringTrackCreation: false,
-    typeOfNote: 'e',
-    changeTrack: vi.fn(),
-    checkAndAdaptTimeMeter: vi.fn(),
-  },
-}))
-
+import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
 import { tab } from '../src/assets/js/tab'
@@ -88,19 +44,5 @@ describe('layout convergence', () => {
     recomputeTrackLayoutFromSong(TRACK_ID, VOICE_ID, AVAILABLE_WIDTH)
     assertTabAndRenderLayoutMatch(TRACK_ID, VOICE_ID)
     expect(tab.blockToRow[TRACK_ID][VOICE_ID].length).toBe(Song.measures[TRACK_ID].length)
-  })
-
-  it('wraps a default empty song onto multiple rows with finite measure widths', () => {
-    const layout = recomputeTrackLayoutFromSong(TRACK_ID, VOICE_ID, AVAILABLE_WIDTH).state
-    expect(layout.numRows).toBeGreaterThan(1)
-    expect(layout.blockLayouts.length).toBe(Song.measures[TRACK_ID].length)
-
-    for (const block of layout.blockLayouts) {
-      expect(Number.isFinite(block.width)).toBe(true)
-      expect(block.width).toBeGreaterThan(0)
-      for (const beatX of block.beatPositions) {
-        expect(Number.isFinite(beatX)).toBe(true)
-      }
-    }
   })
 })

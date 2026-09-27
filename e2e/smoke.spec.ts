@@ -1,11 +1,5 @@
 import { expect, test } from '@playwright/test'
-
-async function waitForEditorShell(page: import('@playwright/test').Page) {
-  await page.goto('/')
-  await page.waitForLoadState('networkidle')
-  await page.waitForSelector('#content', { timeout: 30_000 })
-  await page.waitForSelector('#completeBar', { timeout: 30_000 })
-}
+import { waitForEditorShell } from './helpers'
 
 test.describe('app smoke', () => {
   test('loads the editor shell', async ({ page }) => {
