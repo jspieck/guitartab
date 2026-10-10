@@ -11,6 +11,8 @@ import { Gp4Reader } from './GP4Reader';
 import { Gp3Reader } from './GP3Reader';
 import midiReader from './MidiReader';
 import { notifySongDataChanged } from '../../services/appEvents';
+import { revertHandler } from './revertHandler';
+import { markSongSaved } from '../../services/songAutosave';
 import { setLoadingWheelVisible } from '../../utils/editorUi';
 import { showUserError } from '../../services/userNotifications';
 
@@ -54,6 +56,8 @@ class GProReader {
       Song.playBackInstrument = JSON.parse(arr[4]);
       sequencerHandler.drawBeat();
       audioEngine.noteToDrum = JSON.parse(arr[5]);
+      revertHandler.clearHistory();
+      markSongSaved();
       // menuHandler.applyStyleMode();
     }
   }
@@ -124,6 +128,8 @@ class GProReader {
         AppManager.resetVariables();
         GProReader.writeNoteInfoToBeat();
         AppManager.createGuitarTab(0);
+        revertHandler.clearHistory();
+        markSongSaved();
         notifySongDataChanged();
         setLoadingWheelVisible(false);
       } catch (error) {

@@ -28,11 +28,13 @@ export function useTabViewport(mainContentRef?: Ref<HTMLElement | null>): TabVie
     if (!tabViewportState.pageMode) {
       return {
         width: `${tabViewportState.sheetWidthPx}px`,
+        minHeight: 'auto',
       }
     }
 
     return {
-      width: `${tabViewportState.zoom * DIN_A4_WIDTH_CM}cm`,
+      width: `${DIN_A4_WIDTH_CM}cm`,
+      minHeight: '44.55cm',
     }
   })
 

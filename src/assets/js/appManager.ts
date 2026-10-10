@@ -22,6 +22,7 @@ import type { NoteLengthCode } from '../../types/tab';
 import { useTabStore } from '../../stores/tabStore';
 import { setTrackSignIcon } from '../../utils/editorUi';
 import { serializeSongToGtBytes } from '../../utils/gtSerialization';
+import { handleUndoRedoShortcut } from '../../utils/undoRedoShortcuts';
 
 const AppManager = {
   notificationTimeOut: null as ReturnType<typeof setTimeout> | null,
@@ -212,29 +213,27 @@ const AppManager = {
   },
 
   keyDownEvent(e: KeyboardEvent) {
+    if (handleUndoRedoShortcut(e)) {
+      return;
+    }
+
     // If another handler (e.g., Vue GuitarTabView) already handled this event, skip
     if (e.defaultPrevented) {
       return;
     }
-    
+
     const pressedValue = String.fromCharCode(e.which);
     if ([38, 40].indexOf(e.keyCode) > -1) {
       e.preventDefault();
     }
     this.processKeyPress(pressedValue, e.keyCode);
-    if (!this.duringTrackCreation) {
-      /* if ((e.metaKey || e.ctrlKey) && ( String.fromCharCode(e.which).toLowerCase() === 'Z') ) {
-              revertHandler.revertState();
-          } */
-      if (!modalManager.isAnyModalOpen()) {
-        if ((e.metaKey || e.ctrlKey)
-        && (String.fromCharCode(e.which).toLowerCase() === 'c')) {
-          overlayHandler.copyHandler();
-        }
-        if ((e.metaKey || e.ctrlKey)
-        && (String.fromCharCode(e.which).toLowerCase() === 'v')) {
-          overlayHandler.pasteHandler();
-        }
+    if (!this.duringTrackCreation && !modalManager.isAnyModalOpen()) {
+      const key = e.key.toLowerCase();
+      if ((e.metaKey || e.ctrlKey) && key === 'c') {
+        overlayHandler.copyHandler();
+      }
+      if ((e.metaKey || e.ctrlKey) && key === 'v') {
+        overlayHandler.pasteHandler();
       }
     }
   },

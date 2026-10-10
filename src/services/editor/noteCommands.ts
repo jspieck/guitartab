@@ -57,7 +57,7 @@ export function deleteNote(
   }
 
   if (beatObj.notes[string] != null) {
-    if (calledDuringRestore == null) {
+    if (!calledDuringRestore) {
       const clonedNote = JSON.parse(JSON.stringify(beatObj.notes[string]))
       const clonedEffect = JSON.parse(JSON.stringify(beatObj.effects))
       revertHandler.deleteNote(

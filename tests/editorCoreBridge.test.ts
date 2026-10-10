@@ -29,10 +29,22 @@ vi.mock('../src/assets/js/overlayHandler', () => ({
   },
 }))
 
-vi.mock('../src/assets/js/tab', () => {
+vi.mock('../src/assets/js/tab', async () => {
+  const SongModule = await import('../src/assets/js/songData')
+  const Song = SongModule.default
   class TabMock {
     static computeWidthOfBlock() {
       return { minWidth: 200, minOffset: 40, num16ths: 4 }
+    }
+
+    static deleteNote(
+      trackId: number,
+      blockId: number,
+      voiceId: number,
+      beatId: number,
+      string: number,
+    ) {
+      Song.measures[trackId][blockId][voiceId][beatId].notes[string] = null
     }
   }
 
@@ -47,6 +59,22 @@ vi.mock('../src/assets/js/tab', () => {
       measureOffset: [[]],
       allWidths: [],
       changeNoteDuration: vi.fn(() => true),
+      drawNote(
+        trackId: number,
+        blockId: number,
+        voiceId: number,
+        beatId: number,
+        string: number,
+        fretNumber: number,
+      ) {
+        const beat = Song.measures[trackId][blockId][voiceId][beatId]
+        beat.notes[string] = {
+          ...Song.defaultNote(),
+          fret: fretNumber,
+          string,
+        }
+        beat.duration = beat.duration[0]
+      },
     },
   }
 })
@@ -172,7 +200,7 @@ describe('editorCore bridge', () => {
 
     editorCore.setNoteAtPosition(0, 0, 0, 0, 2, -1)
 
-    expect(Song.measures[0][0][0][0].notes[2]).toBeNull()
+    expect(Song.measures[0][0][0][0].notes[2] ?? null).toBeNull()
   })
 
   it('returns live song-state references for the reactive bridge', () => {

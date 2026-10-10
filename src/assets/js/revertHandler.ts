@@ -4,6 +4,7 @@ import {
 } from './songData';
 import AppManager from './appManager';
 import { RevertStack } from '../../services/editor/revertStack';
+import { notifySongDataChanged } from '../../services/appEvents';
 import {
   revertNotePlacement,
   restoreNotePlacement,
@@ -63,11 +64,23 @@ class RevertHandler {
   private stack: RevertStack;
 
   constructor() {
-    this.stack = new RevertStack(20);
+    this.stack = new RevertStack(200);
   }
 
   addToState(type: string, infoObj: unknown) {
     this.stack.push(type, infoObj);
+  }
+
+  canUndo(): boolean {
+    return this.stack.canUndo;
+  }
+
+  canRedo(): boolean {
+    return this.stack.canRedo;
+  }
+
+  clearHistory(): void {
+    this.stack.clear();
   }
 
   /** @deprecated Use RevertStack via stack; kept for tests and direct callers. */
@@ -535,6 +548,7 @@ class RevertHandler {
         default:
       }
       this.stack.stepBack();
+      notifySongDataChanged();
     }
   }
 
@@ -629,6 +643,7 @@ class RevertHandler {
           break;
         default:
       }
+      notifySongDataChanged();
     }
   }
 }

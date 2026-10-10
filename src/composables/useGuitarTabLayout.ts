@@ -7,6 +7,7 @@ import { TAB_SHEET } from '../utils/tabSheetConstants'
 import { classicalNotationLayoutState } from '../stores/classicalNotationLayoutState'
 import type { RenderedTabRow } from '../types/tab'
 import { getPageMargins } from '../utils/tabLayout'
+import { getClassicalNotationTop } from '../services/editor/tabLayoutMetrics'
 
 interface GuitarTabLayoutProps {
   trackId: number
@@ -16,7 +17,6 @@ interface GuitarTabLayoutProps {
 }
 
 const HEADER_HEIGHT = 80
-const TAB_ROW_HEIGHT = 120
 const CLASSICAL_ROW_GAP = 8
 
 export function useGuitarTabLayout(
@@ -41,11 +41,20 @@ export function useGuitarTabLayout(
   const songTitle = computed(() => reactiveSongData.songDescription?.title || 'Untitled')
   const songAuthor = computed(() => reactiveSongData.songDescription?.author || 'Unknown Artist')
 
-  const rowHeight = computed(() => (
-    Settings.vexFlowIsActive
-      ? TAB_ROW_HEIGHT + CLASSICAL_ROW_GAP + TAB_SHEET.VEXFLOW_HEIGHT
-      : TAB_ROW_HEIGHT
+  const tabRowHeight = computed(() => (
+    getClassicalNotationTop(props.trackId) + 6
   ))
+
+  const rowHeight = computed(() => {
+    if (!Settings.vexFlowIsActive) {
+      return tabRowHeight.value
+    }
+
+    const marginTops = Object.values(classicalNotationLayoutState.marginTopByRow)
+    const extraTop = marginTops.length > 0 ? Math.max(...marginTops) : 0
+
+    return tabRowHeight.value + CLASSICAL_ROW_GAP + TAB_SHEET.VEXFLOW_HEIGHT + extraTop
+  })
 
   const tabRows = computed<RenderedTabRow[]>(() => {
     void renderVersion.value

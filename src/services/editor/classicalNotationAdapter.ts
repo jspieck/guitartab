@@ -5,6 +5,7 @@ import { tab } from '../../assets/js/tab'
 import renderBridge from './renderBridge'
 import { typedEventBus } from '../../utils/typedEventBus'
 import {
+  classicalNotationLayoutState,
   getClassicalBeatWidth,
   getClassicalRowMarginTop,
   getClassicalStaveBeginY,
@@ -215,6 +216,7 @@ const classicalNotation: ClassicalNotationAdapter = {
         }
       }
       notation.syncLayoutMetrics()
+      classicalNotationLayoutState.version += 1
     })
   },
 }

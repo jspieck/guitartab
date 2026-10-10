@@ -1,4 +1,5 @@
 import type { TabNoteData } from '../types/tab'
+import { handleUndoRedoShortcut } from '../utils/undoRedoShortcuts'
 
 type NoteEffectHandler = (note: TabNoteData) => void
 
@@ -56,6 +57,10 @@ export function handleEditorShortcutKey(
     onPaste: () => void
   },
 ): boolean {
+  if (handleUndoRedoShortcut(event)) {
+    return true
+  }
+
   if (event.key >= '0' && event.key <= '9') {
     handlers.onDigit(Number.parseInt(event.key, 10))
     return true

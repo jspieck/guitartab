@@ -2670,7 +2670,9 @@ svg text {
     Double to use the screen better
     */
    width: 31.5cm;
-   height: 44.55cm;
+   min-height: 44.55cm;
+   height: auto;
+   overflow: visible;
 
     margin: auto;
     margin-top: 90px;

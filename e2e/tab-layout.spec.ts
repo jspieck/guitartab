@@ -91,3 +91,27 @@ test.describe('classical notation layout', () => {
     expect(await page.locator('.tab-row').count()).toBeGreaterThan(1)
   })
 })
+
+test.describe('incremental tab rendering', () => {
+  test('updates notes in place across entry, undo and redo without remounting rows', async ({ page }) => {
+    await waitForEditorShell(page)
+
+    const firstRow = page.locator('.tab-row').first()
+    await firstRow.evaluate((element) => { element.setAttribute('data-e2e-marker', 'kept') })
+
+    await page.locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page.keyboard.press('7')
+    const note = page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^7$/ })
+    await expect(note).toHaveCount(1, { timeout: 5_000 })
+
+    await page.waitForTimeout(600)
+    await page.keyboard.press('Control+z')
+    await expect(note).toHaveCount(0, { timeout: 5_000 })
+
+    await page.keyboard.press('Control+y')
+    await expect(note).toHaveCount(1, { timeout: 5_000 })
+
+    // Row elements are patched, not recreated, by edits inside them.
+    await expect(page.locator('.tab-row[data-e2e-marker="kept"]')).toHaveCount(1)
+  })
+})

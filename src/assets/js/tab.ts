@@ -180,7 +180,7 @@ class Tab {
     if (redrawSequencer) {
       sequencerHandler.redrawSequencerMain();
     }
-    if (calledDuringRestore == null && this.markedNoteObj != null) {
+    if (!calledDuringRestore && this.markedNoteObj != null) {
       revertHandler.addFretNumber(
         this.markedNoteObj.trackId, this.markedNoteObj.blockId, this.markedNoteObj.voiceId,
         this.markedNoteObj.beatId, this.markedNoteObj.string, oldFret, fretNumber,

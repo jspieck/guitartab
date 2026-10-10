@@ -67,6 +67,25 @@
                         <button id="info" @click="modalManager.toggleByModal(MODALS.INFO)" class="checkBoxNote playButton"><img id="infoImg"
                                 src="../assets/images/info.svg" /></button>
 
+                        <button
+                            id="undoButton"
+                            data-tooltip="Undo (Ctrl+Z)"
+                            class="checkBoxNote playButton"
+                            :disabled="!canUndo"
+                            @click="undo"
+                        >
+                            <img id="undoButtonImg" src="../assets/images/statusBar/backward.svg" alt="" />
+                        </button>
+                        <button
+                            id="redoButton"
+                            data-tooltip="Redo (Ctrl+Y)"
+                            class="checkBoxNote playButton"
+                            :disabled="!canRedo"
+                            @click="redo"
+                        >
+                            <img id="redoButtonImg" src="../assets/images/statusBar/forward.svg" alt="" />
+                        </button>
+
                         <button id="openFile" @click="openGuitarProFile" data-tooltip="Open File" class="checkBoxNote playButton">
                             <span style="font-size: 18px;">📂</span>
                         </button>
@@ -266,6 +285,8 @@ import {
     MENU_NOTE_EFFECT_BUTTON_IDS,
     deriveMenuSelectionState,
 } from '../utils/menuUiState';
+import { useUndoRedo } from '../composables/useUndoRedo';
+import { markSongSaved } from '../services/songAutosave';
 
 // File input ref for opening files
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -280,6 +301,7 @@ const disabledButtons = reactive<Record<string, boolean>>({});
 const { currentTrackId, currentVoiceId } = useEditorScopeState();
 const { currentTempo } = useTempoState();
 const { togglePlay: togglePlayback, stop: stopPlayback } = usePlaybackEngine();
+const { canUndo, canRedo, undo, redo } = useUndoRedo();
 const noteTiedTo = ref<{ blockId: number; beatId: number } | null>(null);
 const classicalNotationActive = ref(Settings.vexFlowIsActive);
 
@@ -420,6 +442,7 @@ function handleFileSelect(event: Event) {
 
 function handleSaveTab() {
     AppManager.saveAsGt(false);
+    markSongSaved();
 }
 
 function openCloudSongsModal() {

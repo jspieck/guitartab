@@ -42,8 +42,14 @@
     </div>
 
     <div id="notificationEmblem">
-      <img id="infoNotification" src="./assets/images/info.svg">
+      <img id="infoNotification" src="./assets/images/info.svg" alt="">
       <label id="notificationLabel">Saved!</label>
+    </div>
+
+    <div v-if="autosavePrompt" id="autosaveBanner" class="autosave-banner">
+      <span>{{ autosavePrompt }}</span>
+      <button type="button" class="autosave-banner__action" @click="restoreAutosaveDraft">Restore</button>
+      <button type="button" class="autosave-banner__action autosave-banner__action--muted" @click="dismissAutosaveDraft">Dismiss</button>
     </div>
     
     <svg id="svg-source" height="0" version="1.1" xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Menu from './components/Menu.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
@@ -74,6 +80,13 @@ import { useEditorScopeState } from './composables/useEditorScopeState'
 import { useTabViewport } from './composables/useTabViewport'
 import { getCloudSongIdFromUrl, loadCloudSongById } from './services/cloudSongLoader'
 import AppManager from './assets/js/appManager'
+import {
+  discardAutosaves,
+  getLatestAutosave,
+  restoreAutosave,
+  setupAutosaveListeners,
+  teardownAutosaveListeners,
+} from './services/songAutosave'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
 const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
@@ -85,6 +98,8 @@ const { currentTrackId, currentVoiceId } = useEditorScopeState()
 
 const mainContent = ref<HTMLElement | null>(null)
 const currentBlockId = ref(0)
+const autosavePrompt = ref<string | null>(null)
+const pendingAutosaveBytes = ref<Uint8Array | null>(null)
 
 const {
   completeTabClass,
@@ -104,8 +119,47 @@ function focusMainContent() {
   mainContent.value?.focus()
 }
 
+function formatAutosaveTime(savedAt: number): string {
+  return new Date(savedAt).toLocaleString()
+}
+
+async function checkForAutosaveDraft(): Promise<void> {
+  try {
+    const snapshot = await getLatestAutosave()
+    if (!snapshot) {
+      return
+    }
+    pendingAutosaveBytes.value = snapshot.bytes
+    autosavePrompt.value = `Restore unsaved work from ${formatAutosaveTime(snapshot.savedAt)}?`
+  } catch (error) {
+    console.error('Failed to read autosave draft', error)
+  }
+}
+
+function restoreAutosaveDraft(): void {
+  if (!pendingAutosaveBytes.value) {
+    return
+  }
+  restoreAutosave(pendingAutosaveBytes.value)
+  autosavePrompt.value = null
+  pendingAutosaveBytes.value = null
+  AppManager.showNotification('Restored autosaved draft')
+}
+
+async function dismissAutosaveDraft(): Promise<void> {
+  autosavePrompt.value = null
+  pendingAutosaveBytes.value = null
+  try {
+    await discardAutosaves()
+  } catch (error) {
+    console.error('Failed to discard autosave draft', error)
+  }
+}
+
 onMounted(() => {
+  setupAutosaveListeners()
   startUp()
+  void checkForAutosaveDraft()
   const cloudSongId = getCloudSongIdFromUrl()
   if (cloudSongId) {
     loadCloudSongById(cloudSongId).catch((error) => {
@@ -113,5 +167,9 @@ onMounted(() => {
       AppManager.showNotification(message)
     })
   }
+})
+
+onBeforeUnmount(() => {
+  teardownAutosaveListeners()
 })
 </script>

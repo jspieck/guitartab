@@ -13,6 +13,7 @@ import Menu from '../../components/Menu.vue';
 import { menuHandler } from './menuHandler';
 import { modalManager } from './modals/modalManager';
 import { EqualizerModalHandler } from './modals/equalizerModalHandler';
+import { hasCompletedFirstVisit, markFirstVisitComplete, seedDemoNotes } from '../../data/demoSong';
 // import { svgDrawer } from './svgDrawer';
 
 declare global {
@@ -87,7 +88,7 @@ const startUp = function startUp() {
   });
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     AppManager.keyDownEvent(e);
-  });
+  }, true);
   document.addEventListener('mouseup', () => {
     AppManager.clickEnding();
   });
@@ -99,6 +100,11 @@ const startUp = function startUp() {
 
   // visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
   audioEngine.createBusses();
+
+  if (!hasCompletedFirstVisit()) {
+    seedDemoNotes();
+    markFirstVisitComplete();
+  }
 
   AppManager.createGuitarTab(0);
   /* test: draw audio audioWaveForm

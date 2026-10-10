@@ -1,4 +1,33 @@
 /* ===== Tab Color Variables (Light Mode Defaults) ===== */
+.autosave-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #1f2937;
+  color: #f9fafb;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.autosave-banner__action {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.autosave-banner__action--muted {
+  background: #4b5563;
+}
+
 :root {
   /* Tab sheet background */
   --tab-bg: #ffffff;

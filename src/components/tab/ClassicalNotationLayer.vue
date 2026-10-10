@@ -18,6 +18,7 @@
 import { computed, onUnmounted, type CSSProperties } from 'vue'
 import type { RenderedTabRow } from '../../types/tab'
 import { TAB_SHEET } from '../../utils/tabSheetConstants'
+import { getClassicalNotationTop } from '../../services/editor/tabLayoutMetrics'
 import {
   classicalNotationLayoutState,
   getClassicalRowMarginTop,
@@ -27,7 +28,6 @@ import {
   registerClassicalRowSurface,
 } from '../../stores/classicalNotationSurfaceState'
 
-const TAB_CONTENT_ROW_HEIGHT = 120
 const CLASSICAL_ROW_GAP = 8
 
 interface Props {
@@ -53,9 +53,10 @@ const layerStyle = computed<CSSProperties>(() => ({
 function getRowStyle(row: RenderedTabRow): CSSProperties {
   void classicalNotationLayoutState.version
   const marginTop = getClassicalRowMarginTop(row.id)
+  const tabContentBottom = getClassicalNotationTop(props.trackId)
   const vexflowTop = props.paddingTop
     + row.yOffset
-    + TAB_CONTENT_ROW_HEIGHT
+    + tabContentBottom
     + CLASSICAL_ROW_GAP
     - marginTop
 

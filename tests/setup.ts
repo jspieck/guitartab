@@ -84,6 +84,7 @@ vi.mock('../src/assets/js/modals/modalManager', () => ({
     toggleByModal: vi.fn(),
     toggleModal: vi.fn(),
     getHandler: vi.fn(),
+    isAnyModalOpen: vi.fn(() => false),
   },
 }))
 

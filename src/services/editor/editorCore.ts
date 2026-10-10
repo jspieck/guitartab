@@ -9,7 +9,7 @@ import Song, {
   type SongDescription,
   type Track,
 } from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
+import { tab, Tab } from '../../assets/js/tab'
 import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { songState } from '../../stores/songState'
 import { DURATION_NAMES } from '../../utils/musicUtils'
@@ -296,15 +296,20 @@ const editorCore = {
     fret: number,
     numStrings = getTrackStringCount(trackId),
   ): void {
-    const beat = ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
+    ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
+    tab.markedNoteObj = {
+      trackId,
+      voiceId,
+      blockId,
+      beatId: beatIndex,
+      string: stringIndex,
+    }
 
-    beat.notes[stringIndex] = fret === -1
-      ? null
-      : {
-          ...defaultNote(),
-          fret,
-          string: stringIndex,
-        }
+    if (fret === -1) {
+      Tab.deleteNote(trackId, blockId, voiceId, beatIndex, stringIndex, false)
+    } else {
+      tab.drawNote(trackId, blockId, voiceId, beatIndex, stringIndex, fret, false)
+    }
 
     publishSongDataChanged()
   },

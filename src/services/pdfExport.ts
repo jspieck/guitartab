@@ -7,6 +7,7 @@
  */
 import { showUserError, showUserMessage } from './userNotifications'
 import { composeTabExportSvg, downloadSvgMarkup } from './tabExportSvg'
+import { withAllRowsRendered } from '../stores/tabVirtualizationState'
 
 const A4_WIDTH_PT = 595.28
 const A4_HEIGHT_PT = 841.89
@@ -215,7 +216,8 @@ function downloadBlob(blob: Blob, filename: string) {
 
 /** Vector SVG of the current tab (+ classical when active). */
 export async function exportTabAsSvg(): Promise<void> {
-  const composed = composeTabExportSvg()
+  // Virtualized rows are off-DOM; mount them all while the surface is cloned.
+  const composed = await withAllRowsRendered(composeTabExportSvg)
   if (!composed) {
     showUserError('No tab view found to export.')
     return
@@ -231,7 +233,8 @@ export async function exportTabAsSvg(): Promise<void> {
 
 /** Printable PDF + companion vector SVG of the composed tab surface. */
 export async function exportTabAsPdf(): Promise<void> {
-  const composed = composeTabExportSvg()
+  // Virtualized rows are off-DOM; mount them all while the surface is cloned.
+  const composed = await withAllRowsRendered(composeTabExportSvg)
   if (!composed) {
     showUserError('No tab view found to export.')
     return

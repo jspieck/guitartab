@@ -42,15 +42,15 @@
         
         <!-- Simple tab rows -->
         <TabRow
-          v-for="(row, rowIndex) in tabRows"
-          :key="`row-${rowIndex}-${songDataVersion}`"
+          v-for="row in visibleTabRows"
+          :key="`row-${row.id}-${row.startBlockId}`"
           :row-data="row"
           :track-id="trackId"
           :voice-id="voiceId"
           :svg-root="svgRoot"
           :y-offset="row.yOffset"
           :width="tabGroupWidth"
-          :is-first-row="rowIndex === 0"
+          :is-first-row="row.id === 0"
           :on-string-pointer-down="handleStringPointerDown"
         />
 
@@ -88,6 +88,7 @@ import { usePlaybackBarState } from '../../composables/usePlaybackBarState'
 import { useTabRangeSelection } from '../../composables/useTabRangeSelection'
 import { registerSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { useTabEditorCommands } from '../../composables/useTabEditorCommands'
+import { useVisibleTabRows } from '../../composables/useVisibleTabRows'
 import { useTabRenderInvalidation } from '../../composables/useTabRenderInvalidation'
 import { useTabSelectionBridge } from '../../composables/useTabSelectionBridge'
 import { useSongData } from '../../composables/useSongData'
@@ -146,6 +147,8 @@ const {
   totalHeight,
   rowHeight,
 } = useGuitarTabLayout(props, renderVersion)
+
+const { visibleTabRows } = useVisibleTabRows(tabRows, rowHeight, paddingTop, svgRoot)
 
 const {
   isActive: classicalNotationActive,
@@ -242,9 +245,13 @@ onUnmounted(() => {
 .guitar-tab-view {
   position: relative;
   width: 100%;
-  height: 100%;
-  overflow: auto;
+  min-height: 100%;
+  overflow: visible;
   transform-origin: 0 0;
+}
+
+.classical-notation-layer {
+  overflow: visible;
 }
 
 .tab-svg {

@@ -221,8 +221,8 @@ const songMethods = {
   initEmptySong() {
     songState.numMeasures = 12;
     songState.songDescription = {
-      title: '[Title]',
-      author: '[Author]',
+      title: 'Untitled',
+      author: 'Unknown',
       subtitle: '',
       artist: '',
       album: '',
@@ -254,7 +254,7 @@ const songMethods = {
       volume: 127,
       balance: 63,
       reverb: 0,
-      name: 'Gitarre',
+      name: 'Guitar',
       color: { red: 0, blue: 127, green: 0 },
       channel: { index: 0, effectChannel: 0 },
       program: 0,
