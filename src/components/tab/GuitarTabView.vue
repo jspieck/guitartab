@@ -35,6 +35,17 @@
           >
             {{ songAuthor }}
           </text>
+          <text
+            v-if="trackIsEmpty"
+            :x="tabGroupWidth / 2"
+            :y="emptyHintY"
+            font-family="Source Sans Pro"
+            font-size="13px"
+            class="tab-empty-hint"
+            text-anchor="middle"
+          >
+            {{ emptyHintText }}
+          </text>
           
           <!-- Debug refresh button -->
           
@@ -58,7 +69,6 @@
         <g
           ref="playbackBarGroup"
           id="playBackBarGroup0"
-          :transform="playbackBarTransform"
           :style="playbackBarStyle"
         >
           <rect x="0" y="-5" width="2" :height="getPlaybackBarHeight(playbackBarState.y) + 5" fill="rgba(49, 156, 217, 0.6)" />
@@ -95,6 +105,7 @@ import { useTabSelectionBridge } from '../../composables/useTabSelectionBridge'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
 import editorCore from '../../services/editor/editorCore'
+import { layoutModeState } from '../../stores/layoutModeState'
 
 interface Props {
   trackId: number
@@ -108,7 +119,7 @@ const props = withDefaults(defineProps<Props>(), {
   height: 1600,
 })
 
-const { syncSongData } = useSongData()
+const { syncSongData, reactiveSongData } = useSongData()
 
 const {
   currentSelection,
@@ -145,6 +156,22 @@ const {
 
 const { visibleTabRows } = useVisibleTabRows(tabRows, paddingTop, svgRoot)
 
+// Empty-score hint. The scan stops at the first note, so for real songs it reads a few beats.
+const trackIsEmpty = computed(() => {
+  const blocks = reactiveSongData.measures[props.trackId]
+  if (blocks == null || blocks.length === 0) return false
+  return blocks.every((voices) =>
+    voices.every((beats) => beats.every((beat) => !beat.notes.some((note) => note != null))),
+  )
+})
+const emptyHintText = computed(() =>
+  layoutModeState.compact
+    ? 'This track is empty. Tap the pencil, then a string, then a fret.'
+    : 'This track is empty. Click a line in the tab and type a fret number.',
+)
+// Between the author line (y 55) and the first row's top lane.
+const emptyHintY = computed(() => Math.min(76, (tabRows.value[0]?.top ?? 80) - 4))
+
 // Each mounted ClassicalRowSurface redraws itself when its row changes.
 const { isActive: classicalNotationActive } = useClassicalNotation(props.trackId, props.voiceId)
 
@@ -178,11 +205,10 @@ const {
   },
 })
 
-const playbackBarTransform = computed(() => `translate(${playbackBarState.x}, ${playbackBarState.y})`)
+// transform and transition are set on the element by usePlaybackBarState (once per beat).
 const playbackBarStyle = computed(() => ({
   display: playbackBarState.visible ? 'block' : 'none',
   pointerEvents: 'none',
-  transition: `transform ${playbackBarState.transitionDuration}s ${playbackBarState.transitionTimingFunction}`,
 }))
 
 function handleMouseDown(_event: MouseEvent) {
@@ -246,5 +272,10 @@ onUnmounted(() => {
 
 .tab-author {
   fill: var(--tab-secondary);
+}
+
+.tab-empty-hint {
+  fill: var(--tab-subtle);
+  pointer-events: none;
 }
 </style> 

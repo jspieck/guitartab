@@ -1,4 +1,5 @@
 import Song, { Beat } from './songData';
+import type { NoteLengthCode } from '../../types/tab';
 
 // import Duration from './duration';
 const Duration = {
@@ -75,7 +76,7 @@ const Duration = {
     return 0;
   },
 
-  typeToString(t: number): string {
+  typeToString(t: number): NoteLengthCode {
     if (t === 0.5) return 'o';
     if (t === 1) return 'z';
     if (t === 2) return 't';
@@ -84,7 +85,8 @@ const Duration = {
     if (t === 16) return 'q';
     if (t === 32) return 'h';
     if (t === 64) return 'w';
-    return '';
+    // Not a plain note value; callers only pass powers of two.
+    return '' as NoteLengthCode;
   },
 
   getDurationOfBlock(blockId: number): number {

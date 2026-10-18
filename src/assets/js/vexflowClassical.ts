@@ -2,7 +2,7 @@ import Vex, { IRenderContext, Flow } from 'vexflow';
 import { toRaw } from 'vue';
 import { Song, Beat, Note } from './songData';
 import Settings from './settingManager';
-import playBackLogic from './playBackLogicNew';
+import playBackLogic from './playbackEngine';
 import { tab } from './tab';
 import Helper from './helper';
 import renderBridge from '../../services/editor/renderBridge';
@@ -399,7 +399,7 @@ class ClassicalNotation {
     } */
     // stave.setMeasure(blockId);        --forced reflow because of line number!
 
-    /* Marker macht nicht so viel Sinn!
+    /* Markers on the stave add little here.
     if(Song.measureMeta[blockId].marker != null)
       stave.setText(Song.measureMeta[blockId].marker.text,
         Vex.Flow.Modifier.Position.ABOVE); */

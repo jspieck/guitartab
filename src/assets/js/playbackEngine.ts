@@ -219,6 +219,28 @@ class PlayBackLogic {
     this.jumpToPosition(blockId, PlayBackLogic.positionOfBeat(trackId, blockId, voiceId, beatId), beatId);
   }
 
+  /**
+   * Builds the sample buffers for the first bars from the play position (called when the
+   * pointer reaches Play), so the first scheduled notes don't each convert a sample.
+   */
+  preloadStart(numBlocks = 2) {
+    if (Settings.songPlaying) return;
+    const firstBlock = this.playPosition.block;
+    for (let trackId = 0; trackId < Song.tracks.length; trackId += 1) {
+      const blocks = Song.measures[trackId];
+      const lastBlock = Math.min(firstBlock + numBlocks, blocks.length);
+      for (let blockId = firstBlock; blockId < lastBlock; blockId += 1) {
+        for (const voice of blocks[blockId]) {
+          for (const beat of voice) {
+            beat.notes.forEach((note, string) => {
+              if (note != null && note.fret >= 0) audioEngine.preloadSF2(trackId, string, note.fret);
+            });
+          }
+        }
+      }
+    }
+  }
+
   resetPlayBack() {
     this.playingIteration = 1;
     this.playPosition.block = 0;

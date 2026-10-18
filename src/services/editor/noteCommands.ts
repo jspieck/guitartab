@@ -3,13 +3,15 @@ import Settings from '../../assets/js/settingManager'
 import { revertHandler } from '../../assets/js/revertHandler'
 import { sequencerHandler } from '../../assets/js/sequencerHandler'
 import { classicalNotation } from './classicalNotationAdapter'
+import type { BeatDuration } from '../../types/tab'
+import { restOf } from '../../utils/durationUtils'
 
 export function addNoteToBlock(
   trackId: number,
   blockId: number,
   voiceId: number,
   newBeatId: number,
-  duration: string,
+  duration: BeatDuration,
   isTuplet: boolean,
   beat: Beat,
   dotted: boolean,
@@ -27,7 +29,7 @@ export function addNoteToBlock(
 
 export function tupletOnlyRests(
   startBeatId: number,
-  blockObj: { tuplet: number | null; duration: string }[],
+  blockObj: { tuplet: number | null; duration: BeatDuration }[],
 ): { lastIndex: number; onlyRests: boolean } {
   let lastIndex = startBeatId
   let onlyRests = true
@@ -93,7 +95,7 @@ export function deleteNote(
 
   if (!noteSet) {
     beatObj.effects = Song.defaultMeasureEffects()
-    beatObj.duration = `${beatObj.duration.charAt(0)}r`
+    beatObj.duration = restOf(beatObj.duration)
     beatObj.notes = []
   }
 

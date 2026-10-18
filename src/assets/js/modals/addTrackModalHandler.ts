@@ -54,7 +54,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
         };
         console.log('numTracks', numTracks);
         tab.createNewTrack(numTracks, instrObj);
-        tab.createTakte(numTracks, 0);
+        tab.createMeasures(numTracks, 0);
         tab.fillMeasures(numTracks, 0);
         sequencerHandler.drawBeat();
         notifySongDataChanged();

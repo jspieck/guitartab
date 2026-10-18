@@ -4,7 +4,7 @@
             <button id="oneMeasureBack" @click="playBackJump(true)" class="voiceButton playChange">
                 <img id="oneMeasureBackImg" src='../assets/images/statusBar/backward.svg' />
             </button>
-            <button id="play" @click="togglePlayback()" class="playStart" :class="{ playing: playbackTransportState.isPlaying }">
+            <button id="play" @click="togglePlayback()" @pointerenter="preloadPlayback()" class="playStart" :class="{ playing: playbackTransportState.isPlaying }">
                 <img id="playMusicImg" src="../assets/images/playButton.svg" />
                 <img id="pauseMusicImg" src="../assets/images/pause.svg" />
             </button>
@@ -88,14 +88,14 @@
                         </button>
 
                         <button id="openFile" @click="openGuitarProFile" data-tooltip="Open File" class="checkBoxNote playButton">
-                            <span style="font-size: 18px;">📂</span>
+                            <span class="menu-glyph menu-glyph--folder">📂</span>
                         </button>
                         <input 
                             type="file" 
                             ref="fileInputRef" 
                             @change="handleFileSelect" 
                             accept=".gp,.gpx,.gp5,.gp4,.gp3,.mid,.gt"
-                            style="display: none;"
+                            hidden
                         />
                         <SaveFormatMenu />
                         <button id="recoverDrafts" data-tooltip="Recover drafts" aria-label="Recover drafts"
@@ -118,7 +118,7 @@
                             class="checkBoxNote playButton"
                             title="Open or save tabs in the cloud"
                         >
-                            <span style="font-size: 16px;">☁</span>
+                            <span class="menu-glyph">☁</span>
                         </button>
 
                         <button id="createPDF" data-tooltip="Create PDF" @click="handleCreatePdf"
@@ -290,6 +290,8 @@ import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
 import { confirmReplaceUnsavedSong } from '../services/songAutosave';
 import type { Note, Beat, TabPosition } from '../types/tab';
+import { noteLengthOf } from '../utils/durationUtils';
+import { clampTempo } from '../utils/tempo';
 import { useEditorScopeState } from '../composables/useEditorScopeState';
 import { setTempoState, useTempoState } from '../composables/useTempoState';
 import { useMenuActions } from '../composables/useMenuActions';
@@ -316,7 +318,7 @@ const pressedButtons = reactive<Record<string, boolean>>({
 const disabledButtons = reactive<Record<string, boolean>>({});
 const { currentTrackId, currentVoiceId } = useEditorScopeState();
 const { currentTempo } = useTempoState();
-const { togglePlay: togglePlayback, stop: stopPlayback } = usePlaybackEngine();
+const { togglePlay: togglePlayback, stop: stopPlayback, preload: preloadPlayback } = usePlaybackEngine();
 const { canUndo, canRedo, undo, redo } = useUndoRedo();
 const noteTiedTo = ref<{ blockId: number; beatId: number } | null>(null);
 const classicalNotationActive = ref(Settings.vexFlowIsActive);
@@ -399,7 +401,7 @@ function syncMenuStateForPosition(position: TabPosition) {
     setFlagMap(disabledButtons, derivedState.disabledButtonIds);
     availableTuplets.value = derivedState.availableTuplets;
     selectedTuplet.value = derivedState.selectedTuplet;
-    AppManager.typeOfNote = beat.duration[0];
+    AppManager.typeOfNote = noteLengthOf(beat.duration);
 }
 
 function syncMenuStateForMarkedPosition() {
@@ -563,9 +565,7 @@ function removeEventListenersTempo() {
 
 function tempoMeterMouseMove(event: MouseEvent) {
     const mouseYnew = event.pageY;
-    Song.bpm = oldBpm + initYPos - mouseYnew;
-    Song.bpm = Math.max(Song.bpm, 10);
-    Song.bpm = Math.min(Song.bpm, 180);
+    Song.bpm = clampTempo(oldBpm + initYPos - mouseYnew);
     setTempoState(Song.bpm);
 }
 
@@ -592,6 +592,14 @@ function recordButtonPressed() {
 }
 </script>
 <style scoped>
+.menu-glyph {
+    font-size: 16px;
+}
+
+.menu-glyph--folder {
+    font-size: 18px;
+}
+
 .read-the-docs {
     color: #888;
 }

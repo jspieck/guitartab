@@ -1,5 +1,5 @@
 import Settings from './settingManager';
-import playBackLogic from './playBackLogicNew';
+import playBackLogic from './playbackEngine';
 import Song from './songData';
 import { audioEngine } from './audioEngine';
 import midiEngine from './midiReceiver';
@@ -12,6 +12,7 @@ import {
 } from '../../data/demoSong';
 import { startFirstRunHint } from '../../stores/firstRunHintState';
 import { markStartupStepDone } from '../../utils/startupReadiness';
+import { showUserError } from '../../services/userNotifications';
 // import { svgDrawer } from './svgDrawer';
 
 // let waveSurfer;
@@ -62,6 +63,10 @@ const startUp = function startUp() {
     // The multi-track demo lives in its own chunk, so it costs nothing after the first visit.
     void import('../../data/demoArrangement').then(({ buildDemoArrangement }) => {
       gProReader.loadBuiltSong(buildDemoArrangement());
+    }).catch(() => {
+      // e.g. offline on the first visit: keep the empty song instead of a silent blank page
+      showUserError("Couldn't load the demo song. You can start with this empty one.");
+    }).finally(() => {
       markStartupStepDone('editor');
     });
   } else {

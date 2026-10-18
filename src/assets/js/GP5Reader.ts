@@ -4,6 +4,8 @@ import Song, {
 } from './songData';
 import AppManager from './appManager';
 import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
+import type { BeatDuration, NoteLengthCode } from '../../types/tab';
+import { restOf } from '../../utils/durationUtils';
 
 class Gp5Reader {
   static read() {
@@ -317,7 +319,7 @@ class Gp5Reader {
     let text: string | undefined;
     let effects = Song.defaultMeasureEffects();
     const notes: Note[] = [];
-    let duration = 'e';
+    let duration: BeatDuration = 'e';
     let dotted = false;
     let tuplet = 0;
     const flags = gProReader.readUnsignedByte();
@@ -351,7 +353,7 @@ class Gp5Reader {
       }
     }
     if (notes.length === 0) {
-      duration += 'r';
+      duration = restOf(duration);
     }
     const measure = {
       empty,
@@ -374,12 +376,13 @@ class Gp5Reader {
   }
 
   // -2:whole, -1:half, 0:quarter, 1:eighth, 2:sixteenth, ...
-  static durationToString(duration: number): string {
+  static durationToString(duration: number): NoteLengthCode {
     // only up to 256 = 2, o = 128, z=64
-    const durationArray = ['w', 'h', 'q', 'e', 's', 't', 'z', 'o', '2'];
+    // '2' (256th) has no NoteLengthCode; the app can't play it either.
+    const durationArray = ['w', 'h', 'q', 'e', 's', 't', 'z', 'o', '2'] as NoteLengthCode[];
     if (duration + 2 > durationArray.length) {
       console.log('Such small note size is not permitted!');
-      return '';
+      return '' as NoteLengthCode;
     }
     return durationArray[duration + 2];
   }

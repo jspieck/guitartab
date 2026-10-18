@@ -17,7 +17,7 @@ import {
   type MenuEffectNoteRef,
 } from '../../services/menuEffectMutations';
 
-type NoteDuration = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o';
+type NoteDuration = NoteLengthCode;
 
 const noteToBeat: Record<NoteDuration, string> = {
   w: 'wholeNote',

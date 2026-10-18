@@ -48,7 +48,7 @@ import { VisualInstruments } from './visualInstruments';
 import Settings from './settingManager';
 import { audioEngine } from './audioEngine';
 import NoteArranger from './noteArranger';
-import playBackLogic from './playBackLogicNew';
+import playBackLogic from './playbackEngine';
 import { requestBlockRender } from '../../services/editor/renderCommands';
 import { modalManager } from './modals/modalManager';
 import { MODALS } from './modals/modalTypes';

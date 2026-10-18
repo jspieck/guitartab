@@ -4,6 +4,7 @@ import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import { MODALS } from './modalTypes';
 import { requestBlockRender } from '../../../services/editor/renderCommands';
+import { clampTempo } from '../../../utils/tempo';
 
 interface TempoModalState extends ModalState {
     bpm: number;
@@ -84,7 +85,7 @@ export class TempoModalHandler extends BaseModalHandler {
 
         this.modalState.bpm = this.modalState.oldBpm + 
             this.modalState.initYPos - mouseYnew;
-        this.modalState.bpm = Math.max(10, Math.min(this.modalState.bpm, 180));
+        this.modalState.bpm = clampTempo(this.modalState.bpm);
 
         tempoMeter.textContent = this.modalState.bpm.toString();
     }

@@ -16,15 +16,6 @@
     </div>
   </template>
   
-  <script lang="ts">
-  export default {
-    name: "BaseModal",
-    props: {
-        modalId: {
-            type: String,
-            required: true
-        }
-    }
-  };
+  <script setup lang="ts">
+  defineProps<{ modalId: string }>()
   </script>
-  

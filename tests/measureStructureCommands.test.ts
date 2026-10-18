@@ -38,9 +38,9 @@ import AppManager from '../src/assets/js/appManager'
 import { revertHandler } from '../src/assets/js/revertHandler'
 import {
   addBlock,
-  addTakt,
+  addMeasureSlot,
   createNewTrack,
-  createTakte,
+  createMeasures,
   initEmptyTab,
   removeBlock,
 } from '../src/services/editor/measureStructureCommands'
@@ -67,15 +67,15 @@ describe('measureStructureCommands', () => {
     vi.clearAllMocks()
   })
 
-  it('addTakt initializes a finite default offset', () => {
+  it('addMeasureSlot initializes a finite default offset', () => {
     const host = createHost()
-    addTakt(host, 0, 0, 0)
+    addMeasureSlot(host, 0, 0, 0)
     expect(host.measureOffset[0][0][0]).toBe(20)
   })
 
-  it('createTakte fills offsets for every measure', () => {
+  it('createMeasures fills offsets for every measure', () => {
     const host = createHost()
-    createTakte(host, 0, 0)
+    createMeasures(host, 0, 0)
     expect(host.measureOffset[0]).toHaveLength(Song.numMeasures)
     expect(host.measureOffset[0][Song.numMeasures - 1][0]).toBe(20)
   })

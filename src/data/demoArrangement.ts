@@ -8,6 +8,7 @@ import Song, {
   type Track,
 } from '../assets/js/songData'
 import type { GpifSong } from '../services/gpifImport'
+import type { NoteLengthCode } from '../types/tab'
 import { drumLine } from '../utils/drumLines'
 
 /**
@@ -33,7 +34,12 @@ const BARS = 14
 /** [string, fret, extra note properties] */
 type NoteSpec = [number, number, Partial<Note>?]
 
-function beat(duration: string, stringCount: number, notes: NoteSpec[], extra: Partial<Beat> = {}): Beat {
+function beat(
+  duration: NoteLengthCode,
+  stringCount: number,
+  notes: NoteSpec[],
+  extra: Partial<Beat> = {},
+): Beat {
   const beatData = Song.defaultMeasure()
   beatData.notes = new Array(stringCount).fill(null)
   for (const [string, fret, more] of notes) {
@@ -52,9 +58,9 @@ function beat(duration: string, stringCount: number, notes: NoteSpec[], extra: P
   return beatData
 }
 
-const g = (duration: string, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
+const g = (duration: NoteLengthCode, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
   beat(duration, GUITAR.length, notes, extra)
-const b = (duration: string, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
+const b = (duration: NoteLengthCode, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
   beat(duration, BASS.length, notes, extra)
 
 function effects(more: Partial<BeatEffects>): Partial<Beat> {
@@ -64,7 +70,7 @@ function effects(more: Partial<BeatEffects>): Partial<Beat> {
 type DrumHit = number | [number, Partial<Note>]
 
 /** A drum hit: General MIDI drum notes (optionally with note effects), each on its line. */
-function d(duration: string, hits: DrumHit[] = [], extra: Partial<Beat> = {}): Beat {
+function d(duration: NoteLengthCode, hits: DrumHit[] = [], extra: Partial<Beat> = {}): Beat {
   const notes = hits.map((hit) => {
     const [midi, more] = typeof hit === 'number' ? [hit, undefined] : hit
     return [drumLine(midi), midi, more] as NoteSpec

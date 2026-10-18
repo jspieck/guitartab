@@ -1112,6 +1112,9 @@ const parser = {
   },
 };
 
+/** AudioBuffer per instrument key (the key objects live as long as the loaded SoundFont). */
+const sampleBuffers = new WeakMap<object, AudioBuffer>();
+
 const synthesizerNote = {
   noteOn(instrument: {
     channel: number, sample: Int16Array, basePlaybackRate: number,
@@ -1163,36 +1166,41 @@ const synthesizerNote = {
     /** @type {number} */
     // const startTime = instrument['start'] / sampleRate;
 
-    sample = sample.subarray(0, sample.length + instrument.end);
-    /** @type {AudioBuffer} */
-    const bufferInner = audioEngine.createBuffer(1, sample.length, sampleRate);
-    /** @type {Float32Array} */
-    const channelData = bufferInner.getChannelData(0);
+    // Converting the sample is the expensive part of a note; each key's buffer is built once.
+    let bufferInner = sampleBuffers.get(instrument);
+    if (bufferInner == null) {
+      sample = sample.subarray(0, sample.length + instrument.end);
+      /** @type {AudioBuffer} */
+      bufferInner = audioEngine.createBuffer(1, sample.length, sampleRate);
+      /** @type {Float32Array} */
+      const channelData = bufferInner.getChannelData(0);
 
-    /* var convertToWebAudio = function(sampleInner){
-        var newSample = new Int16Array(sample.length);
-        for (var i = 0, il = sample.length; i < il; ++i) {
-            if(sample[i] >= 0)
-                newSample[i] = sample[i]/32767;
-            else
-                newSample[i] = sample[i]/32768;
+      /* var convertToWebAudio = function(sampleInner){
+          var newSample = new Int16Array(sample.length);
+          for (var i = 0, il = sample.length; i < il; ++i) {
+              if(sample[i] >= 0)
+                  newSample[i] = sample[i]/32767;
+              else
+                  newSample[i] = sample[i]/32768;
+          }
+          return newSample;
+      } */
+
+      const int16ToFloat32 = function int16ToFloat32(inputArray, startIndex: number, length: number) {
+        const output = new Float32Array(inputArray.length - startIndex);
+        for (let i = startIndex; i < length; i += 1) {
+          const int = inputArray[i];
+          // If the high bit is on, then it is a negative number, and actually counts backwards.
+          const float = (int >= 0x8000) ? -(0x10000 - int) / 0x8000 : int / 0x7FFF;
+          output[i] = float;
         }
-        return newSample;
-    } */
+        return output;
+      };
 
-    const int16ToFloat32 = function int16ToFloat32(inputArray, startIndex: number, length: number) {
-      const output = new Float32Array(inputArray.length - startIndex);
-      for (let i = startIndex; i < length; i += 1) {
-        const int = inputArray[i];
-        // If the high bit is on, then it is a negative number, and actually counts backwards.
-        const float = (int >= 0x8000) ? -(0x10000 - int) / 0x8000 : int / 0x7FFF;
-        output[i] = float;
-      }
-      return output;
-    };
-
-    const sam = int16ToFloat32(sample, 0, sample.length);
-    channelData.set(sam);
+      const sam = int16ToFloat32(sample, 0, sample.length);
+      channelData.set(sam);
+      sampleBuffers.set(instrument, bufferInner);
+    }
 
     return {
       buffer: bufferInner,

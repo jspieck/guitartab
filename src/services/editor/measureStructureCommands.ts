@@ -19,7 +19,7 @@ export interface MeasureStructureHost {
   drawTrack: (trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null) => void
 }
 
-export function addTakt(
+export function addMeasureSlot(
   host: Pick<MeasureStructureHost, 'measureOffset'>,
   trackId: number,
   blockId: number,
@@ -40,7 +40,7 @@ export function addTakt(
   }
 }
 
-export function createTakte(
+export function createMeasures(
   host: Pick<MeasureStructureHost, 'measureOffset'>,
   trackId: number,
   voiceId: number,
@@ -49,7 +49,7 @@ export function createTakte(
     host.measureOffset[trackId] = []
   }
   for (let i = 0; i < Song.numMeasures; i += 1) {
-    addTakt(host, trackId, i, voiceId)
+    addMeasureSlot(host, trackId, i, voiceId)
   }
 }
 
@@ -60,7 +60,7 @@ export function addBlock(host: MeasureStructureHost, duringRestoration: boolean)
   const blockId = Song.numMeasures
   for (let trackId = 0; trackId < Song.tracks.length; trackId += 1) {
     for (let voiceId = 0; voiceId < Song.numVoices; voiceId += 1) {
-      addTakt(host, trackId, blockId, voiceId)
+      addMeasureSlot(host, trackId, blockId, voiceId)
       Song.initEmptyMeasure(trackId, blockId, voiceId)
       host.fillMeasure(trackId, blockId, voiceId)
       requestDurationRender(trackId, blockId, voiceId)
@@ -156,7 +156,7 @@ export function createNewTrack(
       Song.initEmptyMeasure(trackId, i, j)
     }
   }
-  createTakte(host, trackId, 0)
+  createMeasures(host, trackId, 0)
   AppManager.setTracks(trackId)
 }
 

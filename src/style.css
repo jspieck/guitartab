@@ -63,3 +63,9 @@
   /* Slide color (blue accent) */
   --tab-slide: #2d6bb2;
 }
+
+/* Icon sprite referenced with <use>; kept in the DOM but out of view. */
+.svg-icon-source {
+  position: absolute;
+  margin-left: -100%;
+}

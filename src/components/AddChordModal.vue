@@ -18,7 +18,7 @@
               stroke="rgb(180, 180, 180)" stroke-width="1" fill="none" class="gridLine" />
             <path v-for="i in handler.numStrings" :key="`string-${i}`"
               :d="`M${handler.paddingLeft} ${handler.getStringY(i - 1)}L${handler.width + handler.paddingLeft} ${handler.getStringY(i - 1)}`"
-              stroke="rgb(60, 60, 60)" stroke-width="1" fill="none" class="strongGridLine" style="pointer-events: none" />
+              stroke="rgb(60, 60, 60)" stroke-width="1" fill="none" class="strongGridLine" pointer-events="none" />
             <text v-for="(note, i) in stringNotes" :key="`label-${i}`" :x="0"
               :y="handler.getStringY(handler.numStrings - i - 1) + 3" font-family="Source Sans Pro" font-size="12px">{{ note
               }}</text>

@@ -16,7 +16,7 @@ export interface PlaybackPosition {
 export type { PlaybackTransportState }
 
 async function getPlaybackEngine() {
-  const module = await import('../assets/js/playBackLogicNew')
+  const module = await import('../assets/js/playbackEngine')
   return module.default
 }
 
@@ -83,6 +83,12 @@ export function usePlaybackEngine() {
     playBackLogic.jumpToBeat(trackId, blockId, voiceId, beatId)
   }
 
+  /** Loads the playback chunk and the first notes' samples ahead of a likely Play click. */
+  async function preload(): Promise<void> {
+    const playBackLogic = await getPlaybackEngine()
+    playBackLogic.preloadStart()
+  }
+
   function getPlayingState(): boolean {
     return Settings.songPlaying
   }
@@ -101,6 +107,7 @@ export function usePlaybackEngine() {
     seekTo,
     setPlayhead,
     jumpToBeat,
+    preload,
     getPlayingState,
   }
 }

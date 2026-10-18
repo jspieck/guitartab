@@ -2,7 +2,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Drives the real playback scheduler (`playBackLogicNew.scheduler`) on a fake clock: Vitest's
+ * Drives the real playback scheduler (`playbackEngine.scheduler`) on a fake clock: Vitest's
  * fake timers stand in for the timer worker's 25 ms ticks, and the audio clock reads the same
  * fake time. `playChord` is recorded instead of played, so the test sees exactly when every
  * beat is scheduled.
@@ -33,7 +33,7 @@ vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
 
-type PlaybackModule = typeof import('../src/assets/js/playBackLogicNew')
+type PlaybackModule = typeof import('../src/assets/js/playbackEngine')
 type SongModule = typeof import('../src/assets/js/songData')
 
 let playback: PlaybackModule['default']
@@ -53,7 +53,7 @@ const scheduled: {
 const TICK_MS = 25
 
 beforeAll(async () => {
-  playback = (await import('../src/assets/js/playBackLogicNew')).default
+  playback = (await import('../src/assets/js/playbackEngine')).default
   Song = (await import('../src/assets/js/songData')).default
   audioEngine = (await import('../src/assets/js/audioEngine')).audioEngine as never
   practice = await import('../src/stores/practiceState')

@@ -1,6 +1,8 @@
 import fastdom from 'fastdom';
 import { setTempoState } from '../../composables/useTempoState';
 import { songState } from '../../stores/songState';
+import type { BeatDuration } from '../../types/tab';
+import { isRestDuration } from '../../utils/durationUtils';
 
 interface Interval {
   trackId: number,
@@ -160,7 +162,7 @@ interface BeatEffects {
 }
 
 interface Beat {
-  duration: string,
+  duration: BeatDuration,
   notes: (Note | null)[],
   effects: BeatEffects,
   dynamic: string,
@@ -366,7 +368,7 @@ const songMethods = {
     songState.chordsMap[trackId].set(chord.name, { ...chord, display: true });
   },
 
-  setBeat(trackId: number, blockId: number, voiceId: number, beatId: number, duration: string) {
+  setBeat(trackId: number, blockId: number, voiceId: number, beatId: number, duration: BeatDuration) {
     songState.measures[trackId][blockId][voiceId].splice(
       beatId,
       0,
@@ -387,7 +389,7 @@ const songMethods = {
         const hasNotes = Array.isArray(beat.notes) && beat.notes.some((note: Note | null) => note != null);
         const hasOtherNotes = Array.isArray(beat.otherNotes) && beat.otherNotes.length > 0;
 
-        if (hasNotes || hasOtherNotes || beat.duration.length < 2) {
+        if (hasNotes || hasOtherNotes || !isRestDuration(beat.duration)) {
           return false;
         }
       }

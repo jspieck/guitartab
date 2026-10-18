@@ -10,13 +10,15 @@ import { typedEventBus } from '../../utils/typedEventBus';
 import { notifySongDataChanged } from '../../services/appEvents';
 import { visualInstruments } from './visualInstruments';
 import midiEngine from './midiReceiver';
-import playBackLogic from './playBackLogicNew';
+import playBackLogic from './playbackEngine';
 import Helper from './helper';
 import { numToInstr } from './instrumentData';
 import { audioEngine } from './audioEngine';
 import { sequencerHandler } from './sequencerHandler';
 import Duration from './duration';
 import Tuning from './tuning';
+import type { NoteLengthCode } from '../../types/tab';
+import { noteLengthOf, restOf } from '../../utils/durationUtils';
 import { applyNoteLengthSelection } from '../../services/menuActionCommands';
 import { useTabStore } from '../../stores/tabStore';
 import { setTrackSignIcon } from '../../utils/editorUi';
@@ -37,7 +39,7 @@ const AppManager = {
   get typeOfNote() {
     return useTabStore().typeOfNote;
   },
-  set typeOfNote(value: string) {
+  set typeOfNote(value: NoteLengthCode) {
     useTabStore().setTypeOfNote(value);
   },
 
@@ -326,7 +328,7 @@ const AppManager = {
       }
       console.log('Create Guitar Tab:', Song.numVoices);
       for (let j = 0; j < Song.numVoices; j += 1) {
-        tab.createTakte(i, j);
+        tab.createMeasures(i, j);
         const tx = performance.now();
         tab.fillMeasures(i, j);
 
@@ -334,7 +336,7 @@ const AppManager = {
       }
     }
     console.log(`FillMeasures ${durComplete}`);
-    console.log(`CreateTakte: ${performance.now() - t1}ms`);
+    console.log(`createMeasures: ${performance.now() - t1}ms`);
 
     this.setTimeMeterToAllTracks();
 
@@ -522,7 +524,7 @@ const AppManager = {
             if (numOfBeats + beatLength > numOf64ths) {
               // check if deleting is allowed
               if (numOfBeats - Math.floor(numOfBeats) !== 0) {
-                alert('Please remove the tuplet before changing the time meter!');
+                AppManager.showNotification('Remove the tuplet before changing the time signature.', 'error');
                 return null;
               }
             }
@@ -587,7 +589,7 @@ const AppManager = {
             // fill with greatest 2potence and fill the rest with eighths
             const nearest2Potence = Helper.getGreatestNotelengthToFit(spaceToFill);
             spaceToFill -= nearest2Potence;
-            Song.setBeat(trackId, bId, voiceId, blockLength + l, `${Duration.typeToString(nearest2Potence)}r`);
+            Song.setBeat(trackId, bId, voiceId, blockLength + l, restOf(Duration.typeToString(nearest2Potence)));
           }
         }
       }
@@ -612,7 +614,7 @@ const AppManager = {
     const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
     // no rest any more
     // eslint-disable-next-line prefer-destructuring
-    beat.duration = beat.duration[0];
+    beat.duration = noteLengthOf(beat.duration);
 
     const note = beat.notes[string];
     tab.drawNote(trackId, blockId, voiceId, beatId, string, fretNumber, false);

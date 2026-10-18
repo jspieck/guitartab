@@ -268,8 +268,8 @@ class GP5Writer {
             || (num !== 0 && meta.numerator !== Song.measureMeta[num - 1].numerator)
             || meta.denominator !== Song.measureMeta[num - 1].denominator
       ) {
-        flags |= 0x01; // is ZÄHLER of time signature present
-        flags |= 0x02; // is NENNER of time signature present
+        flags |= 0x01; // time signature numerator present
+        flags |= 0x02; // time signature denominator present
       }
       if (meta.repeatOpen) {
         flags |= 0x04; // is repeatStart present
@@ -291,7 +291,7 @@ class GP5Writer {
       }
       this.writeUnsignedByte(flags);
 
-      // VierViertel-Takt
+      // 4/4 bar
       if ((flags & 0x01) !== 0) this.writeByte(meta.numerator);
       if ((flags & 0x02) !== 0) this.writeByte(meta.denominator);
       // The reader subtracts one from the stored repeat count.

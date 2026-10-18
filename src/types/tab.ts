@@ -109,3 +109,6 @@ export interface SelectedNoteState extends Partial<TabNoteData> {
 }
 
 export type NoteLengthCode = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o'
+
+/** A beat's stored length: the note value, with an `r` suffix for rests (`'e'`, `'er'`). */
+export type BeatDuration = NoteLengthCode | `${NoteLengthCode}r`

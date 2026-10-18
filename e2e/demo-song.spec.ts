@@ -52,7 +52,7 @@ test.describe('demo song on the first visit', () => {
     await page.locator('#play').click()
     await page.waitForTimeout(2500)
     const block = await page.evaluate(async () => {
-      const { default: playBackLogic } = await import('/src/assets/js/playBackLogicNew.ts')
+      const { default: playBackLogic } = await import('/src/assets/js/playbackEngine.ts')
       return playBackLogic.getCurrentBlock()
     })
     await page.locator('#play').click()

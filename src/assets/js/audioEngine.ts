@@ -653,6 +653,29 @@ class AudioEngine {
     return this.bufferList[name]?.[0]?.buffer ?? null;
   }
 
+  /** SoundFont program, MIDI key and channel for a fret on a track (9 = drums). */
+  sf2Target(trackId: number, string: number, fret: number) {
+    const track = Song.tracks[trackId];
+    let instrumentId;
+    if (track.channel == null) {
+      instrumentId = track.primaryChannel === 9 ? 9 : track.program;
+    } else {
+      instrumentId = track.channel.index === 9 ? 9 : Song.allChannels[track.channel.index].cInstrument;
+    }
+    let note = fret + track.capo;
+    if (instrumentId !== 9) {
+      note += track.strings[string];
+    }
+    return { instrumentId, note, channelIndex: track.channel?.index || 0 };
+  }
+
+  /** Builds (and caches) the sample buffer for a note without playing it. */
+  preloadSF2(trackId: number, string: number, fret: number) {
+    if (!this.theSynth?.bankSet?.length) return; // SoundFont not loaded yet
+    const { instrumentId, note, channelIndex } = this.sf2Target(trackId, string, fret);
+    this.theSynth.noteOn(instrumentId, note, 100, channelIndex);
+  }
+
   playSF2(
     trackId: number,
     voiceId: number,
@@ -670,28 +693,13 @@ class AudioEngine {
     let volume = volumeIn;
     let duration = durationIn;
     const nextFret = nextFretIn;
-    let instrumentId;
-    if (Song.tracks[trackId].channel == null) {
-      instrumentId = Song.tracks[trackId].program;
-      if (Song.tracks[trackId].primaryChannel === 9) {
-        instrumentId = 9;
-      }
-    } else {
-      instrumentId = Song.allChannels[Song.tracks[trackId].channel.index].cInstrument;
-      if (Song.tracks[trackId].channel.index === 9) {
-        instrumentId = 9;
-      }
-    }
-    let note = fret + Song.tracks[trackId].capo;
-    if (instrumentId !== 9) {
-      note += Song.tracks[trackId].strings[string];
-    }
+    const target = this.sf2Target(trackId, string, fret);
+    const { instrumentId, channelIndex } = target;
+    let { note } = target;
     const drumInfo = this.noteToDrum.get(note);
     if (instrumentId === 9 && drumInfo != null && !this.isDrumAudible(note)) {
       return null;
     }
-    // console.log(instrumentId, note);
-    const channelIndex = Song.tracks[trackId].channel?.index || 0;
     const res = this.theSynth.noteOn(instrumentId, note, velocity, channelIndex);
     const source = this.context.createBufferSource();
 

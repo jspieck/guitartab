@@ -34,7 +34,7 @@ npx playwright test classical-notation --update-snapshots   # refresh screenshot
 GT_PERF_FILE="Empire Of The Sun - We Are The People v2.gp5" npx playwright test perf-note-entry   # opt-in keystroke benchmark
 ```
 
-- `npm run lint` covers all `.vue`, services/stores/utils/composables, tests, e2e and scripts; `src/assets/js` is excluded except the handlers listed in `eslint.config.mjs`. 27 warnings (complexity/length/any) are known; errors are not acceptable.
+- `npm run lint` covers all `.vue`, services/stores/utils/composables, tests, e2e and scripts; `src/assets/js` is excluded except the handlers listed in `eslint.config.mjs`. 25 warnings (complexity/length/any) are known; errors are not acceptable.
 - A husky pre-commit hook runs lint-staged (`eslint --fix`, Prettier on staged `.ts/.mjs`). `.prettierignore` keeps `src/assets/` and `*.vue` out of Prettier for now.
 - CI has no `public/audio/`: it generates a stand-in SoundFont with `node scripts/make-test-soundfont.mjs`. Linux screenshot baselines come from CI's `linux-snapshots` artifact.
 - On this Windows machine the Bash sandbox sometimes fails to spawn esbuild (`spawn EPERM`); run Vite/Vitest/Playwright through PowerShell then.
@@ -43,7 +43,7 @@ GT_PERF_FILE="Empire Of The Sun - We Are The People v2.gp5" npx playwright test 
 
 ## Architecture (big picture)
 
-The app is a hybrid: a modern Vue layer (`src/components`, `composables`, `services`, `stores`, `utils`) on top of a legacy, singleton-heavy core in `src/assets/js` (`songData.ts`, `tab.ts`, `appManager.ts`, `playBackLogicNew.ts`, `audioEngine.ts`, `revertHandler.ts`, `overlayHandler.ts`, GP readers/writer). Vue renders everything; the legacy core still owns most mutations, selection and playback.
+The app is a hybrid: a modern Vue layer (`src/components`, `composables`, `services`, `stores`, `utils`) on top of a legacy, singleton-heavy core in `src/assets/js` (`songData.ts`, `tab.ts`, `appManager.ts`, `playbackEngine.ts`, `audioEngine.ts`, `revertHandler.ts`, `overlayHandler.ts`, GP readers/writer). Vue renders everything; the legacy core still owns most mutations, selection and playback.
 
 **Song data.** `src/stores/songState.ts` is the reactive source of truth; `Song` (`songData.ts`) is a facade that reads/writes through it, so legacy edits are reactive. Shape: `Song.measures[track][block][voice][beat]`. A "block" is a bar (bar metadata in `Song.measureMeta[block]`); the type `Beat` is one beat. Use the accessors `Song.getBeat/findBeat/getNote(ref)` rather than indexing by hand. Optional features are optional fields (`beat.text`, `beat.chord`, `effects.stroke`, …); old `.gt` files are upgraded on load by `services/songMigrations.ts` (add a step there when changing a field). Use `toRaw` for bulk reads.
 
@@ -55,7 +55,7 @@ The app is a hybrid: a modern Vue layer (`src/components`, `composables`, `servi
 
 **Editing and undo.** Note entry goes through `AppManager.placeNote` / `tab.drawNote`, which record undo in `revertHandler` (time-signature undo uses `VoiceSnapshot`s). All keyboard shortcuts are one table, `utils/keyboardShortcuts.ts` (`SHORTCUTS`), dispatched by `AppManager.keyDownEvent` (document, capture phase) via `shortcutHandlers` at the bottom of `appManager.ts`; the Help sheet is generated from the same table, so add new shortcuts there. Some edits still write to `Song` directly from components and bypass undo (BPM in `Menu.vue`, faders).
 
-**Playback.** `playBackLogicNew.ts`: a worker ticks `scheduler()` every 25 ms; notes are scheduled `scheduleAhead` (0.4 s) ahead on the `AudioContext` clock. The song clock counts whole notes; convert with `spw()/wps()`, which apply the practice speed (`stores/practiceState.ts`). Metronome, count-in and speed trainer live there too. Instruments come from a 25 MB SoundFont parsed on the main thread (`sf2parser.ts`).
+**Playback.** `playbackEngine.ts`: a worker ticks `scheduler()` every 25 ms; notes are scheduled `scheduleAhead` (0.4 s) ahead on the `AudioContext` clock. The song clock counts whole notes; convert with `spw()/wps()`, which apply the practice speed (`stores/practiceState.ts`). Metronome, count-in and speed trainer live there too. Instruments come from a 25 MB SoundFont parsed on the main thread (`sf2parser.ts`).
 
 **Import/export.** `GProReader.importSongBytes` is the single import path (typed `ImportError`, rolls back on failure). GP6/7/8: `services/gpContainers.ts` (ZIP/BCFZ/BCFS) → `services/gpifImport.ts`. MIDI: `services/midiImport.ts`. Exports (lazy `songExport` chunk): `musicXmlExport.ts`, `gpifExport.ts` + `gpxWriter.ts`, `GP5Writ.ts`, `.gt` (`utils/gtSerialization.ts`). Parsers build plain data first and then apply it (`parseGpif` → `applyGpifSong`), which keeps them testable in node.
 

@@ -9,6 +9,9 @@
  * Song, DOM, or any rendering layer.
  */
 
+import type { BeatDuration, NoteLengthCode } from '../types/tab'
+import { restOf } from './durationUtils'
+
 // ─── Duration constants (ticks, where whole = 64) ───────────────────────────
 
 export const DURATION_TICKS: Record<string, number> = {
@@ -30,7 +33,7 @@ export const DURATION_TICKS: Record<string, number> = {
   or: 0.5,
 }
 
-const TICKS_TO_CODE: [number, string][] = [
+const TICKS_TO_CODE: [number, NoteLengthCode][] = [
   [64, 'w'],
   [32, 'h'],
   [16, 'q'],
@@ -44,7 +47,7 @@ const TICKS_TO_CODE: [number, string][] = [
 // ─── Lightweight beat representation ────────────────────────────────────────
 
 export interface Beat {
-  duration: string
+  duration: BeatDuration
   dotted: boolean
   doubleDotted: boolean
   tuplet: number | null
@@ -59,7 +62,7 @@ export interface RestBeat extends Beat {
 // ─── Result types ───────────────────────────────────────────────────────────
 
 export interface DecomposedNote {
-  duration: string
+  duration: NoteLengthCode
   dotted: boolean
   doubleDotted: boolean
   ticks: number
@@ -96,7 +99,7 @@ export class DurationReplacer {
     return DURATION_TICKS[code] ?? DURATION_TICKS[DurationReplacer.baseDuration(code)] ?? 0
   }
 
-  static codeFromTicks(ticks: number): string {
+  static codeFromTicks(ticks: number): NoteLengthCode | '' {
     for (const [t, c] of TICKS_TO_CODE) {
       if (t === ticks) return c
     }
@@ -157,7 +160,8 @@ export class DurationReplacer {
 
       const dotted = base + base / 2
       const doubleDotted = base + base / 2 + base / 4
-      const code = DurationReplacer.codeFromTicks(base)
+      // '' for remainders below a 128th (tuplet rounding); their ticks still count.
+      const code = DurationReplacer.codeFromTicks(base) as NoteLengthCode
 
       if (doubleDotted <= remaining + EPS && doubleDotted - remaining > -EPS) {
         result.push({ duration: code, dotted: false, doubleDotted: true, ticks: doubleDotted })
@@ -187,7 +191,7 @@ export class DurationReplacer {
    * @param newDuration New duration code (e.g. 'e', 'sr')
    * @returns           A ShrinkResult with the new beats array
    */
-  static shrink(beats: Beat[], beatIndex: number, newDuration: string): ShrinkResult {
+  static shrink(beats: Beat[], beatIndex: number, newDuration: BeatDuration): ShrinkResult {
     const beat = beats[beatIndex]
     const oldTicks = DurationReplacer.beatTicks(beat, true)
     const newTicks = DurationReplacer.ticksOf(newDuration)
@@ -205,13 +209,13 @@ export class DurationReplacer {
     const updatedBeat = { ...beat, duration: newDuration, dotted: false, doubleDotted: false }
     // Preserve rest status
     if (!updatedBeat.hasNotes && !DurationReplacer.isRest(updatedBeat.duration)) {
-      updatedBeat.duration += 'r'
+      updatedBeat.duration = restOf(updatedBeat.duration)
     }
     result[beatIndex] = updatedBeat
 
     // Insert rests after the beat
     const restBeats: Beat[] = rests.map((r) => ({
-      duration: r.duration + 'r',
+      duration: restOf(r.duration),
       dotted: r.dotted,
       doubleDotted: r.doubleDotted,
       tuplet: beat.tuplet,
@@ -237,7 +241,7 @@ export class DurationReplacer {
    * @param newDuration New duration code (e.g. 'q', 'h')
    * @returns           A GrowResult with the new beats array
    */
-  static grow(beats: Beat[], beatIndex: number, newDuration: string): GrowResult {
+  static grow(beats: Beat[], beatIndex: number, newDuration: BeatDuration): GrowResult {
     const EPS = 1e-9
     const beat = beats[beatIndex]
     const oldTicks = DurationReplacer.beatTicks(beat, true)
@@ -301,7 +305,7 @@ export class DurationReplacer {
     // Update the target beat
     const updatedBeat = { ...beat, duration: newDuration, dotted: false, doubleDotted: false }
     if (!updatedBeat.hasNotes && !DurationReplacer.isRest(updatedBeat.duration)) {
-      updatedBeat.duration += 'r'
+      updatedBeat.duration = restOf(updatedBeat.duration)
     }
     result[beatIndex] = updatedBeat
 
@@ -314,7 +318,7 @@ export class DurationReplacer {
     const excessRests = excessTicks > EPS ? DurationReplacer.decompose(excessTicks) : []
 
     const excessBeats: Beat[] = excessRests.map((r) => ({
-      duration: r.duration + 'r',
+      duration: restOf(r.duration),
       dotted: r.dotted,
       doubleDotted: r.doubleDotted,
       tuplet: isTuplet ? beat.tuplet : null,
@@ -344,7 +348,7 @@ export class DurationReplacer {
   static changeDuration(
     beats: Beat[],
     beatIndex: number,
-    newDurationCode: string,
+    newDurationCode: BeatDuration,
   ): { beats: Beat[]; rescaleNeeded: boolean; success: boolean } {
     const beat = beats[beatIndex]
     const oldTicks = DurationReplacer.beatTicks(beat, true)

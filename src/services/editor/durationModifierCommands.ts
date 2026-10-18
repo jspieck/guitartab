@@ -8,6 +8,8 @@ import { classicalNotation } from './classicalNotationAdapter'
 import type { Beat } from '../../types/tab'
 import { requestDurationRender } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
+import { showUserError } from '../userNotifications'
+import { noteLengthOf } from '../../utils/durationUtils'
 
 export function toggleBeatDotModifier(
   beat: Beat,
@@ -137,7 +139,7 @@ export function setNotesTied(
           tied: true,
           tiedTo: noteTiedToCopy,
         }
-        beat.duration = beat.duration[0]
+        beat.duration = noteLengthOf(beat.duration)
       } else {
         selectedNote.tied = shouldBeTied
         selectedNote.tiedTo = noteTiedToCopy
@@ -265,7 +267,7 @@ export function noteLengthSpecialSelect(
     return false
   }
   if (tab.markedNoteObj == null) {
-    alert('Please set note first.')
+    showUserError('Select a note first.')
     return false
   }
   const { trackId, blockId, voiceId, beatId, string } = tab.markedNoteObj

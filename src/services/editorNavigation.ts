@@ -1,5 +1,5 @@
 import AppManager from '../assets/js/appManager'
-import playBackLogic from '../assets/js/playBackLogicNew'
+import playBackLogic from '../assets/js/playbackEngine'
 import { typedEventBus, type TabPosition } from '../utils/typedEventBus'
 import { setLoadingWheelVisible } from '../utils/editorUi'
 

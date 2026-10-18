@@ -36,7 +36,7 @@
     </g>
     
     <!-- Range selection overlay (loop / copy-paste) -->
-    <g v-if="rangeOverlayRect" class="range-selection-overlay" style="pointer-events: none">
+    <g v-if="rangeOverlayRect" class="range-selection-overlay" pointer-events="none">
       <rect
         :x="rangeOverlayRect.x"
         :y="rangeOverlayRect.y"
@@ -48,7 +48,7 @@
     </g>
 
     <!-- Selection indicator -->
-    <g v-if="selectionRenderPoint" class="selection-indicator" style="pointer-events: none">
+    <g v-if="selectionRenderPoint" class="selection-indicator" pointer-events="none">
       <rect
         :x="selectionRenderPoint.x - 10"
         :y="selectionRenderPoint.y - 8"
@@ -75,7 +75,7 @@
       :num-strings="numStrings"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
       :lanes="rowData.lanes"
-      style="pointer-events: none"
+      pointer-events="none"
     />
     
     <!-- Measure metadata (time signatures, BPM, etc.) -->
@@ -90,7 +90,7 @@
       :string-spacing="stringSpacing"
       :lanes="rowData.lanes"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
-      style="pointer-events: none"
+      pointer-events="none"
     />
 
     <!-- Clickable string areas for note placement - ON TOP -->
@@ -105,7 +105,7 @@
         fill="rgba(0, 0, 0, 0)"
         class="string-click-area"
         @mousedown="(event: MouseEvent) => handleStringPointerDown(event, stringLine(stringIndex - 1, numStrings))"
-        style="cursor: pointer"
+        cursor="pointer"
       />
     </g>
   </g>

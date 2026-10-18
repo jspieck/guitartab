@@ -11,7 +11,7 @@ import { computeRowLanes, type LaneBox, type RowLanes } from '../src/utils/tabRo
 vi.mock('../src/assets/js/audioEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
 )
-vi.mock('../src/assets/js/playBackLogicNew', () =>
+vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
 vi.mock('../src/assets/js/midiReceiver', () =>

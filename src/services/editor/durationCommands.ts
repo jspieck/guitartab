@@ -1,6 +1,7 @@
 import { notifySongDataChanged } from '../appEvents'
 import Settings from '../../assets/js/settingManager'
 import Song from '../../assets/js/songData'
+import type { BeatDuration } from '../../types/tab'
 import Duration from '../../assets/js/duration'
 import { overlayHandler } from '../../assets/js/overlayHandler'
 import { menuHandler } from '../../assets/js/menuHandler'
@@ -25,7 +26,7 @@ export interface TabDurationHost {
     string: number,
     newDuration: number,
     previousDuration: number,
-    noteLength: string,
+    noteLength: BeatDuration,
   ): void
   trackRerenderNecessary(trackId: number, blockId: number, voiceId: number): boolean
   drawTrack(trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null): void
@@ -38,7 +39,7 @@ export function changeNoteDuration(
   voiceId: number,
   beatId: number,
   string: number,
-  noteLength: string,
+  noteLength: BeatDuration,
   duringRevert: boolean,
 ): boolean {
   const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })

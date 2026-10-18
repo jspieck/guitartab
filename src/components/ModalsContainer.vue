@@ -5,7 +5,7 @@
     <DrumInfoModal />
     <GuitarModal id="guitarModal" class="modal" role="alert"/>
     <DeleteModal />
-    <RepititionModal />
+    <RepetitionModal />
     <AddTrackModal />
     <RepeatAlternativeModal />
     <HarmonicModal />
@@ -61,7 +61,7 @@ import TremoloPickingModal from './TremoloPickingModal.vue'
 import HarmonicModal from './HarmonicModal.vue'
 import RepeatAlternativeModal from './RepeatAlternativeModal.vue'
 import AddTrackModal from './AddTrackModal.vue'
-import RepititionModal from './RepititionModal.vue'
+import RepetitionModal from './RepetitionModal.vue'
 import DeleteModal from './DeleteModal.vue'
 import BendModal from './BendModal.vue'
 import CloudSongsModal from './CloudSongsModal.vue'

@@ -11,7 +11,7 @@ vi.mock('../src/assets/js/helper', () => ({
   },
 }))
 
-vi.mock('../src/assets/js/playBackLogicNew', () => ({
+vi.mock('../src/assets/js/playbackEngine', () => ({
   default: {
     setPlayPosition: vi.fn(),
   },
@@ -73,7 +73,7 @@ vi.mock('../src/assets/js/tab', async () => {
   }
 })
 
-import playBackLogic from '../src/assets/js/playBackLogicNew'
+import playBackLogic from '../src/assets/js/playbackEngine'
 import Song, {
   type MeasureMetaInfo,
   type PlayBackInstrument,

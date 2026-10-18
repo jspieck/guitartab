@@ -33,7 +33,7 @@
     
     <div id="loadingWheel" class="loader loader--style2" title="1">
       <svg version="1.1" id="loader-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-        x="0px" y="0px" width="50px" height="50px" viewBox="0 0 50 50" style="enable-background:new 0 0 50 50;"
+        x="0px" y="0px" width="50px" height="50px" viewBox="0 0 50 50"
         xml:space="preserve">
         <path fill="#274bb3"
           d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z">
@@ -58,8 +58,8 @@
     <AutosaveDraftsPanel v-if="draftsPanelState.open" />
     <HelpOverlays v-if="shortcutsHelpState.open || firstRunHintState.open" />
     
-    <svg id="svg-source" height="0" version="1.1" xmlns="http://www.w3.org/2000/svg"
-      style="position:absolute; margin-left: -100%" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <svg id="svg-source" class="svg-icon-source" height="0" version="1.1" xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
       <g id="close-icon">
         <path d="M0.014,1.778L1.79,0.001l30.196,30.221l-1.778,1.777L0.014,1.778z" />
         <path d="M1.79,31.999l-1.776-1.777L30.208,0.001l1.778,1.777L1.79,31.999z" />

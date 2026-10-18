@@ -20,6 +20,7 @@ import { menuHandler } from '../../assets/js/menuHandler'
 import { processEffectSelect, setEffectVariable } from '../../assets/js/menuHelper'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { requestBlockRender, requestDurationRender } from './renderCommands'
+import { noteLengthOf } from '../../utils/durationUtils'
 
 function requestCurrentVoiceBlockRender(trackId: number, blockId: number) {
   requestBlockRender(trackId, blockId, Song.currentVoiceId)
@@ -59,7 +60,7 @@ export function revertDeleteNote(infoObj: {
   const { trackId, blockId, voiceId, beatId, string, noteObj, effectObj } = infoObj
   const redrawSequencer = Song.isBeatEmpty(trackId, blockId)
   const beatObj = Song.getBeat({ trackId, blockId, voiceId, beatId })
-  beatObj.duration = beatObj.duration[0]
+  beatObj.duration = noteLengthOf(beatObj.duration)
   beatObj.notes[string] = noteObj
   beatObj.effects = effectObj
   if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {

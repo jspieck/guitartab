@@ -5,6 +5,8 @@ import Song, {
   Note, Chord, BeatEffects, Stroke, Bend, Grace, TremoloBar, Track,
 } from './songData';
 import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
+import type { BeatDuration } from '../../types/tab';
+import { restOf } from '../../utils/durationUtils';
 
 class Gp3Reader {
   static read() {
@@ -125,9 +127,9 @@ class Gp3Reader {
         // notes[string] = note;
       }
     }
-    let durString = Gp5Reader.durationToString(durationObj.value); // s, e, q, w, h
+    let durString: BeatDuration = Gp5Reader.durationToString(durationObj.value); // s, e, q, w, h
     if (notes.length === 0) {
-      durString += 'r';
+      durString = restOf(durString);
     }
     Song.measures[trackId][blockId][voiceId][beatId] = {
       ...Song.defaultMeasure(),

@@ -4,6 +4,8 @@ import Song, {
   Grace, Note, Chord, Track,
 } from './songData';
 import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
+import type { BeatDuration } from '../../types/tab';
+import { restOf } from '../../utils/durationUtils';
 import AppManager from './appManager';
 
 class Gp4Reader {
@@ -201,9 +203,9 @@ class Gp4Reader {
         notes[Song.tracks[trackId].numStrings + string - 7] = Gp4Reader.readNote();
       }
     }
-    let durString = Gp5Reader.durationToString(durationObj.value); // s, e, q, w, h
+    let durString: BeatDuration = Gp5Reader.durationToString(durationObj.value); // s, e, q, w, h
     if (notes.length === 0) {
-      durString += 'r';
+      durString = restOf(durString);
     }
     const { dotted } = durationObj;
     const { tuplet } = durationObj;

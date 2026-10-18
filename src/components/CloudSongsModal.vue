@@ -36,7 +36,11 @@
       <div class="modal-section cloud-song-list">
         <label class="modal-field-label">Saved songs</label>
         <p v-if="loading" class="cloud-list-empty">Loading…</p>
-        <p v-else-if="songs.length === 0" class="cloud-list-empty">No cloud songs yet.</p>
+        <p v-else-if="loadFailed" class="cloud-list-empty">
+          Couldn't load your cloud songs.
+          <button type="button" class="modal-secondary-button" @click="refreshSongs">Try again</button>
+        </p>
+        <p v-else-if="songs.length === 0" class="cloud-list-empty">No cloud songs yet. “Save current tab to cloud” adds this song here.</p>
         <ul v-else class="cloud-songs-ul">
           <li v-for="song in songs" :key="song.id" class="cloud-song-item">
             <div class="cloud-song-meta">
@@ -75,6 +79,7 @@ import {
 
 const songs = ref<CloudSongSummary[]>([])
 const loading = ref(false)
+const loadFailed = ref(false)
 const statusMessage = ref('')
 const shareUrl = ref('')
 const apiKey = ref(getStoredCloudApiKey())
@@ -97,10 +102,12 @@ function setShareUrl(songId: string) {
 
 async function refreshSongs() {
   loading.value = true
+  loadFailed.value = false
   statusMessage.value = ''
   try {
     songs.value = await listCloudSongs()
   } catch (error) {
+    loadFailed.value = true
     statusMessage.value = error instanceof Error ? error.message : 'Failed to load cloud songs'
     songs.value = []
   } finally {

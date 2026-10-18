@@ -1,4 +1,4 @@
-import type { TabBeat, TabNoteData } from '../types/tab'
+import type { BeatDuration, NoteLengthCode, TabBeat, TabNoteData } from '../types/tab'
 
 /**
  * Utilities for handling note/rest durations
@@ -80,6 +80,16 @@ export const REST_SYMBOLS: Record<string, string> = {
 export function isRestDuration(duration: string | undefined): boolean {
   if (!duration) return false
   return duration.endsWith('r')
+}
+
+/** The note value of a stored beat duration, without the rest suffix. */
+export function noteLengthOf(duration: BeatDuration): NoteLengthCode {
+  return duration.charAt(0) as NoteLengthCode
+}
+
+/** The rest of the given length (`'e'` → `'er'`; already a rest stays one). */
+export function restOf(length: BeatDuration): BeatDuration {
+  return `${noteLengthOf(length)}r`
 }
 
 /**

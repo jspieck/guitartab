@@ -38,7 +38,7 @@ test.describe('playback navigation', () => {
       const sample = await page.evaluate(async () => {
         const { default: Settings } = await import('/src/assets/js/settingManager.ts')
         if (!Settings.songPlaying) return null
-        const { default: playBackLogic } = await import('/src/assets/js/playBackLogicNew.ts')
+        const { default: playBackLogic } = await import('/src/assets/js/playbackEngine.ts')
         const { tab } = await import('/src/assets/js/tab.ts')
         const main = document.querySelector('#mainContent')!
         const rowId = tab.blockToRow[0][0][Math.max(0, playBackLogic.getCurrentBlock())].rowId
@@ -142,7 +142,7 @@ test.describe('playback navigation', () => {
     await page.mouse.click(box.x + box.width / 2, strings.y + 6)
     await page.waitForTimeout(600)
     const block = await page.evaluate(async () =>
-      (await import('/src/assets/js/playBackLogicNew.ts')).default.getCurrentBlock(),
+      (await import('/src/assets/js/playbackEngine.ts')).default.getCurrentBlock(),
     )
     await page.locator('#play').click()
     expect(block).toBe(2)

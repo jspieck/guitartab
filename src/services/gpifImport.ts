@@ -12,6 +12,7 @@ import Song, {
 } from '../assets/js/songData'
 import { IMPORT_LIMITS, ImportError } from './importErrors'
 import { assignDrumLines } from '../utils/drumLines'
+import type { NoteLengthCode } from '../types/tab'
 
 /**
  * Reads GPIF, the XML score format of Guitar Pro 6 (.gpx) and 7/8 (.gp), into song data.
@@ -29,7 +30,7 @@ const MAX_FRET = 24
 const CURVE_POSITION_SCALE = 0.6
 const CURVE_END = 60
 
-const NOTE_VALUES: Record<string, string> = {
+const NOTE_VALUES: Record<string, NoteLengthCode> = {
   Long: 'w',
   DoubleWhole: 'w',
   Whole: 'w',
@@ -40,7 +41,7 @@ const NOTE_VALUES: Record<string, string> = {
   '32nd': 't',
   '64th': 'z',
   '128th': 'o',
-  '256th': '2',
+  '256th': '2' as NoteLengthCode, // no editor support for 256ths; kept as before
 }
 const HARMONICS: Record<string, string> = {
   Natural: 'N.H.',
@@ -83,7 +84,7 @@ export interface GpifSong {
 }
 
 interface Rhythm {
-  duration: string
+  duration: NoteLengthCode
   dots: number
   tuplet: number | null
 }

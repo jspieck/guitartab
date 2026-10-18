@@ -1,6 +1,6 @@
 import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
 import { typedEventBus } from '../../utils/typedEventBus'
-import playBackLogic from '../../assets/js/playBackLogicNew'
+import playBackLogic from '../../assets/js/playbackEngine'
 import Song, {
   type Beat as SongBeat,
   type MeasureMetaInfo,
@@ -14,6 +14,7 @@ import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSur
 import { songState } from '../../stores/songState'
 import { DURATION_NAMES } from '../../utils/musicUtils'
 import type {
+  BeatDuration,
   RenderedTabRow,
   SelectedNoteState,
   TabBeat,
@@ -274,7 +275,7 @@ const editorCore = {
     voiceId: number,
     beatIndex: number,
     stringIndex: number,
-    durationId: string,
+    durationId: BeatDuration,
   ): boolean {
     return tab.changeNoteDuration(trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false)
   },

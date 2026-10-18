@@ -5,8 +5,8 @@
       
       <div class="knobWrapper">
         <span class="knobTitle">PAN</span>
-        <span class="minKnob" style="left:-18px;">LEFT</span>
-        <span class="maxKnob" style="right: -24px;">RIGHT</span>
+        <span class="minKnob">LEFT</span>
+        <span class="maxKnob">RIGHT</span>
         <div class="knob-inset">
           <Knob 
             id="panKnob" 

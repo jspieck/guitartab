@@ -1,4 +1,4 @@
-import { shallowReactive } from 'vue'
+import { shallowReactive, toRaw } from 'vue'
 
 export interface PlaybackBarState {
   registered: boolean
@@ -18,11 +18,26 @@ const playbackBarState = shallowReactive<PlaybackBarState>({
   transitionTimingFunction: 'linear',
 })
 
+// The bar moves on every beat. Its transform is written straight to the element so that
+// GuitarTabView doesn't re-render each time; only `visible` and `y` (the row, which sets
+// the bar's height) are reactive.
+let barElement: SVGGElement | null = null
+
+function applyPosition(): void {
+  if (barElement == null || typeof barElement.setAttribute !== 'function') return
+  const { x, y, transitionDuration, transitionTimingFunction } = toRaw(playbackBarState)
+  barElement.setAttribute('transform', `translate(${x}, ${y})`)
+  barElement.style.transition = `transform ${transitionDuration}s ${transitionTimingFunction}`
+}
+
 export function registerPlaybackBarElement(element: SVGGElement | null): void {
+  barElement = element
   playbackBarState.registered = element !== null
 
   if (element === null) {
     resetPlaybackBarState()
+  } else {
+    applyPosition()
   }
 }
 
@@ -35,10 +50,13 @@ export function isPlaybackBarVisible(): boolean {
 }
 
 export function setPlaybackBarPosition(x: number, y: number, transitionDuration: number): void {
-  playbackBarState.x = x
+  const raw = toRaw(playbackBarState)
+  raw.x = x
+  raw.transitionDuration = transitionDuration
+  raw.transitionTimingFunction = 'linear'
+  // Reactive, but only triggers when the bar moves to another row.
   playbackBarState.y = y
-  playbackBarState.transitionDuration = transitionDuration
-  playbackBarState.transitionTimingFunction = 'linear'
+  applyPosition()
 }
 
 export function showPlaybackBar(): void {
@@ -56,6 +74,7 @@ export function resetPlaybackBarState(): void {
   playbackBarState.y = 0
   playbackBarState.transitionDuration = 0
   playbackBarState.transitionTimingFunction = 'linear'
+  applyPosition()
 }
 
 export function usePlaybackBarState() {

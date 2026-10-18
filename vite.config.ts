@@ -77,7 +77,7 @@ function manualChunks(id: string): string | undefined {
     normalizedId.includes('/src/assets/js/freeverb.ts') ||
     normalizedId.includes('/src/assets/js/lowpassCombFilter.ts') ||
     normalizedId.includes('/src/assets/js/midiReceiver.ts') ||
-    normalizedId.includes('/src/assets/js/playBackLogicNew.ts') ||
+    normalizedId.includes('/src/assets/js/playbackEngine.ts') ||
     normalizedId.includes('/src/assets/js/sf2parser.ts')
   ) {
     return 'audio-engine'

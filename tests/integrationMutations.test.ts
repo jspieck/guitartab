@@ -55,7 +55,7 @@ import { assertTabAndRenderLayoutMatch } from './helpers/layoutConvergence'
 vi.mock('../src/assets/js/audioEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
 )
-vi.mock('../src/assets/js/playBackLogicNew', () =>
+vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
 vi.mock('../src/assets/js/midiReceiver', () =>
@@ -180,7 +180,14 @@ describe('integration mutations', () => {
 
   describe('playback bar position', () => {
     it('moves the reactive playback bar to a beat position', () => {
-      registerPlaybackBarElement({} as SVGGElement)
+      const attributes: Record<string, string> = {}
+      const element = {
+        style: {} as Record<string, string>,
+        setAttribute: (name: string, value: string) => {
+          attributes[name] = value
+        },
+      }
+      registerPlaybackBarElement(element as unknown as SVGGElement)
       initPlayBackParameters()
 
       movePlayBackBarToBeat(0, 0, 0, 0, 0)
@@ -189,6 +196,9 @@ describe('integration mutations', () => {
       expect(playbackBarState.visible).toBe(false)
       expect(playbackBarState.x).toBeGreaterThan(0)
       expect(playbackBarState.y).toBeGreaterThanOrEqual(0)
+      // Written to the element, not through the template.
+      expect(attributes.transform).toBe(`translate(${playbackBarState.x}, ${playbackBarState.y})`)
+      expect(element.style.transition).toMatch(/^transform [\d.]+s linear$/)
     })
 
     it('keeps playback layout aligned after a duration mutation', () => {

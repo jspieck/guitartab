@@ -3,10 +3,11 @@ import Song, { Beat, Note, Interval } from './songData';
 import { revertHandler } from './revertHandler';
 import Duration from './duration';
 import Helper from './helper';
-import playBackLogic from './playBackLogicNew';
+import playBackLogic from './playbackEngine';
 import { tab } from './tab';
 import { sequencerHandler, SequencerHandler } from './sequencerHandler';
 import { typedEventBus } from '../../utils/typedEventBus';
+import { showUserError } from '../../services/userNotifications';
 import { useTabStore } from '../../stores/tabStore';
 import { requestDurationRender } from '../../services/editor/renderCommands';
 import { buildLoopIntervalFromOverlays } from '../../services/playbackLoopController';
@@ -257,7 +258,7 @@ class OverlayHandler {
       
       if (Song.measures[trackId][currentBlockId][voiceId].length <= currentBeatId + 1) {
         if (duration - Math.floor(duration) !== 0) {
-          alert('Pasting is not allowed with non-integer duration sizes in one block!');
+          showUserError('Pasting into a bar with tuplets is not possible here.');
           return { valid: false, currentBlockId, currentBeatId };
         }
         

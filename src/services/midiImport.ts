@@ -1,5 +1,6 @@
 import Song, { type Beat, type MeasureMetaInfo, type Note, type Track } from '../assets/js/songData'
 import { IMPORT_LIMITS, ImportError } from './importErrors'
+import type { NoteLengthCode } from '../types/tab'
 
 /** The parts of a decoded Standard MIDI File the converter needs. */
 export interface MidiFileData {
@@ -58,7 +59,7 @@ const GUITAR_TUNING = [40, 45, 50, 55, 59, 64]
 const BASS_TUNING = [28, 33, 38, 43]
 const MAX_FRET = 24
 // Note values in 16ths, longest first; dotted values included.
-const NOTE_VALUES: { sixteenths: number; duration: string; dotted: boolean }[] = [
+const NOTE_VALUES: { sixteenths: number; duration: NoteLengthCode; dotted: boolean }[] = [
   { sixteenths: 16, duration: 'w', dotted: false },
   { sixteenths: 12, duration: 'h', dotted: true },
   { sixteenths: 8, duration: 'h', dotted: false },
@@ -74,7 +75,7 @@ function largestValue(sixteenths: number) {
 }
 
 function makeBeat(
-  value: { duration: string; dotted: boolean },
+  value: { duration: NoteLengthCode; dotted: boolean },
   notes: (Note | null)[] | null,
   stringCount: number,
 ): Beat {

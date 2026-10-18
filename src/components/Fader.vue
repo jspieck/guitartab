@@ -9,8 +9,8 @@
     </div>
 </template>
   
-<script lang="ts">
-import { defineComponent, ref, onMounted, Ref, computed } from "vue";
+<script setup lang="ts">
+import { ref, onMounted, computed } from "vue";
 import audioEngine from "../assets/js/audioEngine";
 import Settings from "../assets/js/settingManager";
 import Song from "../assets/js/songData";
@@ -74,50 +74,38 @@ class TrackSlider {
     }
 }
 
-export default defineComponent({
-    props: {
-        // Renaming to 'faderId' to be clear it's an identifier for the fader, not strictly track index
-        // The logic to differentiate master (0) vs tracks (1-based in old system, index here) needs care
-        faderId: { type: Number, required: true },
-    },
-    setup(props, { expose }) {
-        const volumeCanvasRef: Ref<HTMLCanvasElement | null> = ref(null);
-        const volumeSliderContainerRef: Ref<HTMLElement | null> = ref(null);
-        const canvasContext: Ref<CanvasRenderingContext2D | null> = ref(null);
+// 'faderId' 0 is the master fader; tracks are 1-based here.
+const props = defineProps<{ faderId: number }>();
 
-        const computedVolumeFaderId = computed(() => 
-            props.faderId === 0 ? "masterVolume" : `trackVolume-${props.faderId}`
-        );
-        const computedVolumeControlId = computed(() =>
-            props.faderId === 0 ? "masterVolumeCanvas" : `volumeControlCanvas${props.faderId -1}`
-        );
+const volumeCanvasRef = ref<HTMLCanvasElement | null>(null);
+const volumeSliderContainerRef = ref<HTMLElement | null>(null);
+const canvasContext = ref<CanvasRenderingContext2D | null>(null);
 
-        onMounted(() => {
-            if (volumeCanvasRef.value) {
-                canvasContext.value = volumeCanvasRef.value.getContext("2d");
-            }
-            if (volumeSliderContainerRef.value) {
-                if (props.faderId === 0) {
-                    MasterSlider.create(volumeSliderContainerRef.value);
-                } else {
-                    TrackSlider.create(volumeSliderContainerRef.value, props.faderId - 1); 
-                }
-            } else {
-                console.error('Could not find .volume div for slider creation in Fader.vue');
-            }
-        });
-        
-        expose({
-            context: canvasContext,
-            id: props.faderId 
-        });
+const computedVolumeFaderId = computed(() =>
+    props.faderId === 0 ? "masterVolume" : `trackVolume-${props.faderId}`
+);
+const computedVolumeControlId = computed(() =>
+    props.faderId === 0 ? "masterVolumeCanvas" : `volumeControlCanvas${props.faderId -1}`
+);
 
-        return { 
-            computedVolumeFaderId, 
-            computedVolumeControlId, 
-            volumeCanvasRef,
-            volumeSliderContainerRef 
-        };
-    },
+onMounted(() => {
+    if (volumeCanvasRef.value) {
+        canvasContext.value = volumeCanvasRef.value.getContext("2d");
+    }
+    if (volumeSliderContainerRef.value) {
+        if (props.faderId === 0) {
+            MasterSlider.create(volumeSliderContainerRef.value);
+        } else {
+            TrackSlider.create(volumeSliderContainerRef.value, props.faderId - 1);
+        }
+    } else {
+        console.error('Could not find .volume div for slider creation in Fader.vue');
+    }
+});
+
+// Sequencer registers each fader's canvas with sequencerHandler through these.
+defineExpose({
+    context: canvasContext,
+    id: props.faderId,
 });
 </script>

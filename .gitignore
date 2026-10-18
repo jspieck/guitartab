@@ -32,3 +32,8 @@ playwright-report/
 # public/audio/README.txt). CI generates a stand-in: scripts/make-test-soundfont.mjs
 public/audio/*
 !public/audio/README.txt
+
+# E2E test output
+e2e/test-results/
+e2e/playwright-report/
+e2e/**/*.png

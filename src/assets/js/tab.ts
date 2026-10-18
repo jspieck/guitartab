@@ -11,8 +11,8 @@ import {
 import {
   addBlock as addBlockCommand,
   removeBlock as removeBlockCommand,
-  addTakt as addTaktCommand,
-  createTakte as createTakteCommand,
+  addMeasureSlot as addMeasureSlotCommand,
+  createMeasures as createMeasuresCommand,
   createNewTrack as createNewTrackCommand,
   initEmptyTab as initEmptyTabCommand,
 } from '../../services/editor/measureStructureCommands';
@@ -27,6 +27,8 @@ import { invalidateTrackLayout } from '../../services/editor/layoutInvalidation'
 import { typedEventBus } from '../../utils/typedEventBus';
 import { menuHandler } from './menuHandler';
 import { changeBeatDurationViaReplacer } from './durationReplacerAdapter';
+import type { BeatDuration } from '../../types/tab';
+import { isRestDuration, noteLengthOf, restOf } from '../../utils/durationUtils';
 
 class Tab {
   currentZoom: number;
@@ -53,7 +55,7 @@ class Tab {
   // Flag to track if user has explicitly clicked to select a note position
   hasExplicitSelection: boolean;
 
-  tupletManager: {originalDuration: string}[];
+  tupletManager: {originalDuration: BeatDuration | ''}[];
 
   blocksPerRow: {start: number, end: number}[][][];
 
@@ -116,16 +118,16 @@ class Tab {
     removeBlockCommand(this, duringRestoration);
   }
 
-  addTakt(trackId: number, blockId: number, voiceId: number) {
-    addTaktCommand(this, trackId, blockId, voiceId);
+  addMeasureSlot(trackId: number, blockId: number, voiceId: number) {
+    addMeasureSlotCommand(this, trackId, blockId, voiceId);
   }
 
   /**
    * [initializes measureOffset array]
    * @param  {int} trackId [description]
   */
-  createTakte(trackId: number, voiceId: number) {
-    createTakteCommand(this, trackId, voiceId);
+  createMeasures(trackId: number, voiceId: number) {
+    createMeasuresCommand(this, trackId, voiceId);
   }
 
   createNewTrack(
@@ -171,7 +173,7 @@ class Tab {
       beat.effects = Song.defaultMeasureEffects();
     }
     // eslint-disable-next-line prefer-destructuring
-    beat.duration = beat.duration[0];
+    beat.duration = noteLengthOf(beat.duration);
 
     // only draw when current track is visible
     if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
@@ -226,7 +228,7 @@ class Tab {
         if (reachedSpace < diff
           || (currentDiff > 0 && currentDiff < 1)
           || ((currentDiff - Math.floor(currentDiff)) === 0.25 && currentDiff < 3.25)) {
-          alert('Not enough space in the bar!');
+          AppManager.showNotification('Not enough space in the bar.', 'error');
           return false;
         }
       } else {
@@ -259,7 +261,7 @@ class Tab {
         if (reachedSpace < diff
           || (currentDiff > 0 && currentDiff < 1)
           || ((currentDiff - Math.floor(currentDiff)) === 0.25 && currentDiff < 3.25)) {
-          alert('Not enough space in the bar!');
+          AppManager.showNotification('Not enough space in the bar.', 'error');
           return false;
         }
       }
@@ -280,7 +282,7 @@ class Tab {
       const currentDuration = Duration.getDurationOfNote(beat, true);
 
       if (beat.dotted || beat.doubleDotted || currentDuration <= 1) {
-        alert('Tuplets of dotted notes or 128ths are currently not possible');
+        AppManager.showNotification('Tuplets of dotted notes or 128ths are not possible yet.', 'error');
         return false;
       }
       // set note to new length
@@ -290,11 +292,11 @@ class Tab {
       const thisTupletId = this.tupletId;
       const subFactor = Duration.tupletToNumOfSubstitutedNotes(tupletSelection);
       // we place a tuplet with half length
-      let newDuration = Duration.typeToString(currentDuration / subFactor);
+      let newDuration: BeatDuration = Duration.typeToString(currentDuration / subFactor);
       // set own note to new length
       const oldDuration = beat.duration;
-      if (oldDuration.length > 1) {
-        beat.duration = `${newDuration}r`;
+      if (isRestDuration(oldDuration)) {
+        beat.duration = restOf(newDuration);
       } else {
         beat.duration = newDuration;
       }
@@ -318,7 +320,7 @@ class Tab {
       }
 
       if (notes.length === 0) {
-        newDuration += 'r';
+        newDuration = restOf(newDuration);
       }
 
       for (let j = 1; j < tupletSelection; j += 1) {
@@ -338,7 +340,8 @@ class Tab {
       // only keep selected note and delete rest
       const nextBeat = Song.getBeat({ trackId, blockId, voiceId, beatId });
       const tupletIdToSearchFor = nextBeat.tupletId;
-      nextBeat.duration = this.tupletManager[nextBeat.tupletId].originalDuration;
+      // '' marks a cleared slot; keep the beat's length rather than storing an empty one
+      nextBeat.duration = this.tupletManager[nextBeat.tupletId].originalDuration || nextBeat.duration;
       // dont keep dot if tuplet is eliminated
       nextBeat.dotted = false;
       nextBeat.doubleDotted = false;
@@ -580,7 +583,7 @@ class Tab {
       blockObj.splice(p + l, 0, {
         ...Song.defaultMeasure(),
         ...{
-          duration: `${Duration.typeToString(nearest2Potence)}r`,
+          duration: restOf(Duration.typeToString(nearest2Potence)),
           notes: [],
           tuplet: startTuplet,
           tupletId: startTupletId,
@@ -634,7 +637,7 @@ class Tab {
   // changes duration of given beat and adapts the complete measure to fit the new duration
   changeBeatDuration(
     trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-    newDuration: number, previousDuration: number, noteLength: string,
+    newDuration: number, previousDuration: number, noteLength: BeatDuration,
   ) {
     const blockObj = Song.measures[trackId][blockId][voiceId];
     const isTuplet = blockObj[beatId].tuplet != null;
@@ -646,7 +649,7 @@ class Tab {
         trackId, blockId, voiceId, beatId, numStrings, noteLength,
       );
       if (!result.success) {
-        alert('Not enough space in the bar!');
+        AppManager.showNotification('Not enough space in the bar.', 'error');
         return false;
       }
       return result.rescaleNeeded;
@@ -755,7 +758,7 @@ class Tab {
 
         Tab.addNoteToBlock(
           trackId, blockId, voiceId, beatId + preNotes + l,
-          `${Duration.typeToString(nearest2Potence)}r`,
+          restOf(Duration.typeToString(nearest2Potence)),
           true, blockObj[beatId], false, false,
         );
       }
@@ -783,7 +786,7 @@ class Tab {
         Tab.deleteRestForTuplet(trackId, blockId, voiceId, beatId, diff);
         rescaleNecessary = true;
       } else {
-        alert('Not enough space in the bar!');
+        AppManager.showNotification('Not enough space in the bar.', 'error');
       }
     }
     // set to rest if no note is set
@@ -816,11 +819,10 @@ class Tab {
               }
             }
             const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
-            if (isRest && beat.duration.length < 2) {
-              beat.duration += 'r';
-            } else if (!isRest) {
-              // eslint-disable-next-line prefer-destructuring
-              beat.duration = beat.duration[0];
+            if (isRest) {
+              beat.duration = restOf(beat.duration);
+            } else {
+              beat.duration = noteLengthOf(beat.duration);
             }
           }
         }
@@ -828,7 +830,7 @@ class Tab {
     }
 
     for (let j = 0; j < Song.numVoices; j += 1) {
-      this.createTakte(trackId, j);
+      this.createMeasures(trackId, j);
       this.fillMeasures(trackId, j);
     }
     AppManager.setTimeMeterToAllTracks();
@@ -861,7 +863,7 @@ class Tab {
 
   static addNoteToBlock(
     trackId: number, blockId: number, voiceId: number, newBeatId: number,
-    duration: string, isTuplet: boolean, beat: Beat, dotted: boolean, doubleDotted: boolean,
+    duration: BeatDuration, isTuplet: boolean, beat: Beat, dotted: boolean, doubleDotted: boolean,
   ) {
     addNoteToBlockCommand(
       trackId, blockId, voiceId, newBeatId, duration, isTuplet, beat, dotted, doubleDotted,
@@ -869,7 +871,7 @@ class Tab {
   }
 
   static tupletOnlyRests(
-    startBeatId: number, blockObj: {tuplet: number | null, duration: string}[],
+    startBeatId: number, blockObj: {tuplet: number | null, duration: BeatDuration}[],
   ) {
     return tupletOnlyRestsCommand(startBeatId, blockObj);
   }
@@ -885,13 +887,13 @@ class Tab {
       // fill with greatest 2potence and fill the rest with eighths
       const nearest2Potence = Helper.getGreatestNotelengthToFit(durationLength);
       durationLength -= nearest2Potence;
-      Song.setBeat(trackId, blockId, voiceId, startBeatId + l, `${Duration.typeToString(nearest2Potence)}r`);
+      Song.setBeat(trackId, blockId, voiceId, startBeatId + l, restOf(Duration.typeToString(nearest2Potence)));
     }
   }
 
   changeNoteDuration(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    string: number, noteLength: string, duringRevert: boolean,
+    string: number, noteLength: BeatDuration, duringRevert: boolean,
   ) {
     return changeNoteDurationCommand(
       this, trackId, blockId, voiceId, beatId, string, noteLength, duringRevert,

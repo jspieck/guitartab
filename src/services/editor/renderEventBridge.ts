@@ -1,4 +1,4 @@
-import playBackLogic from '../../assets/js/playBackLogicNew'
+import playBackLogic from '../../assets/js/playbackEngine'
 import { tab } from '../../assets/js/tab'
 import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
 import { typedEventBus } from '../../utils/typedEventBus'

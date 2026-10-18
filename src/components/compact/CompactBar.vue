@@ -45,6 +45,7 @@
         type="button"
         class="compact-bar__button compact-bar__play"
         :aria-label="playbackTransportState.isPlaying ? 'Pause' : 'Play'"
+        @pointerenter="preload()"
         @click="togglePlay()"
       >
         <svg v-if="playbackTransportState.isPlaying" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14" /></svg>
@@ -84,7 +85,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import playBackLogic from '../../assets/js/playBackLogicNew'
+import playBackLogic from '../../assets/js/playbackEngine'
 import Settings from '../../assets/js/settingManager'
 import { tab } from '../../assets/js/tab'
 import { playbackTransportState } from '../../composables/playbackTransportState'
@@ -98,7 +99,7 @@ import { practiceState, setPlaybackRate } from '../../stores/practiceState'
 const SPEEDS = [0.5, 0.6, 0.75, 0.9, 1, 1.25, 1.5]
 
 const { reactiveSongData } = useSongData()
-const { togglePlay, stepBackward, stepForward } = usePlaybackEngine()
+const { togglePlay, stepBackward, stepForward, preload } = usePlaybackEngine()
 const moreOpen = ref(false)
 
 const title = computed(() => reactiveSongData.songDescription?.title || 'Untitled')

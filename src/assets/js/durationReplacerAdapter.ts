@@ -7,6 +7,8 @@
  */
 
 import { Beat } from './songData'
+import type { BeatDuration } from '../../types/tab'
+import { restOf } from '../../utils/durationUtils'
 import Song from './songData'
 import { DurationReplacer, type Beat as DurationBeat } from '../../utils/durationReplacer'
 
@@ -43,7 +45,7 @@ export function applyBeatsToMeasures(
   originalMeasures: Beat[],
   newBeats: DurationBeat[],
   changedBeatIndex: number,
-  newDurationCode: string,
+  newDurationCode: BeatDuration,
 ): void {
   const blockObj = Song.measures[trackId][blockId][voiceId]
 
@@ -54,7 +56,7 @@ export function applyBeatsToMeasures(
 
   // Ensure rest status
   if (!newBeats[changedBeatIndex].hasNotes && !DurationReplacer.isRest(blockObj[changedBeatIndex].duration)) {
-    blockObj[changedBeatIndex].duration += 'r'
+    blockObj[changedBeatIndex].duration = restOf(blockObj[changedBeatIndex].duration)
   }
 
   // 2. Figure out what changed after the target beat
@@ -118,7 +120,7 @@ export function changeBeatDurationViaReplacer(
   voiceId: number,
   beatId: number,
   numStrings: number,
-  newDurationCode: string,
+  newDurationCode: BeatDuration,
 ): { success: boolean; rescaleNeeded: boolean } {
   const blockObj = Song.measures[trackId][blockId][voiceId]
   const originalSnapshot = blockObj.map(m => ({ ...m }))

@@ -115,8 +115,9 @@ import Settings from '../assets/js/settingManager';
 import { audioEngine } from '../assets/js/audioEngine';
 import { overlayHandler } from '../assets/js/overlayHandler';
 import Helper from '../assets/js/helper';
-import playBackLogic from '../assets/js/playBackLogicNew';
+import playBackLogic from '../assets/js/playbackEngine';
 import { typedEventBus } from '../utils/typedEventBus';
+import { showUserError } from '../services/userNotifications';
 import { modalManager } from '../assets/js/modals/modalManager';
 import type { EqualizerModalHandler } from '../assets/js/modals/equalizerModalHandler';
 import type { CompressorModalHandler } from '../assets/js/modals/compressorModalHandler';
@@ -174,7 +175,8 @@ const updateTrackNames = () => {
     activeInstrumentIndex.value = reactiveSongData.currentTrackId;
 };
 
-watch(() => reactiveSongData.tracks, updateTrackNames, { deep: true });
+// A deep watch on tracks walked every track on each edit; song loads bump songDataVersion.
+watch(songDataVersion, updateTrackNames);
 watch(() => reactiveSongData.currentTrackId, (newId) => {
     activeInstrumentIndex.value = newId;
 });
@@ -316,7 +318,7 @@ function openAddTrack() {
 
 function deleteTrack(trackId: number) {
     if (!editorCore.canDeleteTrack()) {
-        alert('At least one track must be available!');
+        showUserError('A song needs at least one track.');
         return;
     }
     modalManager.getHandler(MODALS.DELETE_TRACK.id).openModal({trackId});

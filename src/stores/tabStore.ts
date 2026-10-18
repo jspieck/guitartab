@@ -7,6 +7,7 @@ import type {
   MeasureMeta,
   TabPosition,
   ChordDiagram,
+  NoteLengthCode,
 } from '../types/tab'
 
 // Bridge to reactive song state
@@ -19,7 +20,7 @@ export const useTabStore = defineStore('tab', {
     currentBlockId: 0,
     currentBeatId: 0,
     currentString: 0,
-    typeOfNote: 'e', // Default to 8th note
+    typeOfNote: 'e' as NoteLengthCode, // Default to 8th note
     currentSelection: [] as TabPosition[],
     selectionVersion: 0,
     songDataVersion: 0,
@@ -101,7 +102,7 @@ export const useTabStore = defineStore('tab', {
   },
 
   actions: {
-    setTypeOfNote(type: string) {
+    setTypeOfNote(type: NoteLengthCode) {
       this.typeOfNote = type
     },
 
