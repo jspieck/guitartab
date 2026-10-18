@@ -26,6 +26,13 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /\.mobile\.spec\.ts$/,
+    },
+    {
+      // Phone layout (touch, mobile user agent); runs only the *.mobile.spec.ts files.
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+      testMatch: /\.mobile\.spec\.ts$/,
     },
   ],
 })

@@ -1,0 +1,60 @@
+/* Compact (phone) layout. `layoutModeState.compact` puts `.layout-compact` on #content. */
+
+#content {
+  --compact-surface: #ffffff;
+  --compact-surface-raised: #f1f3f6;
+  --compact-border: #dfe3e8;
+  --compact-text: #1f2937;
+  --compact-text-muted: #5b6475;
+  --compact-accent: #2563eb;
+  --compact-accent-soft: #dbe6fd;
+  --compact-danger: #dc2626;
+}
+
+#darkMode #content {
+  --compact-surface: #1f2329;
+  --compact-surface-raised: #2b3038;
+  --compact-border: #3a404a;
+  --compact-text: #f3f4f6;
+  --compact-text-muted: #a3acb9;
+  --compact-accent: #4f8cff;
+  --compact-accent-soft: #24365c;
+  --compact-danger: #f87171;
+}
+
+/* The desktop chrome stays mounted (legacy code looks its elements up by id) but hidden. */
+#content.layout-compact #completeBar,
+#content.layout-compact #sideBarButtons,
+#content.layout-compact #trackCapsule,
+#content.layout-compact .bottomBars,
+#content.layout-compact #footerBar {
+  display: none !important;
+}
+
+#content.layout-compact #completeTab {
+  margin-top: 0;
+}
+
+#content.layout-compact .mainWrapper {
+  background: var(--compact-surface);
+  overflow-x: hidden;
+  /* Pinch zooms the tab (see services/compactLayout.ts), not the page. */
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+}
+
+#content.layout-compact .svgPage {
+  filter: none;
+}
+
+/* Banners sit below the compact bar instead of the (hidden) desktop toolbar. */
+#content.layout-compact .autosave-banner {
+  top: auto;
+  bottom: 16px;
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+#content.layout-compact .autosave-drafts {
+  top: 112px;
+}

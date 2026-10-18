@@ -26,6 +26,9 @@ const MODULE_CHUNKS: Record<string, string[]> = {
   'first-run': ['/src/data/demoSong.ts', '/src/stores/firstRunHintState.ts'],
   // The shortcut table: the key handler needs it at startup, the Help sheet lists it.
   shortcuts: ['/src/utils/keyboardShortcuts.ts', '/src/stores/shortcutsHelpState.ts'],
+  // The desktop toolbar. Still loaded at startup (in parallel); a named chunk so the entry
+  // budget tracks the app shell. Splitting the toolbar itself is Big win 11 of the audit.
+  toolbar: ['/src/components/Menu.vue'],
 }
 
 function manualChunks(id: string): string | undefined {

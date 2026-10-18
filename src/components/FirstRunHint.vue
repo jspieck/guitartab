@@ -4,13 +4,19 @@
       <h2 id="firstRunHintTitle" class="first-run-hint__title">Getting started</h2>
       <button type="button" class="first-run-hint__close" aria-label="Close" @click="dismissFirstRunHint">×</button>
     </div>
-    <ol class="first-run-hint__steps">
+    <ol v-if="layoutModeState.compact" class="first-run-hint__steps">
+      <li><strong>Listen.</strong> Tap play; slow it down with the % menu.</li>
+      <li><strong>Enter notes.</strong> Tap the pencil, then a string in the tab, then a fret.</li>
+      <li><strong>Your own tabs.</strong> Pinch to zoom; open Guitar Pro, MIDI or .gt files from the ⋯ menu.</li>
+    </ol>
+    <ol v-else class="first-run-hint__steps">
       <li><strong>Enter notes.</strong> Click a line in the tab, then type a fret number.</li>
       <li><strong>Listen.</strong> Press <kbd>Space</kbd> or the play button.</li>
       <li><strong>Bring your own tab.</strong> Open a Guitar Pro, MIDI or .gt file with the folder button.</li>
     </ol>
     <div class="first-run-hint__footer">
-      <button type="button" class="first-run-hint__link" @click="showShortcuts">All shortcuts <kbd>?</kbd></button>
+      <button v-if="!layoutModeState.compact" type="button" class="first-run-hint__link" @click="showShortcuts">All shortcuts <kbd>?</kbd></button>
+      <span v-else />
       <button type="button" class="autosave-banner__action" @click="dismissFirstRunHint">Got it</button>
     </div>
   </aside>
@@ -19,6 +25,7 @@
 <script setup lang="ts">
 import { dismissFirstRunHint } from '../stores/firstRunHintState'
 import { toggleShortcutsHelp } from '../stores/shortcutsHelpState'
+import { layoutModeState } from '../stores/layoutModeState'
 
 function showShortcuts(): void {
   dismissFirstRunHint()

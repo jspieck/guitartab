@@ -5,7 +5,7 @@ import { join } from 'node:path'
 const DIST_ASSETS = join(process.cwd(), 'dist', 'assets')
 
 const BUDGETS_KB = {
-  'index-': 40,
+  'index-': 16,
   'framework-': 12,
   'vendor-': 90,
   'tab-renderer-': 60,
@@ -18,6 +18,7 @@ const BUDGETS_KB = {
   'importers-': 60,
   'first-run-': 4,
   'shortcuts-': 4,
+  'toolbar-': 32,
   'demoArrangement-': 10,
 }
 

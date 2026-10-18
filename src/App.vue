@@ -1,5 +1,5 @@
 <template>
-  <div id="content" class="main">
+  <div id="content" class="main" :class="{ 'layout-compact': layoutModeState.compact, 'compact-editing': layoutModeState.editing }">
     <svg width="0" height="0">
       <defs>
         <filter x="-0.02" y="0" width="1.04" height="1.1" id="solid">
@@ -8,6 +8,7 @@
         </filter>
       </defs>
     </svg>
+    <CompactBar v-if="layoutModeState.compact" />
     <div class="entry-content">
       <Menu ref="menu"/>
       <div id="mainContent" class="mainWrapper" ref="mainContent" tabindex="0" @click="focusMainContent">
@@ -23,6 +24,7 @@
         </div>
       </div>
     </div>
+    <TouchNotePad v-if="layoutModeState.editing" />
     <div class="bottomBars">
       <EffectsBar :track-id="currentTrackId" />
       <Sequencer/>
@@ -81,7 +83,6 @@ import { startUp } from './assets/js/guitarTab'
 import { useSongData } from './composables/useSongData'
 import { useEditorScopeState } from './composables/useEditorScopeState'
 import { useTabViewport } from './composables/useTabViewport'
-import { getCloudSongIdFromUrl, loadCloudSongById } from './services/cloudSongLoader'
 import AppManager from './assets/js/appManager'
 import {
   dismissRecoverableDraft,
@@ -93,6 +94,7 @@ import {
 import { draftsPanelState } from './stores/draftsPanelState'
 import { shortcutsHelpState } from './stores/shortcutsHelpState'
 import { firstRunHintState } from './stores/firstRunHintState'
+import { layoutModeState, sheetFitMode, watchViewportLayout } from './stores/layoutModeState'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
 const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
@@ -100,6 +102,8 @@ const Sequencer = defineAsyncComponent(() => import('./components/Sequencer.vue'
 const ModalsContainer = defineAsyncComponent(() => import('./components/ModalsContainer.vue'))
 const AutosaveDraftsPanel = defineAsyncComponent(() => import('./components/AutosaveDraftsPanel.vue'))
 const HelpOverlays = defineAsyncComponent(() => import('./components/HelpOverlays.vue'))
+const CompactBar = defineAsyncComponent(() => import('./components/compact/CompactBar.vue'))
+const TouchNotePad = defineAsyncComponent(() => import('./components/compact/TouchNotePad.vue'))
 
 useSongData()
 const { currentTrackId, currentVoiceId } = useEditorScopeState()
@@ -166,16 +170,31 @@ onMounted(() => {
   // After startUp, so the initial (empty or demo) song is the clean baseline.
   setupAutosaveListeners()
   void checkForAutosaveDraft()
-  const cloudSongId = getCloudSongIdFromUrl()
-  if (cloudSongId) {
-    loadCloudSongById(cloudSongId).catch((error) => {
+  // Shared links (?song=…); the loader is only fetched when there is one.
+  if (new URLSearchParams(window.location.search).has('song')) {
+    void import('./services/cloudSongLoader').then(async ({ getCloudSongIdFromUrl, loadCloudSongById }) => {
+      const cloudSongId = getCloudSongIdFromUrl()
+      if (cloudSongId) await loadCloudSongById(cloudSongId)
+    }).catch((error) => {
       const message = error instanceof Error ? error.message : 'Failed to load cloud song'
       AppManager.showNotification(message)
     })
   }
+
+  stopViewportLayout = watchViewportLayout()
+  // The sheet-fitting code is only loaded on phones and tablets (or after a resize from one).
+  watch(() => sheetFitMode(), (mode, previous) => {
+    if (mode === 'desktop' && (previous == null || previous === 'desktop')) return
+    void import('./services/compactLayout').then(({ syncSheetFit }) => {
+      syncSheetFit(mode, mainContent.value)
+    })
+  }, { immediate: true })
 })
+
+let stopViewportLayout: () => void = () => {}
 
 onBeforeUnmount(() => {
   teardownAutosaveListeners()
+  stopViewportLayout()
 })
 </script>
