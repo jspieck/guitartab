@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { applyNoteEffectToggle, handleEditorShortcutKey } from '../src/composables/tabEditorCommandHelpers'
 import type { TabNoteData } from '../src/types/tab'
+
+// Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
+vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
+vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
+vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
+vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 function createNote(overrides: Partial<TabNoteData> = {}): TabNoteData {
   return {
@@ -20,23 +27,12 @@ describe('tabEditorCommandHelpers', () => {
     expect(note.ghost).toBe(true)
   })
 
-  it('handles keyboard shortcuts for editor commands', () => {
+  it('clears the selection on Escape and leaves other keys to the shortcut table', () => {
     const calls: string[] = []
+    const handlers = { onClearSelection: () => calls.push('clear') }
 
-    const handled = handleEditorShortcutKey({
-      key: '3',
-      metaKey: false,
-      ctrlKey: false,
-    } as KeyboardEvent, {
-      onDigit: () => calls.push('digit'),
-      onDelete: () => calls.push('delete'),
-      onToggleToolbar: () => calls.push('toolbar'),
-      onClearSelection: () => calls.push('clear'),
-      onCopy: () => calls.push('copy'),
-      onPaste: () => calls.push('paste'),
-    })
-
-    expect(handled).toBe(true)
-    expect(calls).toEqual(['digit'])
+    expect(handleEditorShortcutKey({ key: 'Escape' } as KeyboardEvent, handlers)).toBe(true)
+    expect(handleEditorShortcutKey({ key: '3' } as KeyboardEvent, handlers)).toBe(false)
+    expect(calls).toEqual(['clear'])
   })
 })

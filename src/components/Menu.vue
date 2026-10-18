@@ -13,6 +13,7 @@
             <div id="barButtons" v-show="playbackTransportState.showMenuBars">
                 <div v-for="button in barDict" @click="selectBar(button.id)" :key="button.id" :id="`barButton${button.id}`" :class="tabBarButtonClass(button.id)">{{ button.label }}</div>
             </div>
+            <PracticeControls />
         </div>
         <div class="bottomStatusBar">
             <button id="stopButton" @click="stopPlayback()" class="checkBoxNote"></button>
@@ -93,11 +94,22 @@
                             type="file" 
                             ref="fileInputRef" 
                             @change="handleFileSelect" 
-                            accept=".gp3,.gp4,.gp5,.gpx,.mid,.gt"
+                            accept=".gp,.gpx,.gp5,.gp4,.gp3,.mid,.gt"
                             style="display: none;"
                         />
-                        <button id="downloadGP" data-tooltip="Download File" @click="handleSaveTab"
-                            class="checkBoxNote playButton"><img id="downloadIDGP" src="../assets/images/saveOwn.svg" /></button>
+                        <SaveFormatMenu />
+                        <button id="recoverDrafts" data-tooltip="Recover drafts" aria-label="Recover drafts"
+                            @click="toggleDraftsPanel" class="checkBoxNote playButton">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                <path d="M3 4v5h5" />
+                                <path d="M12 7v5l3 2" />
+                            </svg>
+                        </button>
+
+                        <button id="shortcutsHelpButton" data-tooltip="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"
+                            @click="toggleShortcutsHelp" class="checkBoxNote playButton shortcutsHelpButton">?</button>
 
                         <button
                             id="cloudSongs"
@@ -276,7 +288,7 @@ import { overlayHandler } from '../assets/js/overlayHandler';
 import { onMounted, onBeforeUnmount, reactive, ref } from 'vue';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
-import type { Note, Measure, TabPosition } from '../types/tab';
+import type { Note, Beat, TabPosition } from '../types/tab';
 import { useEditorScopeState } from '../composables/useEditorScopeState';
 import { setTempoState, useTempoState } from '../composables/useTempoState';
 import { useMenuActions } from '../composables/useMenuActions';
@@ -286,7 +298,10 @@ import {
     deriveMenuSelectionState,
 } from '../utils/menuUiState';
 import { useUndoRedo } from '../composables/useUndoRedo';
-import { markSongSaved } from '../services/songAutosave';
+import { toggleDraftsPanel } from '../stores/draftsPanelState';
+import { toggleShortcutsHelp } from '../stores/shortcutsHelpState';
+import PracticeControls from './PracticeControls.vue';
+import SaveFormatMenu from './SaveFormatMenu.vue';
 
 // File input ref for opening files
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -440,11 +455,6 @@ function handleFileSelect(event: Event) {
     }
 }
 
-function handleSaveTab() {
-    AppManager.saveAsGt(false);
-    markSongSaved();
-}
-
 function openCloudSongsModal() {
     modalManager.displayModal('cloudSongsModal', 'Cloud songs');
 }
@@ -461,7 +471,7 @@ const handleActivateEffectsForMarkedPos = () => {
     syncMenuStateForMarkedPosition();
 };
 
-const handleActivateEffectsForBeat = (_beat: Measure) => {
+const handleActivateEffectsForBeat = (_beat: Beat) => {
     syncMenuStateForMarkedPosition();
 };
 

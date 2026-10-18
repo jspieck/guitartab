@@ -1,9 +1,10 @@
+import type { RowLanes } from '../utils/tabRowLanes'
 import type {
   Bend as SongBend,
   Chord as SongChord,
   Grace as SongGrace,
-  Measure as SongBeat,
-  MeasureEffects as SongMeasureEffects,
+  Beat as SongBeat,
+  BeatEffects as SongBeatEffects,
   MeasureMetaInfo as SongMeasureMeta,
   Note as SongNote,
   SongDescription as SongDescriptionSource,
@@ -16,8 +17,8 @@ export type Chord = SongChord
 export type Grace = SongGrace
 export type Bend = SongBend
 export type TremoloBar = SongTremoloBar
-export type BeatEffects = SongMeasureEffects
-export type Measure = SongBeat
+export type BeatEffects = SongBeatEffects
+export type Beat = SongBeat
 export type MeasureMeta = SongMeasureMeta
 export type Track = SongTrack
 export type SongDescription = SongDescriptionSource
@@ -47,7 +48,7 @@ export type BeatLocation = Pick<TabPosition, 'trackId' | 'voiceId' | 'blockId' |
 
 export interface TabRow {
   id: number
-  measures: Measure[][]
+  measures: Beat[][]
   startBlockId: number
   endBlockId: number
   yOffset: number
@@ -72,7 +73,14 @@ export interface RenderedTabRow {
   measures: RenderedMeasureData[]
   startBlockId: number
   endBlockId: number
+  /** Y of the row's top string line (row-local y = 0). */
   yOffset: number
+  /** Y of the row's top edge, including the annotation lanes above the strings. */
+  top?: number
+  /** Full row height from `top`, including lower lanes and the classical staff. */
+  height?: number
+  /** Vertical lane layout of the row (see `utils/tabRowLanes`). */
+  lanes?: RowLanes
 }
 
 export interface TabSelectionData {

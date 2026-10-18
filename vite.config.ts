@@ -1,6 +1,33 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
+// File readers: Guitar Pro 3-8, MIDI, typed import errors
+const IMPORTER_MODULES = [
+  '/src/assets/js/GProReader.ts',
+  '/src/assets/js/GP3Reader.ts',
+  '/src/assets/js/GP4Reader.ts',
+  '/src/assets/js/GP5Reader.ts',
+  '/src/services/midiImport.ts',
+  '/src/services/importErrors.ts',
+  '/src/assets/js/MidiReader.ts',
+  '/src/services/gpContainers.ts',
+  '/src/services/gpifImport.ts',
+]
+
+const MODULE_CHUNKS: Record<string, string[]> = {
+  'pdf-export': [
+    '/src/assets/js/pdfkit.js',
+    '/src/assets/js/blob-stream.js',
+    '/src/assets/js/svgToPdf.js',
+    '/src/assets/js/jspdf.debug.js',
+  ],
+  importers: IMPORTER_MODULES,
+  // First-visit check and the small test riff; the multi-track demo itself is lazy-loaded.
+  'first-run': ['/src/data/demoSong.ts', '/src/stores/firstRunHintState.ts'],
+  // The shortcut table: the key handler needs it at startup, the Help sheet lists it.
+  shortcuts: ['/src/utils/keyboardShortcuts.ts', '/src/stores/shortcutsHelpState.ts'],
+}
+
 function manualChunks(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, '/')
 
@@ -22,17 +49,17 @@ function manualChunks(id: string): string | undefined {
     if (normalizedId.includes('/lz-string/')) {
       return 'serialization'
     }
+    if (normalizedId.includes('/fflate/')) {
+      return 'importers'
+    }
 
     return 'vendor'
   }
 
-  if (
-    normalizedId.includes('/src/assets/js/pdfkit.js')
-    || normalizedId.includes('/src/assets/js/blob-stream.js')
-    || normalizedId.includes('/src/assets/js/svgToPdf.js')
-    || normalizedId.includes('/src/assets/js/jspdf.debug.js')
-  ) {
-    return 'pdf-export'
+  for (const [chunk, paths] of Object.entries(MODULE_CHUNKS)) {
+    if (paths.some((path) => normalizedId.includes(path))) {
+      return chunk
+    }
   }
 
   if (
@@ -57,14 +84,27 @@ function manualChunks(id: string): string | undefined {
     return 'tab-renderer'
   }
 
+  // Studio panels open from ModalsContainer, which is lazy-loaded.
+  if (
+    normalizedId.includes('/src/components/Mixer.vue')
+    || normalizedId.includes('/src/components/Equalizer.vue')
+    || normalizedId.includes('/src/components/Compressor.vue')
+    || normalizedId.includes('/src/components/audio/VerticalFader.vue')
+    || normalizedId.includes('/src/components/audio/audioPlugin.css')
+    || normalizedId.includes('/src/services/drumMixer.ts')
+    || normalizedId.includes('/src/composables/useModalOpen.ts')
+  ) {
+    return 'studio-panels'
+  }
+
   if (
     normalizedId.includes('/src/components/EffectsBar.vue')
     || normalizedId.includes('/src/components/Sequencer.vue')
     || normalizedId.includes('/src/components/Fader.vue')
     || normalizedId.includes('/src/components/Knob.vue')
-    || normalizedId.includes('/src/components/Mixer.vue')
-    || normalizedId.includes('/src/components/Equalizer.vue')
-    || normalizedId.includes('/src/components/Compressor.vue')
+    || normalizedId.includes('/src/components/audio/RotaryKnob.vue')
+    || normalizedId.includes('/src/components/PracticeControls.vue')
+    || normalizedId.includes('/src/components/SaveFormatMenu.vue')
   ) {
     return 'studio-ui'
   }
@@ -99,5 +139,19 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,vue}'],
+      exclude: ['src/**/*.d.ts', 'src/assets/js/pdfkit.js', 'src/assets/js/jspdf.debug.js'],
+      reporter: ['text-summary', 'html'],
+      reportsDirectory: 'coverage',
+      // Floors a little under the measured coverage (2026-10-17); raise them as tests are added.
+      thresholds: {
+        'src/services/*.ts': { statements: 70, branches: 63, functions: 64, lines: 70 },
+        'src/services/editor/**': { statements: 39, branches: 28, functions: 36, lines: 39 },
+        'src/utils/**': { statements: 57, branches: 50, functions: 58, lines: 59 },
+        'src/stores/**': { statements: 49, branches: 38, functions: 37, lines: 49 },
+      },
+    },
   },
 })

@@ -10,10 +10,15 @@ const BUDGETS_KB = {
   'vendor-': 90,
   'tab-renderer-': 60,
   'studio-ui-': 45,
+  'studio-panels-': 40,
   'modal-handlers-': 70,
   'audio-engine-': 250,
   'notation-': 1100,
   'pdf-export-': 500,
+  'importers-': 60,
+  'first-run-': 4,
+  'shortcuts-': 4,
+  'demoArrangement-': 10,
 }
 
 function listJsAssets(dir) {

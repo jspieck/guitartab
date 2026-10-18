@@ -1,5 +1,6 @@
 import Duration from '../assets/js/duration'
-import type { Measure, MeasureMeta, Note, NoteLengthCode } from '../types/tab'
+import type { Beat, MeasureMeta, Note, NoteLengthCode } from '../types/tab'
+import { beatHasText } from '../services/songMigrations'
 
 export const MENU_EFFECT_GROUPS = [
   ['pullDown', 'slide', 'bend'],
@@ -51,17 +52,14 @@ export const MENU_NOTE_EFFECT_BUTTON_IDS = [
   'letRing',
 ] as const
 
+/** Note effects stored as plain booleans. Data-carrying ones live in menuEffectMutations. */
 export const MENU_NOTE_PROPERTY_BY_BUTTON_ID: Record<string, keyof Note> = {
-  bend: 'bendPresent',
-  artificial: 'artificialPresent',
   tap: 'tap',
   slide: 'slide',
   fadeIn: 'fadeIn',
-  grace: 'gracePresent',
   pullDown: 'pullDown',
   stacatto: 'stacatto',
   accentuated: 'accentuated',
-  trill: 'trillPresent',
   dead: 'dead',
   heavyAccentuated: 'heavyAccentuated',
   palmMute: 'palmMute',
@@ -95,16 +93,16 @@ export interface DerivedMenuSelectionState {
 }
 
 const NOTE_BEAT_EFFECT_LABELS: Array<{ property: keyof Note; buttonId: string }> = [
-  { property: 'bendPresent', buttonId: 'bend' },
-  { property: 'artificialPresent', buttonId: 'artificial' },
+  { property: 'bendObj', buttonId: 'bend' },
+  { property: 'artificialStyle', buttonId: 'artificial' },
   { property: 'tap', buttonId: 'tap' },
   { property: 'slide', buttonId: 'slide' },
   { property: 'fadeIn', buttonId: 'fadeIn' },
-  { property: 'gracePresent', buttonId: 'grace' },
+  { property: 'graceObj', buttonId: 'grace' },
   { property: 'pullDown', buttonId: 'pullDown' },
   { property: 'stacatto', buttonId: 'stacatto' },
   { property: 'accentuated', buttonId: 'accentuated' },
-  { property: 'trillPresent', buttonId: 'trill' },
+  { property: 'trill', buttonId: 'trill' },
   { property: 'dead', buttonId: 'dead' },
   { property: 'heavyAccentuated', buttonId: 'heavyAccentuated' },
   { property: 'palmMute', buttonId: 'palmMute' },
@@ -116,7 +114,7 @@ const NOTE_BEAT_EFFECT_LABELS: Array<{ property: keyof Note; buttonId: string }>
   { property: 'ghost', buttonId: 'ghost' },
 ]
 
-function getDynamicButtonId(beat: Measure): string | null {
+function getDynamicButtonId(beat: Beat): string | null {
   return beat.dynamicPresent && beat.dynamic ? `${beat.dynamic}Dynamic` : null
 }
 
@@ -141,7 +139,7 @@ export function getAvailableTupletOptions(duration: string): number[] {
   return tuplets
 }
 
-function collectPressedModifierButtons(beat: Measure, note: Note | null | undefined, pressedButtonIds: Set<string>): void {
+function collectPressedModifierButtons(beat: Beat, note: Note | null | undefined, pressedButtonIds: Set<string>): void {
   if (beat.dotted) pressedButtonIds.add('dotted')
   if (beat.doubleDotted) pressedButtonIds.add('doubleDotted')
   if (beat.tuplet != null) pressedButtonIds.add('tuplet')
@@ -154,17 +152,18 @@ function collectPressedNoteButtons(note: Note | null | undefined, pressedButtonI
   }
 
   NOTE_BEAT_EFFECT_LABELS.forEach(({ property, buttonId }) => {
-    if (note[property]) {
+    const value = note[property]
+    if (value != null && value !== false) {
       pressedButtonIds.add(buttonId)
     }
   })
 }
 
-function collectPressedBeatButtons(beat: Measure, pressedButtonIds: Set<string>): void {
-  if (beat.effects.strokePresent) pressedButtonIds.add('stroke')
-  if (beat.effects.tremoloBarPresent) pressedButtonIds.add('tremoloBar')
-  if (beat.textPresent) pressedButtonIds.add('addText')
-  if (beat.chordPresent) pressedButtonIds.add('addChord')
+function collectPressedBeatButtons(beat: Beat, pressedButtonIds: Set<string>): void {
+  if (beat.effects.stroke != null) pressedButtonIds.add('stroke')
+  if (beat.effects.tremoloBar != null) pressedButtonIds.add('tremoloBar')
+  if (beatHasText(beat)) pressedButtonIds.add('addText')
+  if (beat.chord != null) pressedButtonIds.add('addChord')
 
   const dynamicButtonId = getDynamicButtonId(beat)
   if (dynamicButtonId) {
@@ -173,16 +172,16 @@ function collectPressedBeatButtons(beat: Measure, pressedButtonIds: Set<string>)
 }
 
 function collectPressedMeasureButtons(measureMeta: MeasureMeta, pressedButtonIds: Set<string>): void {
-  if (measureMeta.markerPresent) pressedButtonIds.add('addMarker')
-  if (measureMeta.repeatAlternativePresent) pressedButtonIds.add('repeatAlternative')
-  if (measureMeta.repeatClosePresent) pressedButtonIds.add('closeBar')
+  if (measureMeta.marker != null) pressedButtonIds.add('addMarker')
+  if (measureMeta.repeatAlternative != null) pressedButtonIds.add('repeatAlternative')
+  if (measureMeta.repeatClose != null) pressedButtonIds.add('closeBar')
   if (measureMeta.repeatOpen) pressedButtonIds.add('openBar')
   if (measureMeta.timeMeterPresent) pressedButtonIds.add('timeMeter')
-  if (measureMeta.bpmPresent) pressedButtonIds.add('bpmMeter')
+  if (measureMeta.bpm != null) pressedButtonIds.add('bpmMeter')
 }
 
 function collectDisabledButtons(
-  beat: Measure,
+  beat: Beat,
   note: Note | null | undefined,
   options: { canTie: boolean; hasOverlaySelection: boolean },
 ): string[] {
@@ -206,7 +205,7 @@ function collectDisabledButtons(
 }
 
 export function deriveMenuSelectionState(
-  beat: Measure,
+  beat: Beat,
   note: Note | null | undefined,
   measureMeta: MeasureMeta,
   options: { canTie: boolean; hasOverlaySelection: boolean },

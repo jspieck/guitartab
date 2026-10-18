@@ -1,5 +1,5 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
-import { Measure } from '../songData';
+import { Beat } from '../songData';
 import { revertHandler } from '../revertHandler';
 import { typedEventBus } from '../../../utils/typedEventBus';
 import fastdom from 'fastdom';
@@ -12,7 +12,7 @@ interface TextModalState extends ModalState {
     blockId: number;
     voiceId: number;
     beatId: number;
-    beat: Measure | null;
+    beat: Beat | null;
 }
 
 export class TextModalHandler extends BaseModalHandler {
@@ -34,7 +34,7 @@ export class TextModalHandler extends BaseModalHandler {
         blockId: number; 
         voiceId: number; 
         beatId: number; 
-        beat: Measure 
+        beat: Beat 
     }) {
         const { trackId, blockId, voiceId, beatId, beat } = params;
         this.modalState.trackId = trackId;
@@ -64,15 +64,16 @@ export class TextModalHandler extends BaseModalHandler {
         if (!beat) return;
 
         fastdom.mutate(() => {
-            const textPresentBefore = beat.textPresent;
             const textBefore = beat.text;
 
-            if (!beat.textPresent) {
-                beat.textPresent = true;
+            if (text === '') {
+                delete beat.text;
+            } else {
+                beat.text = text;
+            }
+            if (textBefore !== beat.text) {
                 typedEventBus.emit("menu.activateEffectsForBeat", beat);
             }
-
-            beat.text = text;
             
             requestBlockRender(trackId, blockId, voiceId);
             revertHandler.addText(
@@ -80,10 +81,8 @@ export class TextModalHandler extends BaseModalHandler {
                 blockId, 
                 voiceId, 
                 beatId,
-                textBefore, 
-                beat.text, 
-                textPresentBefore, 
-                beat.textPresent
+                textBefore,
+                beat.text,
             );
         });
     }

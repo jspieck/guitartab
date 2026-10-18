@@ -5,14 +5,14 @@ import Song from '../../assets/js/songData'
 import { revertHandler } from '../../assets/js/revertHandler'
 import { tab, Tab } from '../../assets/js/tab'
 import { classicalNotation } from './classicalNotationAdapter'
-import type { Measure } from '../../types/tab'
+import type { Beat } from '../../types/tab'
 import {
   requestDurationRender,
 } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
 
 export function toggleBeatDotModifier(
-  beat: Measure,
+  beat: Beat,
   trackId: number,
   blockId: number,
   voiceId: number,
@@ -94,7 +94,7 @@ export function handleTupletSpecialSelect(
 }
 
 export function finalizeSpecialDurationChange(
-  beat: Measure,
+  beat: Beat,
   trackId: number,
   blockId: number,
   voiceId: number,
@@ -156,7 +156,7 @@ export function setNotesTied(
       ? beatIdEnd
       : Song.measures[trackId][blockId][voiceId].length - 1
     for (let beatId = firstBeatId; beatId <= lastBeatId; beatId += 1) {
-      const beat = Song.measures[trackId][blockId][voiceId][beatId]
+      const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
       const selectedNote = beat.notes[string]
       const noteTiedToCopy = { ...noteTiedTo }
       if (selectedNote == null) {
@@ -189,14 +189,13 @@ export function processTiedButtonPress(
   tiedTarget: { blockId: number; beatId: number },
   noteTiedTo: { blockId: number; beatId: number },
 ): void {
-  const beat = Song.measures[trackId][blockId][voiceId][beatId]
+  const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
   let shouldBeTied = false
   if (beat.notes[string] == null || beat.notes[string]!.tied == null
     || beat.notes[string]!.tied === false) {
     shouldBeTied = true
   }
-  const tiedToNote = Song.measures[trackId][tiedTarget.blockId][voiceId][
-    tiedTarget.beatId].notes[string]
+  const tiedToNote = Song.getBeat({ trackId, blockId: tiedTarget.blockId, voiceId, beatId: tiedTarget.beatId }).notes[string]
   if (tiedToNote != null) {
     tiedToNote.tieBegin = shouldBeTied
     const { fret } = tiedToNote
@@ -225,7 +224,7 @@ export function processSpecialSelect(
   noteTiedTo: { blockId: number; beatId: number } | null,
 ): void {
   fastdom.mutate(() => {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId]
+    const beat = Song.findBeat({ trackId, blockId, voiceId, beatId })
     if (beat == null) {
       return
     }

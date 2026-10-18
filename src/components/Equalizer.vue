@@ -1,473 +1,332 @@
 <template>
     <BaseModal :modal-id="MODALS.EQUALIZER.id">
-        <template #title>Equalizer</template>
-        <div class="eq-plugin">
-            <div class="eq-stage">
-                <div class="eq-canvas-wrap">
-                    <canvas id="equalizerCanvas" ref="canvasRef"
-                        :width="handler.CANVAS_WIDTH + handler.DECIBEL_WIDTH"
-                        :height="handler.CANVAS_HEIGHT + handler.FREQUENCY_HEIGHT">
-                    </canvas>
-                    <svg id="equalizerOverlay" ref="equalizerOverlayRef"
-                        :width="`${handler.CANVAS_WIDTH + handler.DECIBEL_WIDTH}px`"
-                        :height="`${handler.CANVAS_HEIGHT + handler.FREQUENCY_HEIGHT}px`">
-                        <g>
-                            <g v-for="(freq, i) in handler.frequencyLines" :key="'freq-' + i">
-                                <text :x="handler.frequencyToXPos(freq)" y="14" text-anchor="middle" class="freqLabel">
-                                    {{ freq < 1000 ? freq : freq / 1000 + 'k' }}
-                                </text>
-                            </g>
-                            <g v-for="(db, i) in handler.decibelLines" :key="'db-' + i">
-                                <text v-if="i < handler.decibelLines.length - 1"
-                                    :x="handler.CANVAS_WIDTH + 5"
-                                    :y="handler.FREQUENCY_HEIGHT + (handler.CANVAS_HEIGHT * i) / (handler.decibelLines.length - 1) + 4"
-                                    text-anchor="start" class="dbLabel">
-                                    {{ db }}
-                                </text>
-                            </g>
-                            <text :x="handler.CANVAS_WIDTH + 5"
-                                :y="handler.FREQUENCY_HEIGHT + handler.CANVAS_HEIGHT"
-                                text-anchor="start" class="dbLabel">
-                                {{ handler.decibelLines[handler.decibelLines.length - 1] }}
-                            </text>
-                        </g>
-                        <g>
-                            <circle v-for="(frequency, index) in handler.equalizerNodeFrequencies.value"
-                                :key="index"
-                                :cx="handler.frequencyToXPos(frequency)"
-                                :cy="handler.FREQUENCY_HEIGHT + handler.CANVAS_HEIGHT / 2"
-                                :data-x="handler.frequencyToXPos(frequency)"
-                                :data-y="handler.FREQUENCY_HEIGHT + handler.CANVAS_HEIGHT / 2"
-                                :data-id="index"
-                                :r="8"
-                                :fill="handler.circleColors[index] + '33'"
-                                :stroke="handler.circleColors[index]"
-                                stroke-width="2"
-                                class="eqNode"
-                                ref="equalizerNodesRef">
-                            </circle>
-                        </g>
-                    </svg>
+        <template #title>Master Equalizer</template>
+        <div class="ap-root eq">
+            <div class="ap-toolbar">
+                <span class="ap-section-label">4-band parametric</span>
+                <span class="eq-status" :class="{ 'eq-status-active': !isFlat }">{{ isFlat ? 'Flat' : 'Shaping' }}</span>
+                <span class="ap-toolbar-spacer"></span>
+                <span class="eq-hint">Drag points · scroll for Q · double-click to zero</span>
+                <button type="button" class="ap-btn" @click="handler.resetBands()">Reset</button>
+            </div>
+
+            <div class="eq-graph ap-card" :style="{ width: `${handler.WIDTH}px`, height: `${handler.HEIGHT}px` }">
+                <canvas ref="canvasRef" class="eq-canvas" :style="{ width: `${handler.WIDTH}px`, height: `${handler.HEIGHT}px` }"
+                    aria-hidden="true"></canvas>
+                <svg class="eq-overlay" :width="handler.PLOT_WIDTH" :height="handler.PLOT_HEIGHT"
+                    @pointerdown.self="handler.selectedBand.value = -1">
+                    <g v-for="(band, index) in bands" :key="index"
+                        class="eq-handle"
+                        :class="{ 'eq-handle-selected': selected === index, 'eq-handle-off': !band.enabled }"
+                        :transform="`translate(${handlePos(index).x}, ${handlePos(index).y})`"
+                        :style="{ '--band-color': EQ_BAND_COLORS[index] }"
+                        @pointerdown="onHandleDown($event, index)"
+                        @pointermove="onHandleMove($event, index)"
+                        @pointerup="onHandleUp"
+                        @pointercancel="onHandleUp"
+                        @dblclick="handler.setBand(index, { gain: 0 })"
+                        @wheel.prevent="onHandleWheel($event, index)">
+                        <circle r="14" class="eq-handle-hit" />
+                        <circle r="9" class="eq-handle-dot" />
+                        <text y="3.5" text-anchor="middle">{{ index + 1 }}</text>
+                    </g>
+                </svg>
+                <div v-if="selected !== -1" class="eq-readout ap-num" :style="{ '--band-color': EQ_BAND_COLORS[selected] }">
+                    <span class="eq-readout-dot"></span>
+                    {{ formatFrequency(bands[selected].frequency) }}
+                    <template v-if="eqTypeUsesGain(bands[selected].type)"> · {{ formatGain(bands[selected].gain) }}</template>
+                    · Q {{ formatQ(bands[selected].q) }}
                 </div>
             </div>
 
-            <div class="eq-controls">
-                <div v-for="band in bands" :key="band.id" class="eq-band" :style="{ '--band-color': band.color }">
-                    <div class="band-header">
-                        <span class="band-dot" :style="{ background: band.color }"></span>
-                        <span class="band-num">Band {{ band.id }}</span>
-                    </div>
-                    <label class="ctrl-label">Mode</label>
-                    <div class="band-select-wrap">
-                        <select :id="band.selectId"
-                            :value="getBandMode(band.id - 1)"
-                            @change="setBandMode(band.id - 1, ($event.target as HTMLSelectElement).value)"
-                            class="band-select">
-                            <option v-for="mode in filterModes" :key="mode" :value="mode">
-                                {{ mode.charAt(0).toUpperCase() + mode.slice(1) }}
-                            </option>
+            <div class="eq-bands">
+                <section v-for="(band, index) in bands" :key="index"
+                    class="eq-band ap-card"
+                    :class="{ 'eq-band-selected': selected === index, 'eq-band-off': !band.enabled }"
+                    :style="{ '--band-color': EQ_BAND_COLORS[index], '--ap-toggle-color': EQ_BAND_COLORS[index] }"
+                    @pointerdown="handler.selectedBand.value = index">
+                    <header class="eq-band-header">
+                        <span class="eq-band-badge">{{ index + 1 }}</span>
+                        <select class="ap-select eq-band-type" :value="band.type" :aria-label="`Band ${index + 1} filter type`"
+                            @change="handler.setBand(index, { type: ($event.target as HTMLSelectElement).value as BiquadFilterType })">
+                            <option v-for="option in FILTER_TYPES" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
+                        <button type="button" role="switch" class="ap-toggle" :aria-checked="band.enabled"
+                            :aria-label="`Band ${index + 1} ${band.enabled ? 'on' : 'off'}`"
+                            @click="handler.setBand(index, { enabled: !band.enabled })"></button>
+                    </header>
+                    <div class="eq-band-knobs">
+                        <RotaryKnob label="Freq" :model-value="band.frequency" :min="EQ_MIN_FREQ" :max="EQ_MAX_FREQ" scale="log"
+                            :default-value="defaults[index].frequency" :format="formatFrequency" :color="EQ_BAND_COLORS[index]"
+                            :size="40" :disabled="!band.enabled"
+                            @update:model-value="handler.setBand(index, { frequency: $event })" />
+                        <RotaryKnob label="Gain" :model-value="band.gain" :min="-EQ_MAX_GAIN" :max="EQ_MAX_GAIN" bipolar
+                            :default-value="0" :format="formatGain" :color="EQ_BAND_COLORS[index]" :size="40"
+                            :disabled="!band.enabled || !eqTypeUsesGain(band.type)"
+                            @update:model-value="handler.setBand(index, { gain: $event })" />
+                        <RotaryKnob label="Q" :model-value="band.q" :min="EQ_Q_RANGE.min" :max="EQ_Q_RANGE.max" scale="log"
+                            :default-value="defaults[index].q" :format="formatQ" :color="EQ_BAND_COLORS[index]" :size="40"
+                            :disabled="!band.enabled"
+                            @update:model-value="handler.setBand(index, { q: $event })" />
                     </div>
-                    <label class="ctrl-label">Q factor</label>
-                    <div class="band-knob-wrap" v-if="isMounted">
-                        <div class="knob">
-                            <Knob :id="band.knobId" :data-id="band.id" :rotate-func="qualityKnobRotate"
-                                :start="handler.quality.start" :min="handler.quality.min"
-                                :max="handler.quality.max" :mid-knob="false" />
-                        </div>
-                    </div>
-                    <label :id="band.qualityLabelId" class="knob-value">1.0</label>
-                </div>
-
-                <div class="eq-readout">
-                    <div class="readout-group">
-                        <span class="readout-label">Freq</span>
-                        <span class="readout-value">{{ handler.eqCurrentFreq.value }}<span class="readout-unit">Hz</span></span>
-                    </div>
-                    <div class="readout-divider"></div>
-                    <div class="readout-group">
-                        <span class="readout-label">Gain</span>
-                        <span class="readout-value">{{ handler.eqGain.value }}<span class="readout-unit">dB</span></span>
-                    </div>
-                </div>
+                </section>
             </div>
         </div>
     </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, nextTick } from 'vue';
-import Knob from './Knob.vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import BaseModal from './BaseModal.vue';
+import RotaryKnob from './audio/RotaryKnob.vue';
+import './audio/audioPlugin.css';
 import { MODALS } from '../assets/js/modals/modalTypes';
-import interact from 'interactjs';
-import { EqualizerModalHandler } from '../assets/js/modals/equalizerModalHandler';
+import audioEngine from '../assets/js/audioEngine';
 import { modalManager } from '../assets/js/modals/modalManager';
+import {
+    EqualizerModalHandler, EQ_BAND_COLORS, EQ_MAX_GAIN, EQ_MIN_FREQ, EQ_MAX_FREQ, EQ_Q_RANGE,
+    createDefaultEqBands, eqTypeUsesGain,
+} from '../assets/js/modals/equalizerModalHandler';
+import { useModalOpen } from '../composables/useModalOpen';
 
-type EqualizerModeKey = 'equalizerMode1' | 'equalizerMode2' | 'equalizerMode3';
-
-interface EqualizerBand {
-    id: number;
-    color: string;
-    selectId: string;
-    knobId: string;
-    qualityLabelId: string;
-}
-
-const filterModes = [
-    'lowpass', 'highpass', 'bandpass', 'lowshelf',
-    'highshelf', 'peaking', 'notch', 'allpass'
+const FILTER_TYPES: { value: BiquadFilterType, label: string }[] = [
+    { value: 'peaking', label: 'Bell' },
+    { value: 'lowshelf', label: 'Low shelf' },
+    { value: 'highshelf', label: 'High shelf' },
+    { value: 'highpass', label: 'Low cut' },
+    { value: 'lowpass', label: 'High cut' },
+    { value: 'bandpass', label: 'Band pass' },
+    { value: 'notch', label: 'Notch' },
 ];
 
-const handler = modalManager.getHandler('equalizerModal') as EqualizerModalHandler;
-const equalizerModeKeys: EqualizerModeKey[] = ['equalizerMode1', 'equalizerMode2', 'equalizerMode3'];
-const bands: EqualizerBand[] = handler.circleColors.map((color, index) => ({
-    id: index + 1,
-    color,
-    selectId: `equalizerModeSelect${index + 1}`,
-    knobId: `qKnob${index + 1}`,
-    qualityLabelId: `qualityLabel${index + 1}`,
-}));
-const isMounted = ref(false);
+const handler = modalManager.getHandler(MODALS.EQUALIZER.id) as EqualizerModalHandler;
+const bands = handler.bands;
+const selected = computed(() => handler.selectedBand.value);
+const defaults = createDefaultEqBands();
+const isFlat = computed(() => handler.isFlat());
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const equalizerOverlayRef = ref<SVGSVGElement | null>(null);
-const equalizerNodesRef = ref<Element[]>([]);
+const isOpen = useModalOpen(MODALS.EQUALIZER.id);
 
-function getBandMode(index: number): string {
-    return (handler[equalizerModeKeys[index]] as unknown as { value: string }).value;
+let dragging = -1;
+
+function handlePos(index: number) {
+    return handler.handlePosition(index);
 }
 
-function setBandMode(index: number, value: string) {
-    (handler[equalizerModeKeys[index]] as unknown as { value: string }).value = value;
-    handleModeChange(index);
+function formatFrequency(value: number): string {
+    return value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 1 : 2)} kHz` : `${Math.round(value)} Hz`;
+}
+
+function formatGain(value: number): string {
+    const rounded = Math.abs(value) < 0.05 ? 0 : value;
+    return `${rounded > 0 ? '+' : ''}${rounded.toFixed(1)} dB`;
+}
+
+function formatQ(value: number): string {
+    return value.toFixed(2);
+}
+
+function localPoint(event: PointerEvent) {
+    const svg = (event.currentTarget as SVGGElement).ownerSVGElement!;
+    const rect = svg.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function onHandleDown(event: PointerEvent, index: number) {
+    if (event.button !== 0) return;
+    (event.currentTarget as SVGGElement).setPointerCapture(event.pointerId);
+    dragging = index;
+    handler.selectedBand.value = index;
+    event.preventDefault();
+}
+
+function onHandleMove(event: PointerEvent, index: number) {
+    if (dragging !== index) return;
+    const point = localPoint(event);
+    const x = Math.min(handler.PLOT_WIDTH, Math.max(0, point.x));
+    const patch: { frequency: number, gain?: number } = { frequency: handler.xPosToFrequency(x) };
+    if (eqTypeUsesGain(bands.value[index].type)) {
+        patch.gain = handler.yPosToDb(Math.min(handler.PLOT_HEIGHT, Math.max(0, point.y)));
+    }
+    handler.setBand(index, patch);
+}
+
+function onHandleUp(event: PointerEvent) {
+    if (dragging === -1) return;
+    dragging = -1;
+    (event.currentTarget as SVGGElement).releasePointerCapture(event.pointerId);
+}
+
+function onHandleWheel(event: WheelEvent, index: number) {
+    const factor = event.deltaY < 0 ? 1.08 : 1 / 1.08;
+    handler.selectedBand.value = index;
+    handler.setBand(index, { q: bands.value[index].q * factor });
 }
 
 onMounted(() => {
-    handler.initializeAudio();
-    const canvas = canvasRef.value;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    handler.setCanvasContext(ctx);
-    drawCanvas(ctx);
-    nextTick(() => {
-        initInteract(ctx);
-    });
-    isMounted.value = true;
+    // Usually a no-op: createBusses() already built and wired the nodes for this context.
+    handler.setAudioContext(audioEngine.context);
+    if (canvasRef.value) handler.attachCanvas(canvasRef.value);
 });
 
-function initInteract(ctx: CanvasRenderingContext2D) {
-    equalizerNodesRef.value.forEach((nodeEl, index) => {
-        interact(nodeEl as HTMLElement).draggable({
-            modifiers: [
-                interact.modifiers.restrictRect({
-                    restriction: equalizerOverlayRef.value!,
-                }),
-            ],
-            onstart: () => {
-                handler.setCurrentNode(index);
-                drawCanvas(ctx);
-            },
-            onmove: (event) => {
-                const target = event.target;
-                if (!target) return;
+onUnmounted(() => handler.detachCanvas());
 
-                let x = (parseFloat(target.getAttribute('data-x')!) || 0) + event.dx;
-                let y = (parseFloat(target.getAttribute('data-y')!) || 0) + event.dy;
-
-                x = Math.min(handler.CANVAS_WIDTH - 6, Math.max(x, 7));
-                y = Math.min(handler.CANVAS_HEIGHT + handler.FREQUENCY_HEIGHT - 6, Math.max(y, 7));
-
-                target.setAttribute('cx', x.toString());
-                target.setAttribute('cy', y.toString());
-                target.setAttribute('data-x', x.toString());
-                target.setAttribute('data-y', y.toString());
-
-                handler.updateNodePosition(parseInt(target.getAttribute('data-id')!, 10), x, y);
-                drawCanvas(ctx);
-            },
-        });
-    });
-}
-
-function handleModeChange(index: number) {
-    const mode = getBandMode(index) as never;
-    handler.setNodeType(index, mode);
-    const ctx = canvasRef.value?.getContext('2d');
-    if (ctx) {
-        drawCanvas(ctx);
-        handler.setCurrentNode(index);
-    }
-}
-
-function qualityKnobRotate(angle: number, knobId: string) {
-    const scaled = (angle / 360) * (handler.quality.max - handler.quality.min) + handler.quality.min;
-    const nodeIndex = parseInt(knobId.replace('qKnob', ''), 10) - 1;
-    handler.setNodeQuality(nodeIndex, scaled);
-    const ctx = canvasRef.value?.getContext('2d');
-    if (ctx) {
-        drawCanvas(ctx);
-        handler.setCurrentNode(nodeIndex);
-    }
-}
-
-function drawCanvas(ctx: CanvasRenderingContext2D) {
-    handler.clearCanvas(ctx);
-    handler.drawFrequencyLines(ctx);
-    if (handler.getCurrentNode() !== -1) {
-        handler.drawLocalAttenuationCurve(ctx, handler.getCurrentNode());
-    }
-    handler.drawAttenuationCurve(ctx);
-}
+watch(isOpen, (open) => {
+    if (open) handler.redraw();
+});
+watch(selected, () => handler.redraw());
 </script>
 
 <style scoped>
-:global(#equalizerModal) {
-    background: #12151c;
-    border: 1px solid #2a3039;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    overflow: hidden;
+.eq {
+    width: fit-content;
 }
-:global(#equalizerModal .modalTopBar) {
-    min-height: 40px;
-    height: auto;
-    background: #181c24;
-    border-bottom: 1px solid #2a3039;
-    padding: 6px 10px 6px 0;
-}
-:global(#equalizerModal .modalTopBarLabel) {
-    color: #c8ced8;
-    font-size: 13px;
+
+.eq-status {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--ap-inset);
+    border: 1px solid var(--ap-border);
+    color: var(--ap-muted);
+    font-size: 10px;
     font-weight: 600;
 }
-:global(#equalizerModal .modal_close .icon) { fill: #7a8494; stroke: #7a8494; }
-:global(#equalizerModal .modal_close:hover .icon) { fill: #6ba8d4; stroke: #6ba8d4; }
-:global(#equalizerModal .modalBody) {
-    padding: 0;
-    background: #12151c;
+.eq-status-active {
+    color: var(--ap-accent);
+    border-color: color-mix(in srgb, var(--ap-accent) 45%, transparent);
 }
 
-.eq-plugin {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 12px;
-    overflow: visible;
-    background: #141820;
+.eq-hint {
+    color: var(--ap-faint);
+    font-size: 11px;
 }
 
-.eq-stage {
-    border-radius: 6px;
-    border: 1px solid #2a3039;
-    background: #1a1f28;
-    overflow: hidden;
-}
-
-.eq-canvas-wrap {
+.eq-graph {
     position: relative;
-    background: #141820;
-    line-height: 0;
-    padding: 8px;
-}
-
-#equalizerCanvas {
-    display: block;
-    border-radius: 4px;
     overflow: hidden;
+    background: var(--ap-inset);
 }
 
-#equalizerOverlay {
+.eq-canvas {
+    display: block;
+}
+
+.eq-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+}
+
+.eq-handle {
+    cursor: grab;
+    touch-action: none;
+}
+.eq-handle:active {
+    cursor: grabbing;
+}
+.eq-handle-hit {
+    fill: transparent;
+}
+.eq-handle-dot {
+    fill: color-mix(in srgb, var(--band-color) 30%, #12151b);
+    stroke: var(--band-color);
+    stroke-width: 2;
+    transition: r 0.12s ease;
+}
+.eq-handle text {
+    fill: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    pointer-events: none;
+}
+.eq-handle:hover .eq-handle-dot,
+.eq-handle-selected .eq-handle-dot {
+    r: 11;
+    fill: var(--band-color);
+}
+.eq-handle-selected text,
+.eq-handle:hover text {
+    fill: #12151b;
+}
+.eq-handle-off {
+    opacity: 0.35;
+}
+
+.eq-readout {
     position: absolute;
     top: 8px;
     left: 8px;
-    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(13, 16, 21, 0.85);
+    border: 1px solid var(--ap-border);
+    color: var(--ap-text);
+    font-size: 11px;
+    font-weight: 600;
     pointer-events: none;
 }
-
-.eqNode {
-    cursor: move;
-    pointer-events: all;
-    transition: r 0.12s ease;
-}
-.eqNode:hover {
-    r: 10;
+.eq-readout-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--band-color);
 }
 
-.freqLabel {
-    fill: #6d7787;
-    font-size: 9px;
-    font-family: 'Roboto Mono', monospace, sans-serif;
-}
-.dbLabel {
-    fill: #6d7787;
-    font-size: 9px;
-    font-family: 'Roboto Mono', monospace, sans-serif;
-}
-
-.eq-controls {
+.eq-bands {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) 132px;
-    align-items: stretch;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
-    overflow: visible;
 }
 
 .eq-band {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    padding: 12px 10px;
-    background: #1a1f28;
-    border: 1px solid #2a3039;
-    border-radius: 6px;
-    gap: 6px;
-    min-width: 0;
-    overflow: hidden;
-}
-
-.band-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 2px;
-}
-
-.band-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.band-num {
-    color: #c8ced8;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.ctrl-label {
-    color: #8b939f;
-    font-size: 10px;
-    font-weight: 600;
-    text-align: left;
-    display: block;
-    margin-top: 4px;
-}
-
-.band-select-wrap { width: 100%; }
-
-.band-select {
-    width: 100%;
-    background: #141820;
-    border: 1px solid #2a3039;
-    border-radius: 4px;
-    color: #c8ced8;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 6px 8px;
-    outline: none;
-    cursor: pointer;
-    text-align: left;
-}
-.band-select:focus {
-    border-color: var(--band-color);
-}
-.band-select option { background: #141820; color: #c8ced8; }
-
-.band-knob-wrap {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    margin: 4px 0;
-    min-height: 52px;
-    border-radius: 4px;
-    background: #141820;
-    border: 1px solid #2a3039;
-}
-
-:deep(.band-knob-wrap div.knob) {
-    transform: scale(1.42);
-    transform-origin: center center;
-    background: transparent !important;
-    overflow: visible;
-    box-shadow: none;
-}
-
-:deep(.band-knob-wrap .knobRing circle:first-child) {
-    fill: #182335;
-}
-
-.knob-value {
-    color: var(--band-color);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: 'Roboto Mono', monospace, sans-serif;
-    text-align: left;
-    display: block;
-}
-
-.eq-readout {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 12px;
-    background: #1a1f28;
-    border: 1px solid #2a3039;
-    border-radius: 6px;
-    min-width: 0;
     gap: 10px;
+    padding: 10px 8px 10px;
+    transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+.eq-band-selected {
+    background: var(--ap-panel-raised);
+    border-color: var(--ap-border-strong);
+}
+.eq-band-off .eq-band-knobs {
+    opacity: 0.6;
 }
 
-.readout-group {
+.eq-band-header {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    align-items: center;
+    gap: 6px;
 }
 
-.readout-label {
-    color: #8b939f;
+.eq-band-badge {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border-radius: 50%;
+    background: var(--band-color);
+    color: #12151b;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
-.readout-value {
-    color: #eef1f5;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'Roboto Mono', monospace, sans-serif;
+.eq-band-type {
+    flex: 1;
 }
 
-.readout-unit {
-    font-size: 10px;
-    color: #6ba8d4;
-    margin-left: 3px;
-    font-weight: 600;
-}
-
-.readout-divider {
-    width: 100%;
-    height: 1px;
-    background: #2a3039;
-}
-
-@media (max-width: 1080px) {
-    .eq-controls {
-        width: 100%;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 760px) {
-    .eq-controls {
-        grid-template-columns: 1fr;
-    }
+.eq-band-knobs {
+    display: flex;
+    justify-content: space-between;
+    gap: 2px;
 }
 </style>
-

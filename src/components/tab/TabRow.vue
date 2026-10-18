@@ -1,5 +1,5 @@
 <template>
-  <g class="tab-row" :transform="`translate(0, ${yOffset})`">
+  <g class="tab-row" :data-row-id="rowData.id" :transform="`translate(0, ${yOffset})`">
     <!-- Guitar strings background -->
     <g class="strings">
       <line
@@ -74,6 +74,7 @@
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
+      :lanes="rowData.lanes"
       style="pointer-events: none"
     />
     
@@ -84,7 +85,10 @@
       :measure-meta="getMeasureMeta(rowData.startBlockId + measureIndex)"
       :block-id="rowData.startBlockId + measureIndex"
       :x-offset="getMeasureXOffset(measureIndex)"
-      :y-offset="stringSpacing * 2.5"
+      :width="measureObj.width"
+      :num-strings="numStrings"
+      :string-spacing="stringSpacing"
+      :lanes="rowData.lanes"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
       style="pointer-events: none"
     />
@@ -100,7 +104,7 @@
         :height="12"
         fill="rgba(0, 0, 0, 0)"
         class="string-click-area"
-        @mousedown="(event: MouseEvent) => handleStringPointerDown(event, stringIndex - 1)"
+        @mousedown="(event: MouseEvent) => handleStringPointerDown(event, stringLine(stringIndex - 1, numStrings))"
         style="cursor: pointer"
       />
     </g>
@@ -108,11 +112,13 @@
 </template>
 
 <script setup lang="ts">
+import { stringLine } from '../../utils/tabStrings'
 import { computed } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
 import { useOverlaySelection } from '../../composables/useOverlaySelection'
 import { useTabSelection } from '../../composables/useTabSelection'
+import { usePlaybackEngine } from '../../composables/usePlaybackEngine'
 import editorCore from '../../services/editor/editorCore'
 import type {
   RenderedTabRow,
@@ -151,6 +157,7 @@ const {
 } = useTabSelection()
 
 const numStrings = computed(() => editorCore.getTrackStringCount(props.trackId))
+const playbackEngine = usePlaybackEngine()
 
 function getMeasureMeta(blockId: number): TabMeasureMetaData {
   return editorCore.getMeasureMeta(blockId)
@@ -193,6 +200,7 @@ const selectionRenderPoint = computed(() => {
     getMeasureContentPadding,
     props.trackId,
     props.voiceId,
+    numStrings.value,
   )
 })
 
@@ -285,6 +293,10 @@ function handleStringClick(event: MouseEvent, stringIndex: number): void {
     measureIndex: targetPosition.measureIndex,
     beatIndex: targetPosition.beatIndex,
     blockId: targetPosition.blockId,
+  }
+  // A click while the song plays moves playback there.
+  if (playbackEngine.getPlayingState()) {
+    void playbackEngine.jumpToBeat(props.trackId, targetPosition.blockId, props.voiceId, targetPosition.beatIndex)
   }
 }
 </script>

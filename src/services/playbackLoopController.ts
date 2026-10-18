@@ -21,7 +21,6 @@ export interface PlaybackLoopInterval {
 }
 
 export interface MeasureMetaSlice {
-  repeatClosePresent?: boolean
   repeatClose?: number
   repeatAlternative?: number | null
   repeatOpen?: boolean
@@ -85,8 +84,8 @@ export function resolveNextBlockAfterCurrent(
 
   if (loopInterval != null && currentBlock === loopInterval.endBlock) {
     nextBlock = loopInterval.startBlock
-  } else if (measureMeta[currentBlock]?.repeatClosePresent
-    && (measureMeta[currentBlock].repeatClose ?? 0) >= playingIteration) {
+  } else if (measureMeta[currentBlock]?.repeatClose != null
+    && measureMeta[currentBlock].repeatClose! >= playingIteration) {
     nextBlock = jumpBackPositions[currentBlock] ?? 0
     newPlayingIteration = playingIteration + 1
   } else {
@@ -120,7 +119,8 @@ export function applyRepeatAlternativeSkip(
     if (measureMeta[nextBlock + j] == null) {
       break
     }
-    if (((measureMeta[nextBlock + j].repeatAlternative! >> (playingIteration - 1)) & 1) === 1) {
+    const alternative = measureMeta[nextBlock + j].repeatAlternative
+    if (alternative != null && ((alternative >> (playingIteration - 1)) & 1) === 1) {
       return nextBlock + j
     }
   }

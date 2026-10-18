@@ -60,24 +60,18 @@ export class RepeatAlternativeModalHandler extends BaseModalHandler {
         this.closeModal();
         
         const meta = Song.measureMeta[blockId];
-        const repeatAlternativePresentBefore = meta.repeatAlternativePresent;
         const repeatAlternativeBefore = meta.repeatAlternative;
-
-        if (!meta.repeatAlternativePresent) {
-            meta.repeatAlternativePresent = true;
+        meta.repeatAlternative = this.calculateRepeatAlternative();
+        if (repeatAlternativeBefore == null) {
             typedEventBus.emit("menu.activateEffectsForMarkedPos");
         }
-
-        meta.repeatAlternative = this.calculateRepeatAlternative();
 
         if (repeatAlternativeBefore !== meta.repeatAlternative) {
             revertHandler.addRepeatAlternative(
                 trackId, 
                 blockId, 
                 repeatAlternativeBefore,
-                meta.repeatAlternative, 
-                repeatAlternativePresentBefore,
-                meta.repeatAlternativePresent
+                meta.repeatAlternative,
             );
         }
 

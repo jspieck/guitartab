@@ -3,7 +3,7 @@ import type {
   Track, 
   SongDescription, 
   ChordsMap, 
-  Measure, 
+  Beat, 
   MeasureMeta, 
   TabPosition,
   ChordDiagram 
@@ -60,7 +60,7 @@ export const useTabStore = defineStore('tab', {
       return t
     },
     
-    getMeasures: (state) => (trackId: number, voiceId: number): Measure[][] => {
+    getMeasures: (state) => (trackId: number, voiceId: number): Beat[][] => {
       // Dependency on songDataVersion to trigger updates
       const _ = state.songDataVersion;
       if (!songState.measures[trackId]) return [];
@@ -80,7 +80,7 @@ export const useTabStore = defineStore('tab', {
       string: state.currentString
     }),
     
-    getMeasure: (state) => (trackId: number, blockId: number, voiceId: number): Measure[] => {
+    getMeasure: (state) => (trackId: number, blockId: number, voiceId: number): Beat[] => {
       const _ = state.songDataVersion;
       return songState.measures[trackId]?.[blockId]?.[voiceId] || []
     },
@@ -152,7 +152,7 @@ export const useTabStore = defineStore('tab', {
       }
     },
     
-    updateMeasure(trackId: number, blockId: number, voiceId: number, measureData: Measure[]) {
+    updateMeasure(trackId: number, blockId: number, voiceId: number, measureData: Beat[]) {
       if (songState.measures[trackId]?.[blockId]) {
         // @ts-ignore - Legacy type mismatch
         songState.measures[trackId][blockId][voiceId] = measureData

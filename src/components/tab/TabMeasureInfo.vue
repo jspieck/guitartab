@@ -1,10 +1,11 @@
 <template>
-  <g class="tab-measure-info" :transform="`translate(${xOffset}, ${yOffset})`">
-    <!-- Time signature -->
-    <g v-if="showTimeMeter" class="time-signature" :transform="`translate(${timeMeterX}, 0)`">
+  <!-- Row-local coordinates: y = 0 is the top string; annotations use the row's lanes. -->
+  <g class="tab-measure-info" :transform="`translate(${xOffset}, 0)`">
+    <!-- Time signature, centred on the strings -->
+    <g v-if="showTimeMeter" class="time-signature" :transform="`translate(${timeMeterX}, ${stringsMiddle})`">
       <text
         x="0"
-        y="-10"
+        y="-3"
         font-family="Source Sans Pro"
         font-size="20px"
         font-weight="bold"
@@ -15,7 +16,7 @@
       </text>
       <text
         x="0"
-        y="10"
+        y="15"
         font-family="Source Sans Pro"
         font-size="20px"
         font-weight="bold"
@@ -25,51 +26,57 @@
         {{ timeMeter.denominator }}
       </text>
     </g>
-    
-    <!-- BPM marking -->
-    <g v-if="showBpm" class="bpm-marking" :transform="`translate(${bpmX}, 0)`">
+
+    <!-- Tempo -->
+    <g v-if="showBpm && tempoLane" class="bpm-marking" :transform="`translate(${bpmX}, ${tempoLane.top + tempoLane.height - 4})`">
       <text
         x="0"
-        :y="-yOffset - 45"
+        y="0"
         font-family="Source Sans Pro"
         font-size="14px"
-        text-anchor="middle"
         class="bpm-text"
       >
         ♩ = {{ bpm }}
       </text>
     </g>
-    
-    <!-- Repeat start -->
+
+    <!-- Repeat start: thick + thin bar and dots at the measure's left edge -->
     <g v-if="measureMeta.repeatOpen" class="repeat-start">
-      <line x1="-5" x2="-5" y1="-20" y2="20" class="repeat-bar-thick" stroke-width="3"/>
-      <line x1="-2" x2="-2" y1="-20" y2="20" class="repeat-bar-thin" stroke-width="1"/>
-      <circle cx="2" cy="-8" r="2" class="repeat-dot"/>
-      <circle cx="2" cy="8" r="2" class="repeat-dot"/>
+      <line x1="1.5" x2="1.5" y1="0" :y2="stringsBottom" class="repeat-bar-thick" stroke-width="3"/>
+      <line x1="5" x2="5" y1="0" :y2="stringsBottom" class="repeat-bar-thin" stroke-width="1"/>
+      <circle cx="9" :cy="stringsMiddle - stringSpacing / 2" r="2" class="repeat-dot"/>
+      <circle cx="9" :cy="stringsMiddle + stringSpacing / 2" r="2" class="repeat-dot"/>
     </g>
-    
-    <!-- Repeat end -->
-    <g v-if="measureMeta.repeatClosePresent" class="repeat-end">
-      <line x1="5" x2="5" y1="-20" y2="20" class="repeat-bar-thick" stroke-width="3"/>
-      <line x1="2" x2="2" y1="-20" y2="20" class="repeat-bar-thin" stroke-width="1"/>
-      <circle cx="-2" cy="-8" r="2" class="repeat-dot"/>
-      <circle cx="-2" cy="8" r="2" class="repeat-dot"/>
-      <text x="10" y="5" font-family="Source Sans Pro" font-size="12px" class="repeat-count-text">
+
+    <!-- Repeat end at the measure's right edge, repeat count above it -->
+    <g v-if="measureMeta.repeatClose != null" class="repeat-end">
+      <line :x1="width - 1.5" :x2="width - 1.5" y1="0" :y2="stringsBottom" class="repeat-bar-thick" stroke-width="3"/>
+      <line :x1="width - 5" :x2="width - 5" y1="0" :y2="stringsBottom" class="repeat-bar-thin" stroke-width="1"/>
+      <circle :cx="width - 9" :cy="stringsMiddle - stringSpacing / 2" r="2" class="repeat-dot"/>
+      <circle :cx="width - 9" :cy="stringsMiddle + stringSpacing / 2" r="2" class="repeat-dot"/>
+      <text
+        :x="width - 2"
+        y="-3"
+        font-family="Source Sans Pro"
+        font-size="11px"
+        text-anchor="end"
+        class="repeat-count-text"
+      >
         {{ measureMeta.repeatClose }}x
       </text>
     </g>
-    
-    <!-- Alternative endings -->
-    <g v-if="measureMeta.repeatAlternativePresent" class="alternative-ending">
+
+    <!-- Alternative ending (volta) spanning the measure -->
+    <g v-if="measureMeta.repeatAlternative != null && voltaLane" class="alternative-ending">
       <path
-        d="M-10,-25 L-10,-30 L30,-30 L30,-25"
+        :d="`M3,${voltaLane.top + voltaLane.height} L3,${voltaLane.top + 4} L${width - 4},${voltaLane.top + 4}`"
         class="alternative-bracket"
         stroke-width="1"
         fill="none"
       />
       <text
-        x="-5"
-        y="-32"
+        x="7"
+        :y="voltaLane.top + 16"
         font-family="Source Sans Pro"
         font-size="12px"
         class="alternative-number"
@@ -77,13 +84,13 @@
         {{ measureMeta.repeatAlternative }}.
       </text>
     </g>
-    
-    <!-- Marker -->
-    <g v-if="measureMeta.markerPresent" class="marker">
+
+    <!-- Marker: left-aligned at the measure start, box sized to its text -->
+    <g v-if="measureMeta.marker != null && markerLane" class="marker">
       <rect
-        x="-15"
-        :y="-yOffset - 25"
-        width="30"
+        x="2"
+        :y="markerLane.top + 2"
+        :width="markerWidth"
         height="15"
         :fill="`rgb(${measureMeta.marker.color.red}, ${measureMeta.marker.color.green}, ${measureMeta.marker.color.blue})`"
         stroke-width="1"
@@ -91,12 +98,11 @@
         rx="2"
       />
       <text
-        x="0"
-        :y="-yOffset - 14"
+        x="7"
+        :y="markerLane.top + 13"
         font-family="Source Sans Pro"
         font-size="10px"
         fill="#fff"
-        text-anchor="middle"
         class="marker-text"
       >
         {{ measureMeta.marker.text }}
@@ -108,20 +114,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TabMeasureMetaData } from '../../types/tab'
+import {
+  estimateTextWidth,
+  LANE_HEIGHTS,
+  MEASURE_NUMBER_STRIP,
+  type AboveLaneId,
+  type LaneBox,
+  type RowLanes,
+} from '../../utils/tabRowLanes'
 
 const fallbackMeasureMeta: TabMeasureMetaData = {
   numerator: 4,
   denominator: 4,
   timeMeterPresent: false,
-  bpmPresent: false,
-  bpm: 120,
   repeatOpen: false,
-  repeatClosePresent: false,
-  repeatClose: 0,
-  repeatAlternativePresent: false,
-  repeatAlternative: 0,
-  markerPresent: false,
-  marker: { text: '', color: { red: 0, green: 0, blue: 0 } },
   keySignature: 0,
   automations: [],
 }
@@ -131,13 +137,31 @@ interface Props {
   measureMeta: TabMeasureMetaData
   blockId: number
   xOffset: number
-  yOffset: number
+  width: number
+  numStrings: number
+  stringSpacing: number
+  lanes?: RowLanes
   contentPadding?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  contentPadding: 10
+  contentPadding: 10,
+  lanes: undefined,
 })
+
+const stringsBottom = computed(() => (props.numStrings - 1) * props.stringSpacing)
+const stringsMiddle = computed(() => stringsBottom.value / 2)
+
+function laneOr(lane: AboveLaneId): LaneBox {
+  return props.lanes?.above[lane] ?? { top: -MEASURE_NUMBER_STRIP - LANE_HEIGHTS[lane], height: LANE_HEIGHTS[lane] }
+}
+
+const tempoLane = computed(() => laneOr('tempo'))
+const markerLane = computed(() => laneOr('marker'))
+const voltaLane = computed(() => laneOr('volta'))
+const markerWidth = computed(() => (
+  Math.min(Math.max(30, estimateTextWidth(props.measureMeta.marker?.text ?? '', 6) + 10), props.width - 6)
+))
 
 // Computed properties
 const timeMeter = computed(() => ({
@@ -145,24 +169,22 @@ const timeMeter = computed(() => ({
   denominator: props.measureMeta?.denominator || fallbackMeasureMeta.denominator
 }))
 
-const timeMeterX = computed(() => {
-  // Place after a small margin inside the content padding area
-  return 8
-})
+// After the repeat-start bars and dots when the measure opens a repeat.
+const timeMeterX = computed(() => (props.measureMeta?.repeatOpen ? 22 : 8))
 
 const bpmX = computed(() => {
   // BPM is usually centered over the measure or at the start
   return props.contentPadding || 10
 })
 
-const bpm = computed(() => props.measureMeta?.bpm || fallbackMeasureMeta.bpm)
+const bpm = computed(() => props.measureMeta?.bpm ?? 120)
 
 const showTimeMeter = computed(() => {
   return props.measureMeta?.timeMeterPresent === true
 })
 
 const showBpm = computed(() => {
-  return props.measureMeta?.bpmPresent === true
+  return props.measureMeta?.bpm != null
 })
 </script>
 

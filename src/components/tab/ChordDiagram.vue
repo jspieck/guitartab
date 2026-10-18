@@ -3,7 +3,7 @@
     <!-- Chord name -->
     <text
       :x="diagramWidth / 2"
-      y="-5"
+      y="-20"
       font-family="Source Sans Pro"
       font-size="14px"
       font-weight="bold"
@@ -132,6 +132,12 @@ const diagramWidth = computed(() => (props.numStrings - 1) * stringSpacing)
 const diagramHeight = 4 * fretHeight
 const numFrets = 4
 
+// Chord frets are stored highest string first (as Guitar Pro does); a diagram shows the
+// lowest string on the left.
+function stringX(stringIndex: number): number {
+  return (props.numStrings - 1 - stringIndex) * stringSpacing
+}
+
 // Computed properties
 const startFret = computed(() => {
   if (!props.chordData.frets) return 0
@@ -157,8 +163,9 @@ const fingerPositions = computed(() => {
   const positions: Array<{x: number, y: number, finger: number}> = []
   
   props.chordData.frets.forEach((fret, stringIndex) => {
+    if (stringIndex >= props.numStrings) return
     if (fret > 0) {
-      const x = stringIndex * stringSpacing
+      const x = stringX(stringIndex)
       const y = (fret - startFret.value - 0.5) * fretHeight
       const finger = props.chordData.fingers?.[stringIndex] || 0
       
@@ -178,8 +185,10 @@ const stringIndicators = computed(() => {
   const indicators: Array<{x: number, y: number, symbol: string, type: string}> = []
   
   props.chordData.frets.forEach((fret, stringIndex) => {
-    const x = stringIndex * stringSpacing
-    const y = -15
+    if (stringIndex >= props.numStrings) return
+    const x = stringX(stringIndex)
+    // Just above the nut; the chord name sits above these markers.
+    const y = -4
     
     if (fret === 0) {
       // Open string

@@ -11,11 +11,18 @@ import renderBridge, {
   type RenderTrackLayoutState,
 } from './renderBridge'
 import { getTrackRenderLayout } from '../../composables/useTabRenderLayout'
+import {
+  classicalNotationLayoutState,
+  getClassicalRowGeometry,
+} from '../../stores/classicalNotationLayoutState'
+import { computeRowLanes, type LaneBlockInput, type RowLanes } from '../../utils/tabRowLanes'
+import { CLASSICAL_ROW_GAP, CLASSICAL_ROW_SEPARATION, TAB_ROW_GAP } from './tabLayoutMetrics'
 
 export interface MeasureLayoutOptions {
   availableWidth: number
   headerHeight: number
-  rowHeight: number
+  /** @deprecated Rows are sized from their content (see `tabRowLanes`). Ignored. */
+  rowHeight?: number
   paddingTop: number
   tabInformationHeight: number
 }
@@ -30,7 +37,6 @@ export interface MeasureLayoutResult {
 
 export const DEFAULT_MEASURE_LAYOUT_OPTIONS = {
   headerHeight: 80,
-  rowHeight: 120,
   tabInformationHeight: 80,
 } as const
 
@@ -42,7 +48,6 @@ export function resolveMeasureLayoutOptions(
   return {
     availableWidth,
     headerHeight: overrides.headerHeight ?? DEFAULT_MEASURE_LAYOUT_OPTIONS.headerHeight,
-    rowHeight: overrides.rowHeight ?? DEFAULT_MEASURE_LAYOUT_OPTIONS.rowHeight,
     paddingTop,
     tabInformationHeight: overrides.tabInformationHeight ?? DEFAULT_MEASURE_LAYOUT_OPTIONS.tabInformationHeight,
   }
@@ -140,6 +145,22 @@ function computeBlockWidth(
   }
 }
 
+const previousLanes = new Map<string, { json: string, lanes: RowLanes }>()
+
+/**
+ * Lanes are passed to every measure of a row as a prop. Returning the previous
+ * object when nothing changed keeps edits from re-rendering untouched measures.
+ */
+function reuseUnchangedLanes(key: string, lanes: RowLanes): RowLanes {
+  const json = JSON.stringify(lanes)
+  const previous = previousLanes.get(key)
+  if (previous?.json === json) {
+    return previous.lanes
+  }
+  previousLanes.set(key, { json, lanes })
+  return lanes
+}
+
 export function computeTrackLayout(
   trackId: number,
   voiceId: number,
@@ -167,6 +188,10 @@ export function computeTrackLayout(
   }
 
   const availableWidth = options.availableWidth
+  const numStrings = Song.tracks[trackId]?.numStrings ?? 6
+  const classicalActive = classicalNotationLayoutState.active
+  const rowGap = classicalActive ? CLASSICAL_ROW_SEPARATION : TAB_ROW_GAP
+  let nextRowTop = options.headerHeight
   let rowId = 0
   let groupStartIndex = 0
   let reachedWidth = 0
@@ -180,6 +205,7 @@ export function computeTrackLayout(
 
     let xOffset = rowId === 0 ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
     const rowMeasures: RenderedTabRow['measures'] = []
+    const laneBlocks: LaneBlockInput[] = []
 
     for (let blockId = groupStart; blockId < groupEnd; blockId += 1) {
       const widthInfo = allWidths[blockId]
@@ -210,6 +236,16 @@ export function computeTrackLayout(
         beatPositions: getBeatRenderPositions(trackId, blockId, voiceId, voiceMeasures, minOffset),
       }
       state.blockLayouts[blockId] = blockLayout
+
+      laneBlocks.push({
+        blockId,
+        meta: Song.measureMeta[blockId],
+        beats: voiceMeasures.map((beat, beatIndex) => ({
+          beat,
+          centerX: xOffset + blockLayout.beatPositions[beatIndex]
+            + (Duration.getDurationWidth(beat) * minOffset) / 2,
+        })),
+      })
       xOffset += finalWidth
 
       rowMeasures.push({
@@ -218,14 +254,29 @@ export function computeTrackLayout(
       })
     }
 
-    const yOffset = options.headerHeight + rowId * options.rowHeight
-    state.rowLayouts[rowId] = { yOffset, height: options.rowHeight }
+    // Vertical layout: lanes above/below the strings, then the classical staff.
+    const lanes = reuseUnchangedLanes(
+      `${trackId}:${voiceId}:${rowId}`,
+      computeRowLanes({ blocks: laneBlocks, numStrings, stringSpacing: TAB_CONSTANTS.STRING_SPACING }),
+    )
+    const top = nextRowTop
+    const yOffset = top + lanes.overBarHeight
+    let bottom = yOffset + lanes.bodyHeight
+    if (classicalActive) {
+      bottom += CLASSICAL_ROW_GAP + getClassicalRowGeometry(groupStart, groupEnd).height
+    }
+    nextRowTop = bottom + rowGap
+
+    state.rowLayouts[rowId] = { yOffset, height: bottom - yOffset, top }
     rows.push({
       id: rowId,
       measures: rowMeasures,
       startBlockId: groupStart,
       endBlockId: groupEnd - 1,
       yOffset,
+      top,
+      height: bottom - top,
+      lanes,
     })
 
     rowId += 1

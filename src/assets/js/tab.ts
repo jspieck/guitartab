@@ -1,4 +1,4 @@
-import Song, { Measure } from './songData';
+import Song, { Beat } from './songData';
 import { sequencerHandler } from './sequencerHandler';
 import { TAB_SHEET, getAvailableRowWidth } from '../../utils/tabSheetConstants';
 import { recomputeTrackLayoutFromSong } from '../../services/editor/measureLayoutEngine';
@@ -155,7 +155,7 @@ class Tab {
     trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, fretNumber: number, calledDuringRestore: boolean,
   ) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
     let oldFret = -1;
     let redrawSequencer = false;
     // console.trace("drawNote");
@@ -336,7 +336,7 @@ class Tab {
       this.tupletId += 1;
     } else {
       // only keep selected note and delete rest
-      const nextBeat = Song.measures[trackId][blockId][voiceId][beatId];
+      const nextBeat = Song.getBeat({ trackId, blockId, voiceId, beatId });
       const tupletIdToSearchFor = nextBeat.tupletId;
       nextBeat.duration = this.tupletManager[nextBeat.tupletId].originalDuration;
       // dont keep dot if tuplet is eliminated
@@ -348,7 +348,7 @@ class Tab {
       // TODO fix Mark of false position
       // delete all beats with same tupletId
       for (let i = 0; i < Song.measures[trackId][blockId][voiceId].length; i += 1) {
-        const beatIn = Song.measures[trackId][blockId][voiceId][i];
+        const beatIn = Song.getBeat({ trackId, blockId, voiceId, beatId: i });
         if (i !== beatId && beatIn.tuplet != null && beatIn.tupletId === tupletIdToSearchFor) {
           Song.measures[trackId][blockId][voiceId].splice(i, 1);
           if (i < beatId) {
@@ -590,7 +590,7 @@ class Tab {
   }
 
   fillBeat(trackId: number, blockId: number, voiceId: number, beatId: number) {
-    const beatObj = Song.measures[trackId][blockId][voiceId][beatId];
+    const beatObj = Song.getBeat({ trackId, blockId, voiceId, beatId });
     if (beatObj.effects == null) {
       beatObj.effects = Song.defaultMeasureEffects();
     }
@@ -606,7 +606,7 @@ class Tab {
         let distanceBetweenNumNotesAndTupletLength = 999999;
 
         for (let j = beatId, n = Song.measures[trackId][blockId][voiceId].length; j < n; j += 1) {
-          const note = Song.measures[trackId][blockId][voiceId][j];
+          const note = Song.getBeat({ trackId, blockId, voiceId, beatId: j });
           if (note.tuplet !== startTuplet) break;
           durationSum += Duration.getDurationOfNote(note, true);
           numNotes += 1;
@@ -628,7 +628,7 @@ class Tab {
       beatObj.tupletId = this.tupletIdCounter;
       this.tupletHelperCounter -= 1;
     }
-    return Duration.getDurationOfNote(Song.measures[trackId][blockId][voiceId][beatId], false);
+    return Duration.getDurationOfNote(Song.getBeat({ trackId, blockId, voiceId, beatId }), false);
   }
 
   // changes duration of given beat and adapts the complete measure to fit the new duration
@@ -806,7 +806,7 @@ class Tab {
       for (let voiceId = 0; voiceId < Song.measures[trackId][blockId].length; voiceId += 1) {
         for (let beatId = 0; beatId < Song.measures[trackId][
           blockId][voiceId].length; beatId += 1) {
-          const { notes } = Song.measures[trackId][blockId][voiceId][beatId];
+          const { notes } = Song.getBeat({ trackId, blockId, voiceId, beatId });
           if (notes != null) {
             let isRest = true;
             for (let i = 0; i < Song.tracks[trackId].numStrings; i += 1) {
@@ -815,7 +815,7 @@ class Tab {
                 break;
               }
             }
-            const beat = Song.measures[trackId][blockId][voiceId][beatId];
+            const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
             if (isRest && beat.duration.length < 2) {
               beat.duration += 'r';
             } else if (!isRest) {
@@ -861,7 +861,7 @@ class Tab {
 
   static addNoteToBlock(
     trackId: number, blockId: number, voiceId: number, newBeatId: number,
-    duration: string, isTuplet: boolean, beat: Measure, dotted: boolean, doubleDotted: boolean,
+    duration: string, isTuplet: boolean, beat: Beat, dotted: boolean, doubleDotted: boolean,
   ) {
     addNoteToBlockCommand(
       trackId, blockId, voiceId, newBeatId, duration, isTuplet, beat, dotted, doubleDotted,
@@ -958,10 +958,10 @@ class Tab {
     if (Song.measureMeta[blockId].repeatOpen) {
       padding += 20;
     }
-    if (Song.measureMeta[blockId].repeatClose) {
+    if (Song.measureMeta[blockId].repeatClose != null) {
       padding += 10;
     }
-    if (blockId === 0 || Song.measureMeta[blockId].bpmPresent) {
+    if (blockId === 0 || Song.measureMeta[blockId].bpm != null) {
       padding += 43;
       if ((`${Song.measureMeta[blockId].bpm}`).length > 2) {
         padding += 8;
@@ -990,7 +990,7 @@ class Tab {
       numOf16th += beatIn16ths;
 
       if (beat.effects != null) {
-        if ((beat.effects.strokePresent || beat.effects.tremoloBar) && beatIn16ths === 1) {
+        if ((beat.effects.stroke != null || beat.effects.tremoloBar != null) && beatIn16ths === 1) {
           minOffsetPerNote = Math.max(minOffsetPerNote, BASIC_OFFSET + 5);
         }
       }
@@ -999,7 +999,7 @@ class Tab {
         for (let string = 0, w = beat.notes.length; string < w; string += 1) {
           const note = beat.notes[string];
           if (note != null) {
-            if (note.bendPresent && beatIn16ths === 1) {
+            if (note.bendObj != null && beatIn16ths === 1) {
               minOffsetPerNote = Math.max(minOffsetPerNote, BASIC_OFFSET + 17);
             }
           }
@@ -1038,13 +1038,10 @@ class Tab {
     let maxHeight = this.applyBeatAndNoteEffects(trackId, blockId, voiceId)
       * Settings.OVERBAR_ROW_HEIGHT;
     maxHeight += Settings.OVERBAR_ROW_HEIGHT;
-    if (
-      Song.measureMeta[blockId].repeatAlternativePresent
-      && Song.measureMeta[blockId].repeatAlternative != null
-    ) {
+    if (Song.measureMeta[blockId].repeatAlternative != null) {
       maxHeight += Settings.OVERBAR_ROW_HEIGHT;
     }
-    if (Song.measureMeta[blockId].markerPresent && Song.measureMeta[blockId].marker != null) {
+    if (Song.measureMeta[blockId].marker != null) {
       maxHeight += Settings.OVERBAR_ROW_HEIGHT;
     }
     this.heightOfBlock[trackId][voiceId][blockId] = maxHeight;

@@ -17,7 +17,7 @@
       :key="`chord-${index}`"
       :chord-data="chord.data"
       :x-offset="chord.x"
-      :y-offset="-120"
+      :y-offset="chord.y"
       :num-strings="numStrings"
     />
     
@@ -44,6 +44,7 @@
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :measure-width="measureWidth"
+      :lanes="lanes"
     />
     
     <!-- Duration beams/rests -->
@@ -55,6 +56,7 @@
       :string-spacing="stringSpacing"
       :num-strings="numStrings"
       :measure-width="measureWidth"
+      :lanes="lanes"
     />
   </g>
 </template>
@@ -67,6 +69,8 @@ import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
 import type { TabBeat, TabChordData } from '../../types/tab'
 import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
+import { beatKey, LANE_HEIGHTS, MEASURE_NUMBER_STRIP, type RowLanes } from '../../utils/tabRowLanes'
+import { CHORD_DIAGRAM_NAME_HEIGHT, CHORD_DIAGRAM_WIDTH } from './chordDiagramGeometry'
 
 interface RenderedChordDiagramData {
   name: string
@@ -78,6 +82,7 @@ interface RenderedChordDiagramData {
 interface RenderedChordPlacement {
   data: RenderedChordDiagramData
   x: number
+  y: number
 }
 
 // Props
@@ -91,6 +96,7 @@ interface Props {
   numStrings: number
   contentPadding?: number
   width?: number
+  lanes?: RowLanes
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -128,7 +134,11 @@ const chordsToShow = computed<RenderedChordPlacement[]>(() => {
   props.measureData.forEach((beat, beatIndex) => {
     const chord = beat?.chord as TabChordData | null | undefined
 
-    if (beat?.chordPresent && chord) {
+    if (chord) {
+      // Diagrams sit in the row's chord lane (one line per horizontal clash), centred on the beat.
+      const lane = props.lanes?.above.chord
+      const line = props.lanes?.chordLine[beatKey(props.blockId, beatIndex)] ?? 0
+      const laneTop = lane?.top ?? -MEASURE_NUMBER_STRIP - LANE_HEIGHTS.chord
       chords.push({
         data: {
           name: chord.name || 'Unknown',
@@ -136,7 +146,8 @@ const chordsToShow = computed<RenderedChordPlacement[]>(() => {
           fingers: chord.fingers || [],
           display: chord.display !== false,
         },
-        x: getBeatXOffset(beatIndex),
+        x: getBeatXOffset(beatIndex) + getBeatWidth(beatIndex) / 2 - CHORD_DIAGRAM_WIDTH / 2,
+        y: laneTop + line * LANE_HEIGHTS.chord + CHORD_DIAGRAM_NAME_HEIGHT,
       })
     }
   })

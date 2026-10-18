@@ -1,7 +1,10 @@
 import Song, {
-  TremoloBar, Grace, Note, Bend, MeasureEffects, Chord,
+  TremoloBar, Grace, Note, Bend, BeatEffects, Chord,
 } from './songData';
-import { gProReader } from './GProReader';
+import { beatHasText } from '../../services/songMigrations';
+
+// Same table as GProReader.numToStrokeLength.
+const STROKE_LENGTHS = [0, 128, 64, 32, 16, 8, 4];
 
 const PAGE_SETUP_LINES = [
   '%TITLE%',
@@ -29,6 +32,11 @@ class GP5Writer {
     }
 
     writeSong(promptDialog: boolean) {
+      GP5Writer.writeFile(this.buildSongBytes(), promptDialog);
+    }
+
+    /** The current song as GP5 file bytes. */
+    buildSongBytes(): Uint8Array {
       this.bytePosition = 0;
       // finishedFile = new Uint8Array(100000); //TODO
       this.finishedFile.length = 0;
@@ -74,7 +82,7 @@ class GP5Writer {
       for (let i = 0, n = this.finishedFile.length; i < n; i += 1) {
         byteArray[i] = this.finishedFile[i];
       }
-      GP5Writer.writeFile(byteArray, promptDialog);
+      return byteArray;
     }
 
     skipBytesWrite(num: number) {
@@ -266,13 +274,15 @@ class GP5Writer {
       if (meta.repeatOpen) {
         flags |= 0x04; // is repeatStart present
       }
-      if (meta.repeatClose !== undefined) {
+      // These used to be set on every bar (default 0 / empty marker), so every exported
+      // bar got a repeat sign, an alternative ending and a marker.
+      if (meta.repeatClose != null) {
         flags |= 0x08; // is repeatEnd present
       }
-      if (meta.repeatAlternative !== undefined) {
+      if (meta.repeatAlternative != null) {
         flags |= 0x10; // numOfAlternativeEndings is present
       }
-      if (meta.marker !== undefined) {
+      if (meta.marker != null) {
         flags |= 0x20; // is a marker present in this measure
       }
       if (num === 1) {
@@ -284,9 +294,10 @@ class GP5Writer {
       // VierViertel-Takt
       if ((flags & 0x01) !== 0) this.writeByte(meta.numerator);
       if ((flags & 0x02) !== 0) this.writeByte(meta.denominator);
-      if ((flags & 0x08) !== 0) this.writeByte(meta.repeatClose);
-      if ((flags & 0x20) !== 0) this.writeMarker(meta.marker);
-      if ((flags & 0x10) !== 0) this.writeByte(meta.repeatAlternative);
+      // The reader subtracts one from the stored repeat count.
+      if ((flags & 0x08) !== 0) this.writeByte(meta.repeatClose! + 1);
+      if ((flags & 0x20) !== 0) this.writeMarker(meta.marker!);
+      if ((flags & 0x10) !== 0) this.writeByte(meta.repeatAlternative!);
       if ((flags & 0x40) !== 0) this.skipBytesWrite(2);
 
       // do not know what is done here
@@ -399,16 +410,16 @@ class GP5Writer {
 
     writeBeat(trackId: number, blockId: number, voiceId: number, beatId: number) {
       // console.log(trackId+" "+blockId+" "+beatId);
-      const beat = Song.measures[trackId][blockId][voiceId][beatId];
+      const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
       // write beat header
       let flags = 0;
       if (beat.dotted || beat.doubleDotted) {
         flags |= 0x01;
       }
-      if (beat.chordPresent) {
+      if (beat.chord != null) {
         flags |= 0x02;
       }
-      if (beat.textPresent) {
+      if (beatHasText(beat)) {
         flags |= 0x04;
       }
       const eff = beat.effects;
@@ -418,8 +429,8 @@ class GP5Writer {
         || eff.tap
         || eff.slap
         || eff.pop
-        || eff.tremoloBarPresent
-        || eff.strokePresent
+        || eff.tremoloBar != null
+        || eff.stroke != null
       ) {
         flags |= 0x08;
       }
@@ -448,13 +459,13 @@ class GP5Writer {
         this.writeChord(beat.chord!);
       }
       if ((flags & 0x04) !== 0) {
-        this.writeStringByteSizeOfInteger(beat.text);
+        this.writeStringByteSizeOfInteger(beat.text ?? '');
       }
       if ((flags & 0x08) !== 0) {
         this.writeBeatEffects(eff);
       }
       if ((flags & 0x10) !== 0) {
-        this.writeMixChange(Song.measureMeta[blockId].bpm);
+        this.writeMixChange(Song.measureMeta[blockId].bpm!);
       }
 
       let stringFlags = 0;
@@ -499,7 +510,9 @@ class GP5Writer {
       this.writeByte(0xff); // int tremolo
       this.writeStringByteSizeOfInteger(''); // tempo name
       this.writeInteger(bpm); // tempo value
-      gProReader.skipBytes(1);
+      // Tempo transition duration. This used to call gProReader.skipBytes(1) (advancing
+      // the *reader*), so every exported file with a tempo change was one byte short.
+      this.writeByte(0);
       this.writeByte(1);
       this.writeByte(0xff);
     }
@@ -520,15 +533,15 @@ class GP5Writer {
       }
       if (
         note.vibrato
-            || note.bendPresent
+            || note.bendObj != null
             || note.slide
             || note.pullDown
             || note.letRing
             || note.palmMute
             || note.stacatto
-            || note.trillPresent
-            || note.gracePresent
-            || note.artificialPresent
+            || note.trill != null
+            || note.graceObj != null
+            || note.artificialStyle != null
             || note.tremoloPicking
       ) {
         flags |= 0x08;
@@ -566,7 +579,8 @@ class GP5Writer {
       if ((flags & 0x20) !== 0) {
         this.writeByte(note.fret);
       }
-      gProReader.skipBytes(1);
+      // Padding byte (was gProReader.skipBytes(1), which wrote nothing).
+      this.writeByte(0);
       if ((flags & 0x08) !== 0) {
         this.writeNoteEffects(note);
       }
@@ -576,7 +590,7 @@ class GP5Writer {
       let flags1 = 0;
       let flags2 = 0;
 
-      if (effect.bendPresent) {
+      if (effect.bendObj != null) {
         flags1 |= 0x01;
       }
       if (effect.pullDown) {
@@ -585,7 +599,7 @@ class GP5Writer {
       if (effect.letRing) {
         flags1 |= 0x08;
       }
-      if (effect.gracePresent) {
+      if (effect.graceObj != null) {
         flags1 |= 0x10;
       }
       if (effect.stacatto) {
@@ -600,10 +614,10 @@ class GP5Writer {
       if (effect.slide) {
         flags2 |= 0x08;
       }
-      if (effect.artificialPresent) {
+      if (effect.artificialStyle != null) {
         flags2 |= 0x10;
       }
-      if (effect.trillPresent) {
+      if (effect.trill != null) {
         flags2 |= 0x20;
       }
       if (effect.vibrato) {
@@ -612,11 +626,11 @@ class GP5Writer {
       this.writeUnsignedByte(flags1);
       this.writeUnsignedByte(flags2);
       if ((flags1 & 0x01) !== 0) {
-        this.writeBend(effect.bendObj);
+        this.writeBend(effect.bendObj!);
       }
 
       if ((flags1 & 0x10) !== 0) {
-        this.writeGrace(effect.graceObj);
+        this.writeGrace(effect.graceObj!);
       }
 
       if ((flags2 & 0x04) !== 0) {
@@ -632,7 +646,8 @@ class GP5Writer {
       }
 
       if ((flags2 & 0x20) !== 0) {
-        this.writeTrill(effect);
+        // (This passed the note itself, writing the note's fret as the trill fret.)
+        this.writeTrill(effect.trill!);
       }
     }
 
@@ -664,20 +679,18 @@ class GP5Writer {
       this.writeUnsignedByte(grace.fret);
       this.writeUnsignedByte(0); // TODO grace.dynamic);
       this.writeUnsignedByte(0); // TODO grace.transition);
-      let duration = 0;
-      if (grace.duration === 'o') {
+      // Guitar Pro: 1 = 64th, 2 = 32nd, 3 = 16th (and longer graces).
+      let duration = 3;
+      if (grace.duration === 'z' || grace.duration === 'o') {
         duration = 1;
-      } else if (grace.duration === 'z') {
+      } else if (grace.duration === 't') {
         duration = 2;
-      } else {
-        // TODO no idea if that is correct; check it
-        duration = 3;
       }
       this.writeUnsignedByte(duration);
       this.writeUnsignedByte((grace.dead ? 0x01 : 0) | (grace.setOnBeat ? 0x02 : 0));
     }
 
-    writeBeatEffects(effect: MeasureEffects) {
+    writeBeatEffects(effect: BeatEffects) {
       let flags1 = 0;
       let flags2 = 0;
       if (effect.fadeIn) {
@@ -686,10 +699,11 @@ class GP5Writer {
       if (effect.tap || effect.slap || effect.pop) {
         flags1 |= 0x20;
       }
-      if (effect.tremoloBar) {
+      // (This used to test the always-truthy array, writing an empty tremolo bar for every beat.)
+      if (effect.tremoloBar != null) {
         flags2 |= 0x04;
       }
-      if (effect.strokePresent) {
+      if (effect.stroke != null) {
         flags1 |= 0x40;
       }
       this.writeUnsignedByte(flags1);
@@ -705,12 +719,15 @@ class GP5Writer {
         }
       }
       if ((flags2 & 0x04) !== 0) {
-        this.writeTremoloBar(effect.tremoloBar);
+        this.writeTremoloBar(effect.tremoloBar!);
       }
 
       if ((flags1 & 0x40) !== 0) {
-        this.writeUnsignedByte(effect.stroke.strokeType === 'up' ? effect.stroke.strokeLength : 0);
-        this.writeUnsignedByte(effect.stroke.strokeType === 'down' ? effect.stroke.strokeLength : 0);
+        // GP stores the stroke speed as an index (1 = 128th ... 6 = quarter), not as a note value.
+        const { strokeType, strokeLength } = effect.stroke!;
+        const speed = Math.max(0, STROKE_LENGTHS.indexOf(strokeLength));
+        this.writeUnsignedByte(strokeType === 'up' ? speed : 0);
+        this.writeUnsignedByte(strokeType === 'down' ? speed : 0);
       }
     }
 

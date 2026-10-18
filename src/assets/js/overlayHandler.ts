@@ -1,5 +1,5 @@
 import Settings from './settingManager';
-import Song, { Measure, Note, Interval } from './songData';
+import Song, { Beat, Note, Interval } from './songData';
 import { revertHandler } from './revertHandler';
 import Duration from './duration';
 import Helper from './helper';
@@ -19,7 +19,7 @@ class OverlayHandler {
   endPosOverlay: { trackId: number, blockId: number, voiceId: number,
     beatId: number, abstractTimePos: number } | null;
 
-  copyObject: { array: Measure[]};
+  copyObject: { array: Beat[]};
 
   isOverlaySet: boolean;
 
@@ -72,7 +72,7 @@ class OverlayHandler {
   setStartOverlay(trackId: number, blockId: number, voiceId: number, beatId: number) {
     let timeNeeded = 0;
     for (let i = 0; i < beatId; i += 1) {
-      timeNeeded += Duration.getDurationOfNote(Song.measures[trackId][blockId][voiceId][i], false);
+      timeNeeded += Duration.getDurationOfNote(Song.getBeat({ trackId, blockId, voiceId, beatId: i }), false);
     }
     this.startPosOverlay = {
       trackId,
@@ -88,7 +88,7 @@ class OverlayHandler {
     // compute ratio of beat in block
     let timeNeeded = 0;
     for (let i = 0; i <= beatId; i += 1) {
-      timeNeeded += Duration.getDurationOfNote(Song.measures[trackId][blockId][voiceId][i], false);
+      timeNeeded += Duration.getDurationOfNote(Song.getBeat({ trackId, blockId, voiceId, beatId: i }), false);
     }
     this.endPosOverlay = {
       trackId,
@@ -110,7 +110,7 @@ class OverlayHandler {
       this.startPosOverlay,
       this.endPosOverlay,
       (trackId, blockId, voiceId, beatId) => Duration.getDurationOfNote(
-        Song.measures[trackId][blockId][voiceId][beatId],
+        Song.getBeat({ trackId, blockId, voiceId, beatId }),
         false,
       ),
       wholeRestDuration,
@@ -187,7 +187,7 @@ class OverlayHandler {
           : this.endPosOverlay.beatId;
         for (let j = startIndex; j <= endIndex; j += 1) {
           copyArray.push(
-            Song.measures[this.endPosOverlay.trackId][i][this.endPosOverlay.voiceId][j],
+            Song.getBeat({ trackId: this.endPosOverlay.trackId, blockId: i, voiceId: this.endPosOverlay.voiceId, beatId: j }),
           );
         }
       }
@@ -195,7 +195,7 @@ class OverlayHandler {
     }
   }
 
-  static createFreshMeasure(measureIn: Measure) {
+  static createFreshMeasure(measureIn: Beat) {
     return JSON.parse(JSON.stringify(measureIn));
   }
 
@@ -225,7 +225,7 @@ class OverlayHandler {
     return true;
   }
 
-  private computeNoteDurationToReach(copyArray: Measure[]): number {
+  private computeNoteDurationToReach(copyArray: Beat[]): number {
     let noteDurationToReach = 0;
     for (let i = 0, n = copyArray.length; i < n; i += 1) {
       noteDurationToReach += Duration.getDurationOfNote(copyArray[i], false);
@@ -247,7 +247,7 @@ class OverlayHandler {
     let duration = noteDurationToReach;
 
     while (duration > 0) {
-      const ms = Song.measures[trackId][currentBlockId][voiceId][currentBeatId];
+      const ms = Song.getBeat({ trackId, blockId: currentBlockId, voiceId, beatId: currentBeatId });
       duration -= Duration.getDurationOfNote(ms, false);
       
       if (duration <= Settings.EPSILON) {
@@ -280,8 +280,8 @@ class OverlayHandler {
     return { valid: true, currentBlockId, currentBeatId };
   }
 
-  private saveBlocksBefore(startBlockId: number, endBlockId: number, trackId: number): {blockId: number, block: Measure[][]}[] {
-    const blocksBefore: {blockId: number, block: Measure[][]}[] = [];
+  private saveBlocksBefore(startBlockId: number, endBlockId: number, trackId: number): {blockId: number, block: Beat[][]}[] {
+    const blocksBefore: {blockId: number, block: Beat[][]}[] = [];
     for (let i = startBlockId; i <= endBlockId; i += 1) {
       blocksBefore.push({
         blockId: i,
@@ -299,9 +299,9 @@ class OverlayHandler {
     endBeatId: number,
     trackId: number,
     voiceId: number,
-    copyArray: Measure[],
+    copyArray: Beat[],
     copyArrayIndex: { value: number },
-    noteElemToMoveToTheNextBlock: { elem: Measure | null, duration: number }
+    noteElemToMoveToTheNextBlock: { elem: Beat | null, duration: number }
   ): void {
     const startIndex = (blockId !== startBlockId) ? 0 : startBeatId;
     const endIndex = (blockId !== endBlockId)
@@ -312,7 +312,7 @@ class OverlayHandler {
     let availableSpaceInBlock = 0;
     for (let beatId = startIndex; beatId <= endIndex; beatId += 1) {
       availableSpaceInBlock += Duration.getDurationOfNote(
-        Song.measures[trackId][blockId][voiceId][beatId], false,
+        Song.getBeat({ trackId, blockId, voiceId, beatId }), false,
       );
     }
 
@@ -355,7 +355,7 @@ class OverlayHandler {
     blockId: number,
     voiceId: number,
     startBeatId: number,
-    noteElem: Measure,
+    noteElem: Beat,
     noteDuration: number
   ): number {
     const foundSize = OverlayHandler.giveMinNumberOfNotesForDuration(noteDuration);
@@ -388,9 +388,9 @@ class OverlayHandler {
     voiceId: number,
     startBeatId: number,
     availableSpace: number,
-    copyArray: Measure[],
+    copyArray: Beat[],
     copyArrayIndex: { value: number },
-    noteElemToMoveToTheNextBlock: { elem: Measure | null, duration: number }
+    noteElemToMoveToTheNextBlock: { elem: Beat | null, duration: number }
   ): void {
     let beatId = startBeatId;
     let availableSpaceInBlock = availableSpace;
@@ -490,7 +490,7 @@ class OverlayHandler {
 
     // Process each block
     const copyArrayIndex = { value: 0 };
-    const noteElemToMoveToTheNextBlock = { elem: null as Measure | null, duration: 0 };
+    const noteElemToMoveToTheNextBlock = { elem: null as Beat | null, duration: 0 };
 
     for (let i = startBlockId; i <= endBlockId; i += 1) {
       this.processBlock(
@@ -526,7 +526,7 @@ class OverlayHandler {
       string: number, note: Note}[],
     blocks: number[],
     beats: {trackId: number, blockId: number, voiceId: number, beatId: number,
-      beat: Measure}[]
+      beat: Beat}[]
   } | null {
     const notesToExecuteOn: {trackId: number, blockId: number, voiceId: number,
       beatId: number, string: number, note: Note}[] = [];
@@ -557,10 +557,8 @@ class OverlayHandler {
       const beatId = tab.markedNoteObj.beatId;
       const stringNum = tab.markedNoteObj.string;
       
-      if (Song.measures[trackId][blockId][voiceId][beatId] && 
-          Song.measures[trackId][blockId][voiceId][beatId].notes &&
-          Song.measures[trackId][blockId][voiceId][beatId].notes[stringNum]) {
-        const note = Song.measures[trackId][blockId][voiceId][beatId].notes[stringNum];
+      const note = Song.findBeat({ trackId, blockId, voiceId, beatId })?.notes?.[stringNum];
+      if (note) {
         if (note != null) {
           notesToExecuteOn.push({
             trackId,
@@ -579,7 +577,7 @@ class OverlayHandler {
         blockId: tab.markedNoteObj.blockId,
         voiceId,
         beatId: tab.markedNoteObj.beatId,
-        beat: Song.measures[trackId][tab.markedNoteObj.blockId][voiceId][tab.markedNoteObj.beatId],
+        beat: Song.getBeat({ trackId, blockId: tab.markedNoteObj.blockId, voiceId, beatId: tab.markedNoteObj.beatId }),
       });
     } else {
       // Handle interval case
@@ -596,13 +594,12 @@ class OverlayHandler {
           
         for (let beatId = startIndex; beatId <= endIndex; beatId += 1) {
           // Safety check for each beat
-          if (!Song.measures[trackId][blockId][voiceId][beatId] ||
-              !Song.measures[trackId][blockId][voiceId][beatId].notes) {
+          if (!Song.findBeat({ trackId, blockId, voiceId, beatId })?.notes) {
             continue;
           }
           
           let noteExists = false;
-          const beatNotes = Song.measures[trackId][blockId][voiceId][beatId].notes;
+          const beatNotes = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes;
           
           for (let string = 0, n = beatNotes.length; string < n; string += 1) {
             if (beatNotes[string] != null) {
@@ -624,7 +621,7 @@ class OverlayHandler {
               blockId,
               voiceId,
               beatId,
-              beat: Song.measures[trackId][blockId][voiceId][beatId],
+              beat: Song.getBeat({ trackId, blockId, voiceId, beatId }),
             });
           }
         }

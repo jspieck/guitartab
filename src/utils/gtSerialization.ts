@@ -2,7 +2,8 @@ import LZString from 'lz-string'
 import Song from '../assets/js/songData'
 import { audioEngine } from '../assets/js/audioEngine'
 
-export function serializeSongToGtBytes(): Uint8Array {
+/** The .gt document as text (before compression); equal text means equal song content. */
+export function serializeSongContent(): string {
   const limiter = '%%%'
   let content = ''
   content += JSON.stringify(Song.songDescription)
@@ -15,7 +16,16 @@ export function serializeSongToGtBytes(): Uint8Array {
   content += limiter
   content += JSON.stringify(Song.playBackInstrument)
   content += limiter
-  content += JSON.stringify(audioEngine.noteToDrum)
+  // Entries, not the Map itself: JSON.stringify(new Map()) is "{}".
+  content += JSON.stringify(Array.from(audioEngine.noteToDrum.entries()))
 
+  return content
+}
+
+export function compressGtContent(content: string): Uint8Array {
   return new Uint8Array(LZString.compressToUint8Array(content))
+}
+
+export function serializeSongToGtBytes(): Uint8Array {
+  return compressGtContent(serializeSongContent())
 }

@@ -5,7 +5,7 @@
       v-for="(note, stringIndex) in notesToRender"
       :key="`note-${beatIndex}-${stringIndex}-${note.fret}-${beatDataHash}`"
       :x="noteX"
-      :y="note.string * stringSpacing + 6"
+      :y="stringLine(note.string, numStrings) * stringSpacing + 6"
       font-family="Source Sans Pro"
       :font-size="getFontSize(note)"
       text-anchor="middle"
@@ -15,24 +15,12 @@
       {{ getNoteDisplay(note) }}
     </text>
     
-    <!-- Grace notes -->
-    <text
-      v-for="(note, stringIndex) in graceNotes"
-      :key="`grace-${beatIndex}-${stringIndex}-${beatDataHash}`"
-      :x="noteX - 12"
-      :y="note.string * stringSpacing + 6"
-      font-family="Source Sans Pro"
-      font-size="11px"
-      text-anchor="middle"
-      class="grace-note"
-    >
-      {{ note.graceObj.fret }}
-    </text>
   </g>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { stringLine } from '../../utils/tabStrings'
 import type { TabBeat, TabNoteData } from '../../types/tab'
 
 type RenderableTabNote = TabNoteData & {
@@ -83,9 +71,7 @@ const notesToRender = computed<RenderableTabNote[]>(() => {
   })
 })
 
-const graceNotes = computed<RenderableTabNote[]>(() =>
-  notesToRender.value.filter((note) => note.gracePresent && Boolean(note.graceObj))
-)
+// Grace notes are drawn by TabEffects (fret + slur), not here.
 
 function getNoteDisplay(note: RenderableTabNote | null | undefined): string {
   if (!note) return ''
@@ -113,7 +99,7 @@ function getNoteClasses(note: RenderableTabNote): string {
   if (note.palmMute) classes.push('palm-mute')
   if (note.slide) classes.push('slide')
   if (note.vibrato) classes.push('vibrato')
-  if (note.bendPresent) classes.push('bend')
+  if (note.bendObj != null) classes.push('bend')
   return classes.join(' ')
 }
 </script>
@@ -139,9 +125,4 @@ function getNoteClasses(note: RenderableTabNote): string {
   font-weight: bold;
 }
 
-.grace-note {
-  font-size: 11px;
-  opacity: 0.8;
-  fill: var(--tab-secondary);
-}
 </style> 

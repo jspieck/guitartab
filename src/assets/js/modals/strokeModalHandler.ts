@@ -1,5 +1,5 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
-import { Measure, Stroke } from '../songData';
+import { Beat, Stroke } from '../songData';
 import fastdom from 'fastdom';
 import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
@@ -13,10 +13,9 @@ interface StrokeModalState extends ModalState {
         blockId: number;
         voiceId: number;
         beatId: number;
-        beat: Measure;
+        beat: Beat;
     }[];
     blocks: number[];
-    strokePresentBefore: { [beatStr: string]: boolean };
 }
 
 interface StrokeModalParams {
@@ -34,7 +33,7 @@ interface StrokeModalParams {
         blockId: number;
         voiceId: number;
         beatId: number;
-        beat: Measure;
+        beat: Beat;
     }[];
 }
 
@@ -47,15 +46,13 @@ export class StrokeModalHandler extends BaseModalHandler {
             ...this.modalState,
             strokeData: { strokeLength: 8, strokeType: 'down' },
             beats: [],
-            blocks: [],
-            strokePresentBefore: {}
+            blocks: []
         } as StrokeModalState;
     }
 
     openModal(params: StrokeModalParams) {
         this.modalState.beats = params.beats;
         this.modalState.blocks = params.blocks;
-        this.setStrokePresentState();
         this.setInitialStrokeState(params.beats[0].beat);
         this.showModal();
     }
@@ -65,15 +62,7 @@ export class StrokeModalHandler extends BaseModalHandler {
         this.setupEventListeners();
     }
 
-    private setStrokePresentState() {
-        this.modalState.strokePresentBefore = {};
-        for (const be of this.modalState.beats) {
-            const beatStr = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
-            this.modalState.strokePresentBefore[beatStr] = be.beat.effects.strokePresent;
-        }
-    }
-
-    private setInitialStrokeState(beat: Measure) {
+    private setInitialStrokeState(beat: Beat) {
         this.modalState.strokeData = {
             strokeLength: beat.effects.stroke?.strokeLength ?? 8,
             strokeType: beat.effects.stroke?.strokeType ?? 'up'
@@ -106,7 +95,6 @@ export class StrokeModalHandler extends BaseModalHandler {
         fastdom.mutate(() => {
             for (const be of this.modalState.beats) {
                 const { beat } = be;
-                const beatStr = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
                 const strokeBefore = beat.effects.stroke;
                 
                 beat.effects.stroke = {
@@ -114,8 +102,7 @@ export class StrokeModalHandler extends BaseModalHandler {
                     strokeLength: this.modalState.strokeData.strokeLength,
                 };
 
-                if (!beat.effects.strokePresent) {
-                    beat.effects.strokePresent = true;
+                if (strokeBefore == null) {
                     typedEventBus.emit("menu.activateEffectsForBeat", beat);
                 }
 
@@ -126,8 +113,6 @@ export class StrokeModalHandler extends BaseModalHandler {
                     be.beatId,
                     strokeBefore,
                     beat.effects.stroke,
-                    this.modalState.strokePresentBefore[beatStr],
-                    beat.effects.strokePresent
                 );
             }
 

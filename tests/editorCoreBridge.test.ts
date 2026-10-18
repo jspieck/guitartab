@@ -253,7 +253,10 @@ describe('editorCore bridge', () => {
     expect(tab.blockToRow[0][0][1]).toEqual({ rowId: 1, numInRow: 0 })
     expect(tab.blocksPerRow[0][0][0]).toEqual({ start: 0, end: 1 })
     expect(tab.measureOffset[0][1][0]).toBe(52.5)
-    expect(reactiveLayout?.rowLayouts[1]?.yOffset).toBe(170)
+    // Rows stack by their real content height: row 1 starts below row 0's bottom.
+    expect(reactiveLayout?.rowLayouts[1]?.yOffset).toBe(rows[1].yOffset)
+    expect(rows[1].top).toBeGreaterThanOrEqual(rows[0].top! + rows[0].height!)
+    expect(rows[1].yOffset).toBe(rows[1].top! + rows[1].lanes!.overBarHeight)
   })
 
   it('routes playback marker ownership through the render bridge', () => {

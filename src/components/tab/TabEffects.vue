@@ -130,18 +130,71 @@
       </text>
     </g>
 
-    <!-- Let Ring indicator -->
-    <g v-if="hasLetRing" class="let-ring">
-      <g v-for="(lr, index) in letRings" :key="`let-ring-${index}`">
+    <!-- P.M. / let ring runs: label at the first beat, dashed line to the last -->
+    <g v-if="runs.length > 0" class="effect-runs">
+      <g v-for="(run, index) in runs" :key="`run-${index}`" :class="`effect-run-${run.kind}`">
+        <text
+          :x="run.x"
+          :y="run.y"
+          font-family="Source Sans Pro"
+          :font-size="run.kind === 'letRing' ? '10px' : '11px'"
+          class="effect-text"
+          :class="{ 'effect-text-let-ring': run.kind === 'letRing' }"
+        >
+          {{ run.label }}
+        </text>
         <line
-          :x1="lr.x + 35"
-          :y1="lr.y - 3"
-          :x2="lr.lineEndX"
-          :y2="lr.y - 3"
+          v-if="run.lineEndX > run.lineStartX + 4"
+          :x1="run.lineStartX"
+          :y1="run.lineY"
+          :x2="run.lineEndX"
+          :y2="run.lineY"
           stroke-width="1"
           stroke-dasharray="3,2"
-          class="let-ring-line"
+          class="effect-line let-ring-line"
         />
+      </g>
+    </g>
+
+    <!-- Beat text annotations -->
+    <g v-if="beatTexts.length > 0" class="beat-texts">
+      <text
+        v-for="(annotation, index) in beatTexts"
+        :key="`beat-text-${index}`"
+        :x="annotation.x"
+        :y="annotation.y"
+        font-family="Source Sans Pro"
+        font-size="12px"
+        font-style="italic"
+        class="beat-text"
+      >
+        {{ annotation.text }}
+      </text>
+    </g>
+
+    <!-- Dynamics (below the rhythm) -->
+    <g v-if="dynamics.length > 0" class="dynamics">
+      <text
+        v-for="(annotation, index) in dynamics"
+        :key="`dynamic-${index}`"
+        :x="annotation.x"
+        :y="annotation.y"
+        font-family="Times New Roman, serif"
+        font-size="15px"
+        font-style="italic"
+        font-weight="bold"
+        text-anchor="middle"
+        class="dynamic-text"
+      >
+        {{ annotation.text }}
+      </text>
+    </g>
+
+    <!-- Brush strokes -->
+    <g v-if="strokes.length > 0" class="strokes">
+      <g v-for="(stroke, index) in strokes" :key="`stroke-${index}`" class="stroke-mark">
+        <path :d="stroke.path" stroke-width="1" fill="none" class="stroke-path" />
+        <path :d="stroke.arrowPath" stroke-width="1" fill="none" class="stroke-path" />
       </g>
     </g>
 
@@ -183,6 +236,7 @@
 import { computed } from 'vue'
 import type { TabBeat } from '../../types/tab'
 import { buildTabEffects } from '../../utils/tabEffects'
+import type { RowLanes } from '../../utils/tabRowLanes'
 
 // Props
 interface Props {
@@ -193,6 +247,7 @@ interface Props {
   stringSpacing: number
   numStrings: number
   measureWidth: number
+  lanes?: RowLanes
 }
 
 const props = defineProps<Props>()
@@ -203,6 +258,7 @@ const effectCollections = computed(() => buildTabEffects({
   blockId: props.blockId,
   stringSpacing: props.stringSpacing,
   numStrings: props.numStrings,
+  lanes: props.lanes,
 }))
 
 const slides = computed(() => effectCollections.value.slides)
@@ -213,7 +269,10 @@ const vibratos = computed(() => effectCollections.value.vibratos)
 const trills = computed(() => effectCollections.value.trills)
 const tremoloBars = computed(() => effectCollections.value.tremoloBars)
 const textEffects = computed(() => effectCollections.value.textEffects)
-const letRings = computed(() => effectCollections.value.letRings)
+const runs = computed(() => effectCollections.value.runs)
+const beatTexts = computed(() => effectCollections.value.beatTexts)
+const dynamics = computed(() => effectCollections.value.dynamics)
+const strokes = computed(() => effectCollections.value.strokes)
 const tremoloPickings = computed(() => effectCollections.value.tremoloPickings)
 const graceNotes = computed(() => effectCollections.value.graceNotes)
 
@@ -225,7 +284,6 @@ const hasVibrato = computed(() => vibratos.value.length > 0)
 const hasTrill = computed(() => trills.value.length > 0)
 const hasTremoloBar = computed(() => tremoloBars.value.length > 0)
 const hasTextEffects = computed(() => textEffects.value.length > 0)
-const hasLetRing = computed(() => letRings.value.length > 0)
 const hasTremoloPicking = computed(() => tremoloPickings.value.length > 0)
 const hasGraceNotes = computed(() => graceNotes.value.length > 0)
 </script>
@@ -308,5 +366,19 @@ const hasGraceNotes = computed(() => graceNotes.value.length > 0)
 
 .grace-slur {
   stroke: var(--tab-secondary);
+}
+
+.beat-text {
+  fill: var(--tab-primary);
+  user-select: none;
+}
+
+.dynamic-text {
+  fill: var(--tab-primary);
+  user-select: none;
+}
+
+.stroke-path {
+  stroke: var(--tab-primary);
 }
 </style> 

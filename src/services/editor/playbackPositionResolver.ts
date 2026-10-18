@@ -66,7 +66,7 @@ export function resolveNextPlaybackXPos(
   if (shouldJumpPlaybackWithinRow(transition)) {
     nextXPos = renderBridge.getPositionInRow(trackId, voiceId, current.blockId, current.beatId)
     nextXPos += tab.measureOffset[trackId][current.blockId][voiceId]
-      * Duration.getDurationWidth(Song.measures[trackId][current.blockId][voiceId][current.beatId])
+      * Duration.getDurationWidth(Song.getBeat({ trackId, blockId: current.blockId, voiceId, beatId: current.beatId }))
     return { nextXPos, jumpToNewPos: true }
   }
 

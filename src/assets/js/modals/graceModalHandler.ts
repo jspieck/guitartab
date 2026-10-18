@@ -1,5 +1,5 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
-import { Note, Measure } from '../songData';
+import { Note, Beat } from '../songData';
 import { revertHandler } from '../revertHandler';
 import { classicalNotation } from '../../../services/editor/classicalNotationAdapter';
 import { typedEventBus } from '../../../utils/typedEventBus';
@@ -26,7 +26,6 @@ interface GraceModalState extends ModalState {
         note: Note;
     }[];
     blocks: number[];
-    gracePresentBefore: { [noteStr: string]: boolean };
 }
 
 export class GraceModalHandler extends BaseModalHandler {
@@ -45,8 +44,7 @@ export class GraceModalHandler extends BaseModalHandler {
                 dead: false
             },
             notes: [],
-            blocks: [],
-            gracePresentBefore: {}
+            blocks: []
         } as GraceModalState;
     }
 
@@ -82,22 +80,13 @@ export class GraceModalHandler extends BaseModalHandler {
             blockId: number;
             voiceId: number;
             beatId: number;
-            beat: Measure;
+            beat: Beat;
         }[];
     }) {
         this.modalState.notes = params.notes;
         this.modalState.blocks = params.blocks;
-        this.setGracePresentState();
         this.setInitialGraceState(params.notes[0].note);
         this.showModal();
-    }
-
-    private setGracePresentState() {
-        this.modalState.gracePresentBefore = {};
-        for (const no of this.modalState.notes) {
-            const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-            this.modalState.gracePresentBefore[noteStr] = no.note.gracePresent;
-        }
     }
 
     private setInitialGraceState(note: Note) {
@@ -120,12 +109,10 @@ export class GraceModalHandler extends BaseModalHandler {
 
             noteInArr.graceObj = { ...this.modalState.graceData };
 
-            if (!noteInArr.gracePresent) {
-                noteInArr.gracePresent = true;
+            if (graceObjBefore == null) {
                 typedEventBus.emit("menu.activateEffectsForNote", noteInArr);
             }
 
-            const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
             revertHandler.addGrace(
                 no.trackId,
                 no.blockId,
@@ -134,8 +121,6 @@ export class GraceModalHandler extends BaseModalHandler {
                 no.string,
                 graceObjBefore,
                 noteInArr.graceObj,
-                this.modalState.gracePresentBefore[noteStr],
-                noteInArr.gracePresent
             );
         }
 

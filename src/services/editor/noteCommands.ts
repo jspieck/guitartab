@@ -1,4 +1,4 @@
-import Song, { type Measure } from '../../assets/js/songData'
+import Song, { type Beat } from '../../assets/js/songData'
 import Settings from '../../assets/js/settingManager'
 import { revertHandler } from '../../assets/js/revertHandler'
 import { sequencerHandler } from '../../assets/js/sequencerHandler'
@@ -11,7 +11,7 @@ export function addNoteToBlock(
   newBeatId: number,
   duration: string,
   isTuplet: boolean,
-  beat: Measure,
+  beat: Beat,
   dotted: boolean,
   doubleDotted: boolean,
 ): void {
@@ -51,7 +51,7 @@ export function deleteNote(
   string: number,
   calledDuringRestore: boolean,
 ): void {
-  const beatObj = Song.measures[trackId][blockId][voiceId][beatId]
+  const beatObj = Song.findBeat({ trackId, blockId, voiceId, beatId })
   if (beatObj == null || beatObj.notes.length === 0) {
     return
   }
@@ -77,7 +77,7 @@ export function deleteNote(
   }
 
   if (currentBlockId < Song.measures[trackId].length) {
-    const note = Song.measures[trackId][currentBlockId][voiceId][currentBeatId].notes[string]
+    const note = Song.getBeat({ trackId, blockId: currentBlockId, voiceId, beatId: currentBeatId }).notes[string]
     if (note != null && note.tied) {
       deleteNote(trackId, currentBlockId, voiceId, currentBeatId, string, false)
     }

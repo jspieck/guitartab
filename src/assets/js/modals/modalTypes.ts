@@ -102,7 +102,7 @@ export class InstrumentSettingsModal implements ModalDefinition {
 
 export class MixerModal implements ModalDefinition {
     readonly id = 'mixerModal';
-    readonly name = 'Mixer';
+    readonly name = 'Drum Mixer';
     readonly handlerClass = MixerModalHandler;
 }
 

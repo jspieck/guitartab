@@ -2,7 +2,7 @@ import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
 import { typedEventBus } from '../../utils/typedEventBus';
 import playBackLogic from '../../assets/js/playBackLogicNew'
 import Song, {
-  type Measure as SongBeat,
+  type Beat as SongBeat,
   type MeasureMetaInfo,
   type Note as SongNote,
   type PlayBackInstrument,
@@ -41,7 +41,8 @@ export interface SongSnapshot {
 interface ModernLayoutOptions {
   availableWidth: number
   headerHeight: number
-  rowHeight: number
+  /** @deprecated Rows are sized from their content. Ignored. */
+  rowHeight?: number
   paddingTop: number
   tabInformationHeight: number
 }

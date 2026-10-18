@@ -6,13 +6,16 @@
  * 1. **Load** VexFlow module (lazy `import`)
  * 2. **Flip** `Settings.vexFlowIsActive = true` (via notation.toggle)
  * 3. **Compute** `computeVexFlowDataStructures` so per-beat notation exists
- * 4. **Publish** beat widths via `syncLayoutMetrics` → `classicalNotationLayoutState`
- * 5. **Bump** `classicalNotationLayoutState.version` so Vue layout re-reads widths
+ * 4. **Publish** beat widths + staff extents via `syncLayoutMetrics` →
+ *    `classicalNotationLayoutState` (computed from notation data, never from drawn output)
+ * 5. **Bump** `classicalNotationLayoutState.version` and set `active` so Vue layout
+ *    re-reads widths and row heights
  * 6. **Invalidate** Vue tab rows (`song-data-changed` / `render.all`)
- * 7. **Draw** only into registered `#vexFlowRow` surfaces after DOM mounts
+ * 7. **Draw** each mounted `ClassicalRowSurface` (one per visible tab row)
  *
  * Layout (`measureLayoutEngine` → `Tab.computeWidthOfBlock`) reads classical beat
- * widths in step 6. Drawing before step 4/6 causes one-row / clipped layouts.
+ * widths in step 6, and `useGuitarTabLayout` sizes rows from the staff extents.
+ * Drawing never publishes metrics, so draw → layout → draw cannot loop.
  *
  * ## Deactivation
  *
@@ -28,6 +31,7 @@ import Settings from '../../assets/js/settingManager'
 import {
   clearClassicalLayoutMetrics,
   classicalNotationLayoutState,
+  setClassicalNotationActive,
 } from '../../stores/classicalNotationLayoutState'
 
 export interface ClassicalNotationEngine {
@@ -82,6 +86,7 @@ export function activateClassicalNotation(
 
   if (!Settings.vexFlowIsActive) {
     // Toggle turned classical off (or was blocked during track creation).
+    setClassicalNotationActive(false)
     if (wasActive) {
       clearClassicalLayoutMetrics()
       lastPhase = 'deactivated'
@@ -90,6 +95,7 @@ export function activateClassicalNotation(
   }
 
   prepareClassicalLayoutMetrics(engine, trackId, voiceId, { bumpVersion: true })
+  setClassicalNotationActive(true)
   lastPhase = 'active'
 }
 
@@ -101,12 +107,14 @@ export function deactivateClassicalNotation(
   engine: ClassicalNotationEngine,
 ): void {
   if (!Settings.vexFlowIsActive) {
+    setClassicalNotationActive(false)
     clearClassicalLayoutMetrics()
     lastPhase = 'deactivated'
     return
   }
 
   engine.toggleClassicalVisibility()
+  setClassicalNotationActive(false)
   clearClassicalLayoutMetrics()
   lastPhase = 'deactivated'
 }
@@ -118,10 +126,12 @@ export function ensureClassicalPreparedWhenActive(
   voiceId: number,
 ): void {
   if (!Settings.vexFlowIsActive) {
+    setClassicalNotationActive(false)
     lastPhase = 'idle'
     return
   }
 
   prepareClassicalLayoutMetrics(engine, trackId, voiceId, { bumpVersion: true })
+  setClassicalNotationActive(true)
   lastPhase = 'active'
 }

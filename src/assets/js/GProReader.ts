@@ -1,7 +1,6 @@
 import LZString from 'lz-string';
 import Duration from './duration';
 import Song from './songData';
-import { gpxReader } from './GPXReader';
 import { audioEngine } from './audioEngine';
 import { sequencerHandler } from './sequencerHandler';
 import AppManager from './appManager';
@@ -15,9 +14,20 @@ import { revertHandler } from './revertHandler';
 import { markSongSaved } from '../../services/songAutosave';
 import { setLoadingWheelVisible } from '../../utils/editorUi';
 import { showUserError } from '../../services/userNotifications';
+import { migrateMeasureMeta, migrateSongMeasures } from '../../services/songMigrations';
+import {
+  IMPORT_LIMITS, ImportError, importFormatOf, type ImportFormat,
+} from '../../services/importErrors';
+import { serializeSongContent } from '../../utils/gtSerialization';
+import { applyImportedSong, buildSongFromMidi } from '../../services/midiImport';
+import { extractGpifXml } from '../../services/gpContainers';
+import { applyGpifSong, parseGpif, type GpifSong } from '../../services/gpifImport';
 
 class GProReader {
   readerBuffer: Uint8Array | null;
+
+  /** Format being read, for error messages. */
+  currentFormat: string = 'gp5';
 
   bytePosition: number;
 
@@ -40,169 +50,188 @@ class GProReader {
 
   readGt() {
     if (this.readerBuffer == null) {
-      return;
+      throw new ImportError('No file data to read.', 'gt');
     }
-    const str = LZString.decompressFromUint8Array(this.readerBuffer);
-    // console.log(str);
-    if (str != null) {
+    let str: string | null = null;
+    try {
+      str = LZString.decompressFromUint8Array(this.readerBuffer);
+    } catch {
+      str = null;
+    }
+    if (str == null || str.split('%%%').length < 6) {
+      throw new ImportError('This is not a valid .gt file.', 'gt');
+    }
+    this.applyGtContent(str, { fromFile: true });
+  }
+
+  /** Loads .gt document text. `fromFile: false` (restoring) keeps undo history and the dirty state. */
+  applyGtContent(str: string, { fromFile }: { fromFile: boolean }) {
+    {
       const arr = str.split('%%%');
       Song.songDescription = JSON.parse(arr[0]);
-      Song.measures = JSON.parse(arr[1]);
-      Song.measureMeta = JSON.parse(arr[2]);
+      const measures = JSON.parse(arr[1]);
+      migrateSongMeasures(measures);
+      Song.measures = measures;
+      const measureMeta = JSON.parse(arr[2]);
+      migrateMeasureMeta(measureMeta);
+      Song.measureMeta = measureMeta;
       Song.numMeasures = Song.measureMeta.length;
       Song.tracks = JSON.parse(arr[3]);
       GProReader.writeNoteInfoToBeat();
       AppManager.createGuitarTab(0);
       Song.playBackInstrument = JSON.parse(arr[4]);
       sequencerHandler.drawBeat();
-      audioEngine.noteToDrum = JSON.parse(arr[5]);
-      revertHandler.clearHistory();
-      markSongSaved();
+      GProReader.applyDrumMap(JSON.parse(arr[5]));
+      if (fromFile) {
+        revertHandler.clearHistory();
+        markSongSaved();
+      }
       // menuHandler.applyStyleMode();
     }
   }
 
   loadGtFromBytes(bytes: Uint8Array) {
-    this.bytePosition = 0;
-    this.readerBuffer = bytes;
-    this.readGt();
+    this.importSongBytes('song.gt', bytes);
   }
 
   /**
-   * Handle files from a FileList (e.g., from drag-drop or file input)
-   * Supports: gp3, gp4, gp5, gpx, mid, gt formats
+   * Imports the first file of a FileList (drag-drop or file input).
+   * Supports gp3, gp4, gp5, gpx, gp (Guitar Pro 7/8), mid and gt.
    */
   handleFiles(files: FileList) {
-    if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
-      showUserError('File APIs are not supported in this browser.');
-      return;
-    }
     if (files == null || files.length === 0) {
       showUserError('No file selected.');
       return;
     }
-    const f = files[0];
-    const ending = f.name.substring(f.name.lastIndexOf('.') + 1).toLowerCase();
-    
-    const supportedFormats = ['gp3', 'gp4', 'gp5', 'gpx', 'mid', 'gt'];
-    if (!supportedFormats.includes(ending)) {
-      showUserError(
-        `Unsupported format .${ending}. Use .gp3, .gp4, .gp5, .gpx, .mid, or .gt.`,
-      );
+    const file = files[0];
+    if (importFormatOf(file.name) == null) {
+      showUserError(`Unsupported file type. Open a Guitar Pro (.gp, .gpx, .gp5, .gp4, .gp3), .mid or .gt file.`);
       return;
     }
-    
-    // Show loading indicator
     setLoadingWheelVisible(true);
-    
-    // reset values
-    this.bytePosition = 0;
     const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
+    reader.onload = () => {
       try {
-        if (e.target == null) {
-          throw new Error('Empty file read result');
-        }
-        const bufferToConvert = e.target.result as ArrayBuffer;
-        if (bufferToConvert == null) {
-          throw new Error('File buffer was empty');
-        }
-        this.readerBuffer = new Uint8Array(bufferToConvert);
-
-        if (ending === 'gp5') {
-          Gp5Reader.read();
-        } else if (ending === 'gp4') {
-          Gp4Reader.read();
-        } else if (ending === 'gp3') {
-          Gp3Reader.read();
-        } else if (ending === 'mid') {
-          midiReader.decodeSMF(bufferToConvert);
-        } else if (ending === 'gpx') {
-          gpxReader.read(this.readerBuffer);
-        } else if (ending === 'gt') {
-          this.readGt();
-          setLoadingWheelVisible(false);
-          return;
-        }
-
-        AppManager.resetVariables();
-        GProReader.writeNoteInfoToBeat();
-        AppManager.createGuitarTab(0);
-        revertHandler.clearHistory();
-        markSongSaved();
-        notifySongDataChanged();
-        setLoadingWheelVisible(false);
+        this.importSongBytes(file.name, new Uint8Array(reader.result as ArrayBuffer));
       } catch (error) {
         console.error('Import failed', error);
+        showUserError(error instanceof ImportError
+          ? `Could not open ${file.name}: ${error.message}`
+          : `Could not open ${file.name}.`);
+      } finally {
         setLoadingWheelVisible(false);
-        showUserError(
-          error instanceof Error
-            ? `Could not import file: ${error.message}`
-            : 'Could not import file.',
-        );
       }
     };
     reader.onerror = () => {
-      console.error('Error reading file');
       setLoadingWheelVisible(false);
-      showUserError('Could not read the selected file.');
+      showUserError(`Could not read ${file.name}.`);
     };
-    reader.readAsArrayBuffer(f);
+    reader.readAsArrayBuffer(file);
   }
 
-  handleFileSelect(evt: Event) {
-    if (!(window.File && window.FileReader && window.FileList && window.Blob)) {
-      alert('The File APIs are not fully supported in this browser.');
-      return;
+  /**
+   * Replaces the current song with the one in `bytes`. Throws an ImportError
+   * (and puts the previous song back) when the file can't be read, so a bad
+   * file never leaves a half-loaded song behind.
+   */
+  importSongBytes(fileName: string, bytes: Uint8Array) {
+    const format = importFormatOf(fileName);
+    if (format == null) {
+      const ending = fileName.substring(fileName.lastIndexOf('.') + 1);
+      throw new ImportError(`.${ending} files are not supported.`, ending);
     }
-    if (evt.target == null) {
-      console.error('Evt Target is null');
-      return;
+    if (bytes.length === 0) {
+      throw new ImportError('The file is empty.', format);
     }
-    const { files } = (<HTMLInputElement>evt.target); // FileList object
-    if (files == null) {
-      console.error('Files is null');
-      return;
-    }
-    const f = files[0];
-    // console.log(f);
-    // Only process gp5-files
-    const ending = f.name.substring(f.name.lastIndexOf('.') + 1);
-    if (
-      ending !== 'gp5'
-      && ending !== 'gp4'
-      && ending !== 'gp3'
-      && ending !== 'mid'
-    ) {
-      console.log(f.name.substring(f.name.lastIndexOf('.') + 1));
-      alert('Nur gt/gp3/gp4/gp5-Format unterstützt');
-      return;
-    }
-    // reset values
-    this.bytePosition = 0;
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (e.target != null) {
-        const bufferToConvert = e.target.result as ArrayBuffer;
-        if (bufferToConvert != null) {
-          this.readerBuffer = new Uint8Array(bufferToConvert);
-          if (ending === 'gp5') {
-            Gp5Reader.read();
-          } else if (ending === 'gp4') {
-            Gp4Reader.read();
-          } else if (ending === 'gp3') {
-            Gp3Reader.read();
-          } else if (ending === 'mid') {
-            midiReader.decodeSMF(bufferToConvert);
-          } else if (ending === 'gt') {
-            this.readGt();
-          }
-        } else {
-          console.error('Buffer empty');
-        }
-      }
+    const backup = {
+      content: serializeSongContent(),
+      chordsMap: Song.chordsMap,
+      allChannels: Song.allChannels.map((channel) => ({ ...channel })),
+      bpm: Song.bpm,
     };
-    reader.readAsArrayBuffer(f);
+    this.currentFormat = format;
+    try {
+      this.parseSong(format, bytes, fileName);
+    } catch (error) {
+      this.restoreAfterFailedImport(backup);
+      if (error instanceof ImportError) {
+        throw error;
+      }
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new ImportError(
+        `This doesn't look like a valid .${format} file (${detail}).`,
+        format,
+        { offset: this.bytePosition, cause: error },
+      );
+    } finally {
+      this.readerBuffer = null;
+    }
+  }
+
+  private parseSong(format: ImportFormat, bytes: Uint8Array, fileName: string) {
+    this.bytePosition = 0;
+    this.readerBuffer = bytes;
+    if (format === 'gt') {
+      this.readGt();
+      return;
+    }
+    if (format === 'gp5') {
+      Gp5Reader.read();
+    } else if (format === 'gp4') {
+      Gp4Reader.read();
+    } else if (format === 'gp3') {
+      Gp3Reader.read();
+    } else if (format === 'mid') {
+      // DataView needs an ArrayBuffer that starts at the file's first byte.
+      midiReader.decodeSMF(bytes.slice().buffer);
+      applyImportedSong(buildSongFromMidi(midiReader.midiFile, fileName));
+    } else if (format === 'gpx' || format === 'gp') {
+      // Both hold the same GPIF XML; only the container differs.
+      applyGpifSong(parseGpif(extractGpifXml(bytes, format), format));
+    }
+    if (!Array.isArray(Song.measures[0]) || Song.measures[0].length === 0) {
+      throw new ImportError('The file contains no bars.', format);
+    }
+    GProReader.finishLoading();
+  }
+
+  /** Shows a song built in code (the demo song), set up exactly like an opened file. */
+  loadBuiltSong(song: GpifSong) {
+    applyGpifSong(song);
+    GProReader.finishLoading();
+  }
+
+  /** Steps every newly loaded song needs: rests in empty voices, ties, tracks, audio, a clean undo history. */
+  private static finishLoading() {
+    AppManager.resetVariables();
+    GProReader.writeNoteInfoToBeat();
+    AppManager.createGuitarTab(0);
+    revertHandler.clearHistory();
+    markSongSaved();
+    notifySongDataChanged();
+  }
+
+  private restoreAfterFailedImport(backup: {
+    content: string, chordsMap: typeof Song.chordsMap, allChannels: typeof Song.allChannels, bpm: number,
+  }) {
+    try {
+      this.applyGtContent(backup.content, { fromFile: false });
+      Song.chordsMap = backup.chordsMap;
+      Song.allChannels = backup.allChannels;
+      Song.setTempo(backup.bpm);
+    } catch (restoreError) {
+      console.error('Could not restore the song after a failed import', restoreError);
+    }
+  }
+
+  /** Electron "open file" path. */
+  processFile(filePath: string, data: Uint8Array) {
+    try {
+      this.importSongBytes(filePath, data);
+    } catch (error) {
+      console.error('Import failed', error);
+      showUserError(error instanceof ImportError ? `Could not open the file: ${error.message}` : 'Could not open the file.');
+    }
   }
 
   static toArrayBuffer(buf: number[]) {
@@ -212,45 +241,6 @@ class GProReader {
       view[i] = buf[i];
     }
     return ab;
-  }
-
-  processFile(filePath: string, data: Uint8Array) {
-    this.bytePosition = 0;
-    this.readerBuffer = data;
-    const ending = filePath.substring(filePath.lastIndexOf('.') + 1);
-    // console.log(ending);
-    if (
-      ending !== 'gp5'
-      && ending !== 'gp4'
-      && ending !== 'gp3'
-      && ending !== 'mid'
-      && ending !== 'gpx'
-      && ending !== 'gt'
-    ) {
-      alert('Nur gt/gp3/gp4/gp5/gpx-Format und midi-Format unterstützt');
-      return;
-    }
-    if (ending === 'gp5') {
-      Gp5Reader.read();
-    } else if (ending === 'gp4') {
-      Gp4Reader.read();
-    } else if (ending === 'gp3') {
-      Gp3Reader.read();
-    } else if (ending === 'mid') {
-      midiReader.decodeSMF(data.buffer);
-    } else if (ending === 'gpx') {
-      gpxReader.read(this.readerBuffer);
-    }
-
-    if (ending === 'gt') {
-      this.readGt();
-    } else {
-      // write info to file
-      AppManager.resetVariables();
-      GProReader.writeNoteInfoToBeat();
-      AppManager.createGuitarTab(0);
-      // menuHandler.applyStyleMode();
-    }
   }
 
   readInt() {
@@ -266,13 +256,37 @@ class GProReader {
     );
   }
 
-  readByte() {
+  /** Throws an ImportError unless `count` more bytes can be read. */
+  private ensureAvailable(count: number) {
     if (this.readerBuffer == null) {
-      console.error('GProReader Buffer is null!');
-      throw new Error('Import buffer was empty');
-      return 0;
+      throw new ImportError('No file data to read.', this.currentFormat);
     }
-    const byte = this.readerBuffer[this.bytePosition];
+    if (!Number.isInteger(count) || count < 0 || this.bytePosition + count > this.readerBuffer.length) {
+      throw new ImportError(
+        `The file ends unexpectedly (byte ${this.bytePosition} of ${this.readerBuffer.length}); it may be truncated or damaged.`,
+        this.currentFormat,
+        { offset: this.bytePosition },
+      );
+    }
+  }
+
+  /** Reads a count (int32) and rejects values no real file has, before anything loops over it. */
+  readCount(max: number, what: string): number {
+    const offset = this.bytePosition;
+    const count = this.readInt();
+    if (count < 0 || count > max) {
+      throw new ImportError(
+        `Implausible number of ${what} (${count}); the file is damaged or not a .${this.currentFormat} file.`,
+        this.currentFormat,
+        { offset },
+      );
+    }
+    return count;
+  }
+
+  readByte() {
+    this.ensureAvailable(1);
+    const byte = this.readerBuffer![this.bytePosition];
     this.bytePosition += 1;
     if (byte > 127) {
       return byte - 256;
@@ -282,11 +296,8 @@ class GProReader {
 
   readUnsignedByte() {
     // e.g. convert -1 to 255
-    if (this.readerBuffer == null) {
-      console.error('Reader Buffer is null');
-      return 0;
-    }
-    const res = this.readerBuffer[this.bytePosition] & 255;
+    this.ensureAvailable(1);
+    const res = this.readerBuffer![this.bytePosition] & 255;
     this.bytePosition += 1;
     return res;
   }
@@ -336,6 +347,10 @@ class GProReader {
   }
 
   readBytesToString(length: number) {
+    if (length > IMPORT_LIMITS.stringBytes) {
+      throw new ImportError(`Implausible text length (${length}).`, this.currentFormat, { offset: this.bytePosition });
+    }
+    this.ensureAvailable(Math.max(0, length));
     const bytes = [];
     for (let i = 0; i < length; i += 1) {
       bytes[i] = this.readByte();
@@ -362,8 +377,39 @@ class GProReader {
     return str;
   }
 
+  bytesLeft(): number {
+    return (this.readerBuffer?.length ?? 0) - this.bytePosition;
+  }
+
   skipBytes(numBytesToSkip: number) {
+    this.ensureAvailable(numBytesToSkip);
     this.bytePosition += numBytesToSkip;
+  }
+
+  /**
+   * Restores the drum mixer state saved with a .gt file. Files written before
+   * the fix stored the Map as `{}` (JSON.stringify drops Map entries); those keep
+   * the defaults instead of replacing the Map with a plain object.
+   */
+  static applyDrumMap(saved: unknown) {
+    if (!Array.isArray(saved)) {
+      return;
+    }
+    for (const entry of saved) {
+      if (!Array.isArray(entry) || entry.length !== 2) {
+        continue;
+      }
+      const [note, info] = entry;
+      const current = audioEngine.noteToDrum.get(Number(note));
+      if (current != null && Array.isArray(info) && info.length === current.length) {
+        audioEngine.noteToDrum.set(Number(note), info as typeof current);
+        const bus = audioEngine.drumBusses[Number(note) - 35];
+        if (bus != null) {
+          bus.volume.gain.value = Number(info[2]);
+          bus.pan.pan.value = Number(info[3]);
+        }
+      }
+    }
   }
 
   static writeNoteInfoToBeat() {
@@ -381,7 +427,7 @@ class GProReader {
           }
         }
         for (let k = 0, p = Song.measures[i][j].length; k < p; k += 1) {
-          if (Song.measures[i][j][k].length > 0 && Song.measures[i][j][k][0] && Song.measures[i][j][k][0].empty) {
+          if (Song.measures[i][j][k].length > 0 && Song.findBeat({ trackId: i, blockId: j, voiceId: k, beatId: 0 })?.empty) {
             const durationLength = (Duration.getDurationOfType('wr') * currentNumerator) / currentDenominator;
             Song.measures[i][j][k] = [];
             Tab.fillAvailableSpaceWithRests(i, j, k, 0, durationLength);
@@ -394,7 +440,7 @@ class GProReader {
       for (let j = 0, o = Song.measures[i].length; j < o; j += 1) {
         for (let k = 0, p = Song.measures[i][j].length; k < p; k += 1) {
           for (let l = 0, q = Song.measures[i][j][k].length; l < q; l += 1) {
-            const beat = Song.measures[i][j][k][l];
+            const beat = Song.findBeat({ trackId: i, blockId: j, voiceId: k, beatId: l });
             if (!beat || !beat.notes) continue;
             
             for (let s = 0, r = beat.notes.length; s < r; s += 1) {
@@ -408,7 +454,7 @@ class GProReader {
                     ? l - 1
                     : Song.measures[i][blockId][k].length - 1;
                   for (beatId = startBeatId; beatId >= 0; beatId -= 1) {
-                    const prevBeat = Song.measures[i][blockId][k][beatId];
+                    const prevBeat = Song.findBeat({ trackId: i, blockId, voiceId: k, beatId });
                     if (!prevBeat || !prevBeat.notes) continue;
                     const { notes } = prevBeat;
                     if (notes[s] != null) {
@@ -430,7 +476,7 @@ class GProReader {
                     const startBeatId = bId === blockId ? beatId + 1 : 0;
                     const endBeatId = bId === j ? l : Song.measures[i][bId][k].length - 1;
                     for (let beId = startBeatId; beId <= endBeatId; beId += 1) {
-                      const currentBeat = Song.measures[i][bId][k][beId];
+                      const currentBeat = Song.findBeat({ trackId: i, blockId: bId, voiceId: k, beatId: beId });
                       if (!currentBeat) continue;
                       const { notes } = currentBeat;
                       if (notes[s] == null) {

@@ -96,10 +96,10 @@ interface Note {
   dead: boolean,
   height: number,
   tied: boolean,
-  gracePresent: boolean,
-  graceObj: Grace,
-  bendPresent: boolean,
-  bendObj: Bend,
+  /** Grace note played before this note; absent when there is none. */
+  graceObj?: Grace,
+  /** Bend curve; absent when the note isn't bent. */
+  bendObj?: Bend,
   tieBegin: boolean,
   tiedTo: { blockId: number, beatId: number },
   palmMute: boolean,
@@ -112,20 +112,19 @@ interface Note {
   accentuated: boolean,
   heavyAccentuated: boolean,
   vibrato: boolean,
-  artificialPresent: boolean,
-  artificialStyle: string,
+  /** Harmonic type ('N.H.', 'A.H.', ...); absent for a plain note. */
+  artificialStyle?: string,
   tremoloPickingLength: string,
   tremoloPicking: boolean,
   pullDown: boolean,
   letRing: boolean,
   slide: boolean,
   velocity: number,
-  trillPresent: boolean,
-  trill: {fret: number, period: number},
+  /** Trill partner fret and speed; absent when the note isn't trilled. */
+  trill?: {fret: number, period: number},
   element: number,
   octave: number,
   tone: number,
-  [a: string]: unknown
 }
 
 interface Chord {
@@ -148,11 +147,11 @@ interface Stroke {
   strokeType: 'up' | 'down'
 }
 
-interface MeasureEffects {
-  strokePresent: boolean,
-  stroke: Stroke,
-  tremoloBarPresent: boolean,
-  tremoloBar: TremoloBar,
+interface BeatEffects {
+  /** Brush stroke; absent when the beat isn't strummed. */
+  stroke?: Stroke,
+  /** Whammy-bar curve; absent when the beat has none. */
+  tremoloBar?: TremoloBar,
   vibrato: boolean,
   fadeIn: boolean,
   tap: boolean,
@@ -160,28 +159,25 @@ interface MeasureEffects {
   pop: boolean
 }
 
-interface Measure {
+interface Beat {
   duration: string,
   notes: (Note | null)[],
-  effects: MeasureEffects,
+  effects: BeatEffects,
   dynamic: string,
   otherNotes: Note[],
   tuplet: number | null,
   tupletId: number,
   dotted: boolean,
   doubleDotted: boolean,
-  textPresent: boolean,
-  text: string,
+  /** Beat text annotation; absent when the beat has none. */
+  text?: string,
   dynamicPresent: boolean,
-  chordPresent: boolean,
-  chord: Chord | null,
+  /** Chord diagram/name above the beat; absent when the beat has none. */
+  chord?: Chord,
   empty: boolean,
   keySignature: string,
   noteIds: number[],
   rhythmId: number,
-  // these are helpers to set to notes
-  gracePresent: boolean,
-  graceObj: string
 }
 
 interface Automation {
@@ -197,20 +193,66 @@ interface MeasureMetaInfo {
   denominator: number,
   numerator: number,
   timeMeterPresent: boolean,
-  bpmPresent: boolean,
-  bpm: number,
+  /** Tempo change at this bar; absent when the tempo carries on. Bar 0 always has one. */
+  bpm?: number,
   repeatOpen: boolean,
-  repeatClosePresent: boolean,
-  repeatClose: number,
-  repeatAlternativePresent: boolean,
-  repeatAlternative: number,
-  markerPresent: boolean,
-  marker: Marker,
+  /** Repeat sign at the end of the bar: how many times to repeat; absent when none. */
+  repeatClose?: number,
+  /** Alternative ending (volta) as a bitmask of the passes it plays on; absent when none. */
+  repeatAlternative?: number,
+  /** Rehearsal marker; absent when the bar has none. */
+  marker?: Marker,
   keySignature: number,
   automations: Automation[]
 }
 
+/** Where a beat lives: track → block (bar) → voice → beat. */
+interface BeatRef {
+  trackId: number,
+  blockId: number,
+  voiceId: number,
+  beatId: number,
+}
+
+/**
+ * One voice of one bar as it was before a time-signature change trimmed it:
+ * the beats that were cut off and how many beats the voice had.
+ */
+interface VoiceSnapshot {
+  blockId: number,
+  beatCount: number,
+  beats: { beatId: number, beat: Beat }[],
+}
+
+/** A string position on a beat. */
+interface NoteRef extends BeatRef {
+  string: number,
+}
+
+function describeRef(ref: BeatRef): string {
+  return `track ${ref.trackId}, block ${ref.blockId}, voice ${ref.voiceId}, beat ${ref.beatId}`;
+}
+
 const songMethods = {
+  /** The beat at `ref`, or undefined when that position doesn't exist. */
+  findBeat(ref: BeatRef): Beat | undefined {
+    return songState.measures[ref.trackId]?.[ref.blockId]?.[ref.voiceId]?.[ref.beatId];
+  },
+
+  /** The beat at `ref`; throws a descriptive error when the position doesn't exist. */
+  getBeat(ref: BeatRef): Beat {
+    const beat = songMethods.findBeat(ref);
+    if (beat == null) {
+      throw new RangeError(`No beat at ${describeRef(ref)}`);
+    }
+    return beat;
+  },
+
+  /** The note on `ref.string`, or null when that string is empty. */
+  getNote(ref: NoteRef): Note | null {
+    return songMethods.getBeat(ref).notes[ref.string] ?? null;
+  },
+
   setTempo(bpm: number) {
     fastdom.mutate(() => {
       setTempoState(bpm);
@@ -270,15 +312,8 @@ const songMethods = {
         denominator: 4,
         numerator: 4,
         timeMeterPresent: i === 0, // Only first measure has time meter present
-        bpmPresent: i === 0,       // Only first measure has BPM present
-        bpm: 90,
+        ...(i === 0 ? { bpm: 90 } : {}), // and a tempo
         repeatOpen: false,
-        repeatClosePresent: false,
-        repeatClose: 0,
-        repeatAlternativePresent: false,
-        repeatAlternative: 0,
-        markerPresent: false,
-        marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
         keySignature: 0,
         automations: [],
       };
@@ -294,7 +329,7 @@ const songMethods = {
       new Map<string, Chord>(),
     ];
 
-    songMethods.setTempo(songState.measureMeta[0].bpm);
+    songMethods.setTempo(songState.measureMeta[0].bpm ?? 90);
   },
 
   initEmptyMeasure(trackId: number, blockId: number, voiceId: number) {
@@ -308,15 +343,7 @@ const songMethods = {
         denominator: 4,
         numerator: 4,
         timeMeterPresent: false,
-        bpmPresent: false,
-        bpm: 90,
-        repeatClosePresent: false,
         repeatOpen: false,
-        repeatClose: 0,
-        repeatAlternativePresent: false,
-        repeatAlternative: 0,
-        markerPresent: false,
-        marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
         keySignature: 0,
         automations: [],
       };
@@ -373,27 +400,15 @@ const songMethods = {
       denominator: 4,
       numerator: 4,
       timeMeterPresent: false,
-      bpmPresent: false,
-      bpm: 120,
       repeatOpen: false,
-      repeatClosePresent: false,
-      repeatClose: 0,
-      repeatAlternativePresent: false,
-      repeatAlternative: 0,
-      markerPresent: false,
-      marker: { text: '', color: { red: 0, green: 0, blue: 0 } },
       keySignature: -1,
       automations: [],
     };
   },
 
-  defaultMeasureEffects(): MeasureEffects {
+  defaultMeasureEffects(): BeatEffects {
     return {
-      strokePresent: false,
-      tremoloBarPresent: false,
-      tremoloBar: [] as TremoloBar,
       vibrato: false,
-      stroke: { strokeLength: 8, strokeType: 'down' },
       fadeIn: false,
       tap: false,
       slap: false,
@@ -414,7 +429,7 @@ const songMethods = {
     };
   },
 
-  defaultMeasure(): Measure {
+  defaultMeasure(): Beat {
     return {
       duration: 'er',
       notes: [],
@@ -426,16 +441,10 @@ const songMethods = {
       dotted: false,
       doubleDotted: false,
       dynamicPresent: false,
-      textPresent: false,
-      chordPresent: false,
-      text: '',
-      chord: null,
       empty: false,
       keySignature: '',
       noteIds: [],
       rhythmId: 0,
-      gracePresent: false,
-      graceObj: '',
     };
   },
 
@@ -445,9 +454,6 @@ const songMethods = {
       string: 0,
       height: 0,
       tied: false,
-      gracePresent: false,
-      graceObj: songMethods.defaultGrace(),
-      bendPresent: false,
       ghost: false,
       dead: false,
       tieBegin: false,
@@ -461,13 +467,8 @@ const songMethods = {
       accentuated: false,
       heavyAccentuated: false,
       vibrato: false,
-      trillPresent: false,
-      trill: { fret: 0, period: 0 },
-      artificialPresent: false,
       pullDown: false,
       letRing: false,
-      bendObj: [],
-      artificialStyle: 'N.H.',
       tremoloPickingLength: 'e',
       tremoloPicking: false,
       slide: false,
@@ -527,7 +528,7 @@ const Song = new Proxy(songState, {
 
 export { Song };
 export type {
-  Measure, Note, PlayBackInstrument, SongDescription, Track, Interval,
-  MeasureMetaInfo, Bend, TremoloBar, Chord, Marker, Stroke, Grace, MeasureEffects,
+  BeatRef, NoteRef, VoiceSnapshot, Beat, Note, PlayBackInstrument, SongDescription, Track, Interval,
+  MeasureMetaInfo, Bend, TremoloBar, Chord, Marker, Stroke, Grace, BeatEffects,
 };
 export default Song;

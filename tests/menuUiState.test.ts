@@ -1,16 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import type { Measure, MeasureMeta, Note } from '../src/types/tab'
+import type { Beat, MeasureMeta, Note } from '../src/types/tab'
 import { deriveMenuSelectionState, getAvailableTupletOptions } from '../src/utils/menuUiState'
 
-function createBeat(overrides: Partial<Measure> = {}): Measure {
+function createBeat(overrides: Partial<Beat> = {}): Beat {
   return {
     duration: 'e',
     notes: [null],
     effects: {
-      strokePresent: false,
-      stroke: { strokeLength: 0, strokeType: 'down' },
-      tremoloBarPresent: false,
-      tremoloBar: [],
       vibrato: false,
       fadeIn: false,
       tap: false,
@@ -24,18 +20,13 @@ function createBeat(overrides: Partial<Measure> = {}): Measure {
     tupletId: 0,
     dotted: false,
     doubleDotted: false,
-    textPresent: false,
-    text: '',
-    chordPresent: false,
-    chord: null,
     empty: false,
     keySignature: '',
     noteIds: [],
     rhythmId: 0,
-    gracePresent: false,
     graceObj: '',
     ...overrides,
-  } as Measure
+  } as Beat
 }
 
 function createMeasureMeta(overrides: Partial<MeasureMeta> = {}): MeasureMeta {
@@ -43,15 +34,8 @@ function createMeasureMeta(overrides: Partial<MeasureMeta> = {}): MeasureMeta {
     denominator: 4,
     numerator: 4,
     timeMeterPresent: false,
-    bpmPresent: false,
     bpm: 90,
     repeatOpen: false,
-    repeatClosePresent: false,
-    repeatClose: 0,
-    repeatAlternativePresent: false,
-    repeatAlternative: 0,
-    markerPresent: false,
-    marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
     keySignature: 0,
     automations: [],
     ...overrides,
@@ -72,12 +56,9 @@ function createNote(overrides: Partial<Note> = {}): Note {
     heavyAccentuated: false,
     palmMute: false,
     vibrato: false,
-    artificialPresent: false,
-    trillPresent: false,
     dead: false,
     tremoloPicking: false,
     fadeIn: false,
-    gracePresent: false,
     letRing: false,
     ghost: false,
     ...overrides,
@@ -91,20 +72,17 @@ describe('deriveMenuSelectionState', () => {
         duration: 'q',
         dotted: true,
         effects: {
-          strokePresent: true,
           stroke: { strokeLength: 0, strokeType: 'down' },
-          tremoloBarPresent: false,
-          tremoloBar: [],
           vibrato: false,
           fadeIn: false,
           tap: false,
           slap: false,
           pop: false,
         },
-        textPresent: true,
+        text: 'Intro',
       }),
       createNote({ slide: true, tied: true }),
-      createMeasureMeta({ bpmPresent: true, repeatOpen: true }),
+      createMeasureMeta({ bpm: 120, repeatOpen: true }),
       { canTie: true, hasOverlaySelection: false },
     )
 

@@ -42,12 +42,12 @@ declare global {
 import fastdom from 'fastdom';
 // import webmidi;
 import Helper from './helper';
-import Song, { Measure, Note } from './songData';
+import Song, { Beat, Note } from './songData';
 import Duration from './duration';
 import { VisualInstruments } from './visualInstruments';
 import Settings from './settingManager';
 import { audioEngine } from './audioEngine';
-import { GpxReader } from './GPXReader';
+import NoteArranger from './noteArranger';
 import playBackLogic from './playBackLogicNew';
 import { requestBlockRender } from '../../services/editor/renderCommands';
 import { modalManager } from './modals/modalManager';
@@ -203,7 +203,7 @@ class MidiEngine {
     const noteStart = audioEngine.getCurrentTime();
     const duration = 2.0; // TODO
     const note: Note = Song.defaultNote();
-    const beat: Measure = Song.defaultMeasure();
+    const beat: Beat = Song.defaultMeasure();
 
     console.log('NOTE ON');
     if (Settings.songPlaying && this.isRecording) {
@@ -222,7 +222,7 @@ class MidiEngine {
     MidiEngine.virtualPianoNoteEvent(midiNote, true);
 
     // do not consider usedStrings yet
-    const arrangedNote = GpxReader.arrangeNotesToGuitar(trackId,
+    const arrangedNote = NoteArranger.arrangeNotesToGuitar(trackId,
       [{ ...Song.defaultNote(), ...{ fret: 0, string: 0, height: midiNote } }],
       this.usedStrings);
     if (arrangedNote.length > 0 && arrangedNote[0].string !== -1) {
@@ -306,7 +306,7 @@ class MidiEngine {
       };
     }
 
-    const { notes } = Song.measures[Song.currentTrackId][blockId][Song.currentVoiceId][beatId];
+    const { notes } = Song.getBeat({ trackId: Song.currentTrackId, blockId, voiceId: Song.currentVoiceId, beatId });
     const usedStrings: Set<number> = new Set();
     if (notes != null) {
       for (let i = 0; i < notes.length; i += 1) {
@@ -316,7 +316,7 @@ class MidiEngine {
       }
     }
 
-    const arrangedNotes = GpxReader.arrangeAndSetNotesToGuitar(Song.currentTrackId, blockId,
+    const arrangedNotes = NoteArranger.arrangeAndSetNotesToGuitar(Song.currentTrackId, blockId,
       Song.currentVoiceId, beatId, pianoArrangedNotes, usedStrings);
     if (notes != null) {
       requestBlockRender(Song.currentTrackId, blockId, Song.currentVoiceId);

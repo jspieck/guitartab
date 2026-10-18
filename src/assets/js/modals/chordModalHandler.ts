@@ -7,7 +7,7 @@ import {
   createText,
   drawPoint,
 } from '../../../utils/svgPrimitives';
-import { Song, Measure } from '../songData';
+import { Song, Beat } from '../songData';
 import Helper from '../helper';
 import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
@@ -105,7 +105,7 @@ interface ChordModalParams {
     blockId: number;
     voiceId: number;
     beatId: number;
-    beat: Measure;
+    beat: Beat;
     isGlobal?: boolean;
 }
 
@@ -164,7 +164,7 @@ export class ChordModalHandler extends BaseModalHandler {
         blockId: number,
         voiceId: number,
         beatId: number,
-        beat: Measure
+        beat: Beat
     ) {
         this.modalState.modalId = 'ChordModal';
         this.modalState.modalName = 'Chord';
@@ -462,10 +462,10 @@ export class ChordModalHandler extends BaseModalHandler {
         blockId: number, 
         voiceId: number, 
         beatId: number, 
-        beat: Measure
+        beat: Beat
     ) {
         this.setupSelectButton('chordSelectButton', () => {
-            const chordPresentBefore = beat.chordPresent;
+            const previousChord = beat.chord;
             const chordObj = {
                 capo: this.modalState.chordProperties.capo,
                 name: this.modalState.chordProperties.name,
@@ -476,18 +476,16 @@ export class ChordModalHandler extends BaseModalHandler {
                 display: false,
             };
 
-            if (!beat.chordPresent) {
-                beat.chordPresent = true;
-                typedEventBus.emit("menu.activateEffectsForBeat", beat);
-            }
 
             chordObj.frets = this.computeFretsFromNotesAndCapo(
                 this.modalState.chordProperties.currentNotes,
                 chordObj.capo
             );
 
-            const previousChord = beat.chord;
             beat.chord = chordObj;
+            if (previousChord == null) {
+                typedEventBus.emit("menu.activateEffectsForBeat", beat);
+            }
 
             if (Song.chordsMap[trackId] == null) {
                 Song.chordsMap[trackId] = new Map();
@@ -506,18 +504,8 @@ export class ChordModalHandler extends BaseModalHandler {
                 requestBlockRender(trackId, blockId, voiceId);
             }
 
-            if (previousChord != null) {
-                revertHandler.addChord(
-                    trackId, 
-                    blockId, 
-                    voiceId, 
-                    beatId, 
-                    previousChord,
-                    chordObj, 
-                    chordPresentBefore, 
-                    beat.chordPresent
-                );
-            }
+            // Also undoable when the beat had no chord before.
+            revertHandler.addChord(trackId, blockId, voiceId, beatId, previousChord, chordObj);
         });
     }
 

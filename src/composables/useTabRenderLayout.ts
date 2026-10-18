@@ -17,8 +17,12 @@ export interface RenderBlockLayout {
 }
 
 export interface RenderRowLayout {
+  /** Y of the top string. */
   yOffset: number
+  /** From the top string to the bottom of the row. */
   height: number
+  /** Y of the row's top edge, including the annotation lanes above the strings. */
+  top?: number
 }
 
 export interface RenderTrackLayoutState {

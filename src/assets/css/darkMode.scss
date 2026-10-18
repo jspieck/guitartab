@@ -62,7 +62,7 @@ $color-glowingGreen: #53caa0;
     .filterNodeSetting{
         background: #282828;
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) {
         --modal-card-bg: rgba(20, 27, 38, 0.94);
         --modal-card-subtle: rgba(17, 23, 32, 0.94);
         --modal-card-border: rgba(45, 58, 77, 0.92);
@@ -77,11 +77,11 @@ $color-glowingGreen: #53caa0;
         color: #edf2fa;
         box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(84, 102, 130, 0.08);
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalTopBar {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBar {
         background: rgba(16, 21, 29, 0.97);
         border-bottom-color: var(--modal-divider);
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalTopBarLabel {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBarLabel {
         color: #dce5f4;
     }
     .modal-section {
@@ -96,39 +96,39 @@ $color-glowingGreen: #53caa0;
     }
     .modal-field label,
     .modal-field-label,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) label {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) label {
         color: #95a4bc;
     }
     .modal-field input:not([type=checkbox]):not(.styled-checkbox),
     .modal-field textarea,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox),
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select,
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea,
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select,
     .modal-surface-block {
         border-color: rgba(40, 54, 74, 0.94);
         background: rgba(17, 24, 34, 0.94);
         color: #edf2fa;
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input::placeholder,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea::placeholder {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input::placeholder,
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea::placeholder {
         color: #6f7f96;
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:hover,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:focus,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:focus-within {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:hover,
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus,
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus-within {
         background: rgba(20, 28, 40, 0.98);
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select__arrow {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select__arrow {
         border-top-color: #8fa2bd;
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close .icon {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close .icon {
         fill: #7f91ab;
         stroke: #7f91ab;
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close:hover {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover {
         background: rgba(20, 28, 40, 0.98);
     }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .checkmark {
+    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark {
         background: linear-gradient(180deg, #2f86ff 0%, #1f5fd6 100%);
         box-shadow: 0 10px 20px rgba(31, 95, 214, 0.26);
     }
@@ -145,8 +145,53 @@ $color-glowingGreen: #53caa0;
     #footerBar {
         background: #101010;
     }
+    .masterFxBtn {
+        border-color: #4a4a4a;
+        background: #2f2f2f;
+        color: #a0a0a0;
+        &:hover {
+            border-color: #6a6a6a;
+            color: #f0f0f0;
+        }
+        &.fxActive {
+            border-color: #4f9cf9;
+            background: rgba(79, 156, 249, 0.18);
+            color: #8cc0ff;
+        }
+    }
+    #sequencerSideBar .seqKnob {
+        --ap-knob-track: #4a4a4a;
+        --ap-knob-body: #2c2c2c;
+        --ap-knob-edge: #5a5a5a;
+        --ap-knob-pointer: #f0f0f0;
+        --ap-accent: #5aa2ff;
+    }
+    .bottomStatusBar {
+        border-top-color: #333;
+    }
+    .tabBarElem:hover {
+        color: #ffffff;
+    }
+    #footerBar {
+        background: #161616;
+        border-top-color: #2a2a2a;
+    }
+    .footerBlock + .footerBlock {
+        border-left-color: #2a2a2a;
+    }
+    .footerBlock[role='button']:hover {
+        background: #262626;
+        color: #ffffff;
+    }
+    .footerLabel {
+        color: #7d7d7d;
+    }
+    .bottomBars {
+        background: #1c1c1c;
+        border-top-color: #2c2c2c;
+    }
     .footerBlock {
-        color: white;
+        color: #c4c4c4;
     }
     #songPlayArea {
         border-bottom: 1px solid rgb(68, 68, 68);
@@ -156,9 +201,11 @@ $color-glowingGreen: #53caa0;
         background: rgb(68, 68, 68);
     }
     #completeBar {
-        border: 1px solid rgb(68, 68, 68);
-        box-shadow: none;
-        background: rgb(68, 68, 68);
+        border: 1px solid #2e2e2e;
+        border-top: none;
+        border-left: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        background: #262626;
     }
     .statusBar {
         border-top: none;
@@ -183,8 +230,8 @@ $color-glowingGreen: #53caa0;
         fill: rgb(41, 255, 255);
     }
     .tabBarElem {
-        color: #bbbbbb;
-        border-top: 2px solid rgb(68, 68, 68);
+        color: #a8a8a8;
+        border-top: 2px solid transparent;
     }
     #trackSign {
         background: rgba(241, 241, 241, 0.12);
@@ -193,7 +240,7 @@ $color-glowingGreen: #53caa0;
         color: white;
     }
     #tabBar{
-        background: none;
+        background: #262626;
     }
     .statusBar {
         background: none;

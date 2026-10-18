@@ -1,3 +1,4 @@
+import { MENU_EFFECT_GROUPS } from '../src/utils/menuUiState'
 import { describe, expect, it } from 'vitest'
 import {
   applyMenuEffectCollision,
@@ -5,17 +6,13 @@ import {
   handleMenuEffectGroupCollision,
   setMenuEffectVariable,
 } from '../src/services/menuEffectMutations'
-import type { Measure, MeasureMeta, Note } from '../src/types/tab'
+import type { Beat, MeasureMeta, Note } from '../src/types/tab'
 
-function createBeat(overrides: Partial<Measure> = {}): Measure {
+function createBeat(overrides: Partial<Beat> = {}): Beat {
   return {
     duration: 'e',
     notes: [null],
     effects: {
-      strokePresent: false,
-      stroke: { strokeLength: 0, strokeType: 'down' },
-      tremoloBarPresent: false,
-      tremoloBar: [],
       vibrato: false,
       fadeIn: false,
       tap: false,
@@ -29,18 +26,13 @@ function createBeat(overrides: Partial<Measure> = {}): Measure {
     tupletId: 0,
     dotted: false,
     doubleDotted: false,
-    textPresent: false,
-    text: '',
-    chordPresent: false,
-    chord: null,
     empty: false,
     keySignature: '',
     noteIds: [],
     rhythmId: 0,
-    gracePresent: false,
     graceObj: '',
     ...overrides,
-  } as Measure
+  } as Beat
 }
 
 function createMeasureMeta(overrides: Partial<MeasureMeta> = {}): MeasureMeta {
@@ -48,15 +40,8 @@ function createMeasureMeta(overrides: Partial<MeasureMeta> = {}): MeasureMeta {
     denominator: 4,
     numerator: 4,
     timeMeterPresent: false,
-    bpmPresent: false,
     bpm: 90,
     repeatOpen: false,
-    repeatClosePresent: false,
-    repeatClose: 0,
-    repeatAlternativePresent: false,
-    repeatAlternative: 0,
-    markerPresent: false,
-    marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
     keySignature: 0,
     automations: [],
     ...overrides,
@@ -77,12 +62,9 @@ function createNote(overrides: Partial<Note> = {}): Note {
     heavyAccentuated: false,
     palmMute: false,
     vibrato: false,
-    artificialPresent: false,
-    trillPresent: false,
     dead: false,
     tremoloPicking: false,
     fadeIn: false,
-    gracePresent: false,
     letRing: false,
     ghost: false,
     ...overrides,
@@ -104,7 +86,7 @@ describe('menuEffectMutations', () => {
 
   it('toggles an effect within its group and captures previous values', () => {
     const beat = createBeat()
-    const note = createNote({ slide: true, bendPresent: false })
+    const note = createNote({ slide: true })
     const measureMeta = createMeasureMeta()
     const slideGroupIndex = 0
 
@@ -119,7 +101,8 @@ describe('menuEffectMutations', () => {
 
     expect(previousValues.slide).toBe(true)
     expect(note.slide).toBe(false)
-    expect(note.bendPresent).toBe(true)
+    expect(note.bendObj).toHaveLength(2)
+    expect(previousValues.bend).toBeUndefined()
   })
 
   it('applies group collisions across multiple selected notes', () => {
@@ -141,8 +124,34 @@ describe('menuEffectMutations', () => {
     )
 
     expect(Object.keys(changes)).toHaveLength(1)
-    expect(beat.notes[0]?.bendPresent).toBe(true)
+    expect(beat.notes[0]?.bendObj).toBeDefined()
     expect(beat.notes[0]?.slide).toBe(false)
+  })
+
+  it('records effect data so undo can restore it after switching the effect off', () => {
+    const curve = [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 30, bendValue: 150, vibrato: 0 }]
+    const note = createNote({ bendObj: curve })
+    const beat = createBeat({ notes: [note], effects: { ...createBeat().effects, stroke: { strokeLength: 16, strokeType: 'up' } } })
+    const measureMeta = createMeasureMeta()
+
+    const previousBend = applyMenuEffectCollision(beat, note, 0, 'bend', true, measureMeta)
+    expect(note.bendObj).toBeUndefined()
+    setMenuEffectVariable(beat, note, 'bend', previousBend.bend, measureMeta)
+    expect(note.bendObj).toEqual(curve)
+    expect(note.bendObj).not.toBe(previousBend.bend) // restored as a copy
+
+    const strokeGroup = MENU_EFFECT_GROUPS.findIndex((group) => (group as readonly string[]).includes('stroke'))
+    const previousStroke = applyMenuEffectCollision(beat, null, strokeGroup, 'stroke', true, measureMeta)
+    expect(beat.effects.stroke).toBeUndefined()
+    setMenuEffectVariable(beat, null, 'stroke', previousStroke.stroke, measureMeta)
+    expect(beat.effects.stroke).toEqual({ strokeLength: 16, strokeType: 'up' })
+  })
+
+  it('creates default data when a data effect is switched on without its modal', () => {
+    const note = createNote({ fret: 7 })
+    const beat = createBeat({ notes: [note] })
+    setMenuEffectVariable(beat, note, 'trill', true, createMeasureMeta())
+    expect(note.trill).toEqual({ fret: 8, period: 4 })
   })
 
   it('allows dead notes and tremolo picking on the same note', () => {

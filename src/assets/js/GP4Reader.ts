@@ -3,15 +3,16 @@ import { gProReader } from './GProReader';
 import Song, {
   Grace, Note, Chord, Track,
 } from './songData';
+import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
 import AppManager from './appManager';
-import { ChordModalHandler } from './modals/chordModalHandler';
-import { modalManager } from './modals/modalManager';
-import { MODALS } from './modals/modalTypes';
 
 class Gp4Reader {
   static read() {
     Song.chordsMap = [];
-    Gp5Reader.readVersion();
+    const version = Gp5Reader.readVersion();
+    if (!version.startsWith('FICHIER GUITAR PRO v4')) {
+      throw new ImportError(`Unsupported Guitar Pro version "${version}". Open a Guitar Pro 4 file here.`, 'gp4');
+    }
     Gp4Reader.readInfo();
 
     gProReader.readByte(); // triplet feel
@@ -26,8 +27,8 @@ class Gp4Reader {
 
     Gp5Reader.readChannels();
 
-    const numMeasures = gProReader.readInt();
-    const numTracks = gProReader.readInt();
+    const numMeasures = gProReader.readCount(IMPORT_LIMITS.measures, 'bars');
+    const numTracks = gProReader.readCount(IMPORT_LIMITS.tracks, 'tracks');
     for (let t = 0; t < numTracks; t += 1) {
       Song.chordsMap.push(new Map());
     }
@@ -37,7 +38,6 @@ class Gp4Reader {
     for (let i = 0; i < numMeasures; i += 1) {
       Song.measureMeta[i] = Song.defaultMeasureMeta();
     }
-    Song.measureMeta[0].bpmPresent = true;
     Song.measureMeta[0].bpm = tempoValue;
 
     Gp4Reader.readMeasureHeaders(numMeasures);
@@ -57,7 +57,7 @@ class Gp4Reader {
     Song.songDescription.writer = gProReader.readStringByteSizeOfInteger();
     Song.songDescription.instructions = gProReader.readStringByteSizeOfInteger();
     Song.songDescription.comments = [];
-    const comments = gProReader.readInt();
+    const comments = gProReader.readCount(IMPORT_LIMITS.comments, 'comment lines');
     for (let i = 0; i < comments; i += 1) {
       Song.songDescription.comments[i] = gProReader.readStringByteSizeOfInteger();
     }
@@ -72,6 +72,12 @@ class Gp4Reader {
 
   static readMeasureHeader(index: number) {
     const flags = gProReader.readUnsignedByte();
+    // A bar only stores its time signature when it changes; otherwise it keeps the previous one.
+    const previous = Song.measureMeta[index - 1];
+    if (previous != null) {
+      Song.measureMeta[index].numerator = previous.numerator;
+      Song.measureMeta[index].denominator = previous.denominator;
+    }
     Song.measureMeta[index].repeatOpen = (flags & 0x04) !== 0;
     if ((flags & 0x01) !== 0) {
       const numerator = gProReader.readByte();
@@ -85,15 +91,12 @@ class Gp4Reader {
     }
 
     if ((flags & 0x08) !== 0) {
-      Song.measureMeta[index].repeatClosePresent = true;
       Song.measureMeta[index].repeatClose = gProReader.readByte();
     }
     if ((flags & 0x10) !== 0) {
-      Song.measureMeta[index].repeatAlternativePresent = true;
       Song.measureMeta[index].repeatAlternative = gProReader.readUnsignedByte();
     }
     if ((flags & 0x20) !== 0) {
-      Song.measureMeta[index].markerPresent = true;
       Song.measureMeta[index].marker = Gp5Reader.readMarker();
     }
     if ((flags & 0x40) !== 0) {
@@ -153,7 +156,7 @@ class Gp4Reader {
     for (let voiceId = 0; voiceId < 2; voiceId += 1) {
       Song.measures[trackId][blockId][voiceId] = [];
       if (voiceId === 0) {
-        const beats = gProReader.readInt();
+        const beats = gProReader.readCount(IMPORT_LIMITS.beatsPerVoice, 'beats in a bar');
         for (let i = 0; i < beats; i += 1) {
           Gp4Reader.readBeat(trackId, blockId, voiceId, i);
         }
@@ -175,20 +178,13 @@ class Gp4Reader {
       empty = (beatType & 0x02) === 0;
     }
     const durationObj = Gp5Reader.readDuration(flags);
-    let chordPresent = false;
-    let chord: Chord = {
-      name: '', capo: 0, frets: [], fingers: [], chordType: '', chordRoot: '', display: false,
-    };
+    let chord: Chord | undefined;
     if ((flags & 0x02) !== 0) {
-      chordPresent = true;
       chord = Gp4Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler(MODALS.ADD_CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
-    let textPresent = false;
-    let text = '';
+    let text: string | undefined;
     if ((flags & 0x04) !== 0) {
-      textPresent = true;
       text = gProReader.readStringByteSizeOfInteger();
     }
     let effects = Song.defaultMeasureEffects();
@@ -217,10 +213,8 @@ class Gp4Reader {
       dotted,
       tuplet,
       notes,
-      textPresent,
       text,
       chord,
-      chordPresent,
       effects,
     };
     Song.measures[trackId][blockId][voiceId][beatId] = {
@@ -286,7 +280,6 @@ class Gp4Reader {
       gProReader.readByte();
     }
     if (tempoValue >= 0) {
-      Song.measureMeta[blockId].bpmPresent = true;
       Song.measureMeta[blockId].bpm = tempoValue;
       gProReader.readByte();
     }
@@ -337,11 +330,9 @@ class Gp4Reader {
     const flags1 = gProReader.readUnsignedByte();
     const flags2 = gProReader.readUnsignedByte();
     if ((flags1 & 0x01) !== 0) {
-      note.bendPresent = true;
       note.bendObj = Gp5Reader.readBend();
     }
     if ((flags1 & 0x10) !== 0) {
-      note.gracePresent = true;
       note.graceObj = Gp4Reader.readGrace();
     }
     if ((flags2 & 0x04) !== 0) {
@@ -353,11 +344,9 @@ class Gp4Reader {
       gProReader.readByte();
     }
     if ((flags2 & 0x10) !== 0) {
-      note.artificialPresent = true;
       note.artificialStyle = Gp5Reader.readArtificialHarmonic();
     }
     if ((flags2 & 0x20) !== 0) {
-      note.trillPresent = true;
       note.trill = Gp5Reader.readTrill();
     }
     note.letRing = ((flags1 & 0x08) !== 0);
@@ -374,14 +363,7 @@ class Gp4Reader {
     const dynamic = gProReader.readUnsignedByte();
     gProReader.readUnsignedByte(); // const transition =
     const durationByte = gProReader.readUnsignedByte();
-    let duration = '';
-    if (durationByte === 1) {
-      duration = 't';
-    } else if (durationByte === 2) {
-      duration = 's';
-    } else {
-      duration = 'e';
-    }
+    const duration = Gp5Reader.graceDurationFromByte(durationByte);
     const byteToDynamic = ['', 'ppp', 'pp', 'p', 'mp', 'mf', 'f', 'ff', 'fff'];
     return {
       setOnBeat,

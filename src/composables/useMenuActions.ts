@@ -81,7 +81,7 @@ export function useMenuActions(options: UseMenuActionsOptions) {
   ) {
     let isVariableSet = true
     for (const no of arr.notes) {
-      const beat = Song.measures[no.trackId][no.blockId][no.voiceId][no.beatId]
+      const beat = Song.getBeat({ trackId: no.trackId, blockId: no.blockId, voiceId: no.voiceId, beatId: no.beatId })
       const note = beat.notes[no.string]
       isVariableSet = menuHandler.getEffectVariable(beat, note, id)
     }

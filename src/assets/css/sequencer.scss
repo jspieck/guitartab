@@ -84,7 +84,10 @@ $color-glowingRed: #ef596f;
 }
 .beatText{
     font-size: 10px;
-    overflow: visible;
+    overflow: hidden;
+    max-width: 120px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     position: absolute;
     padding: 0px;
     z-index: 2;
@@ -97,6 +100,10 @@ $color-glowingRed: #ef596f;
         z-index: 3;
         border-right: 1px solid white;
     }
+}
+/* Markers on the last bars grow leftwards instead of out of the sequencer. */
+.beatText--end{
+    right: 0;
 }
 
 #intervalMarkerBody, #intervalMarkerHeader{
@@ -375,6 +382,55 @@ $color-glowingRed: #ef596f;
 
 #player{
 	margin-top: 10px;
+}
+/* Master-row shortcuts to the studio panels; lit while the effect changes the sound */
+.masterFxBtn{
+    float: left;
+    width: 24px;
+    height: 20px;
+    margin: 5px 1px 0;
+    padding: 0;
+    text-align: center;
+    border: 1px solid #c3cad4;
+    border-radius: 5px;
+    background: #f6f7f9;
+    color: #6b7380;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 18px;
+    letter-spacing: 0.03em;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
+
+    &:hover{
+        border-color: #8f9aaa;
+        color: #1f2937;
+    }
+    &:focus-visible{
+        outline: 2px solid #2f5cce;
+        outline-offset: 1px;
+    }
+    & + &{
+        width: 32px;
+    }
+    &.fxActive{
+        border-color: #2f86ff;
+        background: #e6f0ff;
+        color: #1f5fd6;
+    }
+}
+/* RotaryKnob in the track rows (pan / reverb / chorus) */
+#sequencerSideBar .seqKnob{
+    --ap-knob-track: #c9d0da;
+    --ap-knob-body: #ffffff;
+    --ap-knob-edge: #aeb7c3;
+    --ap-knob-pointer: #374151;
+    --ap-accent: #2f86ff;
+    float: left;
+    width: 30px;
+    height: 30px;
+    justify-content: center;
 }
 .muteBtnCircle{
 	box-sizing: border-box;

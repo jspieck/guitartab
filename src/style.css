@@ -1,7 +1,10 @@
 /* ===== Tab Color Variables (Light Mode Defaults) ===== */
 .autosave-banner {
   position: fixed;
-  top: 12px;
+  /* Below the toolbar, so no editor controls are covered. */
+  top: 84px;
+  max-width: calc(100vw - 32px);
+  white-space: nowrap;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1200;

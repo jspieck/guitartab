@@ -1,5 +1,5 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
-import { Note, Measure } from '../songData';
+import { Note, Beat } from '../songData';
 import { revertHandler } from '../revertHandler';
 import { menuHandler } from '../menuHandler';
 import { tab } from '../tab';
@@ -43,7 +43,7 @@ export class TremoloPickingModalHandler extends BaseModalHandler {
     openModal(params: {
         notes: Note[];
         blocks: number[];
-        beats: { trackId: number; blockId: number; voiceId: number; beatId: number; beat: Measure }[];
+        beats: { trackId: number; blockId: number; voiceId: number; beatId: number; beat: Beat }[];
         isVariableSet: boolean;
     }) {
         this.modalState.notes = params.notes;

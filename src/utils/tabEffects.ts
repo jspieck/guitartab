@@ -1,5 +1,19 @@
+import { stringLine } from './tabStrings'
 import type { Grace, TabBeat, TabNoteData } from '../types/tab'
 import { getMeasureBeatWidth, getMeasureBeatX } from './measureBeatLayout'
+import {
+  beatKey,
+  getArticulationTokens,
+  LANE_HEIGHTS,
+  MEASURE_NUMBER_STRIP,
+  RHYTHM_BAND_HEIGHT,
+  WHAMMY_SCALE,
+  type AboveLaneId,
+  type BelowLaneId,
+  type LaneBox,
+  type RowLanes,
+} from './tabRowLanes'
+import { beatHasText } from '../services/songMigrations'
 
 interface BendPoint {
   bendPosition?: number
@@ -66,10 +80,28 @@ export interface TextEffect {
   beatIndex: number
 }
 
-export interface LetRingEffect {
+/** A labelled run over consecutive beats (P.M. / let ring), drawn as label + dashed line. */
+export interface EffectRun {
+  kind: 'palmMute' | 'letRing'
+  label: string
   x: number
   y: number
+  lineStartX: number
   lineEndX: number
+  lineY: number
+}
+
+export interface BeatAnnotation {
+  text: string
+  x: number
+  y: number
+  beatIndex: number
+}
+
+export interface StrokeEffect {
+  path: string
+  arrowPath: string
+  beatIndex: number
 }
 
 export interface HarmonicEffect {
@@ -104,6 +136,8 @@ export interface TabEffectsInput {
   blockId: number
   stringSpacing: number
   numStrings: number
+  /** Row lane layout; when missing, a lane stack is derived for this measure alone. */
+  lanes?: RowLanes
 }
 
 export interface TabEffectCollections {
@@ -115,10 +149,13 @@ export interface TabEffectCollections {
   trills: TrillEffect[]
   tremoloBars: TremoloBarEffect[]
   textEffects: TextEffect[]
-  letRings: LetRingEffect[]
+  runs: EffectRun[]
   harmonics: HarmonicEffect[]
   tremoloPickings: TremoloPickingEffect[]
   graceNotes: GraceNoteEffect[]
+  beatTexts: BeatAnnotation[]
+  dynamics: BeatAnnotation[]
+  strokes: StrokeEffect[]
 }
 
 function getEffectNote(note: TabNoteData | null | undefined): EffectNote | null {
@@ -146,14 +183,37 @@ function getBeatWidth(input: TabEffectsInput, beatIndex: number): number {
 }
 
 const NOTE_TEXT_BASELINE_OFFSET = 6
-const BEAM_OFFSET_FROM_BOTTOM = 15
 
 function getStringY(input: TabEffectsInput, stringIndex: number): number {
-  return stringIndex * input.stringSpacing + NOTE_TEXT_BASELINE_OFFSET
+  return stringLine(stringIndex, input.numStrings) * input.stringSpacing + NOTE_TEXT_BASELINE_OFFSET
 }
 
-function getBeamY(input: TabEffectsInput): number {
-  return (input.numStrings - 1) * input.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
+/**
+ * Lane box for `lane`. Rows always carry lanes from the layout engine; the
+ * fallback stacks lanes in a fixed order for callers without a row layout.
+ */
+function getLane(input: TabEffectsInput, lane: AboveLaneId | BelowLaneId): LaneBox {
+  const fromRow = input.lanes?.above[lane as AboveLaneId] ?? input.lanes?.below[lane as BelowLaneId]
+  if (fromRow) {
+    return fromRow
+  }
+  if (lane === 'tuplet' || lane === 'dynamic') {
+    const top = (input.numStrings - 1) * input.stringSpacing + RHYTHM_BAND_HEIGHT
+    return { top: lane === 'tuplet' ? top : top + LANE_HEIGHTS.tuplet, height: LANE_HEIGHTS[lane] }
+  }
+  const height = LANE_HEIGHTS[lane]
+  return { top: -MEASURE_NUMBER_STRIP - height, height }
+}
+
+function getNoteCenter(context: BeatEffectContext): number {
+  return context.beatX + context.beatWidth / 2
+}
+
+/** Approximate half width of a fret label at 16px (digits are ~8.5px wide). */
+function getDigitHalfWidth(note: TabNoteData | null): number {
+  if (!note) return 4.5
+  const label = note.dead ? 'x' : note.ghost ? `(${note.fret})` : String(note.fret)
+  return Math.max(4.5, label.length * 4.4)
 }
 
 function getBendValueText(maxBendValue: number): string {
@@ -173,6 +233,9 @@ export function getFontSizeForEffect(effectText: string): string {
     case 'let ring':
     case 'A.H.':
     case 'N.H.':
+    case 'P.H.':
+    case 'T.H.':
+    case 'S.H.':
       return '10px'
     case '>':
     case '^':
@@ -207,10 +270,13 @@ function createEmptyEffectCollections(): TabEffectCollections {
     trills: [],
     tremoloBars: [],
     textEffects: [],
-    letRings: [],
+    runs: [],
     harmonics: [],
     tremoloPickings: [],
     graceNotes: [],
+    beatTexts: [],
+    dynamics: [],
+    strokes: [],
   }
 }
 
@@ -259,63 +325,64 @@ function collectSlideEffect(context: NoteEffectContext, slides: SlideEffect[]): 
     return
   }
 
-  const startX = context.beatX + context.beatWidth / 2 + 8
+  const startX = getNoteCenter(context) + getDigitHalfWidth(context.note) + 2
   const nextBeat = context.input.measureData[context.beatIndex + 1]
   const nextNote = getEffectNote(nextBeat?.notes?.[context.stringIndex])
   const slideUp = Boolean(nextNote && nextNote.fret > context.note.fret)
-  const slideLength = Math.min(context.beatWidth * 0.6, 25)
-  const yOffset = slideUp ? -3 : 3
+  let endX = startX + Math.min(context.beatWidth * 0.6, 25)
+  if (nextBeat) {
+    // Stop before the next beat's digit on this string.
+    const nextCenter = getBeatX(context.input, context.beatIndex + 1) + getBeatWidth(context.input, context.beatIndex + 1) / 2
+    endX = Math.min(endX, nextCenter - getDigitHalfWidth(nextNote) - 2)
+  }
+  // Sliding up to a higher fret is drawn rising ("/"), sliding down falling ("\").
+  const yOffset = slideUp ? 3 : -3
+  const midY = context.yPos - 6
 
   slides.push({
-    path: `M${startX} ${context.yPos + 4 + yOffset}L${startX + slideLength} ${context.yPos + 4 - yOffset}`,
+    path: `M${startX} ${midY + yOffset}L${Math.max(endX, startX + 4)} ${midY - yOffset}`,
     beatIndex: context.beatIndex,
     stringIndex: context.stringIndex,
   })
 }
 
 function collectBendEffect(context: NoteEffectContext, bends: BendEffect[]): void {
-  if (!context.note?.bendPresent || !context.note.bendObj || context.note.bendObj.length === 0) {
+  if (!context.note?.bendObj || context.note.bendObj.length === 0) {
     return
   }
 
-  const startX = context.beatX + context.beatWidth / 2 + 5
-  const startY = context.yPos - 8
-  let pathData = `M${startX} ${startY + 10}`
+  // The bend rises from the note to the bend lane; its value label sits in the lane.
+  const lane = getLane(context.input, 'bend')
+  const startX = getNoteCenter(context) + getDigitHalfWidth(context.note) + 1
+  const startY = context.yPos - 9
+  const tipY = lane.top + lane.height - 1
+  const maxBendValue = Math.max(0, ...context.note.bendObj.map((point) => point.bendValue || 0))
+  const yForValue = (value: number) => (maxBendValue > 0 ? startY + (tipY - startY) * (value / maxBendValue) : startY)
+  let pathData = `M${startX} ${startY}`
   let arrowPath = ''
-  let maxBendValue = 0
-  let lastX = startX
-  let lastY = startY + 10
+  let peakX = startX
+  let peakY = startY
 
-  context.note.bendObj.forEach((bendPoint: BendPoint, index: number) => {
-    const posOffset = (bendPoint.bendPosition || 0) / 4
-    const bendValue = bendPoint.bendValue || 0
-    const bendHeight = bendValue / 5
-    const x = startX + posOffset
-    const nextY = startY + 10 - bendHeight
-
-    if (bendValue > maxBendValue) {
-      maxBendValue = bendValue
+  context.note.bendObj.forEach((bendPoint: BendPoint) => {
+    const x = startX + (bendPoint.bendPosition || 0) / 4
+    const y = yForValue(bendPoint.bendValue || 0)
+    pathData += `L${x} ${y}`
+    if (y < peakY) {
+      peakX = x
+      peakY = y
     }
-
-    if (index === 0 && bendPoint.bendPosition === 0) {
-      pathData = `M${x} ${nextY + bendHeight}`
-    }
-
-    pathData += `L${x} ${nextY}`
-    lastX = x
-    lastY = nextY
   })
 
   if (maxBendValue > 0) {
-    arrowPath = `M${lastX - 3} ${lastY + 4}L${lastX} ${lastY}L${lastX + 3} ${lastY + 4}`
+    arrowPath = `M${peakX - 3} ${peakY + 4}L${peakX} ${peakY}L${peakX + 3} ${peakY + 4}`
   }
 
   bends.push({
     path: pathData,
     arrowPath,
     valueText: getBendValueText(maxBendValue),
-    textX: lastX,
-    textY: lastY - 5,
+    textX: peakX,
+    textY: lane.top + 9,
     beatIndex: context.beatIndex,
     stringIndex: context.stringIndex,
   })
@@ -364,9 +431,10 @@ function collectVibratoEffect(context: NoteEffectContext, vibratos: VibratoEffec
     return
   }
 
-  const startX = context.beatX + context.beatWidth / 2 + 5
-  const waveY = context.yPos - 18
-  const width = Math.min(context.beatWidth * 0.7, 30)
+  const lane = getLane(context.input, 'vibrato')
+  const width = Math.max(9, Math.min(context.beatWidth - 4, 30))
+  const startX = getNoteCenter(context) - width / 2
+  const waveY = lane.top + (lane.height - 6) / 2
 
   vibratos.push({
     path: createWavePath(startX, waveY, width),
@@ -378,14 +446,9 @@ function collectVibratoEffect(context: NoteEffectContext, vibratos: VibratoEffec
 function collectHarmonicEffect(context: NoteEffectContext, beatEffects: string[]): void {
   if (context.note?.naturalHarmonic) {
     beatEffects.push('N.H.')
-  } else if (context.note?.artificialPresent) {
-    beatEffects.push('A.H.')
-  }
-}
-
-function collectLetRingToken(rawNote: TabNoteData | null, beatEffects: string[]): void {
-  if (rawNote?.letRing) {
-    beatEffects.push('let ring')
+  } else if (context.note?.artificialStyle != null) {
+    // The stored style is the label: N.H., A.H., P.H. (pinch), T.H. (tapped), S.H. (semi).
+    beatEffects.push(context.note.artificialStyle || 'A.H.')
   }
 }
 
@@ -402,8 +465,8 @@ function collectTremoloPickingEffect(
   if (context.rawNote.tremoloPickingLength === 't') lines = 3
 
   tremoloPickings.push({
-    x: context.beatX + context.beatWidth / 2 - 5,
-    y: getBeamY(context.input) + 4,
+    x: getNoteCenter(context) - 7,
+    y: getLane(context.input, 'tremoloPicking').top + 1,
     lines,
     beatIndex: context.beatIndex,
     stringIndex: context.stringIndex,
@@ -411,16 +474,16 @@ function collectTremoloPickingEffect(
 }
 
 function collectGraceNoteEffect(context: NoteEffectContext, graceNotes: GraceNoteEffect[]): void {
-  if (!context.note?.gracePresent || !context.note.graceObj) {
+  if (!context.note?.graceObj) {
     return
   }
 
-  const graceX = context.beatX + 3
-  const mainNoteX = context.beatX + context.beatWidth / 2
+  const mainNoteX = getNoteCenter(context)
+  const graceX = mainNoteX - getDigitHalfWidth(context.note) - 6
 
   graceNotes.push({
     x: graceX,
-    y: context.yPos + 4,
+    y: context.yPos + 2,
     fret: context.note.graceObj.fret,
     slurPath: `M${graceX + 5} ${context.yPos - 5}C${graceX + 10} ${context.yPos - 12}, ${mainNoteX - 5} ${context.yPos - 12}, ${mainNoteX} ${context.yPos - 5}`,
     beatIndex: context.beatIndex,
@@ -428,36 +491,19 @@ function collectGraceNoteEffect(context: NoteEffectContext, graceNotes: GraceNot
   })
 }
 
-function collectBeatTextTokens(rawNote: TabNoteData | null, beatEffects: string[]): void {
-  ;([
-    ['palmMute', 'P.M.'],
-    ['tap', 'T'],
-    ['pop', 'P'],
-    ['slap', 'S'],
-    ['stacatto', '•'],
-    ['fadeIn', '≺'],
-    ['accentuated', '>'],
-    ['heavyAccentuated', '^'],
-  ] as const).forEach(([propertyName, label]) => {
-    if (rawNote?.[propertyName]) {
-      beatEffects.push(label)
-    }
-  })
-}
-
 function collectTrillEffect(context: NoteEffectContext, trills: TrillEffect[]): void {
-  if (!context.rawNote?.trillPresent) {
+  if (context.rawNote?.trill == null) {
     return
   }
 
-  const centerX = context.beatX + context.beatWidth / 2
-  const waveY = context.yPos - 18
-  const width = Math.min(context.beatWidth * 0.6, 25)
+  const lane = getLane(context.input, 'trill')
+  const centerX = getNoteCenter(context)
+  const width = Math.max(6, Math.min(context.beatWidth - 14, 25))
 
   trills.push({
-    textX: centerX - 8,
-    textY: waveY + 5,
-    path: createWavePath(centerX + 4, waveY, width),
+    textX: centerX - 10,
+    textY: lane.top + lane.height - 3,
+    path: createWavePath(centerX + 2, lane.top + lane.height - 10, width),
     beatIndex: context.beatIndex,
     stringIndex: context.stringIndex,
   })
@@ -475,87 +521,58 @@ function collectNoteLevelEffects(
   collectVibratoEffect(context, collections.vibratos)
   collectTrillEffect(context, collections.trills)
   collectHarmonicEffect(context, beatEffects)
-  collectLetRingToken(context.rawNote, beatEffects)
   collectTremoloPickingEffect(context, collections.tremoloPickings)
   collectGraceNoteEffect(context, collections.graceNotes)
-  collectBeatTextTokens(context.rawNote, beatEffects)
 }
-
-const TEXT_EFFECT_BASE_Y = -20
-const TEXT_EFFECT_SECOND_ROW_Y = -32
-const TEXT_EFFECT_HORIZONTAL_GAP = 36
 
 function appendBeatTextEffects(
   context: BeatEffectContext,
   textEffects: TextEffect[],
-  beatEffects: string[],
+  harmonicLabels: string[],
 ): void {
-  const labels = [...new Set(beatEffects)]
-  if (labels.length === 0) {
-    return
-  }
+  const centerX = getNoteCenter(context)
 
-  const centerX = context.beatX + context.beatWidth / 2
-
-  if (labels.length === 1) {
+  const harmonic = [...new Set(harmonicLabels)][0]
+  if (harmonic) {
+    const lane = getLane(context.input, 'harmonic')
     textEffects.push({
-      text: labels[0],
+      text: harmonic,
       x: centerX,
-      y: TEXT_EFFECT_BASE_Y,
-      fontSize: getFontSizeForEffect(labels[0]),
+      y: lane.top + lane.height - 3,
+      fontSize: getFontSizeForEffect(harmonic),
       beatIndex: context.beatIndex,
     })
-    return
   }
 
-  if (labels.length <= 3) {
-    const span = (labels.length - 1) * TEXT_EFFECT_HORIZONTAL_GAP
-    labels.forEach((effectText, index) => {
-      textEffects.push({
-        text: effectText,
-        x: centerX - span / 2 + index * TEXT_EFFECT_HORIZONTAL_GAP,
-        y: TEXT_EFFECT_BASE_Y,
-        fontSize: getFontSizeForEffect(effectText),
-        beatIndex: context.beatIndex,
-      })
-    })
-    return
-  }
-
-  const firstRowCount = Math.ceil(labels.length / 2)
-  const rows = [labels.slice(0, firstRowCount), labels.slice(firstRowCount)]
-  const rowYs = [TEXT_EFFECT_BASE_Y, TEXT_EFFECT_SECOND_ROW_Y]
-
-  rows.forEach((rowLabels, rowIndex) => {
-    if (rowLabels.length === 0) {
-      return
-    }
-
-    const span = (rowLabels.length - 1) * TEXT_EFFECT_HORIZONTAL_GAP
-    rowLabels.forEach((effectText, index) => {
-      textEffects.push({
-        text: effectText,
-        x: centerX - span / 2 + index * TEXT_EFFECT_HORIZONTAL_GAP,
-        y: rowYs[rowIndex],
-        fontSize: getFontSizeForEffect(effectText),
-        beatIndex: context.beatIndex,
-      })
+  const lane = getLane(context.input, 'articulation')
+  const key = beatKey(context.input.blockId, context.beatIndex)
+  getArticulationTokens(context.beat).forEach((token, index) => {
+    const line = context.input.lanes?.articulationLine[`${key}:${token}`] ?? index
+    // Line 0 is nearest to the strings (bottom of the lane).
+    const lineBottom = lane.top + lane.height - line * LANE_HEIGHTS.articulation
+    textEffects.push({
+      text: token,
+      x: centerX,
+      y: lineBottom - (token === '•' ? 0 : 2),
+      fontSize: getFontSizeForEffect(token),
+      beatIndex: context.beatIndex,
     })
   })
 }
 
 function collectTremoloBarEffect(context: BeatEffectContext, tremoloBars: TremoloBarEffect[]): void {
   const tremoloBar = context.beat?.effects?.tremoloBar as TremoloBarPoint[] | undefined
-  if (!context.beat?.effects?.tremoloBarPresent || !tremoloBar) {
+  if (!tremoloBar) {
     return
   }
 
-  const startX = context.beatX + context.beatWidth / 2
-  const startY = getBeamY(context.input) + 10
-  let pathData = `M${startX} ${startY}`
+  const lane = getLane(context.input, 'whammy')
+  const startX = getNoteCenter(context)
+  const zeroY = lane.top + (context.input.lanes?.whammyZero ?? lane.height / 2)
+  let pathData = `M${startX} ${zeroY}`
 
   tremoloBar.forEach((point: TremoloBarPoint) => {
-    pathData += `L${startX + (point.position || 0) / 4} ${startY + (point.value || 0) / 10}`
+    pathData += `L${startX + (point.position || 0) / 4} ${zeroY - (point.value || 0) / WHAMMY_SCALE}`
   })
 
   tremoloBars.push({
@@ -564,41 +581,101 @@ function collectTremoloBarEffect(context: BeatEffectContext, tremoloBars: Tremol
   })
 }
 
-function hasLetRing(beat: TabBeat | undefined): boolean {
-  return beat?.notes?.some((note: TabNoteData | null) => note?.letRing) === true
+type RunKind = EffectRun['kind']
+
+const RUN_LABELS: Record<RunKind, string> = { palmMute: 'P.M.', letRing: 'let ring' }
+const RUN_LABEL_WIDTH: Record<RunKind, number> = { palmMute: 22, letRing: 34 }
+
+function beatHasRun(beat: TabBeat | undefined, kind: RunKind): boolean {
+  return beat?.notes?.some((note: TabNoteData | null) => Boolean(note?.[kind])) === true
 }
 
-function getLetRingEndBeatIndex(context: BeatEffectContext): number {
-  let endBeatIndex = context.beatIndex
-
-  for (let index = context.beatIndex + 1; index < context.input.measureData.length; index++) {
-    if (hasLetRing(context.input.measureData[index])) {
-      endBeatIndex = index
-      continue
-    }
-
-    break
-  }
-
-  return endBeatIndex
-}
-
-function collectLetRingEffect(context: BeatEffectContext, letRings: LetRingEffect[]): void {
-  if (!hasLetRing(context.beat) || hasLetRing(context.input.measureData[context.beatIndex - 1])) {
+/** One label at the first beat of each run of consecutive beats, then a dashed line. */
+function collectRunEffect(context: BeatEffectContext, kind: RunKind, runs: EffectRun[]): void {
+  const beats = context.input.measureData
+  if (!beatHasRun(context.beat, kind) || beatHasRun(beats[context.beatIndex - 1], kind)) {
     return
   }
 
-  const endBeatIndex = getLetRingEndBeatIndex(context)
-  letRings.push({
-    x: context.beatX + context.beatWidth / 2,
-    y: (context.input.numStrings - 1) * context.input.stringSpacing + 10,
-    lineEndX: getBeatX(context.input, endBeatIndex) + getBeatWidth(context.input, endBeatIndex),
+  let endBeatIndex = context.beatIndex
+  while (beatHasRun(beats[endBeatIndex + 1], kind)) {
+    endBeatIndex += 1
+  }
+
+  const lane = getLane(context.input, kind)
+  const x = getNoteCenter(context) - 6
+  runs.push({
+    kind,
+    label: RUN_LABELS[kind],
+    x,
+    y: lane.top + lane.height - 3,
+    lineStartX: x + RUN_LABEL_WIDTH[kind] + 3,
+    lineEndX: getBeatX(context.input, endBeatIndex) + getBeatWidth(context.input, endBeatIndex) - 2,
+    lineY: lane.top + lane.height - 6,
+  })
+}
+
+function collectBeatAnnotations(context: BeatEffectContext, collections: TabEffectCollections): void {
+  const beat = context.beat
+  const key = beatKey(context.input.blockId, context.beatIndex)
+  if (beatHasText(beat)) {
+    const lane = getLane(context.input, 'text')
+    const line = context.input.lanes?.textLine[key] ?? 0
+    collections.beatTexts.push({
+      text: String(beat.text),
+      x: getNoteCenter(context) - 4,
+      // Line 0 is nearest to the strings.
+      y: lane.top + lane.height - line * LANE_HEIGHTS.text - 3,
+      beatIndex: context.beatIndex,
+    })
+  }
+  if (beat?.dynamicPresent && beat.dynamic) {
+    const lane = getLane(context.input, 'dynamic')
+    collections.dynamics.push({
+      text: String(beat.dynamic),
+      x: getNoteCenter(context),
+      y: lane.top + lane.height - 5,
+      beatIndex: context.beatIndex,
+    })
+  }
+}
+
+/** Brush stroke: vertical arrow left of the chord, pointing in the strum direction on the page. */
+function collectStrokeEffect(context: BeatEffectContext, strokes: StrokeEffect[]): void {
+  const effects = context.beat?.effects as { stroke?: { strokeType?: string } } | undefined
+  if (!effects?.stroke) {
+    return
+  }
+  const strings = (context.beat?.notes ?? [])
+    .map((note, index) => (note ? index : -1))
+    .filter((index) => index >= 0)
+  if (strings.length === 0) {
+    return
+  }
+
+  const widest = Math.max(...strings.map((index) => getDigitHalfWidth(context.beat?.notes?.[index] ?? null)))
+  const x = getNoteCenter(context) - widest - 5
+  const spacing = context.input.stringSpacing
+  const lines = strings.map((string) => stringLine(string, context.input.numStrings))
+  const topY = Math.min(...lines) * spacing - 5
+  const bottomY = Math.max(...lines) * spacing + 5
+  // A down stroke strums from the low (bottom) to the high (top) string.
+  const pointsUp = effects.stroke.strokeType !== 'up'
+  const tipY = pointsUp ? topY : bottomY
+  const direction = pointsUp ? 1 : -1
+  strokes.push({
+    path: `M${x} ${topY}L${x} ${bottomY}`,
+    arrowPath: `M${x - 3} ${tipY + 5 * direction}L${x} ${tipY}L${x + 3} ${tipY + 5 * direction}`,
+    beatIndex: context.beatIndex,
   })
 }
 
 function collectBeatLevelEffects(context: BeatEffectContext, collections: TabEffectCollections): void {
   collectTremoloBarEffect(context, collections.tremoloBars)
-  collectLetRingEffect(context, collections.letRings)
+  collectRunEffect(context, 'palmMute', collections.runs)
+  collectRunEffect(context, 'letRing', collections.runs)
+  collectBeatAnnotations(context, collections)
+  collectStrokeEffect(context, collections.strokes)
 }
 
 export function buildTabEffects(input: TabEffectsInput): TabEffectCollections {

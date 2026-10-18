@@ -1,4 +1,5 @@
-import Song, { Measure, Note } from './songData';
+import Song, { Beat, Note } from './songData';
+import type { MenuEffectState } from '../../services/menuEffectMutations';
 import { tab } from './tab';
 import AppManager from './appManager';
 import { typedEventBus } from '../../utils/typedEventBus';
@@ -29,12 +30,12 @@ const noteToBeat: Record<NoteDuration, string> = {
   o: '128thNote',
 };
 
-function getBeat(noteRef: MenuEffectNoteRef): Measure {
-  return Song.measures[noteRef.trackId][noteRef.blockId][noteRef.voiceId][noteRef.beatId];
+function getBeat(noteRef: MenuEffectNoteRef): Beat {
+  return Song.getBeat({ trackId: noteRef.trackId, blockId: noteRef.blockId, voiceId: noteRef.voiceId, beatId: noteRef.beatId });
 }
 
-function getBeatFromBeatRef(beatRef: MenuEffectBeatRef): Measure {
-  return Song.measures[beatRef.trackId][beatRef.blockId][beatRef.voiceId][beatRef.beatId];
+function getBeatFromBeatRef(beatRef: MenuEffectBeatRef): Beat {
+  return Song.getBeat({ trackId: beatRef.trackId, blockId: beatRef.blockId, voiceId: beatRef.voiceId, beatId: beatRef.beatId });
 }
 
 function getMeasureMeta(blockId: number) {
@@ -95,7 +96,7 @@ class MenuHandler {
     requestMenuResync();
   }
 
-  public deactivateEffects(beat: Measure, note: Note | null, effects: string[]) {
+  public deactivateEffects(beat: Beat, note: Note | null, effects: string[]) {
     const blockId = tab.markedNoteObj?.blockId ?? 0;
     deactivateMenuEffectsInGroup(beat, note, effects, getMeasureMeta(blockId));
   }
@@ -104,7 +105,7 @@ class MenuHandler {
     requestMenuResync();
   }
 
-  public activateEffectsForBeat(_beat: Measure) {
+  public activateEffectsForBeat(_beat: Beat) {
     requestMenuResync();
   }
 
@@ -129,23 +130,23 @@ class MenuHandler {
     AppManager.changeTrack(Song.currentTrackId, voiceId, false, null);
   }
 
-  public setEffectVariable(beatIn: Measure, noteIn: Note | null, name: string, value: boolean) {
+  public setEffectVariable(beatIn: Beat, noteIn: Note | null, name: string, value: MenuEffectState) {
     const blockId = tab.markedNoteObj?.blockId ?? 0;
     setMenuEffectVariable(beatIn, noteIn, name, value, getMeasureMeta(blockId));
   }
 
-  public getEffectVariable(beat: Measure, note: Note | null, name: string): boolean {
+  public getEffectVariable(beat: Beat, note: Note | null, name: string): boolean {
     const blockId = tab.markedNoteObj?.blockId ?? 0;
     return getMenuEffectVariable(beat, note, name, getMeasureMeta(blockId));
   }
 
   public handleEffectCollision(
-    beat: Measure,
+    beat: Beat,
     note: Note | null,
     groupIndex: number,
     id: string,
     isVariableSet: boolean,
-  ): Record<string, boolean> {
+  ): Record<string, MenuEffectState> {
     const blockId = tab.markedNoteObj?.blockId ?? 0;
     return applyMenuEffectCollision(
       beat,
@@ -161,7 +162,7 @@ class MenuHandler {
     notes: MenuEffectNoteRef[],
     id: string,
     isVariableSet: boolean,
-  ): Record<string, Record<string, boolean>> {
+  ): Record<string, Record<string, MenuEffectState>> {
     return handleMenuEffectGroupCollision(notes, id, isVariableSet, getBeat, getMeasureMeta);
   }
 
@@ -186,7 +187,7 @@ class MenuHandler {
     beatId: number,
     _string: number,
   ) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
     const duration = beat.duration[0] as NoteDuration;
     this.chooseNoteLength(duration);
     requestMenuResync();
@@ -219,7 +220,7 @@ class MenuHandler {
         ? (beatId - 1)
         : Song.measures[trackId][i][voiceId].length - 1;
       for (let j = startBeatId; j >= 0; j -= 1) {
-        const { notes } = Song.measures[trackId][i][voiceId][j];
+        const { notes } = Song.getBeat({ trackId, blockId: i, voiceId, beatId: j });
         if (notes?.[string] != null) {
           noteToTie = { blockId: i, beatId: j };
           break;

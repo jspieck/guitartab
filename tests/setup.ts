@@ -2,8 +2,8 @@ import { vi } from 'vitest'
 
 /**
  * Shared Vitest setup for GuitarTabVue.
- * Stubs browser-only APIs and heavy singletons so unit tests can import
- * editor/layout modules without AudioContext / Worker / modal side effects.
+ * Stubs browser-only globals (AudioContext, Worker, object URLs) and a DOM-only
+ * third-party widget, so modules can be imported in node.
  */
 
 class AudioContextStub {
@@ -55,44 +55,5 @@ vi.mock('vanilla-picker', () => ({
   default: class PickerMock {},
 }))
 
-vi.mock('../src/assets/js/audioEngine', () => ({
-  audioEngine: {
-    getCurrentTime: () => 0,
-    setEffectGain: () => {},
-  },
-}))
-
-vi.mock('../src/assets/js/playBackLogicNew', () => ({
-  default: {
-    setPlayPosition: vi.fn(),
-    getCurrentBlock: () => 0,
-    currentBlockPP: 0,
-    startPlayBack: vi.fn(),
-    stopPlayBack: vi.fn(),
-  },
-}))
-
-vi.mock('../src/assets/js/midiReceiver', () => ({
-  default: {
-    isRecording: false,
-    midiToNote: vi.fn(),
-  },
-}))
-
-vi.mock('../src/assets/js/modals/modalManager', () => ({
-  modalManager: {
-    toggleByModal: vi.fn(),
-    toggleModal: vi.fn(),
-    getHandler: vi.fn(),
-    isAnyModalOpen: vi.fn(() => false),
-  },
-}))
-
-vi.mock('../src/assets/js/appManager', () => ({
-  default: {
-    duringTrackCreation: false,
-    typeOfNote: 'e',
-    changeTrack: vi.fn(),
-    checkAndAdaptTimeMeter: vi.fn(),
-  },
-}))
+// Legacy app singletons are no longer mocked for every test; files that need that opt in
+// with tests/helpers/legacyMocks.ts.

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { toggleClassicalNotation, waitForEditorShell } from './helpers'
+import { growSong, toggleClassicalNotation, waitForEditorShell } from './helpers'
 
 test.describe('tab layout', () => {
   test('renders multiple tab rows with classical notation off', async ({ page }) => {
@@ -113,5 +113,43 @@ test.describe('incremental tab rendering', () => {
 
     // Row elements are patched, not recreated, by edits inside them.
     await expect(page.locator('.tab-row[data-e2e-marker="kept"]')).toHaveCount(1)
+  })
+})
+
+test.describe('pointer hit-testing on long songs', () => {
+  test('enters the note in the clicked row when the song is longer than one page', async ({ page }) => {
+    await waitForEditorShell(page)
+    await growSong(page)
+    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = 0 })
+
+    await page.locator('.tab-row').first().locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page.keyboard.press('9')
+
+    await expect(page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^9$/ })).toHaveCount(1)
+  })
+})
+
+test.describe('selection indicator', () => {
+  test('is centred on the note for every beat, including the last beat of a measure', async ({ page }) => {
+    await waitForEditorShell(page)
+
+    // Measure 2 of the demo song is empty; click its right end to select the last beat.
+    const measure = page.locator('.tab-row').first().locator('.tab-measure').nth(2)
+    const measureBox = (await measure.boundingBox())!
+    const strings = page.locator('.tab-row').first().locator('.string-click-area').first()
+    const stringsBox = (await strings.boundingBox())!
+    await strings.click({ position: { x: measureBox.x + measureBox.width - 8 - stringsBox.x, y: 6 } })
+    await page.keyboard.press('5')
+
+    const digit = measure.locator('.note-text').filter({ hasText: /^5$/ })
+    await expect(digit).toHaveCount(1)
+    const indicator = page.locator('.tab-row').first().locator('.selection-indicator rect')
+    await expect(indicator).toHaveCount(1)
+
+    const center = async (locator: typeof digit) => {
+      const box = (await locator.boundingBox())!
+      return box.x + box.width / 2
+    }
+    expect(Math.abs(await center(indicator) - await center(digit))).toBeLessThanOrEqual(1)
   })
 })

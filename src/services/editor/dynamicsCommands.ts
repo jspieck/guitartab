@@ -31,7 +31,7 @@ export function processDynamicSelect(
   for (const {
     trackId, blockId, voiceId, beatId,
   } of arr.notes) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId]
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
     if (!beat.dynamicPresent || beat.dynamic !== dynamic) {
       isVariableSet = false
     }
@@ -40,7 +40,7 @@ export function processDynamicSelect(
   for (const {
     trackId, blockId, voiceId, beatId, string,
   } of arr.notes) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId]
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
     const note = beat.notes[string]
     beat.dynamic = dynamic
 

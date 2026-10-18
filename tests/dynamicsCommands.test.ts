@@ -6,8 +6,9 @@ const deactivateEffects = vi.fn()
 const setEffectVariable = vi.fn()
 const requestOverBarRender = vi.fn()
 
-vi.mock('../src/assets/js/songData', () => ({
-  default: {
+vi.mock('../src/assets/js/songData', async () => {
+  const { createSongMock } = await import('./helpers/songMock')
+  return { default: createSongMock({
     measures: [
       [
         [
@@ -19,8 +20,8 @@ vi.mock('../src/assets/js/songData', () => ({
         ],
       ],
     ],
-  },
-}))
+  }) }
+})
 
 vi.mock('../src/assets/js/revertHandler', () => ({
   revertHandler: {

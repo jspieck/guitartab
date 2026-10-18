@@ -1,360 +1,333 @@
 <template>
     <BaseModal :modal-id="MODALS.COMPRESSOR.id">
-        <template #title>Compressor</template>
-        <div class="comp-plugin">
-            <div class="comp-hero">
-                <div class="comp-screen comp-screen-primary">
-                    <span class="comp-screen-label">GR</span>
-                    <div class="comp-screen-reading-row">
-                        <span class="comp-screen-reading">{{ gainReductionDb.toFixed(1) }}</span>
-                        <span class="comp-screen-unit">dB</span>
-                    </div>
+        <template #title>Master Compressor</template>
+        <div class="ap-root comp" :class="{ 'comp-bypassed': bypass }">
+            <div class="ap-toolbar">
+                <label class="ap-section-label" for="compressorPreset">Preset</label>
+                <select id="compressorPreset" class="ap-select comp-preset" :value="presetName" @change="applyPreset">
+                    <option value="" disabled>Custom</option>
+                    <option v-for="preset in COMPRESSOR_PRESETS" :key="preset.name" :value="preset.name">{{ preset.name }}</option>
+                </select>
+                <span class="ap-toolbar-spacer"></span>
+                <span class="comp-bypass-label" :class="{ 'comp-bypass-on': !bypass }">{{ bypass ? 'Bypassed' : 'Active' }}</span>
+                <button type="button" role="switch" class="ap-toggle" :aria-checked="!bypass"
+                    aria-label="Compressor on" style="--ap-toggle-color: var(--ap-green)"
+                    @click="handler.setBypass(!bypass)"></button>
+            </div>
+
+            <div class="comp-display">
+                <div class="comp-curve ap-card">
+                    <svg :viewBox="`0 0 ${CURVE} ${CURVE}`" :width="CURVE" :height="CURVE" role="img"
+                        :aria-label="`Transfer curve: threshold ${settings.threshold.toFixed(1)} dB, ratio ${settings.ratio.toFixed(1)}:1`">
+                        <g class="comp-grid">
+                            <template v-for="db in GRID_DB" :key="db">
+                                <line :x1="dbToPx(db)" :x2="dbToPx(db)" y1="0" :y2="CURVE" />
+                                <line x1="0" :x2="CURVE" :y1="CURVE - dbToPx(db)" :y2="CURVE - dbToPx(db)" />
+                            </template>
+                            <line class="comp-unity" x1="0" :y1="CURVE" :x2="CURVE" y2="0" />
+                        </g>
+                        <line class="comp-threshold" :x1="dbToPx(settings.threshold)" :x2="dbToPx(settings.threshold)" y1="0" :y2="CURVE" />
+                        <path class="comp-curve-fill" :d="curveFillPath" />
+                        <path class="comp-curve-line" :d="curvePath" />
+                        <circle v-if="liveInputDb > MIN_DB" class="comp-live-dot"
+                            :cx="dbToPx(liveInputDb)" :cy="CURVE - dbToPx(liveCurveDb)" r="4" />
+                        <text class="comp-axis" :x="CURVE - 4" :y="CURVE - 5" text-anchor="end">Input →</text>
+                        <text class="comp-axis" x="4" y="12">↑ Output</text>
+                        <text v-for="db in [-48, -36, -24]" :key="`x${db}`" class="comp-axis comp-axis-tick" :x="dbToPx(db) + 3" :y="CURVE - 5">{{ db }}</text>
+                    </svg>
                 </div>
-                <div class="comp-screen">
-                    <span class="comp-screen-label">THR</span>
-                    <div class="comp-screen-reading-row">
-                        <span class="comp-screen-reading">{{ formatSettingValue(settings[2], 2) }}</span>
-                        <span class="comp-screen-unit">{{ settings[2].unit }}</span>
-                    </div>
-                </div>
-                <div class="comp-screen">
-                    <span class="comp-screen-label">Ratio</span>
-                    <div class="comp-screen-reading-row">
-                        <span class="comp-screen-reading">{{ formatSettingValue(settings[3], 3) }}</span>
-                        <span class="comp-screen-unit">{{ settings[3].unit }}</span>
+
+                <div class="comp-meters ap-card">
+                    <div v-for="meter in meters" :key="meter.id" class="comp-meter">
+                        <span class="comp-meter-value ap-num">{{ meter.text }}</span>
+                        <div class="comp-meter-track" :class="`comp-meter-${meter.id}`">
+                            <div class="comp-meter-fill" :style="meter.style"></div>
+                            <div v-for="tick in meter.ticks" :key="tick.label" class="comp-meter-tick" :style="{ top: `${tick.top}%` }">
+                                <span>{{ tick.label }}</span>
+                            </div>
+                        </div>
+                        <span class="ap-section-label">{{ meter.label }}</span>
                     </div>
                 </div>
             </div>
 
-            <div class="comp-panel">
-                <div class="comp-knobs">
-                    <div v-for="(setting, index) in settings" :key="setting.knobId" class="comp-knob-cell">
-                        <span class="comp-knob-label">{{ setting.label }}</span>
-                        <div class="comp-knob-ring">
-                            <KnobBox
-                                :label="''"
-                                :containerId="setting.containerId"
-                                :knobId="setting.knobId"
-                                :dataId="index"
-                                :rotate-func="compressorKnobRotate"
-                                :start="setting.start"
-                                :min="setting.min"
-                                :max="setting.max"
-                                :valueId="setting.valueId"
-                                :knobValue="knobValues[index]"
-                                :unit="setting.unit"
-                                :midKnob="true" />
-                        </div>
-                        <span class="comp-knob-value">{{ formatSettingValue(setting, index) }}<span class="comp-unit">{{ setting.unit }}</span></span>
-                    </div>
-                </div>
-                <div class="comp-gr-row">
-                    <span class="gr-label">GR</span>
-                    <div class="gr-track">
-                        <div class="gr-fill" :style="{ width: grWidth + '%' }"></div>
-                        <div class="gr-markers">
-                            <span v-for="m in grMarkers" :key="m" class="gr-marker" :style="{ left: m + '%' }">{{ Math.round(m * 0.24) }}</span>
-                        </div>
-                    </div>
-                    <span class="gr-unit">dB</span>
-                </div>
+            <div class="comp-knobs ap-card">
+                <RotaryKnob label="Threshold" :model-value="settings.threshold" v-bind="COMPRESSOR_RANGES.threshold"
+                    :default-value="DEFAULTS.threshold" :format="(v) => `${v.toFixed(1)} dB`" :size="52"
+                    color="var(--ap-amber)" @update:model-value="handler.update({ threshold: $event })" />
+                <RotaryKnob label="Ratio" :model-value="settings.ratio" v-bind="COMPRESSOR_RANGES.ratio" scale="log"
+                    :default-value="DEFAULTS.ratio" :format="(v) => `${v.toFixed(v < 10 ? 1 : 0)}:1`" :size="52"
+                    color="var(--ap-amber)" @update:model-value="handler.update({ ratio: $event })" />
+                <RotaryKnob label="Knee" :model-value="settings.knee" v-bind="COMPRESSOR_RANGES.knee"
+                    :default-value="DEFAULTS.knee" :format="(v) => `${v.toFixed(1)} dB`" :size="52"
+                    color="var(--ap-amber)" @update:model-value="handler.update({ knee: $event })" />
+                <RotaryKnob label="Attack" :model-value="settings.attack" v-bind="COMPRESSOR_RANGES.attack" scale="log"
+                    :default-value="DEFAULTS.attack" :format="formatMs" :size="52"
+                    @update:model-value="handler.update({ attack: $event })" />
+                <RotaryKnob label="Release" :model-value="settings.release" v-bind="COMPRESSOR_RANGES.release" scale="log"
+                    :default-value="DEFAULTS.release" :format="formatMs" :size="52"
+                    @update:model-value="handler.update({ release: $event })" />
             </div>
         </div>
     </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { reactive, computed } from 'vue';
-import { audioEngine } from '../assets/js/audioEngine';
-import KnobBox from './KnobBox.vue';
+import { computed, ref } from 'vue';
 import BaseModal from './BaseModal.vue';
+import RotaryKnob from './audio/RotaryKnob.vue';
+import './audio/audioPlugin.css';
 import { MODALS } from '../assets/js/modals/modalTypes';
+import { modalManager } from '../assets/js/modals/modalManager';
+import audioEngine from '../assets/js/audioEngine';
+import {
+    COMPRESSOR_PRESETS, COMPRESSOR_RANGES, CompressorModalHandler, compressorCurve,
+} from '../assets/js/modals/compressorModalHandler';
+import { useAnimationLoop, useModalOpen } from '../composables/useModalOpen';
 
-interface CompressorSetting {
-    label: string;
-    containerId: string;
-    knobId: string;
-    start: number;
-    min: number;
-    max: number;
-    valueId: string;
-    unit: string;
-    displayDecimals: number;
+const CURVE = 200;
+const MIN_DB = -60;
+const GRID_DB = [-48, -36, -24, -12];
+const GR_RANGE = 24;
+const DEFAULTS = COMPRESSOR_PRESETS[0].settings;
+const PEAK_FALL_DB_PER_FRAME = 0.5;
+
+const handler = modalManager.getHandler(MODALS.COMPRESSOR.id) as CompressorModalHandler;
+const settings = handler.settings;
+const bypass = computed(() => handler.bypass.value);
+const presetName = computed(() => handler.matchingPreset());
+
+const outputDb = ref(MIN_DB);
+const reductionDb = ref(0);
+let timeDomain: Float32Array | null = null;
+
+function dbToPx(db: number): number {
+    return ((Math.max(MIN_DB, Math.min(0, db)) - MIN_DB) / -MIN_DB) * CURVE;
 }
 
-const settings: CompressorSetting[] = [
-    { label: 'Attack', containerId: 'attackKnobContainer', knobId: 'attackKnob', start: 5, min: 0, max: 100, valueId: 'compAttValue', unit: 'ms', displayDecimals: 0 },
-    { label: 'Release', containerId: 'releaseKnobContainer', knobId: 'releaseKnob', start: 50, min: 1, max: 1000, valueId: 'compReleaseValue', unit: 'ms', displayDecimals: 0 },
-    { label: 'Threshold', containerId: 'thresholdKnobContainer', knobId: 'thresholdKnob', start: -1, min: -60, max: 0, valueId: 'compThresholdValue', unit: 'dB', displayDecimals: 1 },
-    { label: 'Ratio', containerId: 'ratioKnobContainer', knobId: 'ratioKnob', start: 20, min: 1, max: 20, valueId: 'compRatioValue', unit: ':1', displayDecimals: 1 },
-];
-
-const knobValues = reactive<Record<number, number>>(Object.fromEntries(settings.map((setting, index) => [index, setting.start])) as Record<number, number>);
-
-const grMarkers = [0, 25, 50, 75, 100];
-
-const gainReductionDb = computed(() => {
-    const threshold = Math.abs(knobValues[2]);
-    const ratio = Math.max(1, knobValues[3]);
-
-    return Math.min(24, threshold / ratio);
-});
-
-const grWidth = computed(() => {
-    return (gainReductionDb.value / 24) * 100;
-});
-
-function formatSettingValue(setting: CompressorSetting, index: number): string {
-    return knobValues[index].toFixed(setting.displayDecimals);
+function formatMs(value: number): string {
+    return value < 10 ? `${value.toFixed(1)} ms` : `${Math.round(value)} ms`;
 }
 
-function setLimiterProperty(limiter: DynamicsCompressorNode, property: string, value: number) {
-    switch (property) {
-        case 'attack':    limiter.attack.value    = value / 1000; break;
-        case 'release':   limiter.release.value   = value / 1000; break;
-        case 'threshold': limiter.threshold.value = value;        break;
-        case 'ratio':     limiter.ratio.value     = value;        break;
+function applyPreset(event: Event) {
+    const preset = COMPRESSOR_PRESETS.find((p) => p.name === (event.target as HTMLSelectElement).value);
+    if (preset) handler.update(preset.settings);
+}
+
+const activeSettings = computed(() => (bypass.value ? { ...settings, threshold: 0, ratio: 1 } : settings));
+
+const curvePoints = computed(() => {
+    const points: string[] = [];
+    for (let db = MIN_DB; db <= 0; db += 0.5) {
+        points.push(`${dbToPx(db).toFixed(1)},${(CURVE - dbToPx(compressorCurve(db, activeSettings.value))).toFixed(1)}`);
     }
+    return points;
+});
+const curvePath = computed(() => `M ${curvePoints.value.join(' L ')}`);
+const curveFillPath = computed(() => `${curvePath.value} L ${CURVE},${CURVE} L 0,${CURVE} Z`);
+
+// The analyser sits after the compressor, so input ≈ output + gain reduction.
+const liveInputDb = computed(() => (outputDb.value <= MIN_DB ? MIN_DB : outputDb.value - reductionDb.value));
+const liveCurveDb = computed(() => compressorCurve(liveInputDb.value, activeSettings.value));
+
+function levelPercent(db: number): number {
+    return (Math.max(MIN_DB, Math.min(0, db)) - MIN_DB) / -MIN_DB * 100;
 }
 
-function compressorKnobRotate(angle: number, settingId: string) {
-    const idx = parseInt(settingId, 10);
-    const setting = settings[idx];
-    knobValues[idx] = (angle / 360) * (setting.max - setting.min) + setting.min;
+const levelTicks = [0, -12, -24, -36, -48].map((db) => ({ label: `${db}`, top: 100 - levelPercent(db) }));
+const grTicks = [0, 6, 12, 18, 24].map((db) => ({ label: `${db}`, top: (db / GR_RANGE) * 100 }));
 
-    if (audioEngine.limiter != null) {
-        setLimiterProperty(audioEngine.limiter, setting.label.toLowerCase(), knobValues[idx]);
+const meters = computed(() => [
+    {
+        id: 'in',
+        label: 'In',
+        text: liveInputDb.value <= MIN_DB ? '-∞' : liveInputDb.value.toFixed(1),
+        style: { height: `${levelPercent(liveInputDb.value)}%` },
+        ticks: levelTicks,
+    },
+    {
+        id: 'gr',
+        label: 'GR',
+        text: reductionDb.value > -0.05 ? '0.0' : reductionDb.value.toFixed(1),
+        style: { height: `${Math.min(100, (-reductionDb.value / GR_RANGE) * 100)}%` },
+        ticks: grTicks,
+    },
+    {
+        id: 'out',
+        label: 'Out',
+        text: outputDb.value <= MIN_DB ? '-∞' : outputDb.value.toFixed(1),
+        style: { height: `${levelPercent(outputDb.value)}%` },
+        ticks: levelTicks,
+    },
+]);
+
+function readPeakDb(): number {
+    const analyser = audioEngine.masterAnalyser;
+    if (timeDomain == null || timeDomain.length !== analyser.fftSize) {
+        timeDomain = new Float32Array(analyser.fftSize);
     }
+    analyser.getFloatTimeDomainData(timeDomain);
+    let peak = 0;
+    for (let i = 0; i < timeDomain.length; i += 1) {
+        const sample = Math.abs(timeDomain[i]);
+        if (sample > peak) peak = sample;
+    }
+    return peak > 0 ? 20 * Math.log10(peak) : MIN_DB;
 }
+
+const isOpen = useModalOpen(MODALS.COMPRESSOR.id);
+useAnimationLoop(isOpen, () => {
+    const peak = readPeakDb();
+    // Instant attack, slow fall, so peaks stay readable.
+    outputDb.value = Math.max(peak, outputDb.value - PEAK_FALL_DB_PER_FRAME, MIN_DB);
+    const reduction = handler.reduction();
+    reductionDb.value = Math.min(reduction, reductionDb.value + PEAK_FALL_DB_PER_FRAME, 0);
+});
 </script>
 
 <style scoped>
-:global(#compressorModal) {
-    background: #12151c;
-    min-width: 520px;
-    border: 1px solid #2a3039;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    overflow: hidden;
-}
-:global(#compressorModal .modalTopBar) {
-    min-height: 40px;
-    height: auto;
-    background: #181c24;
-    border-bottom: 1px solid #2a3039;
-    padding: 6px 10px 6px 0;
-}
-:global(#compressorModal .modalTopBarLabel) {
-    color: #c8ced8;
-    font-size: 13px;
-    font-weight: 600;
-}
-:global(#compressorModal .modal_close .icon) { fill: #7a8494; stroke: #7a8494; }
-:global(#compressorModal .modal_close:hover .icon) { fill: #d4a054; stroke: #d4a054; }
-:global(#compressorModal .modalBody) {
-    padding: 0;
-    background: #12151c;
+.comp {
+    width: 468px;
 }
 
-.comp-plugin {
+.comp-preset {
+    width: 150px;
+}
+
+.comp-bypass-label {
+    color: var(--ap-muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+.comp-bypass-on {
+    color: var(--ap-green);
+}
+
+.comp-display {
     display: flex;
-    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
-    padding: 12px;
-    overflow: visible;
-    background: #141820;
 }
 
-.comp-hero {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.comp-screen {
+.comp-curve {
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 4px;
-    min-height: 58px;
-    padding: 10px 12px;
-    border-radius: 6px;
-    border: 1px solid #2a3039;
-    background: #1a1f28;
+    align-items: center;
+    padding: 8px;
+    background: var(--ap-inset);
+    line-height: 0;
 }
 
-.comp-screen-primary {
-    border-color: #3d4654;
+.comp-grid line {
+    stroke: var(--ap-grid);
+    stroke-width: 1;
 }
-
-.comp-screen-label {
-    color: #8b939f;
-    font-size: 10px;
+.comp-grid .comp-unity {
+    stroke: var(--ap-grid-strong);
+    stroke-dasharray: 3 4;
+}
+.comp-threshold {
+    stroke: var(--ap-amber);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+    opacity: 0.7;
+}
+.comp-curve-fill {
+    fill: color-mix(in srgb, var(--ap-amber) 10%, transparent);
+}
+.comp-curve-line {
+    fill: none;
+    stroke: var(--ap-amber);
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+.comp-live-dot {
+    fill: #fff;
+    stroke: var(--ap-amber);
+    stroke-width: 2;
+}
+.comp-axis {
+    fill: var(--ap-faint);
+    font-size: 9px;
     font-weight: 600;
 }
+.comp-bypassed .comp-curve-line,
+.comp-bypassed .comp-threshold {
+    stroke: var(--ap-faint);
+}
+.comp-bypassed .comp-curve-fill {
+    fill: transparent;
+}
 
-.comp-screen-reading-row {
+.comp-meters {
+    flex: 1;
     display: flex;
-    align-items: baseline;
-    gap: 4px;
+    justify-content: space-around;
+    padding: 10px 6px 8px;
 }
 
-.comp-screen-reading {
-    color: #eef1f5;
-    font-size: 20px;
-    line-height: 1;
-    font-weight: 600;
-    font-family: 'Roboto Mono', monospace, sans-serif;
-}
-
-.comp-screen-unit {
-    color: #a8894f;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.comp-panel {
-    padding: 12px;
-    border: 1px solid #2a3039;
-    border-radius: 8px;
-    background: #181c24;
-}
-
-.comp-knobs {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-    overflow: visible;
-}
-
-.comp-knob-cell {
+.comp-meter {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 12px 10px 10px;
-    background: #1a1f28;
-    border: 1px solid #2a3039;
-    border-radius: 6px;
-    min-width: 0;
-    overflow: hidden;
 }
 
-.comp-knob-label {
-    color: #9aa3af;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.comp-knob-ring {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    min-height: 60px;
-}
-
-:deep(.comp-knob-ring .knobBox) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 60px;
-    margin: 0;
-}
-
-:deep(.comp-knob-ring div.knob) {
-    transform: scale(1.6);
-    transform-origin: center center;
-    background: transparent !important;
-    overflow: visible;
-    box-shadow: none;
-    flex-shrink: 0;
-}
-
-:deep(.comp-knob-ring .knobRing circle:first-child) {
-    fill: #161c28;
-}
-
-.comp-knob-value {
-    color: #eef1f5;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'Roboto Mono', monospace, sans-serif;
-}
-
-.comp-unit {
-    color: #a8894f;
-    font-size: 10px;
-    margin-left: 3px;
-    font-weight: 600;
-}
-
-:deep(.knobBox > label:first-child),
-:deep(.knobBox > label:last-child) {
-    display: none;
-}
-
-.comp-gr-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 2px 0;
-}
-
-.gr-label, .gr-unit {
-    color: #8b939f;
-    font-size: 10px;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.gr-track {
-    flex: 1;
-    height: 10px;
-    background: #0f1218;
+.comp-meter-value {
+    min-width: 40px;
+    padding: 2px 4px;
     border-radius: 4px;
+    background: var(--ap-inset);
+    color: var(--ap-text);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.comp-meter-track {
     position: relative;
-    overflow: hidden;
-    border: 1px solid #2a3039;
-}
-
-.gr-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4a9e6e 0%, #c4a035 55%, #c45c5c 100%);
+    flex: 1;
+    width: 12px;
+    min-height: 150px;
     border-radius: 3px;
-    transition: width 0.05s linear;
+    background: var(--ap-inset);
+    border: 1px solid var(--ap-border);
 }
 
-.gr-markers {
+.comp-meter-fill {
     position: absolute;
-    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    pointer-events: none;
+    border-radius: 2px;
+    background: linear-gradient(to top, #3fbf7f 0%, #3fbf7f 60%, #f2b84b 82%, #f06c6c 100%);
+    background-size: 100% 150px;
+    background-position: bottom;
+}
+.comp-meter-gr .comp-meter-fill {
+    top: 0;
+    bottom: auto;
+    background: var(--ap-amber);
 }
 
-.gr-marker {
+.comp-meter-tick {
     position: absolute;
-    top: -14px;
-    font-size: 8px;
-    font-weight: 500;
-    color: #6d7787;
-    font-family: 'Roboto Mono', monospace, sans-serif;
-    transform: translateX(-50%);
+    left: 14px;
+    height: 0;
+    border-top: 1px solid var(--ap-border-strong);
+    width: 4px;
+}
+.comp-meter-tick span {
+    position: absolute;
+    left: 6px;
+    top: -6px;
+    color: var(--ap-faint);
+    font-size: 9px;
+    line-height: 1;
 }
 
-@media (max-width: 900px) {
-    :global(#compressorModal) {
-        min-width: 0;
-        width: min(92vw, 560px);
-    }
-
-    .comp-hero,
-    .comp-knobs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+.comp-knobs {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 6px 10px;
 }
 </style>

@@ -70,28 +70,16 @@ export class MarkerModalHandler extends BaseModalHandler {
     public applyMarker(): void {
         const { blockId, trackId, voiceId, markerData } = this.modalState;
 
-        const markerPresentBefore = Song.measureMeta[blockId].markerPresent != null
-            && Song.measureMeta[blockId].markerPresent;
-
-        if (!Song.measureMeta[blockId].markerPresent) {
-            Song.measureMeta[blockId].markerPresent = true;
-            typedEventBus.emit("menu.activateEffectsForBlock");
-        }
-
         const markerBefore = Song.measureMeta[blockId].marker;
         Song.measureMeta[blockId].marker = {
             text: markerData.text,
             color: markerData.color,
         };
+        if (markerBefore == null) {
+            typedEventBus.emit("menu.activateEffectsForBlock");
+        }
 
-        revertHandler.addMarker(
-            trackId, 
-            blockId, 
-            markerBefore, 
-            Song.measureMeta[blockId].marker,
-            markerPresentBefore, 
-            Song.measureMeta[blockId].markerPresent
-        );
+        revertHandler.addMarker(trackId, blockId, markerBefore, Song.measureMeta[blockId].marker);
 
         SequencerHandler.setMarker(blockId);
         requestBlockRender(trackId, blockId, voiceId);

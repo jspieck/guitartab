@@ -74,15 +74,7 @@ export class TimeMeterModalHandler extends BaseModalHandler {
                 denominator: 4,
                 numerator: 4,
                 timeMeterPresent: false,
-                bpmPresent: false,
-                bpm: 90,
-                repeatClosePresent: false,
                 repeatOpen: false,
-                repeatClose: 0,
-                repeatAlternativePresent: false,
-                repeatAlternative: 0,
-                markerPresent: false,
-                marker: { text: '', color: { red: 255, green: 0, blue: 0 } },
                 keySignature: 0,
                 automations: [],
             };
@@ -99,8 +91,9 @@ export class TimeMeterModalHandler extends BaseModalHandler {
 
         console.log('Handling submit', blockId, trackId, voiceId, numerator, denominator);
         
+        const timeMeterPresentBefore = Song.measureMeta[blockId].timeMeterPresent;
         Song.measureMeta[blockId].timeMeterPresent = true;
-        
+
         const numeratorBefore = Song.measureMeta[blockId].numerator;
         const denominatorBefore = Song.measureMeta[blockId].denominator;
 
@@ -111,7 +104,7 @@ export class TimeMeterModalHandler extends BaseModalHandler {
         if (notesBefore == null) {
             Song.measureMeta[blockId].numerator = numeratorBefore;
             Song.measureMeta[blockId].denominator = denominatorBefore;
-            Song.measureMeta[blockId].timeMeterPresent = false;
+            Song.measureMeta[blockId].timeMeterPresent = timeMeterPresentBefore;
             return false;
         }
 
@@ -130,7 +123,7 @@ export class TimeMeterModalHandler extends BaseModalHandler {
             numerator,
             denominatorBefore,
             denominator,
-            false,
+            timeMeterPresentBefore,
             true,
             notesBefore
         );

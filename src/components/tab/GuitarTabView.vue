@@ -61,7 +61,7 @@
           :transform="playbackBarTransform"
           :style="playbackBarStyle"
         >
-          <rect x="0" y="-5" width="2" :height="playbackBarHeight" fill="rgba(49, 156, 217, 0.6)" />
+          <rect x="0" y="-5" width="2" :height="getPlaybackBarHeight(playbackBarState.y) + 5" fill="rgba(49, 156, 217, 0.6)" />
         </g>
       </g>
     </svg>
@@ -69,7 +69,8 @@
     <ClassicalNotationLayer
       :is-active="classicalNotationActive"
       :track-id="trackId"
-      :tab-rows="tabRows"
+      :voice-id="voiceId"
+      :tab-rows="visibleTabRows"
       :padding-left="paddingLeft"
       :padding-top="paddingTop"
       :tab-group-width="tabGroupWidth"
@@ -79,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import TabRow from './TabRow.vue'
 import ClassicalNotationLayer from './ClassicalNotationLayer.vue'
 import { useGuitarTabLayout } from '../../composables/useGuitarTabLayout'
@@ -93,7 +94,6 @@ import { useTabRenderInvalidation } from '../../composables/useTabRenderInvalida
 import { useTabSelectionBridge } from '../../composables/useTabSelectionBridge'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
-import { classicalNotationLayoutState } from '../../stores/classicalNotationLayoutState'
 import editorCore from '../../services/editor/editorCore'
 
 interface Props {
@@ -112,12 +112,8 @@ const { syncSongData } = useSongData()
 
 const {
   currentSelection,
-  selectedNote,
   clearSelection,
   setSelection,
-  toggleToolbar,
-  copySelection,
-  pasteSelection,
 } = useTabSelection()
 
 const { playbackBarState } = usePlaybackBarState()
@@ -135,7 +131,6 @@ let unregisterRenderInvalidationBridge = () => {}
 
 const showTabInfo = true
 const {
-  songDataVersion,
   paddingLeft,
   paddingTop,
   tabGroupWidth,
@@ -143,26 +138,15 @@ const {
   songTitle,
   songAuthor,
   tabRows,
-  playbackBarHeight,
+  getPlaybackBarHeight,
   totalHeight,
   rowHeight,
 } = useGuitarTabLayout(props, renderVersion)
 
-const { visibleTabRows } = useVisibleTabRows(tabRows, rowHeight, paddingTop, svgRoot)
+const { visibleTabRows } = useVisibleTabRows(tabRows, paddingTop, svgRoot)
 
-const {
-  isActive: classicalNotationActive,
-  scheduleRedrawRows,
-} = useClassicalNotation(props.trackId, props.voiceId)
-
-watch(
-  [tabRows, classicalNotationActive, songDataVersion, () => classicalNotationLayoutState.version],
-  () => {
-    if (classicalNotationActive.value) {
-      void scheduleRedrawRows()
-    }
-  },
-)
+// Each mounted ClassicalRowSurface redraws itself when its row changes.
+const { isActive: classicalNotationActive } = useClassicalNotation(props.trackId, props.voiceId)
 
 function getMeasureContentPadding(blockId: number): number {
   const meta = editorCore.getMeasureMeta(blockId)
@@ -217,11 +201,7 @@ const {
   handleKeyDown,
 } = useTabEditorCommands({
   currentSelection,
-  selectedNote,
   clearSelection,
-  toggleToolbar,
-  copySelection,
-  pasteSelection,
 })
 
 onMounted(() => {

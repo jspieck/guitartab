@@ -1,16 +1,13 @@
 import Settings from '../../assets/js/settingManager'
 import { notifySongDataChanged } from '../appEvents'
 import Song from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
-import renderBridge from './renderBridge'
 import { typedEventBus } from '../../utils/typedEventBus'
+import { songDataVersion } from '../../stores/songState'
+import { getClassicalBeatWidth } from '../../stores/classicalNotationLayoutState'
 import {
-  classicalNotationLayoutState,
-  getClassicalBeatWidth,
-  getClassicalRowMarginTop,
-  getClassicalStaveBeginY,
-} from '../../stores/classicalNotationLayoutState'
-import { getClassicalRowSurface } from '../../stores/classicalNotationSurfaceState'
+  getClassicalRowSurface,
+  getRegisteredClassicalRowIds,
+} from '../../stores/classicalNotationSurfaceState'
 import {
   activateClassicalNotation,
   deactivateClassicalNotation,
@@ -24,10 +21,8 @@ interface LoadedClassicalNotation {
   updateVexFlowBlock(trackId: number, voiceId: number, blockId: number): void
   convertBlockToNotation(trackId: number, blockId: number, voiceId: number): void
   calculateLargestBeatWidth(trackId: number, blockId: number, voiceId: number): number
-  getMarginTop(rowId: number): number
-  getYForStaveBegin(blockId: number): number
   drawVexFlowRow(trackId: number, voiceId: number, rowId: number, vexFlowArea: HTMLElement): void
-  syncLayoutMetrics(): void
+  syncLayoutMetrics(): boolean
 }
 
 interface ClassicalNotationAdapter {
@@ -38,10 +33,9 @@ interface ClassicalNotationAdapter {
   updateVexFlowBlock(trackId: number, voiceId: number, blockId: number): void
   convertBlockToNotation(trackId: number, blockId: number, voiceId: number): void
   calculateLargestBeatWidth(trackId: number, blockId: number, voiceId: number): number
-  getMarginTop(rowId: number): number
-  getYForStaveBegin(blockId: number): number
-  drawVexFlowRow(trackId: number, voiceId: number, rowId: number, vexFlowArea: HTMLElement): void
+  requestRowDraw(trackId: number, voiceId: number, rowId: number): void
   drawAllRows(trackId: number, voiceId: number): void
+  flushPendingRowDraws(): Promise<void>
 }
 
 let loadedClassicalNotation: LoadedClassicalNotation | null = null
@@ -83,7 +77,81 @@ function getLoadedNotation(): LoadedClassicalNotation | null {
   return null
 }
 
+/*
+ * Row draw scheduler. Rows are drawn individually into the surfaces that are
+ * currently mounted (virtualized), batched into one animation frame. Notation
+ * structures are rebuilt at most once per song-data version, before drawing.
+ */
+const pendingRowIds = new Set<number>()
+let pendingTrack = { trackId: 0, voiceId: 0 }
+let structuresKey: string | null = null
+let flushScheduled = false
+
+function scheduleFlush(): void {
+  if (flushScheduled) {
+    return
+  }
+  flushScheduled = true
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(flushRowDraws)
+  } else {
+    queueMicrotask(flushRowDraws)
+  }
+}
+
+function flushRowDraws(): void {
+  flushScheduled = false
+  if (!Settings.vexFlowIsActive || pendingRowIds.size === 0) {
+    pendingRowIds.clear()
+    return
+  }
+  if (!loadedClassicalNotation) {
+    void loadClassicalNotation().then(scheduleFlush)
+    return
+  }
+
+  const notation = loadedClassicalNotation
+  const { trackId, voiceId } = pendingTrack
+  const key = `${trackId}:${voiceId}:${songDataVersion.value}`
+  if (structuresKey !== key) {
+    notation.computeVexFlowDataStructures(trackId, voiceId)
+    structuresKey = key
+    if (notation.syncLayoutMetrics()) {
+      // Widths or row height changed: the layout is about to move every row,
+      // so drawing now would be thrown away. Keep the rows queued for the
+      // next frame, after Vue has applied the new layout.
+      scheduleFlush()
+      return
+    }
+  }
+
+  const rowIds = [...pendingRowIds]
+  pendingRowIds.clear()
+  for (const rowId of rowIds) {
+    const surface = getClassicalRowSurface(rowId)
+    if (surface != null) {
+      notation.drawVexFlowRow(trackId, voiceId, rowId, surface)
+    }
+  }
+}
+
+function queueRowDraws(trackId: number, voiceId: number, rowIds: Iterable<number>): void {
+  if (!Settings.vexFlowIsActive) {
+    return
+  }
+  pendingTrack = { trackId, voiceId }
+  for (const rowId of rowIds) {
+    pendingRowIds.add(rowId)
+  }
+  scheduleFlush()
+}
+
+function invalidateClassicalStructures(): void {
+  structuresKey = null
+}
+
 function invalidateClassicalConsumers(): void {
+  invalidateClassicalStructures()
   notifySongDataChanged()
   typedEventBus.emit('classical-notation-changed')
   typedEventBus.emit('render.all')
@@ -143,6 +211,8 @@ const classicalNotation: ClassicalNotationAdapter = {
       notation.updateVexFlowBlock(trackId, voiceId, blockId)
       notation.syncLayoutMetrics()
     })
+    invalidateClassicalStructures()
+    queueRowDraws(trackId, voiceId, getRegisteredClassicalRowIds())
   },
 
   convertBlockToNotation(trackId: number, blockId: number, voiceId: number) {
@@ -168,56 +238,23 @@ const classicalNotation: ClassicalNotationAdapter = {
     return getLoadedNotation()?.calculateLargestBeatWidth(trackId, blockId, voiceId) ?? 0
   },
 
-  getMarginTop(rowId: number): number {
-    if (!Settings.vexFlowIsActive) {
-      return 0
-    }
-    return getClassicalRowMarginTop(rowId)
+  requestRowDraw(trackId: number, voiceId: number, rowId: number) {
+    queueRowDraws(trackId, voiceId, [rowId])
   },
 
-  getYForStaveBegin(blockId: number): number {
-    if (!Settings.vexFlowIsActive) {
-      return 0
-    }
-    return getClassicalStaveBeginY(blockId)
-  },
-
-  drawVexFlowRow(trackId: number, voiceId: number, rowId: number, vexFlowArea: HTMLElement) {
-    if (!Settings.vexFlowIsActive) {
+  /** Draw queued rows now instead of on the next frame (e.g. before export). */
+  async flushPendingRowDraws() {
+    if (!Settings.vexFlowIsActive || pendingRowIds.size === 0) {
       return
     }
-
-    withLoadedNotation((notation) => {
-      notation.drawVexFlowRow(trackId, voiceId, rowId, vexFlowArea)
-    })
+    await loadClassicalNotation()
+    flushRowDraws()
   },
 
+  /** Redraw every mounted row after rebuilding notation for the current song state. */
   drawAllRows(trackId: number, voiceId: number) {
-    if (!Settings.vexFlowIsActive) {
-      return
-    }
-
-    withLoadedNotation((notation) => {
-      const layoutRowCount = renderBridge.getTrackLayout(trackId, voiceId)?.numRows ?? 0
-      const rowCount = layoutRowCount || (tab.blocksPerRow[trackId]?.[voiceId]?.length ?? 0)
-      if (rowCount === 0) {
-        return
-      }
-
-      // Structures may already be ready from activate/ensurePrepared; recompute
-      // keeps notation in sync after edits without requiring a full toggle.
-      notation.computeVexFlowDataStructures(trackId, voiceId)
-
-      for (let rowId = 0; rowId < rowCount; rowId += 1) {
-        const vexFlowArea = getClassicalRowSurface(rowId)
-        // Only draw into surfaces ClassicalNotationLayer has registered.
-        if (vexFlowArea != null) {
-          notation.drawVexFlowRow(trackId, voiceId, rowId, vexFlowArea)
-        }
-      }
-      notation.syncLayoutMetrics()
-      classicalNotationLayoutState.version += 1
-    })
+    invalidateClassicalStructures()
+    queueRowDraws(trackId, voiceId, getRegisteredClassicalRowIds())
   },
 }
 

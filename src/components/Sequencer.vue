@@ -21,12 +21,14 @@
                         <div id="instrumentLabelMaster" class="label instrumentLabel">
                             Master
                         </div>
-                        <div class="muteBtn" @click="modalManager.toggleModal('equalizerModal', 'EQ')">
-                            <div class="muteBtnCircle">EQ</div>
-                        </div>
-                        <div class="soloBtn" @click="modalManager.toggleModal('compressorModal', 'Compressor')">
-                            <div class="muteBtnCircle">C</div>
-                        </div>
+                        <div class="masterFxBtn" :class="{ fxActive: eqActive }" role="button" tabindex="0"
+                            :title="`Master equalizer${eqActive ? ' (shaping the sound)' : ' (flat)'}`" aria-label="Open master equalizer"
+                            @click="modalManager.toggleModal('equalizerModal', 'EQ')"
+                            @keydown.enter.prevent="modalManager.toggleModal('equalizerModal', 'EQ')">EQ</div>
+                        <div class="masterFxBtn" :class="{ fxActive: compressorActive }" role="button" tabindex="0"
+                            :title="`Master compressor${compressorActive ? '' : ' (bypassed)'}`" aria-label="Open master compressor"
+                            @click="modalManager.toggleModal('compressorModal', 'Compressor')"
+                            @keydown.enter.prevent="modalManager.toggleModal('compressorModal', 'Compressor')">Comp</div>
                         <Fader :fader-id="0" ref="masterFaderRef" />
                     </div>
                     <div v-for="(track, trackId) in reactiveSongData.tracks" :key="trackId" class="labelDiv disable-select">
@@ -43,12 +45,18 @@
                             <div :class="['muteBtnCircle', { muted: reactiveSongData.playBackInstrument[trackId].solo }]">S</div>
                         </div>
                         <Fader :fader-id="trackId" v-if="editModeActive" :ref="(el: any) => { if (el) setFaderRef(el); }"/>
-                        <Knob :id="`panKnob${trackId}`" v-if="!editModeActive" :data-id="trackId" :rotate-func="panKnobRotate"
-                            :start="reactiveSongData.playBackInstrument[trackId]?.balance || 0" :min="0" :max="127" :mid-knob="true" />
-                        <Knob :id="`reverbKnob${trackId}`" v-if="!editModeActive" :data-id="trackId" :rotate-func="reverbKnobRotate"
-                            :start="reactiveSongData.playBackInstrument[trackId]?.reverb || 0" :min="0" :max="127" :mid-knob="false" />
-                        <Knob :id="`chorusKnob${trackId}`" v-if="!editModeActive" :data-id="trackId" :rotate-func="chorusKnobRotate"
-                            :start="reactiveSongData.playBackInstrument[trackId]?.chorus || 0" :min="0" :max="127" :mid-knob="false" />
+                        <RotaryKnob v-if="!editModeActive" class="seqKnob" :size="26" :show-value="false"
+                            :model-value="reactiveSongData.playBackInstrument[trackId]?.balance ?? 64" :min="0" :max="127"
+                            bipolar :default-value="64" :format="formatPan" :aria-label="`${instrumentLabelName[trackId]} pan`"
+                            @update:model-value="panKnobRotate($event, trackId)" />
+                        <RotaryKnob v-if="!editModeActive" class="seqKnob" :size="26" :show-value="false"
+                            :model-value="reactiveSongData.playBackInstrument[trackId]?.reverb ?? 0" :min="0" :max="127"
+                            :default-value="0" :format="formatAmount" :aria-label="`${instrumentLabelName[trackId]} reverb`"
+                            @update:model-value="reverbKnobRotate($event, trackId)" />
+                        <RotaryKnob v-if="!editModeActive" class="seqKnob" :size="26" :show-value="false"
+                            :model-value="reactiveSongData.playBackInstrument[trackId]?.chorus ?? 0" :min="0" :max="127"
+                            :default-value="0" :format="formatAmount" :aria-label="`${instrumentLabelName[trackId]} chorus`"
+                            @update:model-value="chorusKnobRotate($event, trackId)" />
                         <img :id="`instrumentChange_${trackId}`" v-if="!editModeActive" class="instrumentChange"
                             :src="getChangeButtonImage" @click="openInstrumentSettings(trackId)" />
                         <img :id="`instrumentListDelete_${trackId}`" v-if="!editModeActive" class="instrumentListDelete"
@@ -75,8 +83,11 @@
                             @mousedown="sequencerMouseDown" @mouseup="sequencerMouseUp" @mousemove="sequencerMouseMove">
                             <div v-for="blockId in numBlocks" :key="blockId"
                                 :id="`sequenceMaster_${blockId - 1}`" class="beat masterBeat">
-                                <div v-if="reactiveSongData.measureMeta[blockId - 1]?.marker" class="beatText">{{
-                                    reactiveSongData.measureMeta[blockId - 1].marker.text }}</div>
+                                <!-- Labels near the end grow leftwards, so they never stick out of the sequencer. -->
+                                <div v-if="reactiveSongData.measureMeta[blockId - 1]?.marker" class="beatText"
+                                    :class="{ 'beatText--end': blockId > numBlocks - 3 }"
+                                    :title="reactiveSongData.measureMeta[blockId - 1].marker?.text">{{
+                                    reactiveSongData.measureMeta[blockId - 1].marker?.text }}</div>
                             </div>
                         </div>
                         <template v-for="(track, trackId) in reactiveSongData.tracks" :key="trackId">
@@ -107,8 +118,10 @@ import Helper from '../assets/js/helper';
 import playBackLogic from '../assets/js/playBackLogicNew';
 import { typedEventBus } from '../utils/typedEventBus';
 import { modalManager } from '../assets/js/modals/modalManager';
+import type { EqualizerModalHandler } from '../assets/js/modals/equalizerModalHandler';
+import type { CompressorModalHandler } from '../assets/js/modals/compressorModalHandler';
 import editorCore from '../services/editor/editorCore';
-import Knob from './Knob.vue';
+import RotaryKnob from './audio/RotaryKnob.vue';
 import SequenceMarker from './SequenceMarker.vue';
 import Fader from './Fader.vue';
 import { AddTrackModalHandler } from '../assets/js/modals/addTrackModalHandler';
@@ -132,6 +145,10 @@ let indicatorPosition = { trackId: 0, blockId: 0 };
 const masterFaderRef = ref<InstanceType<typeof Fader> | null>(null);
 
 const editModeActive = ref(false);
+const equalizerHandler = modalManager.getHandler<EqualizerModalHandler>('equalizerModal');
+const compressorHandler = modalManager.getHandler<CompressorModalHandler>('compressorModal');
+const eqActive = computed(() => !equalizerHandler.isFlat());
+const compressorActive = computed(() => !compressorHandler.bypass.value);
 const sequencerMinimized = ref(false);
 const renderKey = ref(0);
 const blockIntervalStart = ref(-1);
@@ -347,37 +364,41 @@ function muteButtonClickEvent(e: Event, k: number) {
     syncSongData();
 }
 
-function panKnobRotate(angle: number, dataId: string) {
-    const trackId = parseInt(dataId, 10);
+function panKnobRotate(scaled: number, trackId: number) {
     if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[trackId]) {
         return;
     }
-    const scaled = (angle / 360) * 127;
     editorCore.setPlayBackInstrumentEffect(trackId, 'balance', scaled);
     audioEngine.setEffectGain(trackId, scaled, 'pan');
     syncSongData();
 }
 
-function reverbKnobRotate(angle: number, dataId: string) {
-    const trackId = parseInt(dataId, 10);
+function reverbKnobRotate(scaled: number, trackId: number) {
     if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[trackId]) {
         return;
     }
-    const scaled = (angle / 360) * 127;
     editorCore.setPlayBackInstrumentEffect(trackId, 'reverb', scaled);
     audioEngine.setEffectGain(trackId, scaled, 'reverb');
     syncSongData();
 }
 
-function chorusKnobRotate(angle: number, dataId: string) {
-    const trackId = parseInt(dataId, 10);
+function chorusKnobRotate(scaled: number, trackId: number) {
     if (!reactiveSongData.playBackInstrument || !reactiveSongData.playBackInstrument[trackId]) {
         return;
     }
-    const scaled = (angle / 360) * 127;
     editorCore.setPlayBackInstrumentEffect(trackId, 'chorus', scaled);
     audioEngine.setEffectGain(trackId, scaled, 'chorus');
     syncSongData();
+}
+
+function formatPan(value: number): string {
+    const pan = Math.round(((value - 64) / 63) * 100);
+    if (Math.abs(pan) < 2) return 'Center';
+    return `${pan < 0 ? 'L' : 'R'} ${Math.abs(pan)}`;
+}
+
+function formatAmount(value: number): string {
+    return `${Math.round((value / 127) * 100)}%`;
 }
 
 const sequencerScrollEvent = (event: Event) => {

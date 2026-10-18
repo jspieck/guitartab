@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import Song, { type Measure } from '../src/assets/js/songData'
+import Song, { type Beat } from '../src/assets/js/songData'
 
 describe('Song.isBeatEmpty', () => {
   beforeEach(() => {
     Song.measures = [[[
       [Song.defaultMeasure()],
-    ]]] as Measure[][][][]
+    ]]] as Beat[][][][]
   })
 
   it('treats a rest-only block as empty', () => {

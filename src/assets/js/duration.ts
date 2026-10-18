@@ -1,4 +1,4 @@
-import Song, { Measure } from './songData';
+import Song, { Beat } from './songData';
 
 // import Duration from './duration';
 const Duration = {
@@ -8,7 +8,7 @@ const Duration = {
     return subNotes[i];
   },
 
-  getDurationOfNote(t: Measure, ignoreTuplet: boolean): number {
+  getDurationOfNote(t: Beat, ignoreTuplet: boolean): number {
     let size = Duration.getDurationOfType(t.duration);
     if (t.dotted) size += size / 2;
     if (t.doubleDotted) size += size / 2 + size / 4;
@@ -24,7 +24,7 @@ const Duration = {
     return size;
   },
 
-  getDurationWidth(t: Measure): number {
+  getDurationWidth(t: Beat): number {
     if (!t || !t.duration) {
       console.warn('Invalid measure object in getDurationWidth:', t);
       return 1; // Safe default

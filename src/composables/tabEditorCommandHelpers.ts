@@ -1,11 +1,11 @@
 import type { TabNoteData } from '../types/tab'
-import { handleUndoRedoShortcut } from '../utils/undoRedoShortcuts'
 
 type NoteEffectHandler = (note: TabNoteData) => void
 
 function toggleBendEffect(note: TabNoteData): void {
-  note.bendPresent = !note.bendPresent
-  if (note.bendPresent && (!note.bendObj || note.bendObj.length === 0)) {
+  if (note.bendObj != null) {
+    delete note.bendObj
+  } else {
     note.bendObj = [
       { bendPosition: 0, bendValue: 0, vibrato: 0 },
       { bendPosition: 60, bendValue: 4, vibrato: 0 },
@@ -14,8 +14,9 @@ function toggleBendEffect(note: TabNoteData): void {
 }
 
 function toggleTrillEffect(note: TabNoteData): void {
-  note.trillPresent = !note.trillPresent
-  if (note.trillPresent && !note.trill) {
+  if (note.trill != null) {
+    delete note.trill
+  } else {
     note.trill = { fret: note.fret + 1, period: 4 }
   }
 }
@@ -46,48 +47,18 @@ export function applyNoteEffectToggle(note: TabNoteData, effectId: string): bool
   return true
 }
 
+/**
+ * Keys the tab view handles itself. Every other shortcut is dispatched from the
+ * shortcut table (`utils/keyboardShortcuts.ts`) by the document-level key handler.
+ */
 export function handleEditorShortcutKey(
   event: KeyboardEvent,
   handlers: {
-    onDigit: (digit: number) => void
-    onDelete: () => void
-    onToggleToolbar: () => void
     onClearSelection: () => void
-    onCopy: () => void
-    onPaste: () => void
   },
 ): boolean {
-  if (handleUndoRedoShortcut(event)) {
-    return true
-  }
-
-  if (event.key >= '0' && event.key <= '9') {
-    handlers.onDigit(Number.parseInt(event.key, 10))
-    return true
-  }
-
-  if (event.key === 'Delete' || event.key === 'Backspace') {
-    handlers.onDelete()
-    return true
-  }
-
-  if (event.key === 't' || event.key === 'T') {
-    handlers.onToggleToolbar()
-    return true
-  }
-
   if (event.key === 'Escape') {
     handlers.onClearSelection()
-    return true
-  }
-
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
-    handlers.onCopy()
-    return true
-  }
-
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'v') {
-    handlers.onPaste()
     return true
   }
 

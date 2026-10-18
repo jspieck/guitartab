@@ -95,6 +95,8 @@ body{
     transform-style: preserve-3d;
 }
 .bottomBars{
+    background: #eef0f3;
+    border-top: 1px solid #dde1e6;
     flex-grow: 0;
     flex-shrink: 0;
     display: block;
@@ -375,8 +377,9 @@ body {
     width: 10px;
   }
 }
-#drumInfoModal{
-    width: 743px;
+#drumInfoModal.modal{
+    width: 560px;
+    max-width: min(560px, calc(100vw - 32px)) !important;
 }
 #drumInfoFooter{
     cursor:pointer;
@@ -588,9 +591,6 @@ body {
 #classicalToggleButton.classicalBack {
     background: #f8c1c1 !important;
 }
-#compressorModal .modalBody{
-    background: #0a0c14;
-}
 .shiftPiano{
     height: 0px !important;
     width: 35px !important;
@@ -783,6 +783,10 @@ body {
 	padding: 6px;
 	text-align: center;
 }
+#content button.shortcutsHelpButton {
+	font: 600 17px/1 'Source Sans Pro', sans-serif;
+	color: inherit;
+}
 #content button.playButton:hover, #content button.playButton:hover, #content .classicalButton:hover {
     background: #e7e7e7;
 }
@@ -902,7 +906,7 @@ body {
     display: grid;
     gap: 12px;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal){
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal){
     min-width: 300px;
     max-width: min(420px, calc(100vw - 32px));
     max-height: 78vh;
@@ -912,7 +916,7 @@ body {
     border: 1px solid var(--modal-card-border);
     border-radius: 12px;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalTopBar{
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBar{
     min-height: 44px;
     height: auto;
     line-height: normal;
@@ -926,7 +930,7 @@ body {
     width: 100%;
     box-sizing: border-box;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalTopBarLabel{
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBarLabel{
     min-height: 44px;
     padding: 0;
     flex: 1;
@@ -937,7 +941,7 @@ body {
     font-weight: 600;
     letter-spacing: 0;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody{
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody{
     gap: 0;
     padding: 16px;
     max-height: calc(78vh - 44px);
@@ -945,7 +949,7 @@ body {
     overflow-x: hidden;
     align-content: start;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close {
     position: relative;
     top: auto;
     right: auto;
@@ -956,16 +960,16 @@ body {
     border-radius: 8px;
     transition: background-color 0.15s ease;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close:hover {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover {
     background: var(--modal-card-hover);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close .icon {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close .icon {
     fill: #64748b;
     stroke: #64748b;
     width: 14px;
     height: 14px;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal_close:hover .icon {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover .icon {
     fill: #1e293b;
     stroke: #1e293b;
 }
@@ -1008,7 +1012,7 @@ body {
 }
 .modal-field label,
 .modal-field-label,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) label {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) label {
     color: var(--modal-text-muted);
     font-size: 13px;
     font-weight: 500;
@@ -1019,9 +1023,9 @@ body {
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
 .modal-field textarea,
 .modal-field .select,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox),
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select,
 .modal-surface-block {
     width: 100%;
     min-width: 0;
@@ -1032,8 +1036,8 @@ body {
 }
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
 .modal-field textarea,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox),
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
     margin: 0;
     padding: 0 var(--modal-control-padding-x);
     font: inherit;
@@ -1043,21 +1047,21 @@ body {
     box-sizing: border-box;
 }
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input:not([type=checkbox]):not(.styled-checkbox) {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox) {
     height: var(--modal-control-height);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) input::placeholder,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea::placeholder {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input::placeholder,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea::placeholder {
     color: #94a3b8;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
     min-height: var(--modal-textarea-min-height);
     padding-top: 8px;
     padding-bottom: 8px;
     resize: vertical;
     line-height: 1.45;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select {
     position: relative;
     display: block;
     height: var(--modal-control-height);
@@ -1065,7 +1069,7 @@ body {
     background: var(--modal-card-bg);
     overflow: hidden;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select select {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select select {
     appearance: none;
     -webkit-appearance: none;
     width: 100%;
@@ -1080,15 +1084,15 @@ body {
     line-height: var(--modal-control-height);
     cursor: pointer;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select__arrow {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select__arrow {
     top: 50%;
     transform: translateY(-50%);
     right: 11px;
     border-width: 5px 4px 0 4px;
     border-color: #64748b transparent transparent transparent;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:hover,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .select:focus-within {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:hover,
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus-within {
     color: inherit;
     background: var(--modal-card-hover);
     border-color: #c7d2e0;
@@ -1203,16 +1207,16 @@ body {
 }
 .modal-submit-row .selectButton,
 .modal-submit-row .modal-primary-button,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .selectButton {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .selectButton {
     margin-top: 0;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .checkmark {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark {
     width: 34px;
     height: 34px;
     background: linear-gradient(180deg, var(--modal-accent) 0%, var(--modal-accent-strong) 100%);
     box-shadow: 0 10px 18px rgba(22, 95, 190, 0.2);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .checkmark__circle {
+.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark__circle {
     stroke: rgba(255, 255, 255, 0.3);
 }
 .modal-checkbox-list {
@@ -1289,7 +1293,7 @@ body {
 #addGraceModal .modalBody, #addStrokeModal .modalBody, #bpmModal .modalBody{
     padding-bottom: 16px;
 }
-#infoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) {
+#infoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) {
     width: min(640px, calc(100vw - 32px));
     max-width: min(640px, calc(100vw - 32px));
 }
@@ -1319,7 +1323,7 @@ body {
     padding: 16px;
     overflow: visible !important;
 }
-#instrumentSettingsModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody {
+#instrumentSettingsModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody {
     overflow: visible !important;
 }
 #instrumentSettingsModal .picker_wrapper.popup {
@@ -1361,22 +1365,22 @@ body {
     overflow: visible;
     z-index: 2;
 }
-#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody,
-#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modalBody {
+#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody,
+#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody {
     gap: 6px;
     padding: 10px;
 }
-#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal-submit-row,
-#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal-submit-row {
+#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal-submit-row,
+#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal-submit-row {
     padding-top: 0;
 }
-#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) .modal-inline-display {
+#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal-inline-display {
     min-height: 44px;
     padding: 6px 10px;
     font-size: 22px;
     letter-spacing: 0.02em;
 }
-#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal) textarea {
+#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
     min-height: 44px;
     padding: 6px 10px;
 }
@@ -1854,7 +1858,7 @@ button[data-tooltip] {
       display: block;
     }
 }
-#mixerModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal){
+#mixerModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal){
     position: fixed;
     z-index: 200;
     top: 200px;
@@ -3089,4 +3093,104 @@ body {
 .svgMainFullscreen .svgPage{
     filter:none;
     -webkit-filter:none;
+}
+
+/* ---- Shell polish: toolbar palette and footer ------------------------- */
+#completeBar{
+    overflow: hidden;
+    border-right: 1px solid #e1e5eb;
+    border-bottom: 1px solid #e1e5eb;
+    border-bottom-right-radius: 10px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+#tabBar{
+    background: #ffffff;
+    border-right: none;
+}
+.bottomStatusBar{
+    background: #f4f6f8;
+    border-top: 1px solid #e8ebef;
+}
+.tabBarElem{
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+    border-top-color: transparent;
+    transition: color 0.12s ease;
+}
+.tabBarElem:hover{
+    color: #1f2937;
+}
+#footerBar{
+    height: 24px;
+    line-height: 24px;
+    align-items: stretch;
+    background: #f4f6f8;
+    border-top: 1px solid #e1e5eb;
+    box-sizing: border-box;
+}
+.footerBlock{
+    margin: 0;
+    padding: 0 10px;
+    color: #4b5563;
+    font-size: 11.5px;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+.footerBlock + .footerBlock{
+    border-left: 1px solid #e1e5eb;
+}
+.footerBlock[role='button']:hover{
+    background: #e8ebef;
+    color: #111827;
+    cursor: pointer;
+}
+.footerBlock[role='button']:focus-visible{
+    outline: 2px solid #2f5cce;
+    outline-offset: -2px;
+}
+.footerLabel{
+    color: #8a93a3;
+    margin-right: 4px;
+}
+#midiLabel #isMidiActive{
+    position: static;
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-left: 5px;
+    transform: none;
+    vertical-align: 1px;
+}
+/* Chips for open windows (click to bring to front) */
+#openWindowArea{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 6px;
+}
+#openWindowArea .footerBlock{
+    padding: 0;
+    border: none;
+}
+.openWindows{
+    height: 18px;
+    line-height: 18px;
+    padding: 0 8px;
+    border-radius: 4px;
+    background: #e3e9f5;
+    color: #2f4a8a;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: none;
+}
+#darkMode .openWindows{
+    background: #263247;
+    color: #a9c4f5;
+}
+/* `.modal button { font: inherit }` would otherwise win over the button's own size */
+.modal .modal-primary-button,
+.modal .modal-secondary-button{
+    font-size: 12px;
+    font-weight: 600;
 }

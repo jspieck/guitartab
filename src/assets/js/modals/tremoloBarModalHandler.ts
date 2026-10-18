@@ -1,5 +1,5 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
-import { Note, Measure, TremoloBar } from '../songData';
+import { Note, Beat, TremoloBar } from '../songData';
 import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
 import {
@@ -22,10 +22,9 @@ interface TremoloBarModalState extends ModalState {
         blockId: number;
         voiceId: number;
         beatId: number;
-        beat: Measure;
+        beat: Beat;
     }[];
     blocks: number[];
-    strokePresentBefore: { [beatStr: string]: boolean };
 }
 
 export class TremoloBarModalHandler extends BaseModalHandler {
@@ -46,33 +45,23 @@ export class TremoloBarModalHandler extends BaseModalHandler {
             mouseOffsetX: 0,
             mouseOffsetY: 0,
             beats: [],
-            blocks: [],
-            strokePresentBefore: {}
+            blocks: []
         } as TremoloBarModalState;
     }
 
     openModal(params: {
         notes: { trackId: number; blockId: number; voiceId: number; beatId: number; string: number; note: Note }[];
         blocks: number[];
-        beats: { trackId: number; blockId: number; voiceId: number; beatId: number; beat: Measure }[];
+        beats: { trackId: number; blockId: number; voiceId: number; beatId: number; beat: Beat }[];
         isVariableSet: boolean;
     }) {
         this.modalState.beats = params.beats;
         this.modalState.blocks = params.blocks;
-        this.setTremoloPresentState();
         this.showModal();
     }
 
     protected setupModalContent(): void {
         this.setupEventListeners();
-    }
-
-    private setTremoloPresentState() {
-        this.modalState.strokePresentBefore = {};
-        for (const be of this.modalState.beats) {
-            const beatStr = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
-            this.modalState.strokePresentBefore[beatStr] = be.beat.effects.tremoloBarPresent;
-        }
     }
 
     public handleMouseDown(e: MouseEvent, tremoloEditor: SVGElement) {
@@ -207,8 +196,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
             const tremoloBarObj: TremoloBar = this.createTremoloBarFromPoints();
             beat.effects.tremoloBar = tremoloBarObj;
 
-            if (!beat.effects.tremoloBarPresent) {
-                beat.effects.tremoloBarPresent = true;
+            if (tremoloBarBefore == null) {
                 typedEventBus.emit("menu.activateEffectsForBeat", beat);
             }
 
@@ -219,8 +207,6 @@ export class TremoloBarModalHandler extends BaseModalHandler {
                 be.beatId,
                 tremoloBarBefore,
                 beat.effects.tremoloBar,
-                this.modalState.strokePresentBefore[beatStr],
-                beat.effects.tremoloBarPresent,
                 beatsBefore[beatStr],
             );
         }

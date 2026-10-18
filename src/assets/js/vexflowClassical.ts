@@ -1,55 +1,66 @@
 import Vex, { IRenderContext, Flow } from 'vexflow';
-import { Song, Measure, Note } from './songData';
+import { toRaw } from 'vue';
+import { Song, Beat, Note } from './songData';
 import Settings from './settingManager';
 import playBackLogic from './playBackLogicNew';
 import { tab } from './tab';
 import Helper from './helper';
 import renderBridge from '../../services/editor/renderBridge';
-import { getClassicalRowSurface } from '../../stores/classicalNotationSurfaceState';
 import { scrollToSvgBlock } from '../../services/editor/navigationController';
 import { TAB_SHEET } from '../../utils/tabSheetConstants';
 import AppManager from './appManager';
 import {
+  CLASSICAL_STAFF_LINES_HEIGHT,
+  getClassicalRowGeometry,
   publishClassicalLayoutMetrics,
   setClassicalBeatWidth,
+  type ClassicalStaffExtents,
 } from '../../stores/classicalNotationLayoutState';
+import { CLASSICAL_CLEF_GUTTER } from '../../services/editor/tabLayoutMetrics';
+import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout';
+
+/** VexFlow places a stave's top line this far below the stave's y (4 spaces). */
+const STAVE_SPACE_ABOVE_TOP_LINE = 40;
+const STAFF_LINE_SPACING = 10;
+/** Width of the clef-only stave segment that opens every row (inside the gutter). */
+const CLEF_STAVE_WIDTH = 40;
+/** Conservative stem length incl. beam slope, used for vertical extents. */
+const STEM_EXTENT = 40;
+/** Half height of a note head incl. accidental glyphs. */
+const NOTE_HEAD_EXTENT = 8;
+
+type RowNote = { note: Vex.Flow.StaveNote, tied: boolean[], strings: number[] };
 
 class ClassicalNotation {
   vexFlowHeight: number;
 
   vexFlowStandardWidth: number;
 
-  allNotes: { note: Vex.Flow.StaveNote, tied: boolean[], strings: number[], measure: Measure }[][];
+  allNotes: { note: Vex.Flow.StaveNote, tied: boolean[], strings: number[], measure: Beat }[][];
 
   allVoices: Vex.Flow.StaveNote[][];
 
   allStaves: Vex.Flow.Stave[][][];
 
+  /** Per-block content fingerprint of the last conversion (see `getBlockFingerprint`). */
+  blockFingerprints: string[];
+
+  /** Per-block largest beat width from the last conversion. */
+  blockBeatWidths: number[];
+
+  /** Track/voice/tuning the cached conversions belong to. */
+  conversionScope: string;
+
   currentVexDenominator: number;
 
   currentVexNumerator: number;
-
-  marginTopPerRow: number[];
 
   noteArray: string[];
 
   locked: boolean;
 
-  VEXFLOW_HEIGHT: number;
-
-  lastContext: IRenderContext | null;
-
-  rendererPerRow: Vex.Flow.Renderer[];
-
-  allNoteRows: { note: Vex.Flow.StaveNote, strings: number[], tied: boolean[] }[][];
-
   formatter: Vex.Flow.Formatter | null;
 
-  topLineY: number[];
-
-  drawnStaves: Vex.Flow.Stave[];
-
-  MARGIN_TOP_PADDING: number;
 
   constructor() {
     this.vexFlowHeight = 140;
@@ -58,32 +69,19 @@ class ClassicalNotation {
     this.allNotes = [];
     this.allVoices = [];
     this.allStaves = [];
+    this.blockFingerprints = [];
+    this.blockBeatWidths = [];
+    this.conversionScope = '';
     this.currentVexDenominator = -1;
     this.currentVexNumerator = -1;
-
-    this.marginTopPerRow = [];
 
     this.noteArray = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
 
     this.locked = true;
 
-    this.VEXFLOW_HEIGHT = 150;
-    this.lastContext = null;
-    this.rendererPerRow = [];
-    this.allNoteRows = [];
 
     this.formatter = null;
 
-    this.topLineY = [];
-    this.drawnStaves = [];
-    this.MARGIN_TOP_PADDING = 5;
-  }
-
-  getMarginTop(rowId: number): number {
-    if (this.marginTopPerRow[rowId] == null) {
-      return 0;
-    }
-    return this.marginTopPerRow[rowId] + this.MARGIN_TOP_PADDING;
   }
 
   toggleClassicalVisibility(): void {
@@ -103,7 +101,12 @@ class ClassicalNotation {
     }
   }
 
-  syncLayoutMetrics(): void {
+  /**
+   * Publish layout metrics derived from the notation data only: per-block beat
+   * widths (tab spacing) and the track's staff extents (row height).
+   * Returns whether anything layout-relevant changed.
+   */
+  syncLayoutMetrics(): boolean {
     const trackId = Song.currentTrackId;
     const voiceId = Song.currentVoiceId;
     const beatWidthByBlock: Record<number, number> = {};
@@ -114,24 +117,49 @@ class ClassicalNotation {
       if (notes == null || notes.length === 0) {
         continue;
       }
-      beatWidthByBlock[blockId] = ClassicalNotation.calculateLargestBeatWidthOfNotes(
-        trackId,
-        blockId,
-        voiceId,
-        notes,
-      );
+      // Computed during conversion; formatting every block again is costly.
+      beatWidthByBlock[blockId] = this.blockBeatWidths[blockId]
+        ?? ClassicalNotation.calculateLargestBeatWidthOfNotes(trackId, blockId, voiceId, notes);
     }
 
-    publishClassicalLayoutMetrics({
-      staveBeginByBlock: { ...this.topLineY },
-      marginTopByRow: Object.fromEntries(
-        Object.entries(this.marginTopPerRow).map(([rowId, marginTop]) => [
-          Number(rowId),
-          marginTop + this.MARGIN_TOP_PADDING,
-        ]),
-      ),
-      beatWidthByBlock,
-    }, { bumpVersion: false });
+    const staffExtentsByBlock: Record<number, ClassicalStaffExtents> = {};
+    for (let blockId = 0; blockId < numBlocks; blockId += 1) {
+      staffExtentsByBlock[blockId] = ClassicalNotation.computeStaffExtents([this.allVoices[blockId] ?? []]);
+    }
+
+    return publishClassicalLayoutMetrics({ beatWidthByBlock, staffExtentsByBlock });
+  }
+
+  /** How far notes reach beyond the staff lines, from key lines and stem directions. */
+  static computeStaffExtents(voices: Vex.Flow.StaveNote[][]): ClassicalStaffExtents {
+    let top = 0;
+    let bottom = CLASSICAL_STAFF_LINES_HEIGHT;
+    voices.forEach((notes) => {
+      notes?.forEach((note) => {
+        if (note.isRest()) {
+          return;
+        }
+        const ys = note.getKeyProps().map((props) => (5 - props.line) * STAFF_LINE_SPACING);
+        if (ys.length === 0) {
+          return;
+        }
+        let noteTop = Math.min(...ys) - NOTE_HEAD_EXTENT;
+        let noteBottom = Math.max(...ys) + NOTE_HEAD_EXTENT;
+        if (note.hasStem()) {
+          if (note.getStemDirection() > 0) {
+            noteTop = Math.min(noteTop, Math.min(...ys) - STEM_EXTENT);
+          } else {
+            noteBottom = Math.max(noteBottom, Math.max(...ys) + STEM_EXTENT);
+          }
+        }
+        top = Math.min(top, noteTop);
+        bottom = Math.max(bottom, noteBottom);
+      });
+    });
+    return {
+      above: Math.max(0, -top),
+      below: Math.max(0, bottom - CLASSICAL_STAFF_LINES_HEIGHT),
+    };
   }
 
   private getRowBlockRange(
@@ -184,63 +212,115 @@ class ClassicalNotation {
     return fallbackX
   }
 
+  /**
+   * Draw one classical row into its surface. The surface spans the row's tab
+   * width plus `CLASSICAL_CLEF_GUTTER` on the left, and the classical area height.
+   * Rows are self-contained (no shared state between rows), so any subset of
+   * rows can be drawn in any order.
+   */
   drawVexFlowRow(
     trackId: number, voiceId: number, rowId: number, vexFlowArea: HTMLElement,
   ) {
     Helper.removeAllChildren(vexFlowArea);
 
     const rowBlocks = this.getRowBlockRange(trackId, voiceId, rowId);
-    if (!rowBlocks) {
+    if (!rowBlocks || this.allVoices.length === 0) {
       return;
     }
 
     const { start, end } = rowBlocks;
-    let totalWidth = 0;
+    let rowRight = 0;
     for (let blockId = start; blockId < end; blockId += 1) {
-      totalWidth += this.getMeasureDrawWidth(trackId, voiceId, blockId);
+      rowRight = Math.max(
+        rowRight,
+        this.getMeasureDrawX(trackId, voiceId, blockId, rowRight)
+          + this.getMeasureDrawWidth(trackId, voiceId, blockId),
+      );
     }
 
+    const { height, staffTop } = getClassicalRowGeometry(start, end);
     const renderer = new Vex.Flow.Renderer(vexFlowArea, Vex.Flow.Renderer.Backends.SVG);
-    this.rendererPerRow[rowId] = renderer;
-    renderer.resize(Math.max(totalWidth, 100), this.VEXFLOW_HEIGHT + 40);
+    renderer.resize(CLASSICAL_CLEF_GUTTER + Math.max(rowRight, 100), height);
     const context = renderer.getContext();
     context.setFont('Arial', 10).setBackgroundFillStyle('#eed');
 
-    this.allNoteRows[rowId] = [];
-    for (let blockId = start; blockId < end; blockId += 1) {
-      for (let j = 0; j < this.allNotes[blockId].length; j += 1) {
-        this.allNoteRows[rowId].push(this.allNotes[blockId][j]);
-      }
-    }
-    this.marginTopPerRow[rowId] = 0;
-    this.drawVexFlow(trackId, voiceId, rowId, context);
-    if (this.lastContext != null) {
-      this.drawVexTies(trackId, voiceId, rowId, context, this.lastContext);
-    }
-    this.lastContext = context;
-
-    const rowHeight = Math.max(
-      this.VEXFLOW_HEIGHT + 40,
-      this.marginTopPerRow[rowId] + this.VEXFLOW_HEIGHT,
+    const staveY = staffTop - STAVE_SPACE_ABOVE_TOP_LINE;
+    const firstX = this.getMeasureDrawX(trackId, voiceId, start, 0);
+    const clefStave = new Vex.Flow.Stave(
+      CLASSICAL_CLEF_GUTTER + firstX - CLEF_STAVE_WIDTH, staveY, CLEF_STAVE_WIDTH,
     );
-    renderer.resize(Math.max(totalWidth, 100), rowHeight);
+    clefStave.addClef(ClassicalNotation.getClefType());
+    clefStave.setEndBarType(Vex.Flow.Barline.type.NONE);
+    clefStave.setContext(context).draw();
+
+    let fallbackX = firstX;
+    for (let blockId = start; blockId < end; blockId += 1) {
+      const xPos = this.getMeasureDrawX(trackId, voiceId, blockId, fallbackX);
+      const width = this.getMeasureDrawWidth(trackId, voiceId, blockId);
+      this.drawStave(trackId, voiceId, blockId, xPos, staveY, width, blockId === start, context);
+      fallbackX = xPos + width;
+    }
+
+    this.drawVexTies(trackId, voiceId, rowId, context);
   }
 
+  /**
+   * Compute voice information for the complete track. Conversion is the costly
+   * part (StaveNote construction), so blocks whose content fingerprint is
+   * unchanged keep their previous notes.
+   */
   computeVexFlowDataStructures(trackId: number, voiceId: number): void {
-    /** Compute voice information for the complete track */
-    this.allNotes.length = 0;
-    this.allVoices.length = 0;
+    const track = Song.tracks[trackId];
+    const scope = JSON.stringify([
+      trackId, voiceId, toRaw(track.strings), track.numStrings, ClassicalNotation.getClefType(),
+    ]);
+    if (scope !== this.conversionScope) {
+      this.conversionScope = scope;
+      this.blockFingerprints = [];
+      this.blockBeatWidths = [];
+    }
     if (this.allStaves[trackId] == null) {
       this.allStaves[trackId] = [];
     }
     this.allStaves[trackId][voiceId] = [];
 
-    for (let blockId = 0; blockId < Song.measures[trackId].length; blockId += 1) {
+    const numBlocks = Song.measures[trackId].length;
+    for (let blockId = 0; blockId < numBlocks; blockId += 1) {
+      const fingerprint = ClassicalNotation.getBlockFingerprint(trackId, blockId, voiceId);
+      if (
+        fingerprint != null
+        && fingerprint === this.blockFingerprints[blockId]
+        && this.allVoices[blockId] != null
+      ) {
+        continue;
+      }
       this.convertBlockToNotation(trackId, blockId, voiceId);
+      this.blockFingerprints[blockId] = fingerprint ?? '';
+    }
+    this.allNotes.length = numBlocks;
+    this.allVoices.length = numBlocks;
+    this.blockFingerprints.length = numBlocks;
+    this.blockBeatWidths.length = numBlocks;
+  }
+
+  /**
+   * Everything `convertBlockToNotation` reads for one block, as a string.
+   * Returns null when the data cannot be serialised (then the block is always converted).
+   */
+  static getBlockFingerprint(trackId: number, blockId: number, voiceId: number): string | null {
+    try {
+      const meta = Song.measureMeta[blockId];
+      const beats = toRaw(Song.measures[trackId][blockId][voiceId]);
+      const tuplets = beats.map((beat) => (
+        beat.tuplet != null ? tab.tupletManager[beat.tupletId]?.originalDuration : null
+      ));
+      return JSON.stringify([meta?.numerator, meta?.denominator, beats, tuplets]);
+    } catch {
+      return null;
     }
   }
 
-  static durationToVexFlow(dur: Measure) {
+  static durationToVexFlow(dur: Beat) {
     let dottedString = '';
     if (dur.dotted) {
       dottedString = 'd';
@@ -306,19 +386,10 @@ class ClassicalNotation {
     xPos: number, yPos: number, width: number, blockId: number,
   ): Vex.Flow.Stave {
     const stave = new Vex.Flow.Stave(xPos, yPos, width);
-    if (blockId === 0) {
-      if (Song.playBackInstrument[Song.currentTrackId].instrument === 'drums') {
-        stave.addClef('percussion');
-      } else if (Song.tracks[Song.currentTrackId].numStrings > 5) {
-        stave.addClef('treble');
-      } else {
-        stave.addClef('bass');
-      }
-    }
     if (Song.measureMeta[blockId].repeatOpen) {
       stave.setBegBarType(Vex.Flow.Barline.type.REPEAT_BEGIN);
     }
-    if (Song.measureMeta[blockId].repeatClosePresent) {
+    if (Song.measureMeta[blockId].repeatClose != null) {
       stave.setEndBarType(Vex.Flow.Barline.type.REPEAT_END);
     }
 
@@ -400,6 +471,7 @@ class ClassicalNotation {
         clef: clefType,
         keys,
         duration: dur,
+        auto_stem: true,
       });
 
       for (let u = 0; u < keys.length; u += 1) {
@@ -443,7 +515,7 @@ class ClassicalNotation {
               note.addArticulation(0, new Vex.Flow.Articulation('a.').setPosition(3)); */
           // handle grace
           const grace = realNotes[u].graceObj;
-          if (realNotes[u].gracePresent && grace != null) {
+          if (grace != null) {
             // duration t, s, e
             let graceDuration = '16';
             if (grace.duration === 't') {
@@ -488,12 +560,10 @@ class ClassicalNotation {
       this.allVoices[blockId].push(staveNote);
     }
 
-    setClassicalBeatWidth(
-      blockId,
-      ClassicalNotation.calculateLargestBeatWidthOfNotes(
-        trackId, blockId, voiceId, this.allVoices[blockId],
-      ),
+    this.blockBeatWidths[blockId] = ClassicalNotation.calculateLargestBeatWidthOfNotes(
+      trackId, blockId, voiceId, this.allVoices[blockId],
     );
+    setClassicalBeatWidth(blockId, this.blockBeatWidths[blockId]);
   }
 
   static generateVexFlowTuple(
@@ -578,205 +648,129 @@ class ClassicalNotation {
     return Number.isFinite(maxVoiceWidth) ? maxVoiceWidth : 0;
   }
 
-  drawVexFlow(trackId: number, voiceId: number, rowId: number, context: IRenderContext) {
-    // first compute min-widths
-    // TODO: at the moment width of note + 100; consider what is added to the stave
-    const notePack: {
-      notes: Vex.Flow.StaveNote[], width: number, voice: any, beams: any[], tuplets: any[]
-    }[] = [];
-    this.formatter = new Vex.Flow.Formatter();
-    const rowBlocks = this.getRowBlockRange(trackId, voiceId, rowId);
-    if (!rowBlocks) {
-      return;
-    }
-
-    const { start, end } = rowBlocks;
-    for (let i = start; i < end; i += 1) {
-      const voice = new Vex.Flow.Voice({
-        num_beats: Song.measureMeta[i].numerator,
-        beat_value: Song.measureMeta[i].denominator,
-      });
-      voice.setStrict(false);
-      const notes = this.allVoices[i];
-      const tuplets = ClassicalNotation.generateVexFlowTuple(trackId, i, voiceId, notes);
-      const beams = Vex.Flow.Beam.generateBeams(notes);
-      voice.addTickables(notes);
-      // Maybe max/min from vexflow vs. my notation
-      // TODO; preCalculare possibly expensive - commented out atm
-      /* console.log(voice);
-      var minWidth = this.formatter.joinVoices([voice]).preCalculateMinTotalWidth([voice]);
-      var justifyWidth = minWidth + 100;
-      //console.log(justifyWidth);
-
-      if(staveBarWidth+justifyWidth >= completeWidth){
-          console.log("Stave too large for window size!");
-      }
-      staveBarWidth += justifyWidth; */
-      // notePack.push({notes:notes, width:justifyWidth, voice:voice,
-      //  beams:beams, tuplets:tuplets});
-      notePack.push({
-        notes, width: 0, voice, beams, tuplets,
-      });
-    }
-    // generate row
-    this.marginTopPerRow[rowId] = 0;
-    const yPos = 10 + this.marginTopPerRow[rowId];
-    let xPos = 0;
-    for (let j = 0; j < notePack.length; j += 1) {
-      const blockId = start + j;
-      const width = this.getMeasureDrawWidth(trackId, voiceId, blockId);
-      xPos = this.getMeasureDrawX(trackId, voiceId, blockId, xPos);
-      this.drawStave(
-        notePack[j].notes, xPos, yPos, width, trackId, voiceId, blockId, context, notePack[j].voice,
-        rowId,
-      );
-      xPos += width;
-    }
-  }
-
+  /** Re-convert one block after an edit; drawing is scheduled by the adapter. */
   updateVexFlowBlock(trackId: number, voiceId: number, blockId: number) {
-    /** Redraw row with classical notation to consider changes in given block */
-    const rowId = renderBridge.getRowIdForBlock(trackId, voiceId, blockId)
-      ?? tab.blockToRow[trackId]?.[voiceId]?.[blockId]?.rowId
-    if (rowId == null) {
-      console.error('VexFlow row mapping is missing')
-      return
-    }
-    const vexFlowArea = getClassicalRowSurface(rowId);
-    if (vexFlowArea != null) {
-      this.drawVexFlowRow(trackId, voiceId, rowId, vexFlowArea);
-    } else {
-      console.error('VexFlowArea is null');
-    }
+    this.convertBlockToNotation(trackId, blockId, voiceId);
   }
 
-  getYForStaveBegin(blockId: number) {
-    return this.topLineY[blockId];
+  static getClefType(): string {
+    if (Song.playBackInstrument[Song.currentTrackId]?.instrument === 'drums') {
+      return 'percussion';
+    }
+    return Song.tracks[Song.currentTrackId].numStrings > 5 ? 'treble' : 'bass';
   }
 
+  /**
+   * Draw one measure. Note heads are centred on the tab digit centres
+   * (`beatX + beatWidth / 2`, as `TabNote` renders them) so both systems align.
+   */
   drawStave(
-    notes: Vex.Flow.StaveNote[],
-    xPos: number,
-    yPos: number,
-    width: number,
     trackId: number,
     voiceId: number,
     blockId: number,
+    xPos: number,
+    yPos: number,
+    width: number,
+    isFirstInRow: boolean,
     ctx: IRenderContext,
-    voice: Vex.Flow.Voice,
-    rowId: number,
   ) {
-    const stave = ClassicalNotation.generateStave(xPos, yPos, width, blockId);
-    this.drawnStaves[blockId] = stave;
+    const notes = this.allVoices[blockId] ?? [];
+    const stave = ClassicalNotation.generateStave(
+      CLASSICAL_CLEF_GUTTER + xPos, yPos, width, blockId,
+    );
+    if (isFirstInRow && !Song.measureMeta[blockId].repeatOpen) {
+      // The clef segment already opened the system; avoid a barline right after it.
+      stave.setBegBarType(Vex.Flow.Barline.type.NONE);
+    }
     stave.setContext(ctx).draw();
-
-    const formatter = new Vex.Flow.Formatter();
-    this.formatter = formatter;
-    formatter.joinVoices([voice]).format([voice], 0);
-    const numNotes = notes.length;
-    const alignment = 8;
-    for (let beatId = 0; beatId < numNotes; beatId += 1) {
-      const blockInPos = renderBridge.getPositionInRow(trackId, voiceId, blockId, beatId);
-      // getAbsoluteX() already adds stave.getNoteStartX() (which includes stave.x).
-      // Do not also subtract xPos, or later-bar notes collapse into the first measure.
-      const xShift = blockInPos - stave.getNoteStartX() - alignment;
-      notes[beatId].getTickContext().setX(xShift);
+    if (notes.length === 0) {
+      return;
     }
-    voice.draw(ctx, stave);
-    let minNote = 1000;
+
+    const voice = new Vex.Flow.Voice({
+      num_beats: Song.measureMeta[blockId].numerator,
+      beat_value: Song.measureMeta[blockId].denominator,
+    });
+    voice.setStrict(false);
+    voice.addTickables(notes);
+    // Beams first, so beamed notes do not also draw flags.
     const beams = Vex.Flow.Beam.generateBeams(notes);
-    for (let beatId = 0; beatId < numNotes; beatId += 1) {
-      // console.log(stave.start_x);
-      minNote = Math.min(minNote, notes[beatId].getNoteHeadBounds().y_top);
+    new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 0);
+    // Voice.setStave does not reach the notes; their absolute X needs the stave.
+    voice.setStave(stave);
+    notes.forEach((note) => note.setStave(stave));
+
+    const measureData = Song.measures[trackId][blockId][voiceId];
+    for (let beatId = 0; beatId < notes.length; beatId += 1) {
+      const note = notes[beatId];
+      const targetCenter = CLASSICAL_CLEF_GUTTER + xPos
+        + getMeasureBeatX(trackId, voiceId, blockId, beatId, measureData)
+        + getMeasureBeatWidth(trackId, voiceId, blockId, beatId, measureData) / 2;
+      const currentCenter = (note.getNoteHeadBeginX() + note.getNoteHeadEndX()) / 2;
+      const tickContext = note.getTickContext();
+      tickContext.setX(tickContext.getX() + targetCenter - currentCenter);
     }
+
     beams.forEach((beam: Vex.Flow.Beam) => beam.postFormat());
-    // THIS is the line where the stems are drawn
+    voice.draw(ctx, stave);
     beams.forEach((beam: Vex.Flow.Beam) => beam.setContext(ctx).draw());
-    // console.log(voice);
-
-    /* There is a rendering bug in vexFlow, so we do not render them atm (12 will be shown as 21)
-    for(var i = 0, n = tuplets.length; i < n; i++){
-        tuplets[i].setContext(ctx).draw()
-    } */
-
-    this.topLineY[blockId] = stave.getBottomLineY() + stave.getHeight();
-
-    const marginTopBlock = (minNote < 0) ? Math.abs(minNote) : 0;
-    this.marginTopPerRow[rowId] = Math.max(marginTopBlock, this.marginTopPerRow[rowId]);
-    /* var rowId = tab.blockToRow[trackId][Song.currentVoiceId][blockId].rowId;
-    if(minNote < 0){
-        console.log(completeWidth, Math.abs(minNote) + VEXFLOW_HEIGHT);
-        this.rendererPerRow[rowId].resize(completeWidth, Math.abs(minNote) + VEXFLOW_HEIGHT);
-    } */
   }
 
-  drawVexTies(
-    trackId: number,
-    voiceId: number,
-    r: number,
-    context: IRenderContext,
-    lContext: IRenderContext,
-  ) {
-    // NO blocks, all notes are grouped by row
-    for (let i = 0, m = this.allNoteRows[r].length; i < m; i += 1) {
-      for (let j = 0; j < this.allNoteRows[r][i].tied.length; j += 1) {
-        if (this.allNoteRows[r][i].tied[j]) {
-          if (i === 0) {
-            // draw two bows at transition between two rows
-            // draw in last row
-            let secondIndex = j;
-            const lastIndex = this.allNoteRows[r - 1].length - 1;
-            for (let o = 0; o < this.allNoteRows[r - 1][lastIndex].strings.length; o += 1) {
-              if (this.allNoteRows[r - 1][lastIndex].strings[o]
-                === this.allNoteRows[r][i].strings[j]) {
-                secondIndex = o;
-                break;
-              }
-            }
-            if (secondIndex === -1) {
-              console.log('Second Index not found!');
-            } else {
-              const tie1 = new Vex.Flow.StaveTie({
-                first_note: this.allNoteRows[r - 1][lastIndex].note,
-                first_indices: [secondIndex],
-              });
-              // console.log(secondIndex);
-              tie1.setContext(lContext).draw();
+  private getRowNotes(trackId: number, voiceId: number, rowId: number): RowNote[] {
+    const range = this.getRowBlockRange(trackId, voiceId, rowId);
+    if (!range) {
+      return [];
+    }
+    const rowNotes: RowNote[] = [];
+    for (let blockId = range.start; blockId < range.end; blockId += 1) {
+      rowNotes.push(...(this.allNotes[blockId] ?? []));
+    }
+    return rowNotes;
+  }
 
-              // draw in own row
-              const tie2 = new Vex.Flow.StaveTie({
-                last_note: this.allNoteRows[r][0].note,
-                last_indices: [j],
-              });
-              // console.log(j);
-              tie2.setContext(context).draw();
-              // console.log("Worked");
-            }
-          } else {
-            const index = i - 1;
-            // find suitable
-            let secondIndex = -1;
-            for (let o = 0; o < this.allNoteRows[r][i - 1].strings.length; o += 1) {
-              if (this.allNoteRows[r][i - 1].strings[o] === this.allNoteRows[r][i].strings[j]) {
-                secondIndex = o;
-                break;
-              }
-            }
-            if (secondIndex === -1) {
-              console.log('Second Index not found!');
-            } else {
-              const tie = new Vex.Flow.StaveTie({
-                first_note: this.allNoteRows[r][index].note,
-                last_note: this.allNoteRows[r][i].note,
-                first_indices: [secondIndex],
-                last_indices: [j],
-              });
-              tie.setContext(context).draw();
-            }
-          }
+  /**
+   * Ties of one row. Ties crossing a row break are drawn as two halves, each in
+   * its own row (outgoing half here when the next row starts tied, incoming half
+   * when this row starts tied), so rows never need each other's context.
+   */
+  drawVexTies(trackId: number, voiceId: number, rowId: number, context: IRenderContext) {
+    const rowNotes = this.getRowNotes(trackId, voiceId, rowId);
+    if (rowNotes.length === 0) {
+      return;
+    }
+
+    for (let i = 0; i < rowNotes.length; i += 1) {
+      const current = rowNotes[i];
+      for (let j = 0; j < current.tied.length; j += 1) {
+        if (!current.tied[j]) {
+          continue;
+        }
+        if (i === 0) {
+          new Vex.Flow.StaveTie({ last_note: current.note, last_indices: [j] })
+            .setContext(context).draw();
+          continue;
+        }
+        const previousIndex = rowNotes[i - 1].strings.indexOf(current.strings[j]);
+        if (previousIndex !== -1) {
+          new Vex.Flow.StaveTie({
+            first_note: rowNotes[i - 1].note,
+            last_note: current.note,
+            first_indices: [previousIndex],
+            last_indices: [j],
+          }).setContext(context).draw();
         }
       }
     }
+
+    const nextFirst = this.getRowNotes(trackId, voiceId, rowId + 1)[0];
+    const last = rowNotes[rowNotes.length - 1];
+    nextFirst?.tied.forEach((tied, j) => {
+      const lastIndex = tied ? last.strings.indexOf(nextFirst.strings[j]) : -1;
+      if (lastIndex !== -1) {
+        new Vex.Flow.StaveTie({ first_note: last.note, first_indices: [lastIndex] })
+          .setContext(context).draw();
+      }
+    });
   }
 }
 

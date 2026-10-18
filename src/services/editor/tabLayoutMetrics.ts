@@ -1,10 +1,23 @@
 import Song from '../../assets/js/songData'
 import Settings from '../../assets/js/settingManager'
-import { getRowRenderLayout, getTrackRenderLayout } from '../../composables/useTabRenderLayout'
+import { getTrackRenderLayout } from '../../composables/useTabRenderLayout'
 import { TAB_SHEET } from '../../utils/tabSheetConstants'
+import type { RenderedTabRow } from '../../types/tab'
 
 const BOTTOM_BEAM_BAR_HEIGHT = 50
 const CLASSICAL_GAP_BELOW_TAB = 4
+/** Space between the tab content of a row and its classical staff area. */
+export const CLASSICAL_ROW_GAP = 8
+/**
+ * Space after a classical area, before the next row. That row draws measure
+ * numbers, markers and over-bar effects above its strings, and the staff should
+ * read as belonging to the tab row above it.
+ */
+export const CLASSICAL_ROW_SEPARATION = 24
+/** Space between consecutive rows when only tab is shown. */
+export const TAB_ROW_GAP = 12
+/** Room left of a row's first measure where the classical clef is drawn. */
+export const CLASSICAL_CLEF_GUTTER = 44
 
 export function getTabStringsBottom(trackId: number): number {
   const numStrings = Song.tracks[trackId]?.numStrings ?? 6
@@ -20,20 +33,22 @@ export function getClassicalNotationTop(trackId: number): number {
   return getTabStringsBottom(trackId) + BOTTOM_BEAM_BAR_HEIGHT + CLASSICAL_GAP_BELOW_TAB
 }
 
+/** Height of a tab row without classical notation (strings, effects, beams). */
+export function getTabRowContentHeight(trackId: number): number {
+  return getClassicalNotationTop(trackId) + 6
+}
+
+/** Y offset from a row's top string to the top of its classical staff area. */
+export function getClassicalAreaTop(row: RenderedTabRow, trackId: number): number {
+  return (row.lanes?.bodyHeight ?? getTabRowContentHeight(trackId)) + CLASSICAL_ROW_GAP
+}
+
 export function getPositionMarkerHeight(trackId: number): number {
   let height = (Song.tracks[trackId].numStrings - 1) * TAB_SHEET.heightPerString
   if (Settings.vexFlowIsActive) {
     height += TAB_SHEET.VEXFLOW_HEIGHT
   }
   return height
-}
-
-export function getOverBarHeight(trackId: number, voiceId: number, rowId: number): number {
-  const rowHeight = getRowRenderLayout(trackId, voiceId, rowId)?.height
-  if (rowHeight === undefined) {
-    return 0
-  }
-  return rowHeight - getBlockHeight(trackId)
 }
 
 export function getYPosOfPage(pageId: number): number {
@@ -65,6 +80,3 @@ export function getNumChordDiagramRows(trackId: number, availableWidth?: number)
   return Math.ceil(getNumChords(trackId) / numChordsPerRow)
 }
 
-export function getChordDiagramRowHeight(trackId: number, availableWidth?: number): number {
-  return getNumChordDiagramRows(trackId, availableWidth) * 120 - 20
-}

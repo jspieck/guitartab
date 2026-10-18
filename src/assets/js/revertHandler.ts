@@ -1,7 +1,8 @@
 import {
-  Measure, MeasureMetaInfo, Track, Bend, TremoloBar, Chord, Marker, Stroke,
-  Note, MeasureEffects,
+  Beat, MeasureMetaInfo, Track, Bend, TremoloBar, Chord, Marker, Stroke,
+  Note, BeatEffects, VoiceSnapshot, Grace,
 } from './songData';
+import type { MenuEffectState } from '../../services/menuEffectMutations';
 import AppManager from './appManager';
 import { RevertStack } from '../../services/editor/revertStack';
 import { notifySongDataChanged } from '../../services/appEvents';
@@ -116,8 +117,8 @@ class RevertHandler {
 
   addCopyPaste(
     trackId: number, voiceId: number,
-    blocksBefore: {blockId: number, block: Measure[][]}[],
-    blocksAfter: {blockId: number, block: Measure[][]}[],
+    blocksBefore: {blockId: number, block: Beat[][]}[],
+    blocksAfter: {blockId: number, block: Beat[][]}[],
   ) {
     this.addToState('CopyPaste', {
       trackId, voiceId, blocksBefore, blocksAfter,
@@ -125,8 +126,8 @@ class RevertHandler {
   }
 
   addNoteLengthChange(
-    trackId: number, blockId: number, voiceId: number, measureBefore: Measure,
-    measureAfter: Measure,
+    trackId: number, blockId: number, voiceId: number, measureBefore: Beat,
+    measureAfter: Beat,
   ) {
     this.addToState('NoteLength', {
       trackId, blockId, voiceId, measureBefore, measureAfter,
@@ -135,7 +136,7 @@ class RevertHandler {
 
   deleteNote(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    string: number, noteObj: Note, effectObj: MeasureEffects,
+    string: number, noteObj: Note, effectObj: BeatEffects,
   ) {
     this.addToState('DeleteNote', {
       trackId, blockId, voiceId, beatId, string, noteObj, effectObj,
@@ -171,19 +172,20 @@ class RevertHandler {
       notes: {trackId: number, blockId: number, voiceId: number, beatId: number,
         string: number, note: Note}[],
       blocks: number[],
-      beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Measure}[]
+      beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Beat}[]
     },
     id: string,
-    changes: {[key: string]: {[s: string]: boolean}},
+    changes: {[key: string]: {[s: string]: MenuEffectState}},
   ) {
     this.addToState('NoteSelect', { arr, id, changes });
   }
 
   addNotationSelect(
     trackId: number, blockId: number, voiceId: number, beatId: number, id: string,
+    stateBefore: Record<string, MenuEffectState>, stateAfter: Record<string, MenuEffectState>,
   ) {
     this.addToState('NotationSelect', {
-      trackId, blockId, voiceId, beatId, id,
+      trackId, blockId, voiceId, beatId, id, stateBefore, stateAfter,
     });
   }
 
@@ -208,8 +210,7 @@ class RevertHandler {
 
   addText(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    previousText: string, nextText: string,
-    textPresentBefore: boolean, textPresentAfter: boolean,
+    previousText: string | undefined, nextText: string | undefined,
   ) {
     this.addToState('Text', {
       trackId,
@@ -218,29 +219,23 @@ class RevertHandler {
       beatId,
       previousText,
       nextText,
-      textPresentBefore,
-      textPresentAfter,
     });
   }
 
   addMarker(
-    trackId: number, blockId: number, markerBefore: Marker, markerAfter: Marker,
-    markerPresentBefore: boolean, markerPresentAfter: boolean,
+    trackId: number, blockId: number, markerBefore: Marker | undefined, markerAfter: Marker | undefined,
   ) {
     this.addToState('Marker', {
       trackId,
       blockId,
       markerBefore,
       markerAfter,
-      markerPresentBefore,
-      markerPresentAfter,
     });
   }
 
   addChord(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    chordBefore: Chord, chordAfter: Chord,
-    chordPresentBefore: boolean, chordPresentAfter: boolean,
+    chordBefore: Chord | undefined, chordAfter: Chord | undefined,
   ) {
     this.addToState('Chord', {
       trackId,
@@ -249,37 +244,31 @@ class RevertHandler {
       beatId,
       chordBefore,
       chordAfter,
-      chordPresentBefore,
-      chordPresentAfter,
     });
   }
 
   addRepeatAlternative(
-    trackId: number, blockId: number, repeatAltBefore: number, repeatAltAfter: number,
-    repeatAltPresentBefore: boolean, repeatAltPresentAfter: boolean,
+    trackId: number, blockId: number,
+    repeatAlternativeBefore: number | undefined, repeatAlternativeAfter: number | undefined,
   ) {
+    // (Stored as repeatAltBefore/After before, which the undo handlers never read.)
     this.addToState('RepeatAlternative', {
       trackId,
       blockId,
-      repeatAltBefore,
-      repeatAltAfter,
-      repeatAltPresentBefore,
-      repeatAltPresentAfter,
+      repeatAlternativeBefore,
+      repeatAlternativeAfter,
     });
   }
 
   addRepeatClose(
-    trackId: number, blockId: number, repeatCloseBefore: number,
-    repeatCloseAfter: number, repeatClosePresentBefore: boolean,
-    repeatClosePresentAfter: boolean,
+    trackId: number, blockId: number, repeatCloseBefore: number | undefined,
+    repeatCloseAfter: number | undefined,
   ) {
     this.addToState('RepeatClose', {
       trackId,
       blockId,
       repeatCloseBefore,
       repeatCloseAfter,
-      repeatClosePresentBefore,
-      repeatClosePresentAfter,
     });
   }
 
@@ -287,7 +276,7 @@ class RevertHandler {
     trackId: number, blockId: number, voiceId: number, numeratorBefore: number,
     numeratorAfter: number, denominatorBefore: number, denominatorAfter: number,
     timeMeterPresentBefore: boolean, timeMeterPresentAfter: boolean,
-    notesBefore: { blockId: number, notes: {beatId: number, note: Note[]}[] }[][][],
+    notesBefore: VoiceSnapshot[][][],
   ) {
     this.addToState('TimeMeter', {
       trackId,
@@ -303,14 +292,12 @@ class RevertHandler {
     });
   }
 
-  addBpmMeter(trackId: number, blockId: number, voiceId: number, bpmPresentBefore: boolean,
-    bpmPresentAfter: boolean, bpmBefore: number, bpmAfter: number) {
+  addBpmMeter(trackId: number, blockId: number, voiceId: number,
+    bpmBefore: number | undefined, bpmAfter: number | undefined) {
     this.addToState('BpmMeter', {
       trackId,
       blockId,
       voiceId,
-      bpmPresentBefore,
-      bpmPresentAfter,
       bpmBefore,
       bpmAfter,
     });
@@ -319,8 +306,7 @@ class RevertHandler {
   // Effects
   addStroke(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    strokeBefore: Stroke, strokeAfter: Stroke, strokePresentBefore: boolean,
-    strokePresentAfter: boolean,
+    strokeBefore: Stroke | undefined, strokeAfter: Stroke | undefined,
   ) {
     this.addToState('Stroke', {
       trackId,
@@ -329,15 +315,12 @@ class RevertHandler {
       beatId,
       strokeBefore,
       strokeAfter,
-      strokePresentBefore,
-      strokePresentAfter,
     });
   }
 
   addArtificial(
     trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-    artificialBefore: string, artificialAfter: string, artificialPresentBefore: boolean,
-    artificialPresentAfter: boolean,
+    artificialBefore: string | undefined, artificialAfter: string | undefined,
   ) {
     this.addToState('Artificial', {
       trackId,
@@ -347,15 +330,12 @@ class RevertHandler {
       string,
       artificialBefore,
       artificialAfter,
-      artificialPresentBefore,
-      artificialPresentAfter,
     });
   }
 
   addGrace(
     trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-    graceBefore: { duration: string, fret: number }, graceAfter: { duration: string, fret: number },
-    gracePresentBefore: boolean, gracePresentAfter: boolean,
+    graceBefore: Grace | undefined, graceAfter: Grace | undefined,
   ) {
     this.addToState('Grace', {
       trackId,
@@ -365,16 +345,13 @@ class RevertHandler {
       string,
       graceBefore,
       graceAfter,
-      gracePresentBefore,
-      gracePresentAfter,
     });
   }
 
   addTremoloBar(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    tremoloBarBefore: TremoloBar, tremoloBarAfter: TremoloBar, tremoloBarPresentBefore: boolean,
-    tremoloBarPresentAfter: boolean,
-    effectsBefore: {string: number, effects: {[s: string]: boolean}}[],
+    tremoloBarBefore: TremoloBar | undefined, tremoloBarAfter: TremoloBar | undefined,
+    effectsBefore: {string: number, effects: {[s: string]: MenuEffectState}}[],
   ) {
     this.addToState('TremoloBar', {
       trackId,
@@ -383,8 +360,6 @@ class RevertHandler {
       beatId,
       tremoloBarBefore,
       tremoloBarAfter,
-      tremoloBarPresentBefore,
-      tremoloBarPresentAfter,
       effectsBefore,
     });
   }
@@ -392,7 +367,7 @@ class RevertHandler {
   addTremoloPicking(
     trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
     tremoloPickingBefore: string, tremoloPickingAfter: string, tremoloPickingPresentBefore: boolean,
-    tremoloPickingPresentAfter: boolean, effectsBefore: {[m: string]: boolean},
+    tremoloPickingPresentAfter: boolean, effectsBefore: {[m: string]: MenuEffectState},
   ) {
     this.addToState('TremoloPicking', {
       trackId,
@@ -410,8 +385,8 @@ class RevertHandler {
 
   addBend(
     trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-    bendBefore: Bend, bendAfter: Bend, bendPresentBefore: boolean,
-    bendPresentAfter: boolean, effectsBefore: {[m: string]: boolean},
+    bendBefore: Bend | undefined, bendAfter: Bend | undefined,
+    effectsBefore: {[m: string]: MenuEffectState},
   ) {
     this.addToState('Bend', {
       trackId,
@@ -421,8 +396,6 @@ class RevertHandler {
       string,
       bendBefore,
       bendAfter,
-      bendPresentBefore,
-      bendPresentAfter,
       effectsBefore,
     });
   }
@@ -435,7 +408,7 @@ class RevertHandler {
     this.addToState('AddBlock', {});
   }
 
-  removeBlock(blocksBefore: Measure[][][], measureMetaBefore: MeasureMetaInfo) {
+  removeBlock(blocksBefore: Beat[][][], measureMetaBefore: MeasureMetaInfo) {
     this.addToState('RemoveBlock', { blocksBefore, measureMetaBefore });
   }
 

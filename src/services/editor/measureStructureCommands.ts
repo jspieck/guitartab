@@ -1,5 +1,5 @@
 import fastdom from 'fastdom'
-import Song, { type Measure, type MeasureMetaInfo } from '../../assets/js/songData'
+import Song, { type Beat, type MeasureMetaInfo } from '../../assets/js/songData'
 import AppManager from '../../assets/js/appManager'
 import { sequencerHandler } from '../../assets/js/sequencerHandler'
 import { revertHandler } from '../../assets/js/revertHandler'
@@ -87,7 +87,7 @@ export function removeBlock(host: MeasureStructureHost, duringRestoration: boole
   }
   fastdom.mutate(() => {
     if (Song.numMeasures <= 1) return
-    const blocksBefore: Measure[][][] = []
+    const blocksBefore: Beat[][][] = []
     Song.numMeasures -= 1
     if (host.markedNoteObj != null) {
       if (host.markedNoteObj.blockId === Song.numMeasures) {

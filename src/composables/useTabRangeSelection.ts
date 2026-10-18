@@ -5,6 +5,7 @@ import {
   resolveTabPointerPosition,
   TAB_CONSTANTS,
 } from '../utils/tabLayout'
+import { usePlaybackEngine } from './usePlaybackEngine'
 
 const DRAG_THRESHOLD_PX = 8
 
@@ -28,6 +29,7 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
   let pointerStartClientX = 0
   let pointerStartClientY = 0
   let dragSessionActive = false
+  const playbackEngine = usePlaybackEngine()
 
   function resolvePointer(event: MouseEvent) {
     const svgElement = options.svgRoot.value
@@ -105,6 +107,8 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
           current.beatIndex,
         )
       }
+      // The selected range is also the playback loop (as when dragging in the sequencer).
+      overlayHandler.setLoopingInterval()
     } else if (pointerStart) {
       options.onSingleSelect({
         trackId: options.trackId,
@@ -113,6 +117,10 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
         beatIndex: pointerStart.beatIndex,
         stringIndex: pointerStart.stringIndex,
       })
+      // A click while the song plays moves playback there.
+      if (playbackEngine.getPlayingState()) {
+        void playbackEngine.jumpToBeat(options.trackId, pointerStart.blockId, options.voiceId, pointerStart.beatIndex)
+      }
     }
 
     isDraggingRange.value = false

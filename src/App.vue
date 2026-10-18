@@ -51,6 +51,9 @@
       <button type="button" class="autosave-banner__action" @click="restoreAutosaveDraft">Restore</button>
       <button type="button" class="autosave-banner__action autosave-banner__action--muted" @click="dismissAutosaveDraft">Dismiss</button>
     </div>
+    <!-- Loaded on first open; it is not needed at startup. -->
+    <AutosaveDraftsPanel v-if="draftsPanelState.open" />
+    <HelpOverlays v-if="shortcutsHelpState.open || firstRunHintState.open" />
     
     <svg id="svg-source" height="0" version="1.1" xmlns="http://www.w3.org/2000/svg"
       style="position:absolute; margin-left: -100%" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -81,17 +84,22 @@ import { useTabViewport } from './composables/useTabViewport'
 import { getCloudSongIdFromUrl, loadCloudSongById } from './services/cloudSongLoader'
 import AppManager from './assets/js/appManager'
 import {
-  discardAutosaves,
-  getLatestAutosave,
+  dismissRecoverableDraft,
+  getRecoverableDraft,
   restoreAutosave,
   setupAutosaveListeners,
   teardownAutosaveListeners,
 } from './services/songAutosave'
+import { draftsPanelState } from './stores/draftsPanelState'
+import { shortcutsHelpState } from './stores/shortcutsHelpState'
+import { firstRunHintState } from './stores/firstRunHintState'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
 const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
 const Sequencer = defineAsyncComponent(() => import('./components/Sequencer.vue'))
 const ModalsContainer = defineAsyncComponent(() => import('./components/ModalsContainer.vue'))
+const AutosaveDraftsPanel = defineAsyncComponent(() => import('./components/AutosaveDraftsPanel.vue'))
+const HelpOverlays = defineAsyncComponent(() => import('./components/HelpOverlays.vue'))
 
 useSongData()
 const { currentTrackId, currentVoiceId } = useEditorScopeState()
@@ -125,12 +133,12 @@ function formatAutosaveTime(savedAt: number): string {
 
 async function checkForAutosaveDraft(): Promise<void> {
   try {
-    const snapshot = await getLatestAutosave()
+    const snapshot = await getRecoverableDraft()
     if (!snapshot) {
       return
     }
     pendingAutosaveBytes.value = snapshot.bytes
-    autosavePrompt.value = `Restore unsaved work from ${formatAutosaveTime(snapshot.savedAt)}?`
+    autosavePrompt.value = `Restore unsaved changes to "${snapshot.title}" from ${formatAutosaveTime(snapshot.savedAt)}?`
   } catch (error) {
     console.error('Failed to read autosave draft', error)
   }
@@ -140,25 +148,23 @@ function restoreAutosaveDraft(): void {
   if (!pendingAutosaveBytes.value) {
     return
   }
-  restoreAutosave(pendingAutosaveBytes.value)
+  const restored = restoreAutosave({ bytes: pendingAutosaveBytes.value })
   autosavePrompt.value = null
   pendingAutosaveBytes.value = null
-  AppManager.showNotification('Restored autosaved draft')
+  if (restored) AppManager.showNotification('Restored autosaved draft')
 }
 
-async function dismissAutosaveDraft(): Promise<void> {
+// Dismissing only hides the offer; the draft stays in "Recover drafts".
+function dismissAutosaveDraft(): void {
   autosavePrompt.value = null
   pendingAutosaveBytes.value = null
-  try {
-    await discardAutosaves()
-  } catch (error) {
-    console.error('Failed to discard autosave draft', error)
-  }
+  dismissRecoverableDraft()
 }
 
 onMounted(() => {
-  setupAutosaveListeners()
   startUp()
+  // After startUp, so the initial (empty or demo) song is the clean baseline.
+  setupAutosaveListeners()
   void checkForAutosaveDraft()
   const cloudSongId = getCloudSongIdFromUrl()
   if (cloudSongId) {

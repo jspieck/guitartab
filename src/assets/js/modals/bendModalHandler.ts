@@ -1,5 +1,6 @@
 import { BaseModalHandler } from './baseModalHandler';
-import { Note, Measure } from '../songData';
+import type { MenuEffectState } from '../../../services/menuEffectMutations';
+import { Note, Beat, Bend } from '../songData';
 import {
   connectPoints,
   drawPoint,
@@ -36,7 +37,7 @@ interface BendModalParams {
         blockId: number;
         voiceId: number;
         beatId: number;
-        beat: Measure;
+        beat: Beat;
     }[];
     isVariableSet: boolean;
 }
@@ -58,11 +59,10 @@ export class BendModalHandler extends BaseModalHandler {
         blocks: number[],
         beats: {
             trackId: number, blockId: number, voiceId: number, beatId: number,
-            beat: Measure
+            beat: Beat
         }[]
     };
     private isVariableSet: boolean = false;
-    private bendPresentBefore: { [a: string]: boolean } = {};
     private pointsLayer: SVGGElement | null = null;
 
     constructor() {
@@ -87,13 +87,6 @@ export class BendModalHandler extends BaseModalHandler {
             beats: params.beats
         };
         this.isVariableSet = params.isVariableSet;
-
-        // Store initial bend states
-        this.bendPresentBefore = {};
-        for (const no of params.notes) {
-            const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-            this.bendPresentBefore[noteStr] = no.note.bendPresent;
-        }
 
         this.showModal();
     }
@@ -202,7 +195,7 @@ export class BendModalHandler extends BaseModalHandler {
                 blockId: number,
                 voiceId: number,
                 beatId: number,
-                beat: Measure
+                beat: Beat
             }[]
         },
         paddingTop: number,
@@ -325,33 +318,32 @@ export class BendModalHandler extends BaseModalHandler {
 
     private applyBendToNotes(
         bendObjs: { bendPosition: number, bendValue: number, vibrato: number }[],
-        notesBefore: { [noteKey: string]: { [effect: string]: boolean } },
+        notesBefore: { [noteKey: string]: { [effect: string]: MenuEffectState } },
     ) {
         if (!this.currentNotes) return;
 
         for (const no of this.currentNotes.notes) {
             const { trackId, blockId, voiceId, beatId, string } = no;
-            const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+            const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
 
             if (!note) {
                 console.error('Note is null');
                 continue;
             }
 
-            const bendBefore = note.bendObj;
-            if (!note.bendPresent) {
-                note.bendPresent = true;
-                if (tab.markedNoteObj.blockId === blockId && tab.markedNoteObj.beatId === beatId) {
-                    typedEventBus.emit("menu.activateEffectsForNote", note);
-                }
+            const noteStr = `${trackId}_${blockId}_${voiceId}_${beatId}_${string}`;
+            // The group collision above already switched the bend on, so take the
+            // state from before it.
+            const bendBefore = notesBefore[noteStr]?.bend as Bend | undefined;
+            if (bendBefore == null
+                && tab.markedNoteObj.blockId === blockId && tab.markedNoteObj.beatId === beatId) {
+                typedEventBus.emit("menu.activateEffectsForNote", note);
             }
 
             note.bendObj = bendObjs;
-            const noteStr = `${trackId}_${blockId}_${voiceId}_${beatId}_${string}`;
             revertHandler.addBend(
                 trackId, blockId, voiceId, beatId, string,
                 bendBefore, note.bendObj,
-                this.bendPresentBefore[noteStr], note.bendPresent,
                 notesBefore[noteStr] ?? {},
             );
         }

@@ -1,11 +1,9 @@
 import { gProReader } from './GProReader';
 import Song, {
-  TremoloBar, Bend, Chord, Track, Note, MeasureEffects, Stroke, Grace,
+  TremoloBar, Bend, Chord, Track, Note, BeatEffects, Stroke, Grace,
 } from './songData';
 import AppManager from './appManager';
-import { ChordModalHandler } from './modals/chordModalHandler';
-import { modalManager } from './modals/modalManager';
-import { MODALS } from './modals/modalTypes';
+import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
 
 class Gp5Reader {
   static read() {
@@ -16,8 +14,7 @@ class Gp5Reader {
 
     const versionIndex = Gp5Reader.isSupportedVersion(version);
     if (versionIndex < 0) {
-      alert('Version nicht unterstützt!');
-      return;
+      throw new ImportError(`Unsupported Guitar Pro version "${version}". Open a Guitar Pro 5 file here.`, 'gp5');
     }
     Gp5Reader.readInfo();
     // lyric track
@@ -40,8 +37,8 @@ class Gp5Reader {
 
     gProReader.skipBytes(42);
 
-    const numMeasures = gProReader.readInt();
-    const numTracks = gProReader.readInt();
+    const numMeasures = gProReader.readCount(IMPORT_LIMITS.measures, 'bars');
+    const numTracks = gProReader.readCount(IMPORT_LIMITS.tracks, 'tracks');
     for (let t = 0; t < numTracks; t += 1) {
       Song.chordsMap.push(new Map());
     }
@@ -53,7 +50,6 @@ class Gp5Reader {
       Song.measureMeta[i] = Song.defaultMeasureMeta();
     }
     console.log(numMeasures);
-    Song.measureMeta[0].bpmPresent = true;
     Song.measureMeta[0].bpm = tempoValue;
 
     Gp5Reader.readMeasureHeaders(numMeasures);
@@ -89,7 +85,7 @@ class Gp5Reader {
     Song.songDescription.writer = gProReader.readStringByteSizeOfInteger();
     Song.songDescription.instructions = gProReader.readStringByteSizeOfInteger();
     Song.songDescription.comments = [];
-    const comments = gProReader.readInt();
+    const comments = gProReader.readCount(IMPORT_LIMITS.comments, 'comment lines');
     for (let i = 0; i < comments; i += 1) {
       Song.songDescription.comments[i] = gProReader.readStringByteSizeOfInteger();
     }
@@ -155,6 +151,12 @@ class Gp5Reader {
 
   static readMeasureHeader(index: number) {
     const flags = gProReader.readUnsignedByte();
+    // A bar only stores its time signature when it changes; otherwise it keeps the previous one.
+    const previous = Song.measureMeta[index - 1];
+    if (previous != null) {
+      Song.measureMeta[index].numerator = previous.numerator;
+      Song.measureMeta[index].denominator = previous.denominator;
+    }
 
     Song.measureMeta[index].repeatOpen = (flags & 0x04) !== 0;
     if ((flags & 0x01) !== 0) {
@@ -168,15 +170,12 @@ class Gp5Reader {
       Song.measureMeta[index].timeMeterPresent = true;
     }
     if ((flags & 0x08) !== 0) {
-      Song.measureMeta[index].repeatClosePresent = true;
       Song.measureMeta[index].repeatClose = (gProReader.readByte() & 0xff) - 1;
     }
     if ((flags & 0x20) !== 0) {
-      Song.measureMeta[index].markerPresent = true;
       Song.measureMeta[index].marker = Gp5Reader.readMarker();
     }
     if ((flags & 0x10) !== 0) {
-      Song.measureMeta[index].repeatAlternativePresent = true;
       Song.measureMeta[index].repeatAlternative = gProReader.readUnsignedByte();
     }
     if ((flags & 0x40) !== 0) {
@@ -280,7 +279,9 @@ class Gp5Reader {
     for (let i = 0; i < numMeasures; i += 1) {
       for (let j = 0; j < tracks; j += 1) {
         Gp5Reader.readMeasure(j, i, versionIndex);
-        gProReader.skipBytes(1);
+        // Line-break byte after each bar; some writers leave it off after the last one.
+        const last = i === numMeasures - 1 && j === tracks - 1;
+        if (!last || gProReader.bytesLeft() > 0) gProReader.skipBytes(1);
       }
     }
   }
@@ -289,7 +290,7 @@ class Gp5Reader {
     Song.measures[trackId][blockId] = [];
     for (let voiceId = 0; voiceId < 2; voiceId += 1) {
       Song.measures[trackId][blockId][voiceId] = [];
-      const beats = gProReader.readInt();
+      const beats = gProReader.readCount(IMPORT_LIMITS.beatsPerVoice, 'beats in a bar');
       for (let i = 0; i < beats; i += 1) {
         Gp5Reader.readBeat(trackId, blockId, voiceId, i, versionIndex);
       }
@@ -312,10 +313,8 @@ class Gp5Reader {
     trackId: number, blockId: number, voiceId: number, beatId: number, versionIndex: number,
   ) {
     let empty = false;
-    let chordPresent = false;
-    let chord = null;
-    let textPresent = false;
-    let text = '';
+    let chord: Chord | undefined;
+    let text: string | undefined;
     let effects = Song.defaultMeasureEffects();
     const notes: Note[] = [];
     let duration = 'e';
@@ -332,14 +331,11 @@ class Gp5Reader {
     if ((flags & 0x20) !== 0) {
       tuplet = gProReader.readInt();
     }
-    chordPresent = (flags & 0x02) !== 0;
-    if (chordPresent) {
+    if ((flags & 0x02) !== 0) {
       chord = Gp5Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler(MODALS.ADD_CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
-    textPresent = (flags & 0x04) !== 0;
-    if (textPresent) {
+    if ((flags & 0x04) !== 0) {
       text = gProReader.readStringByteSizeOfInteger();
     }
     if ((flags & 0x08) !== 0) {
@@ -359,9 +355,7 @@ class Gp5Reader {
     }
     const measure = {
       empty,
-      chordPresent,
       chord,
-      textPresent,
       text,
       effects,
       notes,
@@ -405,7 +399,7 @@ class Gp5Reader {
     };
   }
 
-  static readBeatEffects(): MeasureEffects {
+  static readBeatEffects(): BeatEffects {
     const flags1 = gProReader.readUnsignedByte();
     const flags2 = gProReader.readUnsignedByte();
     const fadeIn = (flags1 & 0x10) !== 0;
@@ -419,19 +413,15 @@ class Gp5Reader {
       slap = tapEffect === 2;
       pop = tapEffect === 3;
     }
-    let tremoloBarPresent = false;
-    let tremoloBar: TremoloBar = [];
+    let tremoloBar: TremoloBar | undefined;
     if ((flags2 & 0x04) !== 0) {
-      tremoloBarPresent = true;
       tremoloBar = Gp5Reader.readTremoloBar();
     }
-    let strokePresent = false;
-    let stroke: Stroke = { strokeType: 'up', strokeLength: 0 };
+    let stroke: Stroke | undefined;
     if ((flags1 & 0x40) !== 0) {
       // 0: none, 1: 128th, 2: 64th, 3: 32th, 4: 16th, 5: 8th, 6 4th
       const strokeUp = gProReader.readByte();
       const strokeDown = gProReader.readByte();
-      strokePresent = true;
       if (strokeUp > 0) {
         stroke = {
           strokeType: 'up',
@@ -448,14 +438,14 @@ class Gp5Reader {
       gProReader.readByte();
     }
     return {
-      fadeIn, vibrato, tap, slap, pop, tremoloBarPresent, tremoloBar, strokePresent, stroke,
+      fadeIn, vibrato, tap, slap, pop, tremoloBar, stroke,
     };
   }
 
   static readTremoloBar() {
     const tremoloBar = [];
     gProReader.skipBytes(5);
-    const numPoints = gProReader.readInt();
+    const numPoints = gProReader.readCount(IMPORT_LIMITS.points, 'curve points');
     for (let i = 0; i < numPoints; i += 1) {
       const position = gProReader.readInt();
       const value = gProReader.readInt();
@@ -498,7 +488,6 @@ class Gp5Reader {
     }
     if (tempoValue >= 0) {
       console.log(blockId, Song.measureMeta.length);
-      Song.measureMeta[blockId].bpmPresent = true;
       Song.measureMeta[blockId].bpm = tempoValue;
       gProReader.skipBytes(1);
       if (versionIndex > 0) {
@@ -554,24 +543,18 @@ class Gp5Reader {
   static readNoteEffects() {
     const flags1 = gProReader.readUnsignedByte();
     const flags2 = gProReader.readUnsignedByte();
-    let bendPresent = false;
-    let bendObj: Bend = [];
-    let gracePresent = false;
-    let graceObj = {};
+    let bendObj: Bend | undefined;
+    let graceObj: Grace | undefined;
     let tremoloPicking = false;
     let tremoloPickingLength = '';
     let slide = false;
-    let artificialPresent = false;
-    let artificialStyle = '';
-    let trillPresent = false;
-    let trillObj = {};
+    let artificialStyle: string | undefined;
+    let trill: { fret: number, period: number } | undefined;
 
     if ((flags1 & 0x01) !== 0) {
-      bendPresent = true;
       bendObj = Gp5Reader.readBend();
     }
     if ((flags1 & 0x10) !== 0) {
-      gracePresent = true;
       graceObj = Gp5Reader.readGrace();
     }
     if ((flags2 & 0x04) !== 0) {
@@ -583,12 +566,11 @@ class Gp5Reader {
       gProReader.readByte();
     }
     if ((flags2 & 0x10) !== 0) {
-      artificialPresent = true;
       artificialStyle = Gp5Reader.readArtificialHarmonic();
     }
     if ((flags2 & 0x20) !== 0) {
-      trillPresent = true;
-      trillObj = Gp5Reader.readTrill();
+      // (This was stored as `trillObj`, a field Note doesn't have, so trills lost their data.)
+      trill = Gp5Reader.readTrill();
     }
     const letRing = (flags1 & 0x08) !== 0;
     const pullDown = (flags1 & 0x02) !== 0;
@@ -596,17 +578,13 @@ class Gp5Reader {
     const palmMute = (flags2 & 0x02) !== 0;
     const stacatto = (flags2 & 0x01) !== 0;
     return {
-      trillPresent,
-      trillObj,
-      gracePresent,
-      graceObj,
-      bendPresent,
-      bendObj,
+      ...(trill ? { trill } : {}),
+      ...(graceObj ? { graceObj } : {}),
+      ...(bendObj ? { bendObj } : {}),
       tremoloPicking,
       tremoloPickingLength,
       slide,
-      artificialPresent,
-      artificialStyle,
+      ...(artificialStyle != null ? { artificialStyle } : {}),
       letRing,
       pullDown,
       vibrato,
@@ -618,7 +596,7 @@ class Gp5Reader {
   static readBend(): Bend {
     const bend = [];
     gProReader.skipBytes(5);
-    const numPoints = gProReader.readInt();
+    const numPoints = gProReader.readCount(IMPORT_LIMITS.points, 'curve points');
     for (let i = 0; i < numPoints; i += 1) {
       const bendPosition = gProReader.readInt();
       const bendValue = gProReader.readInt();
@@ -630,19 +608,22 @@ class Gp5Reader {
     return bend;
   }
 
+  /**
+   * Grace-note length as stored by Guitar Pro 3-5: 1 = 64th, 2 = 32nd, 3 = 16th.
+   * (GP5 read this one step too short and GP4 one step too long.)
+   */
+  static graceDurationFromByte(durationByte: number): string {
+    if (durationByte === 1) return 'z';
+    if (durationByte === 2) return 't';
+    return 's';
+  }
+
   static readGrace(): Grace {
     const fret = gProReader.readUnsignedByte();
     const dynamic = gProReader.readUnsignedByte();
     gProReader.readByte(); // const transition =
     const durationByte = gProReader.readUnsignedByte();
-    let duration = '';
-    if (durationByte === 1) {
-      duration = 'o';
-    } else if (durationByte === 2) {
-      duration = 'z';
-    } else {
-      duration = 't';
-    }
+    const duration = Gp5Reader.graceDurationFromByte(durationByte);
     const flags = gProReader.readUnsignedByte();
     const dead = (flags & 0x01) !== 0;
     const setOnBeat = (flags & 0x02) !== 0 ? 'before' : 'width';

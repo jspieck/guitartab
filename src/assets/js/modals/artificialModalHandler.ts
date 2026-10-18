@@ -1,5 +1,5 @@
 import { BaseModalHandler } from './baseModalHandler';
-import { Note, Measure } from '../songData';
+import { Note, Beat } from '../songData';
 import fastdom from 'fastdom';
 import { typedEventBus } from '../../../utils/typedEventBus';
 import { revertHandler } from '../revertHandler';
@@ -20,14 +20,13 @@ interface BeatData {
     blockId: number;
     voiceId: number;
     beatId: number;
-    beat: Measure;
+    beat: Beat;
 }
 
 interface ArtificialState {
     notes: NoteData[];
     blocks: number[];
     beats: BeatData[];
-    artificialPresentBefore: { [noteStr: string]: boolean };
 }
 
 export class ArtificialModalHandler extends BaseModalHandler {
@@ -46,15 +45,8 @@ export class ArtificialModalHandler extends BaseModalHandler {
         this.currentState = {
             notes: params.notes,
             blocks: params.blocks,
-            beats: params.beats,
-            artificialPresentBefore: {}
+            beats: params.beats
         };
-
-        // Store initial artificial states
-        for (const no of params.notes) {
-            const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-            this.currentState.artificialPresentBefore[noteStr] = no.note.artificialPresent;
-        }
 
         // Set initial artificial style from first note
         if (params.notes[0].note.artificialStyle != null) {
@@ -87,11 +79,9 @@ export class ArtificialModalHandler extends BaseModalHandler {
         fastdom.mutate(() => {
             for (const no of this.currentState!.notes) {
                 const noteInArr = no.note;
-                const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
                 const artificialBefore = noteInArr.artificialStyle;
 
-                if (!noteInArr.artificialPresent) {
-                    noteInArr.artificialPresent = true;
+                if (artificialBefore == null) {
                     typedEventBus.emit("menu.activateEffectsForNote", noteInArr);
                 }
 
@@ -105,8 +95,6 @@ export class ArtificialModalHandler extends BaseModalHandler {
                     no.string,
                     artificialBefore,
                     noteInArr.artificialStyle,
-                    this.currentState!.artificialPresentBefore[noteStr],
-                    noteInArr.artificialPresent
                 );
             }
 

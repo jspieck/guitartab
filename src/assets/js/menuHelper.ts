@@ -1,4 +1,5 @@
-import { Measure, Note, Song } from './songData';
+import { Beat, Note, Song } from './songData';
+import type { MenuEffectState } from '../../services/menuEffectMutations';
 import { tab } from './tab';
 import { modalManager } from './modals/modalManager';
 import { revertHandler } from './revertHandler';
@@ -15,24 +16,24 @@ import {
 import { requestBlockRender } from '../../services/editor/renderCommands';
 import { MODALS } from './modals/modalTypes';
 
-function getBeat(noteRef: MenuEffectNoteRef): Measure {
-  return Song.measures[noteRef.trackId][noteRef.blockId][noteRef.voiceId][noteRef.beatId];
+function getBeat(noteRef: MenuEffectNoteRef): Beat {
+  return Song.getBeat({ trackId: noteRef.trackId, blockId: noteRef.blockId, voiceId: noteRef.voiceId, beatId: noteRef.beatId });
 }
 
-function getBeatFromBeatRef(beatRef: MenuEffectBeatRef): Measure {
-  return Song.measures[beatRef.trackId][beatRef.blockId][beatRef.voiceId][beatRef.beatId];
+function getBeatFromBeatRef(beatRef: MenuEffectBeatRef): Beat {
+  return Song.getBeat({ trackId: beatRef.trackId, blockId: beatRef.blockId, voiceId: beatRef.voiceId, beatId: beatRef.beatId });
 }
 
 function getMeasureMeta(blockId: number) {
   return Song.measureMeta[blockId];
 }
 
-function getEffectVariable(beat: Measure, note: Note | null, name: string): boolean {
+function getEffectVariable(beat: Beat, note: Note | null, name: string): boolean {
   const blockId = tab.markedNoteObj?.blockId ?? 0;
   return getMenuEffectVariable(beat, note, name, getMeasureMeta(blockId));
 }
 
-function setEffectVariable(beatIn: Measure, noteIn: Note | null, name: string, value: boolean) {
+function setEffectVariable(beatIn: Beat, noteIn: Note | null, name: string, value: MenuEffectState) {
   const blockId = tab.markedNoteObj?.blockId ?? 0;
   setMenuEffectVariable(beatIn, noteIn, name, value, getMeasureMeta(blockId));
 }
@@ -41,7 +42,7 @@ function handleEffectGroupCollision(
   notes: MenuEffectNoteRef[],
   id: string,
   isVariableSet: boolean,
-): Record<string, Record<string, boolean>> {
+): Record<string, Record<string, MenuEffectState>> {
   return handleMenuEffectGroupCollision(notes, id, isVariableSet, getBeat, getMeasureMeta);
 }
 
@@ -66,14 +67,14 @@ function processEffectSelect(
       string: number, note: Note
     }[],
     blocks: number[],
-    beats: { trackId: number, blockId: number, voiceId: number, beatId: number, beat: Measure }[]
+    beats: { trackId: number, blockId: number, voiceId: number, beatId: number, beat: Beat }[]
   },
   id: string,
   isRevert: boolean,
 ) {
   let isVariableSet = true;
   for (const no of arr.notes) {
-    const beat = Song.measures[no.trackId][no.blockId][no.voiceId][no.beatId];
+    const beat = Song.getBeat({ trackId: no.trackId, blockId: no.blockId, voiceId: no.voiceId, beatId: no.beatId });
     const note = beat.notes[no.string];
     isVariableSet = getEffectVariable(beat, note, id);
   }

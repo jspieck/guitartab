@@ -3,6 +3,7 @@
 imaya/GREE Inc and Colin Clark. Licensed under the MIT License. */
 
 import { audioEngine } from './audioEngine';
+import { markStartupStepDone } from '../../utils/startupReadiness';
 
 /**
  * @param {string} type
@@ -1671,6 +1672,7 @@ const sf2Parser = {
    */
   load(input: Uint8Array) {
     synth.init(input);
+    markStartupStepDone('soundfont');
     // synth.start();
     // synth.refreshInstruments(input);
     // Test Note

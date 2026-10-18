@@ -1,71 +1,18 @@
-// import { ipcRenderer } from "electron";
 import Settings from './settingManager';
 import playBackLogic from './playBackLogicNew';
 import Song from './songData';
 import { audioEngine } from './audioEngine';
 import midiEngine from './midiReceiver';
 import AppManager from './appManager';
-import { revertHandler } from './revertHandler';
-import { gp5Writer } from './GP5Writ';
 import { gProReader } from './GProReader';
-import Equalizer from '../../components/Equalizer.vue';
-import Menu from '../../components/Menu.vue';
 import { menuHandler } from './menuHandler';
 import { modalManager } from './modals/modalManager';
-import { EqualizerModalHandler } from './modals/equalizerModalHandler';
-import { hasCompletedFirstVisit, markFirstVisitComplete, seedDemoNotes } from '../../data/demoSong';
+import {
+  hasCompletedFirstVisit, markFirstVisitComplete, seedDemoNotes, wantsSmallDemo,
+} from '../../data/demoSong';
+import { startFirstRunHint } from '../../stores/firstRunHintState';
+import { markStartupStepDone } from '../../utils/startupReadiness';
 // import { svgDrawer } from './svgDrawer';
-
-declare global {
-  interface Window {
-    api: {
-      response: (
-        channel: string,
-        func: (() => void) | ((store: [string, Uint8Array]) => void)
-      ) => void,
-    },
-  }
-}
-
-const inBrowser = true;
-if (!inBrowser) {
-  // Hint: to extend these commands, add the event name
-  // to the whitelist in preload.js
-  // renderer process
-  window.api.response('store-data', (store: [string, Uint8Array]) => {
-    console.log('Store Data', store);
-    gProReader.processFile(store[0], store[1]);
-  });
-  window.api.response('exportGP5', () => {
-    gp5Writer.writeSong(true);
-  });
-  window.api.response('saveFile', () => {
-    AppManager.saveAsGt(false);
-  });
-  window.api.response('saveFileAs', () => {
-    AppManager.saveAsGt(true);
-  });
-  window.api.response('revert', () => {
-    revertHandler.revertState();
-  });
-  window.api.response('restore', () => {
-    revertHandler.restoreState();
-  });
-  window.api.response('newFile', () => {
-    console.log('New FILE');
-    Song.chordsMap = [];
-    AppManager.resetVariables();
-
-    Song.initEmptySong();
-    AppManager.createGuitarTab(0);
-    menuHandler.applyStyleMode();
-    // TODO AppManager.createAllInstruments();
-    menuHandler.activateEffectsForPos(0, 0, 0, 0, 0);
-  });
-  window.api.response('saved', () => {
-    AppManager.showNotification('Saved!');
-  });
-}
 
 // let waveSurfer;
 // let wml;
@@ -101,12 +48,25 @@ const startUp = function startUp() {
   // visualInstruments.createPiano(56); // 8 octaves with 7 white notes each
   audioEngine.createBusses();
 
-  if (!hasCompletedFirstVisit()) {
+  const firstVisit = !hasCompletedFirstVisit();
+  if (firstVisit && wantsSmallDemo()) {
     seedDemoNotes();
+  }
+  if (firstVisit) {
     markFirstVisitComplete();
   }
 
   AppManager.createGuitarTab(0);
+  if (firstVisit && !wantsSmallDemo()) {
+    startFirstRunHint();
+    // The multi-track demo lives in its own chunk, so it costs nothing after the first visit.
+    void import('../../data/demoArrangement').then(({ buildDemoArrangement }) => {
+      gProReader.loadBuiltSong(buildDemoArrangement());
+      markStartupStepDone('editor');
+    });
+  } else {
+    markStartupStepDone('editor');
+  }
   /* test: draw audio audioWaveForm
     waveSurfer = WaveSurfer.create({
         container: '#audioWaveForm',

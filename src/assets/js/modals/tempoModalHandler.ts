@@ -91,25 +91,13 @@ export class TempoModalHandler extends BaseModalHandler {
 
     private applyTempoChange() {
         const { blockId, trackId, voiceId } = this.modalState;
-        const { bpmPresent } = Song.measureMeta[blockId];
-        
-        if (!bpmPresent) {
-            Song.measureMeta[blockId].bpmPresent = true;
+        const bpmBefore = Song.measureMeta[blockId].bpm;
+        Song.measureMeta[blockId].bpm = this.modalState.bpm;
+        if (bpmBefore == null) {
             typedEventBus.emit("menu.activateEffectsForBlock");
         }
 
-        const bpmBefore = Song.measureMeta[blockId].bpm;
-        Song.measureMeta[blockId].bpm = this.modalState.bpm;
-
-        revertHandler.addBpmMeter(
-            trackId, 
-            blockId, 
-            voiceId, 
-            bpmPresent,
-            Song.measureMeta[blockId].bpmPresent, 
-            bpmBefore, 
-            Song.measureMeta[blockId].bpm
-        );
+        revertHandler.addBpmMeter(trackId, blockId, voiceId, bpmBefore, this.modalState.bpm);
 
         if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
             requestBlockRender(trackId, blockId, voiceId);

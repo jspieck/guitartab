@@ -4,35 +4,34 @@
     class="classical-notation-layer"
     :style="layerStyle"
   >
-    <div
+    <ClassicalRowSurface
       v-for="row in tabRows"
       :key="`vexflow-row-${row.id}`"
-      :ref="(element: Element | null) => registerClassicalRowSurface(row.id, element)"
-      class="vexFlowRow"
-      :style="getRowStyle(row)"
+      :track-id="trackId"
+      :voice-id="voiceId"
+      :row="row"
+      :row-style="getRowStyle(row)"
+      :area-height="getAreaHeight(row)"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onUnmounted, type CSSProperties } from 'vue'
+import ClassicalRowSurface from './ClassicalRowSurface.vue'
 import type { RenderedTabRow } from '../../types/tab'
-import { TAB_SHEET } from '../../utils/tabSheetConstants'
-import { getClassicalNotationTop } from '../../services/editor/tabLayoutMetrics'
 import {
-  classicalNotationLayoutState,
-  getClassicalRowMarginTop,
-} from '../../stores/classicalNotationLayoutState'
-import {
-  clearClassicalRowSurfaces,
-  registerClassicalRowSurface,
-} from '../../stores/classicalNotationSurfaceState'
-
-const CLASSICAL_ROW_GAP = 8
+  CLASSICAL_CLEF_GUTTER,
+  getClassicalAreaTop,
+} from '../../services/editor/tabLayoutMetrics'
+import { getClassicalRowGeometry } from '../../stores/classicalNotationLayoutState'
+import { clearClassicalRowSurfaces } from '../../stores/classicalNotationSurfaceState'
 
 interface Props {
   isActive: boolean
   trackId: number
+  voiceId: number
+  /** Rows to draw staves for: the same (virtualized) rows the tab renders. */
   tabRows: RenderedTabRow[]
   paddingLeft: number
   paddingTop: number
@@ -50,22 +49,18 @@ const layerStyle = computed<CSSProperties>(() => ({
   overflow: 'visible',
 }))
 
-function getRowStyle(row: RenderedTabRow): CSSProperties {
-  void classicalNotationLayoutState.version
-  const marginTop = getClassicalRowMarginTop(row.id)
-  const tabContentBottom = getClassicalNotationTop(props.trackId)
-  const vexflowTop = props.paddingTop
-    + row.yOffset
-    + tabContentBottom
-    + CLASSICAL_ROW_GAP
-    - marginTop
+function getAreaHeight(row: RenderedTabRow): number {
+  return getClassicalRowGeometry(row.startBlockId, row.endBlockId + 1).height
+}
 
+function getRowStyle(row: RenderedTabRow): CSSProperties {
+  // Same frame as the tab row group, shifted left by the clef gutter.
   return {
     position: 'absolute',
-    top: `${vexflowTop}px`,
-    left: `${props.paddingLeft}px`,
-    width: `${props.tabGroupWidth}px`,
-    minHeight: `${TAB_SHEET.VEXFLOW_HEIGHT}px`,
+    top: `${props.paddingTop + row.yOffset + getClassicalAreaTop(row, props.trackId)}px`,
+    left: `${props.paddingLeft - CLASSICAL_CLEF_GUTTER}px`,
+    width: `${props.tabGroupWidth + CLASSICAL_CLEF_GUTTER}px`,
+    height: `${getAreaHeight(row)}px`,
     overflow: 'visible',
   }
 }

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { Measure, MeasureMeta, Track } from '../types/tab'
+import type { Beat, MeasureMeta, Track } from '../types/tab'
 import { syncEditorScope } from '../composables/useEditorScopeState'
 import {
   bumpSongDataVersion,
@@ -13,7 +13,7 @@ export const useSongStore = defineStore('song', {
     dataVersion: () => songDataVersion.value,
     reactiveData: (): SongStateData => songState,
     tracks: (): Track[] => songState.tracks,
-    measures: (): Measure[][][][] => songState.measures,
+    measures: (): Beat[][][][] => songState.measures,
     measureMeta: (): MeasureMeta[] => songState.measureMeta,
     songDescription: () => songState.songDescription,
     currentTrackId: (): number => songState.currentTrackId,

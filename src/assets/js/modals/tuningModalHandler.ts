@@ -66,7 +66,8 @@ export class TuningModalHandler extends BaseModalHandler {
         const tuningArea = document.getElementById('tuningAreaModal')!;
         Helper.removeAllChildren(tuningArea);
         
-        for (let i = 0; i < numStrings; i++) {
+        // Highest string first, as in the tab; the data index stays lowest-first.
+        for (let i = numStrings - 1; i >= 0; i--) {
             const tuningSelectBox = this.createTuningSelect(i, trackId, hasStringNumberChanged, numStrings);
             tuningArea.appendChild(tuningSelectBox);
         }
@@ -83,7 +84,7 @@ export class TuningModalHandler extends BaseModalHandler {
 
         const tuningLabel = document.createElement('span');
         tuningLabel.className = 'tuning-slot__label';
-        tuningLabel.textContent = `String ${stringIndex + 1}`;
+        tuningLabel.textContent = `String ${numStrings - stringIndex}`;
 
         const selectBox = document.createElement('div');
         selectBox.className = 'select';

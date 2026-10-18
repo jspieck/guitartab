@@ -3,7 +3,7 @@ import fastdom from 'fastdom';
 import { tab, Tab } from './tab';
 import { overlayHandler } from './overlayHandler';
 import {
-  Song, PlayBackInstrument, Note,
+  Song, PlayBackInstrument, Note, VoiceSnapshot,
 } from './songData';
 import { modalManager } from './modals/modalManager';
 import { typedEventBus } from '../../utils/typedEventBus';
@@ -18,11 +18,15 @@ import { sequencerHandler } from './sequencerHandler';
 import Duration from './duration';
 import Tuning from './tuning';
 import { applyNoteLengthSelection } from '../../services/menuActionCommands';
-import type { NoteLengthCode } from '../../types/tab';
 import { useTabStore } from '../../stores/tabStore';
 import { setTrackSignIcon } from '../../utils/editorUi';
 import { serializeSongToGtBytes } from '../../utils/gtSerialization';
-import { handleUndoRedoShortcut } from '../../utils/undoRedoShortcuts';
+import { revertHandler } from './revertHandler';
+import {
+  combineFretDigit, isKeyboardControlTarget, matchShortcut, maxFretFor, wantsNativeSpace,
+  type FretEntry, type ShortcutId,
+} from '../../utils/keyboardShortcuts';
+import { toggleShortcutsHelp } from '../../stores/shortcutsHelpState';
 
 const AppManager = {
   notificationTimeOut: null as ReturnType<typeof setTimeout> | null,
@@ -87,154 +91,122 @@ const AppManager = {
     }
   },
 
-  processKeyPress(pressedValue: string, keyCode: number) {
-    const { activeElement } = document;
-    const inputs = ['input', 'select', 'textarea'];
-    if (activeElement && inputs.indexOf(activeElement.tagName.toLowerCase()) !== -1) {
-      return;
-    }
-    if (this.duringTrackCreation) return;
+  /** Last fret typed, so a quick second digit on the same note makes 10 and up. */
+  lastFretEntry: null as FretEntry | null,
 
-    fastdom.mutate(() => {
-      const {
-        trackId, blockId, voiceId, beatId, string,
-      } = tab.markedNoteObj;
-      
-      // Only process number keys if user has explicitly clicked to select a position
-      // This prevents accidental note changes when typing without clicking first
-      const hasValidSelection = tab.hasExplicitSelection && 
-        trackId >= 0 && blockId >= 0 && voiceId >= 0 && beatId >= 0 && string >= 0;
-      
-      switch (pressedValue) {
-        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': {
-          // Only place note if we have a valid explicit selection
-          if (!hasValidSelection) return;
-          const pressedNumber = parseInt(pressedValue, 10);
-          this.placeNote(trackId, blockId, voiceId, beatId, string, pressedNumber);
-          break;
-        }
-        case 'x':
-          break;
-        case 'w':
-          applyNoteLengthSelection('w' as NoteLengthCode);
-          break;
-        case 'h':
-          applyNoteLengthSelection('h' as NoteLengthCode);
-          break;
-        case 'q':
-          applyNoteLengthSelection('q' as NoteLengthCode);
-          break;
-        case 'e':
-          applyNoteLengthSelection('e' as NoteLengthCode);
-          break;
-        case 's':
-          applyNoteLengthSelection('s' as NoteLengthCode);
-          break;
-        case 't':
-          applyNoteLengthSelection('t' as NoteLengthCode);
-          break;
-        default:
-          break;
-      }
-      if (keyCode === 46 || keyCode === 8) {
-        const loopI = overlayHandler.getLoopingInterval();
-        if (loopI == null || loopI.trackId !== Song.currentTrackId) {
-          Tab.deleteNote(trackId, blockId, voiceId, beatId, string, false);
-          typedEventBus.emit('render.block', { trackId, blockId, voiceId });
-          typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
-        } else {
-          const blocks = [];
-          for (let blockIdIt = loopI.startBlock; blockIdIt <= loopI.endBlock; blockIdIt += 1) {
-            const startIndex = (blockIdIt !== loopI.startBlock) ? 0 : loopI.startBeat;
-            const endIndex = (blockIdIt !== loopI.endBlock)
-              ? Song.measures[trackId][blockIdIt][voiceId].length - 1
-              : loopI.endBeat;
-            for (let beatIdIt = startIndex; beatIdIt <= endIndex; beatIdIt += 1) {
-              if (Song.measures[trackId][blockIdIt][voiceId][beatIdIt].notes != null) {
-                for (let stringIt = 0,
-                  n = Song.measures[trackId][blockIdIt][voiceId][beatIdIt].notes.length;
-                  stringIt < n; stringIt += 1) {
-                  if (
-                    Song.measures[trackId][blockIdIt][voiceId][beatIdIt].notes[stringIt] != null
-                  ) {
-                    Tab.deleteNote(trackId, blockIdIt, voiceId, beatIdIt, stringIt, false);
-                  }
-                }
-              }
-            }
-            blocks.push(blockIdIt);
-            typedEventBus.emit('render.durations', { trackId, blockId: blockIdIt, voiceId });
-          }
-          typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
-        }
-        notifySongDataChanged();
-        typedEventBus.emit("menu.activateEffectsForPos", {trackId, blockId, voiceId, beatId, string});
-      }
-    });
-    // left = 37, up = 38, right = 39, down = 40
-    if (keyCode >= 37 && keyCode <= 40) {
-      // Try to move markedNoteObj left
-      if (tab.markedNoteObj != null) {
-        const { trackId } = tab.markedNoteObj;
-        let { blockId } = tab.markedNoteObj;
-        const { voiceId } = tab.markedNoteObj;
-        let { beatId } = tab.markedNoteObj;
-        let { string } = tab.markedNoteObj;
-
-        if (keyCode === 37) { // LEFT
-          if (beatId > 0) {
-            beatId -= 1;
-          } else if (blockId > 0) {
-            blockId -= 1;
-            beatId = Song.measures[trackId][blockId][voiceId].length - 1;
-          }
-        }
-        if (keyCode === 39) { // RIGHT
-          if (beatId + 1 < Song.measures[trackId][blockId][voiceId].length) {
-            beatId += 1;
-          } else if (blockId + 1 < Song.measures[trackId].length) {
-            blockId += 1;
-            beatId = 0;
-          }
-        }
-        if (keyCode === 40) { // DOWN
-          if (string > 0) {
-            string -= 1;
-          }
-        }
-        if (keyCode === 38) { // UP
-          if (string + 1 < Song.tracks[trackId].numStrings) {
-            string += 1;
-          }
-        }
-        typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId, string });
-      }
-    }
+  hasExplicitNoteSelection() {
+    const {
+      trackId, blockId, voiceId, beatId, string,
+    } = tab.markedNoteObj;
+    return tab.hasExplicitSelection
+      && trackId >= 0 && blockId >= 0 && voiceId >= 0 && beatId >= 0 && string >= 0
+      && Song.findBeat({ trackId, blockId, voiceId, beatId }) != null;
   },
 
+  enterFretDigit(digit: number): boolean {
+    if (!this.hasExplicitNoteSelection()) return false;
+    const {
+      trackId, blockId, voiceId, beatId, string,
+    } = tab.markedNoteObj;
+    const position = `${trackId}:${blockId}:${voiceId}:${beatId}:${string}`;
+    const now = Date.now();
+    const maxFret = maxFretFor(Song.playBackInstrument[trackId]?.instrument);
+    const fret = combineFretDigit(this.lastFretEntry, digit, position, now, maxFret);
+    this.lastFretEntry = { position, fret, at: now };
+    fastdom.mutate(() => {
+      this.placeNote(trackId, blockId, voiceId, beatId, string, fret);
+    });
+    return true;
+  },
+
+  deleteSelectedNotes() {
+    const {
+      trackId, blockId, voiceId, beatId, string,
+    } = tab.markedNoteObj;
+    const loopI = overlayHandler.getLoopingInterval();
+    if (loopI == null || loopI.trackId !== Song.currentTrackId) {
+      if (Song.findBeat({ trackId, blockId, voiceId, beatId }) == null) return;
+      Tab.deleteNote(trackId, blockId, voiceId, beatId, string, false);
+      typedEventBus.emit('render.block', { trackId, blockId, voiceId });
+      typedEventBus.emit('render.durations', { trackId, blockId, voiceId });
+    } else {
+      const blocks = [];
+      for (let blockIdIt = loopI.startBlock; blockIdIt <= loopI.endBlock; blockIdIt += 1) {
+        const startIndex = (blockIdIt !== loopI.startBlock) ? 0 : loopI.startBeat;
+        const endIndex = (blockIdIt !== loopI.endBlock)
+          ? Song.measures[trackId][blockIdIt][voiceId].length - 1
+          : loopI.endBeat;
+        for (let beatIdIt = startIndex; beatIdIt <= endIndex; beatIdIt += 1) {
+          const { notes } = Song.getBeat({ trackId, blockId: blockIdIt, voiceId, beatId: beatIdIt });
+          if (notes != null) {
+            for (let stringIt = 0, n = notes.length; stringIt < n; stringIt += 1) {
+              if (notes[stringIt] != null) {
+                Tab.deleteNote(trackId, blockIdIt, voiceId, beatIdIt, stringIt, false);
+              }
+            }
+          }
+        }
+        blocks.push(blockIdIt);
+        typedEventBus.emit('render.durations', { trackId, blockId: blockIdIt, voiceId });
+      }
+      typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId });
+    }
+    notifySongDataChanged();
+    typedEventBus.emit('menu.activateEffectsForPos', {
+      trackId, blockId, voiceId, beatId, string,
+    });
+  },
+
+  moveSelection(direction: 'left' | 'right' | 'up' | 'down') {
+    if (tab.markedNoteObj == null) return;
+    const { trackId, voiceId } = tab.markedNoteObj;
+    let { blockId, beatId, string } = tab.markedNoteObj;
+    const voiceBeats = (block: number) => Song.measures[trackId][block][voiceId].length;
+
+    if (direction === 'left') {
+      if (beatId > 0) {
+        beatId -= 1;
+      } else if (blockId > 0) {
+        blockId -= 1;
+        beatId = voiceBeats(blockId) - 1;
+      }
+    } else if (direction === 'right') {
+      if (beatId + 1 < voiceBeats(blockId)) {
+        beatId += 1;
+      } else if (blockId + 1 < Song.measures[trackId].length) {
+        blockId += 1;
+        beatId = 0;
+      }
+    } else if (direction === 'down') {
+      // String 0 is the lowest string, drawn on the bottom line.
+      if (string > 0) string -= 1;
+    } else if (string + 1 < Song.tracks[trackId].numStrings) {
+      string += 1;
+    }
+    typedEventBus.emit('navigation.setClickedPos', {
+      trackId, blockId, voiceId, beatId, string,
+    });
+  },
+
+  /** Shortcuts that change the song or clipboard wait while a dialog is open. */
+  blockedWhileModalOpen: new Set<ShortcutId>(['undo', 'redo', 'copy', 'paste']),
+
   keyDownEvent(e: KeyboardEvent) {
-    if (handleUndoRedoShortcut(e)) {
-      return;
-    }
+    // Something closer to the focus (a popover, a modal field) already took the key.
+    if (e.defaultPrevented || this.duringTrackCreation) return;
+    if (isKeyboardControlTarget(e.target)) return;
 
-    // If another handler (e.g., Vue GuitarTabView) already handled this event, skip
-    if (e.defaultPrevented) {
-      return;
-    }
+    const shortcut = matchShortcut(e);
+    if (shortcut == null) return;
+    const run = shortcutHandlers[shortcut.id];
+    if (run == null) return;
+    if (this.blockedWhileModalOpen.has(shortcut.id) && modalManager.isAnyModalOpen()) return;
+    if (shortcut.id === 'playPause' && wantsNativeSpace(e.target)) return;
 
-    const pressedValue = String.fromCharCode(e.which);
-    if ([38, 40].indexOf(e.keyCode) > -1) {
+    if (run(e)) {
       e.preventDefault();
-    }
-    this.processKeyPress(pressedValue, e.keyCode);
-    if (!this.duringTrackCreation && !modalManager.isAnyModalOpen()) {
-      const key = e.key.toLowerCase();
-      if ((e.metaKey || e.ctrlKey) && key === 'c') {
-        overlayHandler.copyHandler();
-      }
-      if ((e.metaKey || e.ctrlKey) && key === 'v') {
-        overlayHandler.pasteHandler();
-      }
+      // This listens in the capture phase; stop here so the tab view does not act on the key too.
+      e.stopPropagation();
     }
   },
 
@@ -530,7 +502,7 @@ const AppManager = {
           const numOf64ths = (64 / denominator) * numerator;
           let numOfBeats = 0;
           for (let i = 0; i < blockLength; i += 1) {
-            const beat = Song.measures[trackId][startBlockId][voiceId][i];
+            const beat = Song.getBeat({ trackId, blockId: startBlockId, voiceId, beatId: i });
             const beatLength = Duration.getDurationOfNote(beat, false);
             if (numOfBeats + beatLength > numOf64ths) {
               // check if deleting is allowed
@@ -546,10 +518,8 @@ const AppManager = {
     }
 
     // Check has been succsessful, now set new measure
-    const revertObj: {
-      blockId: number,
-      notes: { beatId: number, note: Note[] }[]
-    }[][][] = [];
+    // revertObj[trackId][voiceId] = one snapshot per affected bar
+    const revertObj: VoiceSnapshot[][][] = [];
     let blockObj = null;
     for (let trackId = 0; trackId < Song.tracks.length; trackId += 1) {
       revertObj[trackId] = [];
@@ -561,22 +531,23 @@ const AppManager = {
 
           blockObj = Song.measures[trackId][bId][voiceId];
           let blockLength = blockObj.length;
+          const beatCountBefore = blockLength;
           const numOf64ths = (64 / denominator) * numerator;
           let numOfBeats = 0;
-          const revertNotes = [];
+          const revertBeats: VoiceSnapshot['beats'] = [];
           for (let i = 0; i < blockLength; i += 1) {
             const beatLength = Duration.getDurationOfNote(
-              Song.measures[trackId][bId][voiceId][i], false,
+              Song.getBeat({ trackId, blockId: bId, voiceId, beatId: i }), false,
             );
             if (numOfBeats + beatLength > numOf64ths) {
               for (let j = i, l = blockLength; j < l; j += 1) {
-                const clonedNote = JSON.parse(JSON.stringify(
-                  Song.measures[trackId][bId][voiceId][j],
+                const clonedBeat = JSON.parse(JSON.stringify(
+                  Song.getBeat({ trackId, blockId: bId, voiceId, beatId: j }),
                 ));
-                revertNotes[j - i] = { beatId: j, note: clonedNote };
-                if (Song.measures[trackId][bId][voiceId][i].notes != null) {
+                revertBeats[j - i] = { beatId: j, beat: clonedBeat };
+                if (Song.getBeat({ trackId, blockId: bId, voiceId, beatId: i }).notes != null) {
                   for (let k = 0; k < 6; k += 1) {
-                    if (Song.measures[trackId][bId][voiceId][i].notes[k] != null) {
+                    if (Song.getBeat({ trackId, blockId: bId, voiceId, beatId: i }).notes[k] != null) {
                       Tab.deleteNote(trackId, bId, voiceId, i, k, false);
                     }
                   }
@@ -589,7 +560,8 @@ const AppManager = {
           }
           revertObj[trackId][voiceId].push({
             blockId: bId,
-            notes: revertNotes,
+            beatCount: beatCountBefore,
+            beats: revertBeats,
           });
           blockLength = blockObj.length;
           // repair measure by filling in notes
@@ -622,22 +594,13 @@ const AppManager = {
     trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, fretNumber: number,
   ) {
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
     // no rest any more
-    if (beat != null) {
-      // eslint-disable-next-line prefer-destructuring
-      beat.duration = beat.duration[0];
-    }
+    // eslint-disable-next-line prefer-destructuring
+    beat.duration = beat.duration[0];
 
     const note = beat.notes[string];
-    let updatedFretNumber = fretNumber;
-    if (note != null) {
-      // allow high notes only on drums
-      if ((note.fret === 1 || note.fret === 2) || Song.playBackInstrument[trackId].instrument === 'drums') {
-        updatedFretNumber = note.fret + fretNumber;
-      }
-    }
-    tab.drawNote(trackId, blockId, voiceId, beatId, string, updatedFretNumber, false);
+    tab.drawNote(trackId, blockId, voiceId, beatId, string, fretNumber, false);
     notifySongDataChanged();
     // Playback Note
     const volume = 0.5;
@@ -661,9 +624,37 @@ const AppManager = {
       } */
     audioEngine.playSF2(
       trackId, voiceId, string, fretNumber, volume, noteStart,
-      duration, beat, note, instr, updatedFretNumber,
+      duration, beat, note, instr, fretNumber,
     );
   },
+};
+
+/** What each shortcut in `SHORTCUTS` does. Returns false when it does not apply right now. */
+const shortcutHandlers: Partial<Record<ShortcutId, (event: KeyboardEvent) => boolean>> = {
+  fret: (event: KeyboardEvent) => AppManager.enterFretDigit(Number(event.key)),
+  deleteNote: () => {
+    fastdom.mutate(() => AppManager.deleteSelectedNotes());
+    return true;
+  },
+  moveLeft: () => { AppManager.moveSelection('left'); return true; },
+  moveRight: () => { AppManager.moveSelection('right'); return true; },
+  stringUp: () => { AppManager.moveSelection('up'); return true; },
+  stringDown: () => { AppManager.moveSelection('down'); return true; },
+  durationWhole: () => { applyNoteLengthSelection('w'); return true; },
+  durationHalf: () => { applyNoteLengthSelection('h'); return true; },
+  durationQuarter: () => { applyNoteLengthSelection('q'); return true; },
+  durationEighth: () => { applyNoteLengthSelection('e'); return true; },
+  durationSixteenth: () => { applyNoteLengthSelection('s'); return true; },
+  durationThirtySecond: () => { applyNoteLengthSelection('t'); return true; },
+  playPause: (event: KeyboardEvent) => {
+    if (!event.repeat) playBackLogic.playSongB();
+    return true;
+  },
+  undo: () => { revertHandler.revertState(); return true; },
+  redo: () => { revertHandler.restoreState(); return true; },
+  copy: () => { overlayHandler.copyHandler(); return true; },
+  paste: () => { overlayHandler.pasteHandler(); return true; },
+  help: () => { toggleShortcutsHelp(); return true; },
 };
 
 export default AppManager;

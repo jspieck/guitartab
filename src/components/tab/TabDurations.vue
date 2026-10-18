@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TabBeat } from '../../types/tab'
+import type { RowLanes } from '../../utils/tabRowLanes'
 import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
 import {
   getRestSymbol,
@@ -137,6 +138,7 @@ interface Props {
   stringSpacing: number
   numStrings: number
   measureWidth: number
+  lanes?: RowLanes
 }
 
 const props = defineProps<Props>()
@@ -234,14 +236,15 @@ function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
 function createTupletBracket(group: { beatIndex: number; x: number }[], number: number): Tuplet {
   const startX = group[0].x - 5
   const endX = group[group.length - 1].x + 5
-  const beamY = getBeamY()
-  const y = beamY + 25
-  const bracketHeight = 8
+  // Tuplets live in their own lane below the rhythm band.
+  const lane = props.lanes?.below.tuplet
+  const y = lane ? lane.top + 3 : getBeamY() + 25
+  const bracketHeight = 6
   
   return {
     bracketPath: `M${startX} ${y}L${startX} ${y + bracketHeight}L${endX} ${y + bracketHeight}L${endX} ${y}`,
     textX: (startX + endX) / 2,
-    textY: y + bracketHeight + 12,
+    textY: y + bracketHeight + 11,
     number
   }
 }

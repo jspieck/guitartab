@@ -1,0 +1,957 @@
+[
+ {
+  "strings": [
+   40,
+   45,
+   50,
+   55,
+   59,
+   64
+  ],
+  "bars": [
+   {
+    "meta": {
+     "n": 4,
+     "d": 4,
+     "bpm": 140,
+     "repeatOpen": true,
+     "marker": "Intro"
+    },
+    "beats": [
+     {
+      "d": "e",
+      "chord": "Em",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 0,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "text": "Verse text annotation",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 0,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 2
+       },
+       {
+        "fret": 0,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 0,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 2,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 2,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 2,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 2,
+        "letRing": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4,
+     "marker": "Riff"
+    },
+    "beats": [
+     {
+      "d": "e",
+      "chord": "A7",
+      "notes": [
+       {
+        "fret": 12,
+        "bend": [
+         0,
+         100,
+         100
+        ]
+       },
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 0
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 14,
+        "vibrato": true
+       },
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 3
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 12,
+        "bend": [
+         0,
+         50,
+         50
+        ]
+       },
+       null,
+       null,
+       null,
+       {
+        "fret": 2
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 9,
+        "trill": 11
+       },
+       {
+        "fret": 2
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "chord": "Dsus4",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 3,
+        "bend": [
+         0,
+         100,
+         100
+        ]
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       {
+        "fret": 5,
+        "slide": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       {
+        "fret": 8
+       },
+       null,
+       {
+        "fret": 7,
+        "pullDown": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       {
+        "fret": 9
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4,
+     "bpm": 96
+    },
+    "beats": [
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 3,
+        "accentuated": true,
+        "palmMute": true
+       },
+       {
+        "fret": 3,
+        "heavyAccentuated": true
+       },
+       {
+        "fret": 3,
+        "stacatto": true
+       },
+       {
+        "fret": 3,
+        "artificialStyle": "N.H."
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "text": "Text",
+      "notes": [
+       {
+        "fret": 5,
+        "accentuated": true,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "text": "Neighbour text",
+      "notes": [
+       {
+        "fret": 7,
+        "heavyAccentuated": true,
+        "stacatto": true,
+        "vibrato": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 4,
+        "tremoloPicking": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "tremoloBar": [
+       0,
+       -100,
+       0
+      ],
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 4,
+        "tremoloPicking": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 4,
+        "tremoloPicking": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       {
+        "fret": 5,
+        "grace": [
+         3,
+         "s"
+        ]
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 0,
+        "dead": true
+       },
+       {
+        "fret": 5,
+        "ghost": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4,
+     "repeatClose": 3,
+     "alternative": 1,
+     "marker": "Chorus"
+    },
+    "beats": [
+     {
+      "d": "e",
+      "stroke": {
+       "strokeLength": 8,
+       "strokeType": "down"
+      },
+      "notes": [
+       {
+        "fret": 0
+       },
+       {
+        "fret": 1
+       },
+       {
+        "fret": 0
+       },
+       {
+        "fret": 2
+       },
+       {
+        "fret": 3
+       },
+       {
+        "fret": 0
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "stroke": {
+       "strokeLength": 8,
+       "strokeType": "up"
+      },
+      "notes": [
+       {
+        "fret": 3
+       },
+       {
+        "fret": 3
+       },
+       {
+        "fret": 0
+       },
+       {
+        "fret": 0
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "tuplet": 3,
+      "notes": [
+       null,
+       {
+        "fret": 2
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "tuplet": 3,
+      "notes": [
+       null,
+       {
+        "fret": 3
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "tuplet": 3,
+      "notes": [
+       null,
+       {
+        "fret": 4
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "chord": "G",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 2
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 2,
+        "tied": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 2,
+        "tied": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4,
+     "bpm": 180,
+     "alternative": 2,
+     "marker": "Bridge part"
+    },
+    "beats": [
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 10,
+        "bend": [
+         0,
+         25,
+         25
+        ]
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       {
+        "fret": 11,
+        "vibrato": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       {
+        "fret": 12,
+        "bend": [
+         0,
+         75,
+         75
+        ]
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       {
+        "fret": 13,
+        "vibrato": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 14,
+        "bend": [
+         0,
+         25,
+         25
+        ]
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       null,
+       null,
+       null,
+       null,
+       {
+        "fret": 15,
+        "vibrato": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 16,
+        "bend": [
+         0,
+         75,
+         75
+        ]
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       null,
+       {
+        "fret": 17,
+        "vibrato": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4,
+     "marker": "Solo"
+    },
+    "beats": [
+     {
+      "d": "e",
+      "text": "A long text that runs into the next beats",
+      "chord": "C",
+      "notes": [
+       {
+        "fret": 15,
+        "accentuated": true,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "accentuated": true,
+        "letRing": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "accentuated": true,
+        "palmMute": true
+       }
+      ]
+     },
+     {
+      "d": "e",
+      "notes": [
+       {
+        "fret": 15,
+        "palmMute": true
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4
+    },
+    "beats": [
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4
+    },
+    "beats": [
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4
+    },
+    "beats": [
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4
+    },
+    "beats": [
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4
+    },
+    "beats": [
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     }
+    ]
+   },
+   {
+    "meta": {
+     "n": 4,
+     "d": 4
+    },
+    "beats": [
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     },
+     {
+      "d": "er",
+      "notes": []
+     }
+    ]
+   }
+  ]
+ }
+]

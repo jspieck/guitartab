@@ -2,16 +2,17 @@ import { Gp4Reader } from './GP4Reader';
 import { Gp5Reader } from './GP5Reader';
 import { gProReader } from './GProReader';
 import Song, {
-  Note, Chord, MeasureEffects, Stroke, Bend, Grace, TremoloBar, Track,
+  Note, Chord, BeatEffects, Stroke, Bend, Grace, TremoloBar, Track,
 } from './songData';
-import { modalManager } from './modals/modalManager';
-import { ChordModalHandler } from './modals/chordModalHandler';
-import { MODALS } from './modals/modalTypes';
+import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
 
 class Gp3Reader {
   static read() {
     Song.chordsMap = [];
-    Gp5Reader.readVersion();
+    const version = Gp5Reader.readVersion();
+    if (!version.startsWith('FICHIER GUITAR PRO v3')) {
+      throw new ImportError(`Unsupported Guitar Pro version "${version}". Open a Guitar Pro 3 file here.`, 'gp3');
+    }
     Gp4Reader.readInfo();
 
     gProReader.readByte(); // triplet feel
@@ -25,8 +26,8 @@ class Gp3Reader {
 
     Gp5Reader.readChannels();
 
-    const numMeasures = gProReader.readInt();
-    const numTracks = gProReader.readInt();
+    const numMeasures = gProReader.readCount(IMPORT_LIMITS.measures, 'bars');
+    const numTracks = gProReader.readCount(IMPORT_LIMITS.tracks, 'tracks');
     
     if (numMeasures > 10000 || numTracks > 100 || numMeasures === 0) {
       throw new Error(`Invalid Guitar Pro 3 file (measures=${numMeasures}, tracks=${numTracks})`);
@@ -43,7 +44,6 @@ class Gp3Reader {
     for (let i = 0; i < numMeasures; i += 1) {
       Song.measureMeta[i] = Song.defaultMeasureMeta();
     }
-    Song.measureMeta[0].bpmPresent = true;
     Song.measureMeta[0].bpm = tempoValue;
 
     Gp4Reader.readMeasureHeaders(numMeasures);
@@ -73,7 +73,7 @@ class Gp3Reader {
     for (let voiceId = 0; voiceId < 2; voiceId += 1) {
       Song.measures[trackId][blockId][voiceId] = [];
       if (voiceId === 0) {
-        const beats = gProReader.readInt();
+        const beats = gProReader.readCount(IMPORT_LIMITS.beatsPerVoice, 'beats in a bar');
         if (beats > 100) {
             console.error(`Extremely high beat count (${beats}) in measure ${blockId}, aborting measure read.`);
             return;
@@ -100,19 +100,14 @@ class Gp3Reader {
     }
 
     const durationObj = Gp5Reader.readDuration(flags);
-    let chordPresent = false;
-    let chord = null;
+    let chord: Chord | undefined;
     if ((flags & 0x02) !== 0) {
-      chordPresent = true;
       chord = Gp3Reader.readChord();
       Song.addChord(trackId, chord);
-      (modalManager.getHandler(MODALS.ADD_CHORD.id) as ChordModalHandler).fillChordsPresets(trackId);
     }
-    let textPresent = false;
-    let text = '';
-    let effects: MeasureEffects = Song.defaultMeasureEffects();
+    let text: string | undefined;
+    let effects: BeatEffects = Song.defaultMeasureEffects();
     if ((flags & 0x04) !== 0) {
-      textPresent = true;
       text = gProReader.readStringByteSizeOfInteger();
     }
     if ((flags & 0x08) !== 0) {
@@ -138,9 +133,7 @@ class Gp3Reader {
       ...Song.defaultMeasure(),
       ...{
         empty,
-        chordPresent,
         chord,
-        textPresent,
         text,
         duration: durString,
         dotted: durationObj.dotted,
@@ -183,8 +176,7 @@ class Gp3Reader {
     const flags = gProReader.readUnsignedByte();
     const fadeIn = ((flags & 0x10) !== 0 || ((flags & 0x02) !== 0));
     const vibrato = ((flags & 0x02) !== 0);
-    let tremoloBarPresent = false;
-    let tremoloBar: TremoloBar = [];
+    let tremoloBar: TremoloBar | undefined;
     let tap = false;
     let slap = false;
     let pop = false;
@@ -192,7 +184,6 @@ class Gp3Reader {
       const type = gProReader.readUnsignedByte();
       if (type === 0) {
         // REALLY?
-        tremoloBarPresent = true;
         tremoloBar = Gp5Reader.readTremoloBar();
       } else {
         tap = (type === 1);
@@ -201,12 +192,10 @@ class Gp3Reader {
         gProReader.readInt();
       }
     }
-    let strokePresent = false;
-    let stroke: Stroke = { strokeType: 'up', strokeLength: 0 };
+    let stroke: Stroke | undefined;
     if ((flags & 0x40) !== 0) {
       const strokeUp = gProReader.readByte();
       const strokeDown = gProReader.readByte();
-      strokePresent = true;
       if (strokeUp > 0) {
         stroke = {
           strokeType: 'up',
@@ -232,12 +221,10 @@ class Gp3Reader {
     return {
       fadeIn,
       vibrato,
-      tremoloBarPresent,
       tremoloBar,
       tap,
       slap,
       pop,
-      strokePresent,
       stroke,
       harmonics,
       artificialPresent,
@@ -271,25 +258,11 @@ class Gp3Reader {
     }
 
     let effects: {
-      pullDown: boolean, slide: boolean, letRing: boolean, bendPresent: boolean,
-      bendObj: Bend, gracePresent: boolean, graceObj: Grace
+      pullDown: boolean, slide: boolean, letRing: boolean, bendObj?: Bend, graceObj?: Grace
     } = {
       pullDown: false,
       slide: false,
       letRing: false,
-      bendPresent: false,
-      bendObj: [],
-      gracePresent: false,
-      graceObj: {
-        duration: 'e',
-        setOnBeat: '',
-        dynamic: 'mf',
-        transition: '',
-        fret: 0,
-        string: 0,
-        height: 0,
-        dead: false,
-      },
     };
     if ((flags & 0x08) !== 0) {
       effects = Gp3Reader.readNoteEffects();
@@ -311,35 +284,20 @@ class Gp3Reader {
     const slide = (flags & 0x04) !== 0;
     const letRing = (flags & 0x08) !== 0;
 
-    let bendPresent = false;
-    let bendObj: Bend = [];
+    let bendObj: Bend | undefined;
     if ((flags & 0x01) !== 0) {
-      bendPresent = true;
       bendObj = Gp5Reader.readBend();
     }
-    let gracePresent = false;
-    let graceObj: Grace = {
-      duration: 'e',
-      setOnBeat: '',
-      dynamic: 'mf',
-      transition: '',
-      fret: 0,
-      string: 0,
-      height: 0,
-      dead: false,
-    };
+    let graceObj: Grace | undefined;
     if ((flags & 0x10) !== 0) {
-      gracePresent = true;
       graceObj = Gp4Reader.readGrace();
     }
     return {
       pullDown,
       slide,
       letRing,
-      bendPresent,
-      bendObj,
-      gracePresent,
-      graceObj,
+      ...(bendObj ? { bendObj } : {}),
+      ...(graceObj ? { graceObj } : {}),
     };
   }
 
@@ -371,7 +329,6 @@ class Gp3Reader {
       gProReader.readByte();
     }
     if (tempoValue >= 0) {
-      Song.measureMeta[blockId].bpmPresent = true;
       Song.measureMeta[blockId].bpm = tempoValue;
       gProReader.readByte();
     }

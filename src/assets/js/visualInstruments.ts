@@ -1,3 +1,4 @@
+import { stringLine } from '../../utils/tabStrings';
 import fastdom from 'fastdom';
 import interact from 'interactjs';
 import midiEngine from './midiReceiver';
@@ -132,7 +133,8 @@ class VisualInstruments {
             const frD = document.createElement('li'); // <div class="fret"></div>
             frD.setAttribute('class', 'string');
             frD.setAttribute('id', `string${i}`);
-            frD.style.top = `${(i / (numStrings - 1)) * 100}%`;
+            // Like the tab: highest string on top (string 0 is the low E).
+            frD.style.top = `${(stringLine(i, numStrings) / (numStrings - 1)) * 100}%`;
             sC.appendChild(frD);
             this.drawnGuitarElements.push(frD);
           }
@@ -198,7 +200,7 @@ class VisualInstruments {
               frD.setAttribute('id', `gnm${i}_${j}`);
               // frD.style.left = "calc("+((j+1)/(numFrets+1)*100)+"% + 8px)";
               frD.style.right = `calc(${((j + 1) / (numFrets + 1)) * 100}% - 12px)`;
-              frD.style.top = `${(i / (numStrings - 1)) * 100}%`;
+              frD.style.top = `${(stringLine(i, numStrings) / (numStrings - 1)) * 100}%`;
               mC.appendChild(frD);
               this.drawnGuitarElements.push(frD);
             }

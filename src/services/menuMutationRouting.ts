@@ -1,5 +1,6 @@
 import { MODALS, type ModalDefinition } from '../assets/js/modals/modalTypes'
-import type { Measure, MeasureMeta, Note } from '../types/tab'
+import type { Beat, MeasureMeta, Note } from '../types/tab'
+import { beatHasText } from './songMigrations'
 
 const DYNAMIC_VALUE_BY_ID: Record<string, string> = {
   pppDynamic: 'ppp',
@@ -22,7 +23,7 @@ interface NotationModalContext {
   blockId: number
   voiceId: number
   beatId: number
-  beat: Measure
+  beat: Beat
   measureMeta: MeasureMeta
 }
 
@@ -41,33 +42,33 @@ export interface NoteEffectSelection {
     blockId: number
     voiceId: number
     beatId: number
-    beat: Measure
+    beat: Beat
   }[]
 }
 
 const NOTATION_MODAL_BUILDERS: Partial<Record<string, (context: NotationModalContext) => ModalRequest | null>> = {
   addText: ({ trackId, blockId, voiceId, beatId, beat }) => (
-    beat.textPresent
+    beatHasText(beat)
       ? null
       : { modal: MODALS.TEXT, params: { trackId, blockId, voiceId, beatId, beat } }
   ),
   addChord: ({ trackId, blockId, voiceId, beatId, beat }) => (
-    beat.chordPresent
+    beat.chord != null
       ? null
       : { modal: MODALS.ADD_CHORD, params: { trackId, blockId, voiceId, beatId } }
   ),
   addMarker: ({ trackId, blockId, voiceId, measureMeta }) => (
-    measureMeta.markerPresent
+    measureMeta.marker != null
       ? null
       : { modal: MODALS.MARKER, params: { trackId, blockId, voiceId } }
   ),
   repeatAlternative: ({ trackId, blockId, voiceId, measureMeta }) => (
-    measureMeta.repeatAlternativePresent
+    measureMeta.repeatAlternative != null
       ? null
       : { modal: MODALS.REPEAT_ALTERNATIVE, params: { trackId, blockId, voiceId } }
   ),
   closeBar: ({ trackId, blockId, voiceId, measureMeta }) => (
-    measureMeta.repeatClosePresent
+    measureMeta.repeatClose != null
       ? null
       : { modal: MODALS.REPETITION, params: { trackId, blockId, voiceId, isRepetition: true } }
   ),
@@ -77,7 +78,7 @@ const NOTATION_MODAL_BUILDERS: Partial<Record<string, (context: NotationModalCon
       : { modal: MODALS.TIME_METER, params: { trackId, blockId, voiceId } }
   ),
   bpmMeter: ({ trackId, blockId, voiceId, measureMeta }) => (
-    measureMeta.bpmPresent
+    measureMeta.bpm != null
       ? null
       : { modal: MODALS.TEMPO, params: { trackId, blockId, voiceId } }
   ),

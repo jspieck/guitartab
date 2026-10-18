@@ -1,4 +1,5 @@
 import Song from '../../assets/js/songData'
+import { getPlaybackRate } from '../../stores/practiceState'
 
 /** Pure pitch/gain modulation curves applied during note playback. */
 
@@ -42,7 +43,7 @@ export function makeTrill(
   gainNode: GainNode,
   trillDuration: number,
   startpoint: number,
-  bpm: number = Song.bpm,
+  bpm: number = Song.bpm * getPlaybackRate(),
 ): void {
   const frequency = (bpm / 60) * 2
   const scale = 0.6
@@ -56,7 +57,7 @@ export function makeVibrato(
   source: AudioBufferSourceNode,
   vibratoDuration: number,
   startpoint: number,
-  bpm: number = Song.bpm,
+  bpm: number = Song.bpm * getPlaybackRate(),
 ): void {
   const frequency = (bpm / 60) * 2
   const scale = 0.01

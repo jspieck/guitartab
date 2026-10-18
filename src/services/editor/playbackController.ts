@@ -12,15 +12,12 @@ import {
   setPlaybackBarPosition,
   showPlaybackBar,
 } from '../../composables/usePlaybackBarState'
-import { getClassicalStaveBeginY } from '../../stores/classicalNotationLayoutState'
 import { getPositionMarkerHeight } from './tabLayoutMetrics'
 import {
   resolveCurrentPlaybackPos,
   resolveNextPlaybackXPos,
 } from './playbackPositionResolver'
 
-const TAB_CONTENT_ROW_HEIGHT = 120
-const CLASSICAL_ROW_GAP = 8
 let lastPlayBackBarPageId = -1
 let lastCurrentPos = 0
 let lastNextPos = 0
@@ -86,10 +83,8 @@ function movePlayBackBarToXPos(
     return
   }
 
-  let yPos = rowY
-  if (Settings.vexFlowIsActive) {
-    yPos += TAB_CONTENT_ROW_HEIGHT + CLASSICAL_ROW_GAP + getClassicalStaveBeginY(blockId)
-  }
+  // The bar spans the whole row (tab and, when shown, its classical staff).
+  const yPos = rowY
 
   if (useReactivePlaybackBar) {
     setPlaybackBarPosition(xPos, yPos, timing)

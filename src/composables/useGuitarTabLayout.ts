@@ -1,13 +1,10 @@
 import { computed, type Ref } from 'vue'
-import { useTabRenderLayout } from './useTabRenderLayout'
 import { useSongData } from './useSongData'
 import editorCore from '../services/editor/editorCore'
-import Settings from '../assets/js/settingManager'
-import { TAB_SHEET } from '../utils/tabSheetConstants'
 import { classicalNotationLayoutState } from '../stores/classicalNotationLayoutState'
 import type { RenderedTabRow } from '../types/tab'
 import { getPageMargins } from '../utils/tabLayout'
-import { getClassicalNotationTop } from '../services/editor/tabLayoutMetrics'
+import { getTabRowContentHeight } from '../services/editor/tabLayoutMetrics'
 
 interface GuitarTabLayoutProps {
   trackId: number
@@ -17,7 +14,6 @@ interface GuitarTabLayoutProps {
 }
 
 const HEADER_HEIGHT = 80
-const CLASSICAL_ROW_GAP = 8
 
 export function useGuitarTabLayout(
   props: Readonly<GuitarTabLayoutProps>,
@@ -29,38 +25,24 @@ export function useGuitarTabLayout(
     syncSongData,
   } = useSongData()
 
-  const { getTrackLayout } = useTabRenderLayout()
-
   const margins = computed(() => getPageMargins(props.width, props.height))
   const paddingLeft = computed(() => margins.value.left)
   const paddingTop = computed(() => margins.value.top)
   const tabGroupWidth = computed(() => props.width - 2 * paddingLeft.value)
   const pageWidth = computed(() => props.width)
-  const renderLayout = computed(() => getTrackLayout(props.trackId, props.voiceId))
 
   const songTitle = computed(() => reactiveSongData.songDescription?.title || 'Untitled')
   const songAuthor = computed(() => reactiveSongData.songDescription?.author || 'Unknown Artist')
 
-  const tabRowHeight = computed(() => (
-    getClassicalNotationTop(props.trackId) + 6
-  ))
-
-  const rowHeight = computed(() => {
-    if (!Settings.vexFlowIsActive) {
-      return tabRowHeight.value
-    }
-
-    const marginTops = Object.values(classicalNotationLayoutState.marginTopByRow)
-    const extraTop = marginTops.length > 0 ? Math.max(...marginTops) : 0
-
-    return tabRowHeight.value + CLASSICAL_ROW_GAP + TAB_SHEET.VEXFLOW_HEIGHT + extraTop
-  })
+  // Rows are sized from their own content (annotation lanes, rhythm, classical
+  // staff); see `computeRowLanes`. This is only a fallback for rows without lanes.
+  const rowHeight = computed(() => getTabRowContentHeight(props.trackId))
 
   const tabRows = computed<RenderedTabRow[]>(() => {
     void renderVersion.value
     void songDataVersion.value
 
-    if (Settings.vexFlowIsActive) {
+    if (classicalNotationLayoutState.active) {
       void classicalNotationLayoutState.version
     }
 
@@ -75,29 +57,28 @@ export function useGuitarTabLayout(
       {
         availableWidth: tabGroupWidth.value,
         headerHeight: HEADER_HEIGHT,
-        rowHeight: rowHeight.value,
         paddingTop: paddingTop.value,
         tabInformationHeight: HEADER_HEIGHT,
       },
     )
   })
 
-  const playbackBarHeight = computed(() => {
-    const rowLayouts = renderLayout.value?.rowLayouts
-    if (!rowLayouts || rowLayouts.length === 0) {
+  /** Height of the playback bar in the row it is in (strings down to the row's bottom). */
+  function getPlaybackBarHeight(rowY: number): number {
+    const row = tabRows.value.find((candidate) => candidate.yOffset === rowY)
+    if (!row || row.top == null || row.height == null) {
       return rowHeight.value
     }
+    return row.top + row.height - row.yOffset
+  }
 
-    const lastRow = rowLayouts[rowLayouts.length - 1]
-    if (!lastRow) {
-      return rowHeight.value
+  const totalHeight = computed(() => {
+    const lastRow = tabRows.value.at(-1)
+    if (lastRow?.top != null && lastRow.height != null) {
+      return lastRow.top + lastRow.height + 100
     }
-    return Math.max(rowHeight.value, lastRow.yOffset + lastRow.height)
+    return HEADER_HEIGHT + tabRows.value.length * rowHeight.value + 100
   })
-
-  const totalHeight = computed(() => (
-    HEADER_HEIGHT + tabRows.value.length * rowHeight.value + 100
-  ))
 
   return {
     songDataVersion,
@@ -108,7 +89,7 @@ export function useGuitarTabLayout(
     songTitle,
     songAuthor,
     tabRows,
-    playbackBarHeight,
+    getPlaybackBarHeight,
     totalHeight,
     rowHeight,
   }

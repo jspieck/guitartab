@@ -1,3 +1,5 @@
+import { ImportError } from '../../services/importErrors';
+
 type MidiEvent = {
   delta: number,
   type: string,
@@ -23,8 +25,8 @@ const midiReader = {
     tracks: [] as MidiTrack[],
   },
 
-  error(str: string) {
-    console.log('Error: ', str);
+  error(str: string): never {
+    throw new ImportError(`Invalid MIDI file: ${str}.`, 'mid');
   },
 
   appendText(e: HTMLElement, text: string) {
@@ -339,8 +341,6 @@ const midiReader = {
       }
     }
 
-    // alert('Success!');
-    this.dumpFileInfo(document.getElementById('updates')!);
     return idx;
   },
 };

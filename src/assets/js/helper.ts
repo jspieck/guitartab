@@ -1,9 +1,9 @@
-import fastdom from 'fastdom';
 import { instrumentList } from './instrumentData';
-import { Song, Measure } from './songData';
+import { Song, Beat } from './songData';
 import Duration from './duration';
 import { tab } from './tab';
 import { getBeatRenderPosition } from '../../composables/useTabRenderLayout';
+import { beatHasText } from '../../services/songMigrations';
 
 class Helper {
   static OFFSET_LEFT(): number {
@@ -16,38 +16,6 @@ class Helper {
         box.removeChild(box.lastChild);
       }
     }
-  }
-
-  static easeInOutQuad(t: number, b: number, c: number, d: number): number {
-    // t = current time, b = start value, c = change in value, d = duration
-    let t2 = t / (d / 2);
-    if (t2 < 1) {
-      return (c / 2) * t2 * t2 + b;
-    }
-    t2 -= 1;
-    return (-c / 2) * (t2 * (t2 - 2) - 1) + b;
-  }
-
-  static scrollToPure(elementIn: HTMLElement, from: number, to: number, duration: number): void {
-    const element = elementIn;
-    const start = from;
-    const change = to - start;
-    let currentTime = 0;
-    const startTime = Date.now();
-    const increment = 20;
-
-    const animateScroll = () => {
-      // currentTime += increment;
-      currentTime = Date.now() - startTime;
-      const val = Helper.easeInOutQuad(currentTime, start, change, duration);
-      fastdom.mutate(() => {
-        element.scrollTop = val;
-      });
-      if (currentTime < duration) {
-        setTimeout(animateScroll, increment);
-      }
-    };
-    animateScroll();
   }
 
   static getGreatestNotelengthToFit(spaceToFill: number): number {
@@ -87,7 +55,7 @@ class Helper {
       } else {
         curBeatId += 1;
       }
-      const beat = Song.measures[trackId][curBlockId][voiceId][curBeatId];
+      const beat = Song.findBeat({ trackId, blockId: curBlockId, voiceId, beatId: curBeatId });
       if (beat != null && beat.notes != null && beat.notes[string] != null) {
         return beat.notes[string]!.fret;
       }
@@ -99,7 +67,7 @@ class Helper {
     trackId: number, blockId: number, voiceId: number,
   ) {
     const test = Song.measures[trackId][blockId][voiceId];
-    const groupings: Measure[][] = [];
+    const groupings: Beat[][] = [];
     let groupIndex = 0;
     let positionWeAreAt = 0;
     let noteLengthPosition = 0;
@@ -212,7 +180,7 @@ class Helper {
       if (Song.measureMeta[blockId].repeatOpen) {
         leftOFF += 20;
       }
-      if (blockId === 0 || Song.measureMeta[blockId].bpmPresent) {
+      if (blockId === 0 || Song.measureMeta[blockId].bpm != null) {
         leftOFF += 43;
         if ((`${Song.measureMeta[blockId].bpm}`).length > 2) {
           leftOFF += 8;
@@ -283,14 +251,13 @@ class Helper {
     ) {
       for (let beatId = 0, n = Song.measures[trackId][blockId][voiceId].length;
         beatId < n; beatId += 1) {
-        const beat = Song.measures[trackId][blockId][voiceId][beatId];
-        if (beat.textPresent) { textPresent = 1; }
+        const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
+        if (beatHasText(beat)) { textPresent = 1; }
         if (beat.dynamicPresent) { dynamicPresent = 1; }
-        if (beat.chordPresent) { chordPresent = 1; }
+        if (beat.chord != null) { chordPresent = 1; }
 
         let beatHeight = 0;
-        if (beat.effects != null && beat.effects.tremoloBarPresent
-          && beat.effects.tremoloBar != null) {
+        if (beat.effects?.tremoloBar != null) {
           beatHeight += 1;
         }
         const articulationsPresent = {
@@ -348,11 +315,11 @@ class Helper {
                 articulationsPresent.vibrato = true;
                 beatHeight += 1;
               }
-              if (note.trillPresent && !articulationsPresent.trill) {
+              if (note.trill != null && !articulationsPresent.trill) {
                 articulationsPresent.trill = true;
                 beatHeight += 1;
               }
-              if (note.artificialPresent && !articulationsPresent.artificial) {
+              if (note.artificialStyle != null && !articulationsPresent.artificial) {
                 articulationsPresent.artificial = true;
                 beatHeight += 1;
               }

@@ -1,7 +1,7 @@
 import { reactive, ref } from 'vue'
 import type {
   Chord,
-  Measure,
+  Beat,
   MeasureMetaInfo,
   PlayBackInstrument,
   SongDescription,
@@ -22,7 +22,7 @@ export interface SongStateData {
   tracks: Track[]
   currentTrackId: number
   currentVoiceId: number
-  measures: Measure[][][][]
+  measures: Beat[][][][]
   measureMeta: MeasureMetaInfo[]
   measureMoveHelper: number[][][][]
   songDescription: SongDescription

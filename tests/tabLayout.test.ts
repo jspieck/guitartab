@@ -6,6 +6,13 @@ import {
   getSelectionRenderPoint,
 } from '../src/utils/tabLayout'
 
+// Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
+vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
+vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
+vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
+vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
+
 const { getBlockRenderLayout } = vi.hoisted(() => ({
   getBlockRenderLayout: vi.fn(),
 }))
@@ -106,9 +113,10 @@ describe('tabLayout', () => {
       () => 10,
     )
 
+    // String 2 (D) is the fourth line from the bottom: line 3 from the top, 3 × 12.
     expect(position).toEqual({
       x: 87,
-      y: 24,
+      y: 36,
     })
   })
 
@@ -183,9 +191,10 @@ describe('tabLayout', () => {
       0,
     )
 
+    // String 1 (A) is the second line from the bottom: line 4 from the top.
     expect(position).toEqual({
       x: 32 + 153 + 50,
-      y: 12,
+      y: 48,
     })
   })
 })

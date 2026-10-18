@@ -3,16 +3,22 @@
         <div id="openWindowArea">
         </div>
         <div id="footerFiller"></div>
-        <div id="drumInfoFooter" @click="modalManager.toggleByModal(MODALS.DRUM_INFO, {})" class="footerBlock">DrumInfo</div>
-        <!--<div id="samplesOpen" class="footerBlock">Samples</div>-->
-        <div id="drumMixerOpen" @click="modalManager.toggleByModal(MODALS.MIXER, {})" class="footerBlock">Drum Mixer</div>
-        <div id="autoScroll" @click="toggleScrolling()" class="footerBlock">{{ autoScrollLabel }}</div>
-        <div id="tuningFooter" @click="openInstrumentSettings()" class="footerBlock">{{ tuningLabel }}</div>
-        <div id="capoLabel" @click="openInstrumentSettings()" class="footerBlock">{{ capoLabel }}</div>
-        <div id="modeSwitcher" @click="toggleDarkMode()" class="footerBlock">{{ styleModeLabel }}</div>
-        <div id="midiLabel" @click="modalManager.toggleByModal(MODALS.MIDI, {})" class="footerBlock">Midi</div>
-        <div class="footerBlock">
-        <div id="isMidiActive"></div>
+        <div id="drumInfoFooter" class="footerBlock" role="button" tabindex="0" title="Which MIDI note plays which drum"
+            @click="modalManager.toggleByModal(MODALS.DRUM_INFO, {})" @keydown.enter.prevent="modalManager.toggleByModal(MODALS.DRUM_INFO, {})">Drum map</div>
+        <div id="drumMixerOpen" class="footerBlock" role="button" tabindex="0"
+            @click="modalManager.toggleByModal(MODALS.MIXER, {})" @keydown.enter.prevent="modalManager.toggleByModal(MODALS.MIXER, {})">Drum mixer</div>
+        <div id="autoScroll" class="footerBlock" role="button" tabindex="0" :aria-pressed="isAutoscrollEnabled"
+            title="Follow the playback position while playing"
+            @click="toggleScrolling()" @keydown.enter.prevent="toggleScrolling()"><span class="footerLabel">Autoscroll</span>{{ isAutoscrollEnabled ? 'On' : 'Off' }}</div>
+        <div id="tuningFooter" class="footerBlock" role="button" tabindex="0"
+            @click="openInstrumentSettings()" @keydown.enter.prevent="openInstrumentSettings()"><span class="footerLabel">Tuning</span>{{ tuningText }}</div>
+        <div id="capoLabel" class="footerBlock" role="button" tabindex="0"
+            @click="openInstrumentSettings()" @keydown.enter.prevent="openInstrumentSettings()"><span class="footerLabel">Capo</span>{{ currentTrack?.capo ?? 0 }}</div>
+        <div id="modeSwitcher" class="footerBlock" role="button" tabindex="0" title="Switch between light and dark theme"
+            @click="toggleDarkMode()" @keydown.enter.prevent="toggleDarkMode()"><span class="footerLabel">Theme</span>{{ isDarkMode ? 'Dark' : 'Light' }}</div>
+        <div id="midiLabel" class="footerBlock" role="button" tabindex="0" title="MIDI input settings"
+            @click="modalManager.toggleByModal(MODALS.MIDI, {})" @keydown.enter.prevent="modalManager.toggleByModal(MODALS.MIDI, {})">MIDI
+            <span id="isMidiActive" aria-hidden="true"></span>
         </div>
     </div>
 </template>
@@ -35,10 +41,7 @@ const isAutoscrollEnabled = ref(Settings.scrollingEnabled);
 const currentTrackId = computed(() => reactiveSongData.currentTrackId ?? 0);
 const currentTrack = computed(() => reactiveSongData.tracks?.[currentTrackId.value] ?? null);
 
-const autoScrollLabel = computed(() => `Autoscroll: ${isAutoscrollEnabled.value ? 'Enabled' : 'Disabled'}`);
-const styleModeLabel = computed(() => (isDarkMode.value ? 'Dark Design' : 'White Design'));
-const tuningLabel = computed(() => `Tuning: ${formatTuning(currentTrack.value?.strings ?? [])}`);
-const capoLabel = computed(() => `Capo: ${currentTrack.value?.capo ?? 0}`);
+const tuningText = computed(() => formatTuning(currentTrack.value?.strings ?? []));
 
 watch(isDarkMode, (darkModeEnabled) => {
     sequencerHandler.drawBeat();

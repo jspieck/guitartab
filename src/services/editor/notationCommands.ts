@@ -2,10 +2,9 @@ import AppManager from '../../assets/js/appManager'
 import Song from '../../assets/js/songData'
 import { revertHandler } from '../../assets/js/revertHandler'
 import { modalManager } from '../../assets/js/modals/modalManager'
-import { menuHandler } from '../../assets/js/menuHandler'
 import { SequencerHandler } from '../../assets/js/sequencerHandler'
 import { tab } from '../../assets/js/tab'
-import type { Measure } from '../../types/tab'
+import type { Beat, MeasureMeta } from '../../types/tab'
 import {
   applyTimeMeterToFollowingBlocks,
   findMenuEffectGroup,
@@ -13,23 +12,22 @@ import {
   resolveNotationModalRequest,
 } from '../menuMutationRouting'
 import { MENU_EFFECT_GROUPS } from '../../utils/menuUiState'
+import {
+  captureMenuEffectState, deactivateMenuEffectsInGroup, getMenuEffectVariable, setMenuEffectVariable, type MenuEffectState,
+} from '../menuEffectMutations'
 import { requestBlockRender } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
 
-function toggleEffectSelect(id: string, beat: Measure): void {
+function toggleEffectSelect(id: string, beat: Beat, measureMeta: MeasureMeta): void {
   const effectGroup = findMenuEffectGroup(id, MENU_EFFECT_GROUPS)
   if (effectGroup == null) {
     return
   }
 
-  const isVariableSet = menuHandler.getEffectVariable(beat, null, id)
-  menuHandler.deactivateEffects(beat, null, effectGroup)
-
-  if (isVariableSet == null || isVariableSet === false) {
-    menuHandler.setEffectVariable(beat, null, id, true)
-  } else {
-    menuHandler.setEffectVariable(beat, null, id, false)
-  }
+  // Use the bar being edited, not the cursor's bar (what menuHandler would use).
+  const isVariableSet = getMenuEffectVariable(beat, null, id, measureMeta)
+  deactivateMenuEffectsInGroup(beat, null, effectGroup, measureMeta)
+  setMenuEffectVariable(beat, null, id, !isVariableSet, measureMeta)
 }
 
 export function processNotationSelect(
@@ -40,7 +38,7 @@ export function processNotationSelect(
   id: string,
   isRevert: boolean | null,
 ): void {
-  const beat = Song.measures[trackId][blockId][voiceId][beatId]
+  const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
   const measureMeta = Song.measureMeta[blockId]
   const modalRequest = resolveNotationModalRequest(id, isRevert === true, {
     trackId,
@@ -56,14 +54,15 @@ export function processNotationSelect(
     return
   }
 
-  if (isRevert == null && id !== 'timeMeter' && id !== 'addMarker') {
-    revertHandler.addNotationSelect(trackId, blockId, voiceId, beatId, id)
-  }
-  if (id === 'addMarker' && measureMeta.markerPresent) {
-    revertHandler.addMarker(
-      trackId, blockId, measureMeta.marker,
-      measureMeta.marker, true, false,
-    )
+  // Snapshot the effect group so undo restores data (text, chord, repeat count…)
+  // instead of only flipping a flag.
+  const effectGroup = findMenuEffectGroup(id, MENU_EFFECT_GROUPS) ?? [id]
+  const captureGroup = (): Record<string, MenuEffectState> => Object.fromEntries(
+    effectGroup.map((effectId) => [effectId, captureMenuEffectState(beat, null, effectId, measureMeta)]),
+  )
+  const stateBefore = captureGroup()
+  if (id === 'addMarker' && measureMeta.marker != null) {
+    revertHandler.addMarker(trackId, blockId, { ...measureMeta.marker }, undefined)
     SequencerHandler.removeMarker(blockId)
   }
   if (id === 'timeMeter' && isRevert == null && blockId !== 0 && measureMeta.timeMeterPresent) {
@@ -86,7 +85,10 @@ export function processNotationSelect(
     }
   }
 
-  toggleEffectSelect(id, beat)
+  toggleEffectSelect(id, beat, measureMeta)
+  if (isRevert == null && id !== 'timeMeter' && id !== 'addMarker') {
+    revertHandler.addNotationSelect(trackId, blockId, voiceId, beatId, id, stateBefore, captureGroup())
+  }
   requestBlockRender(trackId, blockId, voiceId)
 }
 

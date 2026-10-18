@@ -1,16 +1,16 @@
 /**
  * DurationReplacerAdapter — Bridges DurationReplacer (pure logic) with the
- * existing Song/Measure data model in tab.ts.
+ * existing Song/Beat data model in tab.ts.
  *
- * Converts between `Measure[]` (the Song's internal representation) and the
- * lightweight `Beat[]` interface that DurationReplacer operates on.
+ * Converts between `Beat[]` (the Song's internal representation) and the
+ * lightweight `DurationBeat[]` interface that DurationReplacer operates on.
  */
 
-import { Measure } from './songData'
+import { Beat } from './songData'
 import Song from './songData'
-import { DurationReplacer, Beat } from '../../utils/durationReplacer'
+import { DurationReplacer, type Beat as DurationBeat } from '../../utils/durationReplacer'
 
-export function measureToBeats(measures: Measure[], numStrings: number): Beat[] {
+export function measureToBeats(measures: Beat[], numStrings: number): DurationBeat[] {
   return measures.map(m => ({
     duration: m.duration,
     dotted: m.dotted,
@@ -21,7 +21,7 @@ export function measureToBeats(measures: Measure[], numStrings: number): Beat[] 
   }))
 }
 
-function hasAnyNote(measure: Measure, numStrings: number): boolean {
+function hasAnyNote(measure: Beat, numStrings: number): boolean {
   if (!measure.notes) return false
   for (let i = 0; i < numStrings; i++) {
     if (measure.notes[i] != null) return true
@@ -30,9 +30,9 @@ function hasAnyNote(measure: Measure, numStrings: number): boolean {
 }
 
 /**
- * Apply a Beat[] result back onto the existing Measure[] in Song.measures.
+ * Apply a DurationBeat[] result back onto the existing Beat[] in Song.measures.
  *
- * - Beats that existed before keep their full Measure data (effects, notes, etc.)
+ * - Beats that existed before keep their full Beat data (effects, notes, etc.)
  * - New rest beats get Song.defaultMeasure() with the correct duration/dot/tuplet fields
  * - Removed beats are spliced out
  */
@@ -40,8 +40,8 @@ export function applyBeatsToMeasures(
   trackId: number,
   blockId: number,
   voiceId: number,
-  originalMeasures: Measure[],
-  newBeats: Beat[],
+  originalMeasures: Beat[],
+  newBeats: DurationBeat[],
   changedBeatIndex: number,
   newDurationCode: string,
 ): void {
@@ -64,7 +64,7 @@ export function applyBeatsToMeasures(
   // Remove everything after the changed beat
   blockObj.splice(changedBeatIndex + 1, oldAfter.length)
 
-  // Re-insert: for each new beat, either reuse the original Measure or create a new rest
+  // Re-insert: for each new beat, either reuse the original Beat or create a new rest
   let origIdx = 0
   for (const beat of newAfter) {
     // Try to match this beat to an original measure
@@ -74,7 +74,7 @@ export function applyBeatsToMeasures(
       blockObj.push(oldAfter[matchedOriginal])
       origIdx = matchedOriginal + 1
     } else {
-      // New rest beat — create a fresh Measure
+      // New rest beat — create a fresh Beat
       const newMeasure = {
         ...Song.defaultMeasure(),
         duration: beat.duration,
@@ -90,9 +90,9 @@ export function applyBeatsToMeasures(
 }
 
 function findMatchingOriginal(
-  originals: Measure[],
+  originals: Beat[],
   startFrom: number,
-  beat: Beat,
+  beat: DurationBeat,
 ): number | null {
   for (let i = startFrom; i < originals.length; i++) {
     const m = originals[i]

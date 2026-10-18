@@ -107,6 +107,28 @@ export class ModalManager {
     }
 
     // Private Helper Methods
+    /** Moves an open modal back inside the window, e.g. after its content grew. */
+    keepInViewport(id: string) {
+        const modal = document.getElementById(id);
+        if (modal == null) {
+            return;
+        }
+        const rect = modal.getBoundingClientRect();
+        const margin = 12;
+        const x = Math.max(margin, Math.min(rect.left, window.innerWidth - rect.width - margin));
+        const y = Math.max(margin, Math.min(rect.top, window.innerHeight - rect.height - margin));
+        if (x === rect.left && y === rect.top) {
+            return;
+        }
+        // left/top are applied before the modal's translateY offset, so shift by the delta.
+        const left = parseFloat(modal.style.left || '0') + (x - rect.left);
+        const top = parseFloat(modal.style.top || '0') + (y - rect.top);
+        modal.style.left = `${left}px`;
+        modal.style.top = `${top}px`;
+        modal.setAttribute('data-x', left.toString());
+        modal.setAttribute('data-y', top.toString());
+    }
+
     private setupModalPosition(modal: HTMLElement) {
         const { height, width } = modal.getBoundingClientRect();
         const x = window.innerWidth / 2 - width / 2;

@@ -46,7 +46,7 @@ export function changeNoteDuration(
   noteLength: string,
   duringRevert: boolean,
 ): boolean {
-  const beat = Song.measures[trackId][blockId][voiceId][beatId]
+  const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
   const previousDuration = Duration.getDurationOfNote(beat, true)
   const previousDur = beat.duration
   beat.duration = noteLength

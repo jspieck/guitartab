@@ -1,5 +1,5 @@
 import { watch } from 'vue'
-import type { Measure as SongBeat, Note as SongNote } from '../types/tab'
+import type { Beat as SongBeat, Note as SongNote } from '../types/tab'
 import editorCore from '../services/editor/editorCore'
 import { ensureSongDataEventBridge } from '../services/songDataEventBridge'
 import { ensureRenderEventBridge } from '../services/editor/renderEventBridge'

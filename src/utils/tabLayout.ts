@@ -2,10 +2,12 @@
  * Utility functions for calculating positions in the guitar tab layout
  */
 
+import { stringLine } from './tabStrings'
 import type { RenderedMeasureData, RenderedTabRow, RendererSelectionPosition, TabBeat } from '../types/tab'
 import { getDurationBeats } from './durationUtils'
 import { getBlockRenderLayout } from '../composables/useTabRenderLayout'
 import { getBeatPositionInRow } from './beatPositionInRow'
+import { getMeasureBeatWidth } from './measureBeatLayout'
 
 /**
  * Tab layout constants
@@ -192,7 +194,22 @@ function getSvgViewportSize(svgElement: SVGSVGElement): { width: number; height:
   return { width, height }
 }
 
+/**
+ * Page margins as actually applied to the tab content: the translate of the
+ * SVG's content group. Recomputing them from the SVG size is wrong once the
+ * sheet grows beyond one page (the SVG height is the whole song, while the
+ * margins are derived from the page height).
+ */
 export function getSvgPageMargins(svgElement: SVGSVGElement) {
+  const contentGroup = typeof svgElement.querySelector === 'function'
+    ? svgElement.querySelector(':scope > g')
+    : null
+  const matrix = typeof SVGGraphicsElement !== 'undefined' && contentGroup instanceof SVGGraphicsElement
+    ? contentGroup.transform.baseVal.consolidate()?.matrix
+    : null
+  if (matrix) {
+    return { left: matrix.e, top: matrix.f }
+  }
   const { width, height } = getSvgViewportSize(svgElement)
   return getPageMargins(width, height)
 }
@@ -289,8 +306,10 @@ export function findRowAtY(
   rowYOffsetAdjust = 0,
 ): RenderedTabRow | null {
   for (const row of tabRows) {
-    const rowTop = row.yOffset + rowYOffsetAdjust
-    if (localY >= rowTop && localY < rowTop + rowHeight) {
+    // Rows with lanes own their full vertical span (annotations above the strings included).
+    const rowTop = (row.top ?? row.yOffset) + rowYOffsetAdjust
+    const height = row.height ?? rowHeight
+    if (localY >= rowTop && localY < rowTop + height) {
       return row
     }
   }
@@ -298,10 +317,10 @@ export function findRowAtY(
   return tabRows.at(-1) ?? null
 }
 
-export function resolveStringIndexInRow(localY: number, rowYOffset: number, stringSpacing: number): number {
-  const relativeY = localY - rowYOffset
-  const stringIndex = Math.round(relativeY / stringSpacing)
-  return Math.max(0, stringIndex)
+/** The string under `localY`: lines are counted from the top, strings from the lowest (see `tabStrings`). */
+export function resolveStringIndexInRow(localY: number, rowYOffset: number, stringSpacing: number, numStrings: number): number {
+  const line = Math.round((localY - rowYOffset) / stringSpacing)
+  return stringLine(Math.min(numStrings - 1, Math.max(0, line)), numStrings)
 }
 
 export function resolveTabPointerPosition(
@@ -318,7 +337,6 @@ export function resolveTabPointerPosition(
   row: RenderedTabRow
   blockId: number
   beatIndex: number
-  stringIndex: number
   isFirstRow: boolean
 } | null {
   const transformedPoint = getSvgLocalPoint(event, svgElement)
@@ -351,7 +369,6 @@ export function resolveTabPointerPosition(
     row,
     blockId: beatPosition.blockId,
     beatIndex: beatPosition.beatIndex,
-    stringIndex: resolveStringIndexInRow(localY, row.yOffset + rowYOffsetAdjust, stringSpacing),
     isFirstRow,
   }
 }
@@ -364,23 +381,21 @@ export function getSelectionRenderPoint(
   getMeasureContentPadding: (blockId: number) => number,
   trackId?: number,
   voiceId?: number,
+  numStrings = 6,
 ): { x: number; y: number } | null {
   const measure = rowData.measures[selection.measureIndex]
   if (!measure || !measure.data?.[selection.beatIndex]) {
     return null
   }
 
-  const y = selection.stringIndex * stringSpacing
+  const y = stringLine(selection.stringIndex, numStrings) * stringSpacing
 
   if (trackId != null && voiceId != null) {
     const rowX = getBeatPositionInRow(trackId, voiceId, selection.blockId, selection.beatIndex)
-    const blockLayout = getBlockRenderLayout(trackId, voiceId, selection.blockId)
-    if (rowX != null && blockLayout != null) {
-      const beatPos = blockLayout.beatPositions[selection.beatIndex]
-      const nextPos = blockLayout.beatPositions[selection.beatIndex + 1]
-      const beatWidth = nextPos != null && Number.isFinite(nextPos) && Number.isFinite(beatPos)
-        ? nextPos - beatPos
-        : getDisplayWidth(measure.data[selection.beatIndex]?.duration)
+    if (rowX != null) {
+      // Same width TabNote centres its digit in (also correct for the last beat,
+      // which has no following beat to measure against).
+      const beatWidth = getMeasureBeatWidth(trackId, voiceId, selection.blockId, selection.beatIndex, measure.data)
       return {
         x: rowX + beatWidth / 2,
         y,

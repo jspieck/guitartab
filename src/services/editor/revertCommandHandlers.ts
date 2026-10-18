@@ -1,7 +1,8 @@
 import Song, {
-  Measure, MeasureMetaInfo, Track, Bend, TremoloBar, Chord, Marker, Stroke,
-  Grace, Note, MeasureEffects,
+  Beat, MeasureMetaInfo, Track, Bend, TremoloBar, Chord, Marker, Stroke,
+  Grace, Note, BeatEffects, VoiceSnapshot,
 } from '../../assets/js/songData'
+import { setMenuEffectVariable, type MenuEffectState } from '../menuEffectMutations'
 import { tab, Tab } from '../../assets/js/tab'
 import AppManager from '../../assets/js/appManager'
 import { sequencerHandler, SequencerHandler } from '../../assets/js/sequencerHandler'
@@ -20,7 +21,7 @@ function requestCurrentVoiceBlockRender(trackId: number, blockId: number) {
 // Note length
 export function revertNoteLength(
   infoObj: { trackId: number, blockId: number, voiceId: number,
-    measureBefore: Measure[] },
+    measureBefore: Beat[] },
 ) {
   Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId] = infoObj.measureBefore;
   tab.drawTrack(infoObj.trackId, infoObj.voiceId, true, null);
@@ -28,7 +29,7 @@ export function revertNoteLength(
 
 export function restoreNoteLength(
   infoObj: { trackId: number, blockId: number, voiceId: number,
-    measureAfter: Measure[] },
+    measureAfter: Beat[] },
 ) {
   Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId] = infoObj.measureAfter;
   tab.drawTrack(infoObj.trackId, infoObj.voiceId, true, null);
@@ -37,13 +38,13 @@ export function restoreNoteLength(
 // Delete Note
 export function revertDeleteNote(
   infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number,
-    string: number, noteObj: Note, effectObj: MeasureEffects },
+    string: number, noteObj: Note, effectObj: BeatEffects },
 ) {
   const {
     trackId, blockId, voiceId, beatId, string, noteObj, effectObj,
   } = infoObj;
   const redrawSequencer = Song.isBeatEmpty(trackId, blockId);
-  const beatObj = Song.measures[trackId][blockId][voiceId][beatId];
+  const beatObj = Song.getBeat({ trackId, blockId, voiceId, beatId });
   beatObj.duration = beatObj.duration[0];
   beatObj.notes[string] = noteObj;
   beatObj.effects = effectObj;
@@ -70,7 +71,7 @@ export function restoreDeleteNote(
 // Copy Paste
 export function revertCopyPaste(
   infoObj: { trackId: number, voiceId: number,
-    blocksBefore: {blockId: number, block: Measure[][]}[]},
+    blocksBefore: {blockId: number, block: Beat[][]}[]},
 ) {
   for (let i = 0, n = infoObj.blocksBefore.length; i < n; i += 1) {
     const { blockId } = infoObj.blocksBefore[i];
@@ -83,7 +84,7 @@ export function revertCopyPaste(
 
 export function restoreCopyPaste(
   infoObj: { trackId: number, voiceId: number,
-    blocksAfter: {blockId: number, block: Measure[][]}[]},
+    blocksAfter: {blockId: number, block: Beat[][]}[]},
 ) {
   for (let i = 0, n = infoObj.blocksAfter.length; i < n; i += 1) {
     const { blockId } = infoObj.blocksAfter[i];
@@ -100,7 +101,7 @@ export function revertTied(
     string: number, noteTiedTo: { blockId: number, beatId: number } },
 ) {
   // Handle tied note restoration directly
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+  const beat = Song.getBeat(infoObj);
   const note = beat.notes[infoObj.string];
   if (note != null) {
     note.tied = !note.tied;
@@ -115,7 +116,7 @@ export function restoreTied(
     string: number, noteTiedTo: { blockId: number, beatId: number } },
 ) {
   // Handle tied note restoration directly
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+  const beat = Song.getBeat(infoObj);
   const note = beat.notes[infoObj.string];
   if (note != null) {
     note.tied = !note.tied;
@@ -181,62 +182,64 @@ export function revertNoteEffectSelect(infoObj: {
     notes: {trackId: number, blockId: number, voiceId: number, beatId: number,
       string: number, note: Note}[],
     blocks: number[],
-    beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Measure}[]
+    beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Beat}[]
   },
-  changes: {[key: string]: {[s: string]: boolean}},
+  changes: {[key: string]: {[s: string]: MenuEffectState}},
   id: string}) {
   for (const no of infoObj.arr.notes) {
     const {
       trackId, blockId, voiceId, beatId, string,
     } = no;
     const noteStr = `${no.trackId}_${no.blockId}_${no.voiceId}_${no.beatId}_${no.string}`;
-    const beat = Song.measures[trackId][blockId][voiceId][beatId];
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
+    // Restore every effect of the group, including the toggled one, from the
+    // snapshot. Re-toggling it instead would lose data such as a bend curve.
     for (const effect in infoObj.changes[noteStr]) {
-      if (effect !== infoObj.id) {
-        setEffectVariable(beat, beat.notes[string], effect,
-          infoObj.changes[noteStr][effect]);
-      }
+      setEffectVariable(beat, beat.notes[string], effect, infoObj.changes[noteStr][effect]);
     }
   }
-  processEffectSelect(infoObj.arr, infoObj.id, true);
+  const trackId = infoObj.arr.notes[0]?.trackId ?? Song.currentTrackId;
+  for (const blockId of infoObj.arr.blocks) {
+    requestCurrentVoiceBlockRender(trackId, blockId);
+  }
+  typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreNoteEffectSelect(infoObj: {arr: {
   notes: {trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, note: Note}[],
   blocks: number[],
-  beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Measure}[]
+  beats: {trackId: number, blockId: number, voiceId: number, beatId: number, beat: Beat}[]
 }, id: string}) {
   processEffectSelect(infoObj.arr, infoObj.id, true);
 }
 
-// NotationSelect - simplified implementation
-export function revertNotationSelect(
-  infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number, id: string },
+// NotationSelect: restore the effect group snapshots taken around the toggle
+function applyNotationState(
+  infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number },
+  state: Record<string, MenuEffectState> | undefined,
 ) {
-  // Toggle the notation effect
-  if (infoObj.id === 'timeMeter') {
-    Song.measureMeta[infoObj.blockId].timeMeterPresent = !Song.measureMeta[infoObj.blockId].timeMeterPresent;
-  } else if (infoObj.id === 'bpmMeter') {
-    Song.measureMeta[infoObj.blockId].bpmPresent = !Song.measureMeta[infoObj.blockId].bpmPresent;
+  const beat = Song.getBeat(infoObj);
+  for (const [effectId, value] of Object.entries(state ?? {})) {
+    setMenuEffectVariable(beat, null, effectId, value, Song.measureMeta[infoObj.blockId]);
   }
-  
+  SequencerHandler.setMarker(infoObj.blockId);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
-export function restoreNotationSelect(
-  infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number, id: string },
+export function revertNotationSelect(
+  infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number, id: string,
+    stateBefore?: Record<string, MenuEffectState> },
 ) {
-  // Toggle the notation effect
-  if (infoObj.id === 'timeMeter') {
-    Song.measureMeta[infoObj.blockId].timeMeterPresent = !Song.measureMeta[infoObj.blockId].timeMeterPresent;
-  } else if (infoObj.id === 'bpmMeter') {
-    Song.measureMeta[infoObj.blockId].bpmPresent = !Song.measureMeta[infoObj.blockId].bpmPresent;
-  }
-  
-  requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
-  typedEventBus.emit("menu.activateEffectsForMarkedPos");
+  applyNotationState(infoObj, infoObj.stateBefore);
+}
+
+export function restoreNotationSelect(
+  infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number, id: string,
+    stateAfter?: Record<string, MenuEffectState> },
+) {
+  applyNotationState(infoObj, infoObj.stateAfter);
 }
 
 // Dynamic Select - simplified implementation
@@ -246,7 +249,7 @@ export function revertDynamicSelect(
   }: { trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, id: string },
 ) {
-  const beat = Song.measures[trackId][blockId][voiceId][beatId];
+  const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
   beat.dynamicPresent = !beat.dynamicPresent;
   if (beat.dynamicPresent) {
     beat.dynamic = id.replace('Dynamic', '');
@@ -261,7 +264,7 @@ export function restoreDynamicSelect(
   }: { trackId: number, blockId: number, voiceId: number, beatId: number,
     string: number, id: string },
 ) {
-  const beat = Song.measures[trackId][blockId][voiceId][beatId];
+  const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
   beat.dynamicPresent = !beat.dynamicPresent;
   if (beat.dynamicPresent) {
     beat.dynamic = id.replace('Dynamic', '');
@@ -282,63 +285,63 @@ export function toggleMeasureSelect(
 }
 
 // Text
+function setBeatText(beat: Beat, text: string | undefined) {
+  if (text == null || text === '') {
+    delete beat.text;
+  } else {
+    beat.text = text;
+  }
+}
+
 export function revertText({
-  trackId, blockId, voiceId, beatId, previousText, textPresentBefore,
+  trackId, blockId, voiceId, beatId, previousText,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number,
-  previousText: string, textPresentBefore: boolean,
+  previousText?: string,
 }) {
-  Song.measures[trackId][blockId][voiceId][beatId].text = previousText;
-  Song.measures[trackId][blockId][voiceId][beatId].textPresent = textPresentBefore;
+  setBeatText(Song.getBeat({ trackId, blockId, voiceId, beatId }), previousText);
   requestCurrentVoiceBlockRender(trackId, blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreText({
-  trackId, blockId, voiceId, beatId, nextText, textPresentAfter,
+  trackId, blockId, voiceId, beatId, nextText,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number,
-  nextText: string, textPresentAfter: boolean,
+  nextText?: string,
 }) {
-  Song.measures[trackId][blockId][voiceId][beatId].text = nextText;
-  Song.measures[trackId][blockId][voiceId][beatId].textPresent = textPresentAfter;
+  setBeatText(Song.getBeat({ trackId, blockId, voiceId, beatId }), nextText);
   requestCurrentVoiceBlockRender(trackId, blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 // Marker
-export function revertMarker(
-  infoObj: {blockId: number, markerPresentBefore: boolean, markerBefore: Marker},
+/** Sets or (for undefined) removes an optional bar field. */
+function setOptionalMeta<K extends 'marker' | 'bpm' | 'repeatAlternative' | 'repeatClose'>(
+  blockId: number, key: K, value: MeasureMetaInfo[K] | undefined,
 ) {
-  Song.measureMeta[infoObj.blockId].markerPresent = infoObj.markerPresentBefore;
-  Song.measureMeta[infoObj.blockId].marker = infoObj.markerBefore;
+  if (value == null) {
+    delete Song.measureMeta[blockId][key];
+  } else {
+    Song.measureMeta[blockId][key] = value;
+  }
+}
+
+export function revertMarker(
+  infoObj: {trackId?: number, blockId: number, markerBefore?: Marker},
+) {
+  setOptionalMeta(infoObj.blockId, 'marker', infoObj.markerBefore);
   SequencerHandler.setMarker(infoObj.blockId);
+  if (infoObj.trackId != null) requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
+  typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreMarker(
-  infoObj: {blockId: number, markerPresentAfter: boolean, markerAfter: Marker},
+  infoObj: {trackId?: number, blockId: number, markerAfter?: Marker},
 ) {
-  Song.measureMeta[infoObj.blockId].markerPresent = infoObj.markerPresentAfter;
-  Song.measureMeta[infoObj.blockId].marker = infoObj.markerAfter;
+  setOptionalMeta(infoObj.blockId, 'marker', infoObj.markerAfter);
   SequencerHandler.setMarker(infoObj.blockId);
-}
-
-export function setMarker(
-  infoObj: {trackId: number, blockId: number, markerPresentBefore: boolean,
-    markerPresentAfter: boolean}, reverting: boolean,
-) {
-  if (reverting) {
-    if (!infoObj.markerPresentBefore && infoObj.markerPresentAfter) {
-      SequencerHandler.removeMarker(infoObj.blockId);
-    } else {
-      SequencerHandler.setMarker(infoObj.blockId);
-    }
-  } else if (!infoObj.markerPresentAfter && infoObj.markerPresentBefore) {
-    SequencerHandler.removeMarker(infoObj.blockId);
-  } else {
-    SequencerHandler.setMarker(infoObj.blockId);
-  }
-  requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
+  if (infoObj.trackId != null) requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
@@ -346,30 +349,26 @@ export function setMarker(
 export function revertTimeMeter(infoObj: {
   blockId: number,
   timeMeterPresentBefore: boolean,
-  notesBefore: { blockId: number, beatId: number, notes: Note[] }[][][],
+  notesBefore: VoiceSnapshot[][][],
   numeratorBefore: number,
   denominatorBefore: number
 }) {
   Song.measureMeta[infoObj.blockId].timeMeterPresent = infoObj.timeMeterPresentBefore;
-  // add all saved notes to measures
-  for (let trackId = 0, numTr = infoObj.notesBefore.length; trackId < numTr; trackId += 1) {
-    for (let voiceId = 0, numVc = infoObj.notesBefore[trackId].length;
-      voiceId < numVc; voiceId += 1) {
-      for (let i = 0, n = infoObj.notesBefore[trackId][voiceId].length; i < n; i += 1) {
-        const { blockId } = infoObj.notesBefore[trackId][voiceId][i];
-
+  // Put back the beats the change cut off, and drop the rests it added to fill bars.
+  // (This used to read beatId from the wrong level and wrote into voice[undefined].)
+  infoObj.notesBefore.forEach((voices, trackId) => {
+    voices.forEach((snapshots, voiceId) => {
+      for (const { blockId, beatCount, beats } of snapshots) {
         Song.measureMeta[blockId].numerator = infoObj.numeratorBefore;
         Song.measureMeta[blockId].denominator = infoObj.denominatorBefore;
-
-        for (let j = 0, m = infoObj.notesBefore[trackId][voiceId][i].notes.length;
-          j < m; j += 1) {
-          const { beatId, notes } = infoObj.notesBefore[trackId][voiceId][i];
-          const clonedNote = JSON.parse(JSON.stringify(notes[j]));
-          Song.measures[trackId][blockId][voiceId][beatId] = clonedNote;
+        const voice = Song.measures[trackId][blockId][voiceId];
+        for (const { beatId, beat } of beats) {
+          voice[beatId] = JSON.parse(JSON.stringify(beat));
         }
+        voice.length = beatCount;
       }
-    }
-  }
+    });
+  });
   tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
@@ -388,131 +387,139 @@ export function restoreTimeMeter(
 
 // Bpm Meter
 export function revertBpmMeter(
-  infoObj: {trackId: number, blockId: number, bpmPresentBefore: boolean,
-    bpmBefore: number},
+  infoObj: {trackId: number, blockId: number, bpmBefore?: number},
 ) {
-  Song.measureMeta[infoObj.blockId].bpmPresent = infoObj.bpmPresentBefore;
-  Song.measureMeta[infoObj.blockId].bpm = infoObj.bpmBefore;
+  setOptionalMeta(infoObj.blockId, 'bpm', infoObj.bpmBefore);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreBpmMeter(
-  infoObj: {trackId: number, blockId: number, bpmPresentAfter: boolean,
-    bpmAfter: number},
+  infoObj: {trackId: number, blockId: number, bpmAfter?: number},
 ) {
-  Song.measureMeta[infoObj.blockId].bpmPresent = infoObj.bpmPresentAfter;
-  Song.measureMeta[infoObj.blockId].bpm = infoObj.bpmAfter;
+  setOptionalMeta(infoObj.blockId, 'bpm', infoObj.bpmAfter);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 // Chord
+function setBeatChord(beat: Beat, chord: Chord | undefined) {
+  if (chord == null) {
+    delete beat.chord;
+  } else {
+    beat.chord = chord;
+  }
+}
+
 export function revertChord({
-  trackId, blockId, voiceId, beatId, chordBefore, chordPresentBefore,
+  trackId, blockId, voiceId, beatId, chordBefore,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number,
-  chordBefore: Chord, chordPresentBefore: boolean,
+  chordBefore?: Chord,
 }) {
-  Song.measures[trackId][blockId][voiceId][beatId].chord = chordBefore;
-  Song.measures[trackId][blockId][voiceId][beatId].chordPresent = chordPresentBefore;
+  setBeatChord(Song.getBeat({ trackId, blockId, voiceId, beatId }), chordBefore);
   requestCurrentVoiceBlockRender(trackId, blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreChord({
-  trackId, blockId, voiceId, beatId, chordAfter, chordPresentAfter,
+  trackId, blockId, voiceId, beatId, chordAfter,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number,
-  chordAfter: Chord, chordPresentAfter: boolean,
+  chordAfter?: Chord,
 }) {
-  Song.measures[trackId][blockId][voiceId][beatId].chord = chordAfter;
-  Song.measures[trackId][blockId][voiceId][beatId].chordPresent = chordPresentAfter;
+  setBeatChord(Song.getBeat({ trackId, blockId, voiceId, beatId }), chordAfter);
   requestCurrentVoiceBlockRender(trackId, blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 // Repeat Alternative
 export function revertRepeatAlternative({
-  trackId, blockId, repeatAlternativeBefore, repeatAlternativePresentBefore,
+  trackId, blockId, repeatAlternativeBefore,
 }: {
-  trackId: number, blockId: number, repeatAlternativeBefore: number,
-  repeatAlternativePresentBefore: boolean,
+  trackId: number, blockId: number, repeatAlternativeBefore?: number,
 }) {
-  Song.measureMeta[blockId].repeatAlternativePresent = repeatAlternativePresentBefore;
-  Song.measureMeta[blockId].repeatAlternative = repeatAlternativeBefore;
+  setOptionalMeta(blockId, 'repeatAlternative', repeatAlternativeBefore);
   requestCurrentVoiceBlockRender(trackId, blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreRepeatAlternative({
-  trackId, blockId, repeatAlternativeAfter, repeatAlternativePresentAfter,
+  trackId, blockId, repeatAlternativeAfter,
 }: {
-  trackId: number, blockId: number, repeatAlternativeAfter: number,
-  repeatAlternativePresentAfter: boolean,
+  trackId: number, blockId: number, repeatAlternativeAfter?: number,
 }) {
-  Song.measureMeta[blockId].repeatAlternativePresent = repeatAlternativePresentAfter;
-  Song.measureMeta[blockId].repeatAlternative = repeatAlternativeAfter;
+  setOptionalMeta(blockId, 'repeatAlternative', repeatAlternativeAfter);
   requestCurrentVoiceBlockRender(trackId, blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 // Repeat Close
 export function revertRepeatClose(
-  infoObj: {trackId: number, blockId: number, repeatClosePresentBefore: boolean,
-    repeatCloseBefore: number},
+  infoObj: {trackId: number, blockId: number, repeatCloseBefore?: number},
 ) {
-  Song.measureMeta[infoObj.blockId].repeatClosePresent = infoObj.repeatClosePresentBefore;
-  Song.measureMeta[infoObj.blockId].repeatClose = infoObj.repeatCloseBefore;
+  setOptionalMeta(infoObj.blockId, 'repeatClose', infoObj.repeatCloseBefore);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 export function restoreRepeatClose(
-  infoObj: {trackId: number, blockId: number, repeatClosePresentAfter: boolean,
-    repeatCloseAfter: number},
+  infoObj: {trackId: number, blockId: number, repeatCloseAfter?: number},
 ) {
-  Song.measureMeta[infoObj.blockId].repeatClosePresent = infoObj.repeatClosePresentAfter;
-  Song.measureMeta[infoObj.blockId].repeatClose = infoObj.repeatCloseAfter;
+  setOptionalMeta(infoObj.blockId, 'repeatClose', infoObj.repeatCloseAfter);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedPos");
 }
 
 // Stroke
+function setOptionalEffect<K extends 'stroke' | 'tremoloBar'>(beat: Beat, key: K, value: BeatEffects[K]) {
+  if (value == null) {
+    delete beat.effects[key];
+  } else {
+    beat.effects[key] = value;
+  }
+}
+
 export function revertStroke(
   infoObj: {trackId: number, blockId: number, voiceId: number, beatId: number,
-    strokePresentBefore: boolean,
-  strokeBefore: Stroke},
+  strokeBefore?: Stroke},
 ) {
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
-  beat.effects.stroke = infoObj.strokeBefore;
-  beat.effects.strokePresent = infoObj.strokePresentBefore;
+  const beat = Song.getBeat(infoObj);
+  setOptionalEffect(beat, 'stroke', infoObj.strokeBefore);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedBeat");
 }
 
 export function restoreStroke(infoObj: {trackId: number, blockId: number, voiceId: number, beatId: number,
-  strokePresentAfter: boolean, strokeAfter: Stroke }) {
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
-  beat.effects.stroke = infoObj.strokeAfter;
-  beat.effects.strokePresent = infoObj.strokePresentAfter;
+  strokeAfter?: Stroke }) {
+  const beat = Song.getBeat(infoObj);
+  setOptionalEffect(beat, 'stroke', infoObj.strokeAfter);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedBeat");
 }
 
 // Artificial
+function setOptionalNoteField<K extends 'artificialStyle' | 'graceObj' | 'bendObj'>(
+  note: Note, key: K, value: Note[K] | undefined,
+) {
+  if (value == null) {
+    delete note[key];
+  } else {
+    note[key] = value;
+  }
+}
+
 export function revertArtificial({
-  trackId, blockId, voiceId, beatId, string, artificialBefore, artificialPresentBefore,
+  trackId, blockId, voiceId, beatId, string, artificialBefore,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-  artificialBefore: string, artificialPresentBefore: boolean,
+  artificialBefore?: string,
 }) {
-  const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+  const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
   if (note != null) {
-    note.artificialStyle = artificialBefore;
-    note.artificialPresent = artificialPresentBefore;
+    setOptionalNoteField(note, 'artificialStyle', artificialBefore);
     requestCurrentVoiceBlockRender(trackId, blockId);
     typedEventBus.emit("menu.activateEffectsForMarkedPos");
   } else {
@@ -521,15 +528,14 @@ export function revertArtificial({
 }
 
 export function restoreArtificial({
-  trackId, blockId, voiceId, beatId, string, artificialAfter, artificialPresentAfter,
+  trackId, blockId, voiceId, beatId, string, artificialAfter,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-  artificialAfter: string, artificialPresentAfter: boolean,
+  artificialAfter?: string,
 }) {
-  const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+  const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
   if (note != null) {
-    note.artificialStyle = artificialAfter;
-    note.artificialPresent = artificialPresentAfter;
+    setOptionalNoteField(note, 'artificialStyle', artificialAfter);
     requestCurrentVoiceBlockRender(trackId, blockId);
     typedEventBus.emit("menu.activateEffectsForMarkedPos");
   } else {
@@ -539,15 +545,14 @@ export function restoreArtificial({
 
 // Grace
 export function revertGrace({
-  trackId, blockId, voiceId, beatId, string, graceBefore, gracePresentBefore,
+  trackId, blockId, voiceId, beatId, string, graceBefore,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-  graceBefore: Grace, gracePresentBefore: boolean,
+  graceBefore?: Grace,
 }) {
-  const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+  const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
   if (note != null) {
-    note.graceObj = graceBefore;
-    note.gracePresent = gracePresentBefore;
+    setOptionalNoteField(note, 'graceObj', graceBefore);
     requestCurrentVoiceBlockRender(trackId, blockId);
     typedEventBus.emit("menu.activateEffectsForMarkedPos");
   } else {
@@ -556,15 +561,14 @@ export function revertGrace({
 }
 
 export function restoreGrace({
-  trackId, blockId, voiceId, beatId, string, graceAfter, gracePresentAfter,
+  trackId, blockId, voiceId, beatId, string, graceAfter,
 }: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-  graceAfter: Grace, gracePresentAfter: boolean,
+  graceAfter?: Grace,
 }) {
-  const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+  const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
   if (note != null) {
-    note.graceObj = graceAfter;
-    note.gracePresent = gracePresentAfter;
+    setOptionalNoteField(note, 'graceObj', graceAfter);
     requestCurrentVoiceBlockRender(trackId, blockId);
     typedEventBus.emit("menu.activateEffectsForMarkedPos");
   } else {
@@ -575,12 +579,11 @@ export function restoreGrace({
 // TremoloBar
 export function revertTremoloBar(
   infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number,
-  tremoloBarBefore: TremoloBar, tremoloBarPresentBefore: boolean,
-  effectsBefore: {string: number, effects: {[s: string]: boolean}}[]},
+  tremoloBarBefore?: TremoloBar,
+  effectsBefore: {string: number, effects: {[s: string]: MenuEffectState}}[]},
 ) {
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
-  beat.effects.tremoloBar = infoObj.tremoloBarBefore;
-  beat.effects.tremoloBarPresent = infoObj.tremoloBarPresentBefore;
+  const beat = Song.getBeat(infoObj);
+  setOptionalEffect(beat, 'tremoloBar', infoObj.tremoloBarBefore);
   for (const { string, effects } of infoObj.effectsBefore) {
     for (const effect in effects) {
       if (Object.prototype.hasOwnProperty.call(effects, effect)) {
@@ -594,13 +597,12 @@ export function revertTremoloBar(
 
 export function restoreTremoloBar(
   infoObj: { trackId: number, blockId: number, voiceId: number, beatId: number
-  tremoloBarAfter: TremoloBar, tremoloBarPresentAfter: boolean,
-  effectsBefore: {string: number, effects: {[s: string]: boolean}}[]},
+  tremoloBarAfter?: TremoloBar,
+  effectsBefore: {string: number, effects: {[s: string]: MenuEffectState}}[]},
 ) {
-  menuHandler.handleEffectGroupCollisionBeat([infoObj], 'tremoloBar', infoObj.tremoloBarPresentAfter);
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
-  beat.effects.tremoloBar = infoObj.tremoloBarAfter;
-  beat.effects.tremoloBarPresent = infoObj.tremoloBarPresentAfter;
+  menuHandler.handleEffectGroupCollisionBeat([infoObj], 'tremoloBar', infoObj.tremoloBarAfter != null);
+  const beat = Song.getBeat(infoObj);
+  setOptionalEffect(beat, 'tremoloBar', infoObj.tremoloBarAfter);
   requestCurrentVoiceBlockRender(infoObj.trackId, infoObj.blockId);
   typedEventBus.emit("menu.activateEffectsForMarkedBeat");
 }
@@ -609,9 +611,9 @@ export function restoreTremoloBar(
 export function revertTremoloPicking(infoObj: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
   tremoloPickingBefore: string, tremoloPickingPresentBefore: boolean,
-  effectsBefore: {[m: string]: boolean}
+  effectsBefore: {[m: string]: MenuEffectState}
 }) {
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+  const beat = Song.getBeat(infoObj);
   const note = beat.notes[infoObj.string];
   if (note != null) {
     note.tremoloPickingLength = infoObj.tremoloPickingBefore;
@@ -636,7 +638,7 @@ export function restoreTremoloPicking(infoObj: {
     trackId, blockId, voiceId, beatId, string, tremoloPickingAfter, tremoloPickingPresentAfter,
   } = infoObj;
   menuHandler.handleEffectGroupCollision([infoObj], 'tremoloPicking', tremoloPickingPresentAfter);
-  const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+  const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
   if (note != null) {
     note.tremoloPickingLength = tremoloPickingAfter;
     note.tremoloPicking = tremoloPickingPresentAfter;
@@ -650,13 +652,12 @@ export function restoreTremoloPicking(infoObj: {
 // Bend
 export function revertBend(infoObj: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-  bendBefore: Bend, bendPresentBefore: boolean, effectsBefore: {[m: string]: boolean}
+  bendBefore?: Bend, effectsBefore: {[m: string]: MenuEffectState}
 }) {
-  const beat = Song.measures[infoObj.trackId][infoObj.blockId][infoObj.voiceId][infoObj.beatId];
+  const beat = Song.getBeat(infoObj);
   const note = beat.notes[infoObj.string];
   if (note != null) {
-    note.bendObj = infoObj.bendBefore;
-    note.bendPresent = infoObj.bendPresentBefore;
+    setOptionalNoteField(note, 'bendObj', infoObj.bendBefore);
     for (const effect in infoObj.effectsBefore) {
       if (Object.prototype.hasOwnProperty.call(infoObj.effectsBefore, effect)) {
         setEffectVariable(beat, note, effect, infoObj.effectsBefore[effect]);
@@ -671,16 +672,16 @@ export function revertBend(infoObj: {
 
 export function restoreBend(infoObj: {
   trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
-  bendAfter: Bend, bendPresentAfter: boolean
+  bendAfter?: Bend
 }) {
   const {
-    trackId, blockId, voiceId, beatId, string, bendAfter, bendPresentAfter,
+    trackId, blockId, voiceId, beatId, string, bendAfter,
   } = infoObj;
-  menuHandler.handleEffectGroupCollision([infoObj], 'bend', bendPresentAfter);
-  const note = Song.measures[trackId][blockId][voiceId][beatId].notes[string];
+  // Switching the bend on also clears the other effects in its group (slide, pull-off).
+  menuHandler.handleEffectGroupCollision([infoObj], 'bend', bendAfter == null);
+  const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
   if (note != null) {
-    note.bendObj = bendAfter;
-    note.bendPresent = bendPresentAfter;
+    setOptionalNoteField(note, 'bendObj', bendAfter);
     requestCurrentVoiceBlockRender(trackId, blockId);
     typedEventBus.emit("menu.activateEffectsForMarkedPos");
   } else {
@@ -722,7 +723,7 @@ export function restoreAddBlock() {
 
 // Remove Block
 export function revertRemoveBlock(
-  info: {blocksBefore: Measure[][][], measureMetaBefore: MeasureMetaInfo},
+  info: {blocksBefore: Beat[][][], measureMetaBefore: MeasureMetaInfo},
 ) {
   for (let i = 0; i < info.blocksBefore.length; i += 1) {
     if (Song.measures[i] != null) {

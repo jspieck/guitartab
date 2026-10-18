@@ -1,4 +1,4 @@
-import Song, { PlayBackInstrument, Measure, Note } from './songData';
+import Song, { PlayBackInstrument, Beat, Note } from './songData';
 import Settings from './settingManager';
 import { modalManager } from './modals/modalManager';
 import { sequencerHandler } from './sequencerHandler';
@@ -6,8 +6,7 @@ import Chorus from './chorus';
 import Freeverb from './freeverb';
 import sf2Parser from './sf2parser';
 
-import { MODALS } from './modals/modalTypes';
-import { MixerModalHandler } from './modals/mixerModalHandler';
+import { CompressorModalHandler } from './modals/compressorModalHandler';
 import { EqualizerModalHandler } from './modals/equalizerModalHandler';
 import {
   generateCurve,
@@ -175,6 +174,30 @@ class AudioEngine {
   //   this.context = new AudioContext();
   // }
 
+  /** Drum pieces (MIDI notes) soloed in the Drum Mixer; when any are, only those play. */
+  drumSolo: Set<number> = new Set();
+
+  isDrumAudible(note: number): boolean {
+    const drumInfo = this.noteToDrum.get(note);
+    if (drumInfo == null) {
+      return true;
+    }
+    if (this.drumSolo.size > 0) {
+      return this.drumSolo.has(note);
+    }
+    return drumInfo[4] !== false;
+  }
+
+  /** Drum piece bus -> the track bus that plays it (connect() is idempotent). */
+  connectDrumBus(drumIndex: number, trackId: number) {
+    const drumBus = this.drumBusses[drumIndex];
+    const trackBus = this.busses[trackId];
+    if (drumBus == null || trackBus == null) {
+      return;
+    }
+    drumBus.volume.connect(trackBus.pan);
+  }
+
   setMasterGain(value: number) {
     this.masterGain.gain.value = value;
   }
@@ -211,8 +234,11 @@ class AudioEngine {
   }
 
   async updateBusses(channels: PlayBackInstrument[]) {
-    // first disconnect everything
+    // first disconnect everything: the old chains stay connected to the master
+    // otherwise, and drum busses wired into them would sound twice
     for (let i = 0; i < this.busses.length; i += 1) {
+      this.busses[i].pan.disconnect();
+      this.busses[i].volume.disconnect();
       this.busses[i].analyser.disconnect();
     }
     // now create new busses
@@ -314,7 +340,8 @@ class AudioEngine {
     limiter.ratio.value = 20.0; // max compression
     limiter.attack.value = 0.005; // 5ms attack
     limiter.release.value = 0.050; // 50ms release
-    limiter.connect(this.context.destination);
+    // user settings from the Compressor panel (defaults match the values above)
+    modalManager.getHandler<CompressorModalHandler>('compressorModal').attach(limiter);
     // this.masterGain
     this.masterGain = this.context.createGain();
     this.masterGain.gain.value = 1.0;
@@ -323,6 +350,8 @@ class AudioEngine {
     this.equalizerHandler = modalManager.getHandler('equalizerModal') as EqualizerModalHandler;
     this.equalizerHandler.setAudioContext(this.context);
     this.equalizerHandler.insertBetween(this.masterGain, limiter);
+    // the analyser passes audio through; connecting the limiter to the destination
+    // directly as well would double the output (+6 dB, clipping past the limiter)
     limiter.connect(this.masterAnalyser);
     this.masterAnalyser.connect(this.context.destination);
     this.masterAnalyser.smoothingTimeConstant = 0.9;
@@ -339,7 +368,7 @@ class AudioEngine {
       const busGain = this.context.createGain();
       // eslint-disable-next-line prefer-destructuring
       busGain.gain.value = drumInfo[2];
-      busGain.connect(this.masterGain);
+      // routed into the playing track's bus on demand (connectDrumBus)
 
       const panNode = this.context.createStereoPanner();
       panNode.pan.value = 0;
@@ -348,7 +377,8 @@ class AudioEngine {
       /* CREATE ANALYSER */
       const analyser = this.context.createAnalyser();
       busGain.connect(analyser);
-      analyser.fftSize = 32;
+      // long enough to hold a whole animation frame, so the Drum Mixer's peak meters don't miss hits
+      analyser.fftSize = 2048;
       this.drumBufferLength = analyser.frequencyBinCount;
 
       this.drumBusses[i] = {
@@ -374,10 +404,11 @@ class AudioEngine {
       averageVolume += x * x;
     }
     averageVolume = Math.sqrt(averageVolume / bufLength) * 0.7;
+    // clear even when silent, otherwise the last bar stays frozen after playback
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
     if (averageVolume !== 0) {
       this.averageVolumeIsNull = false;
       ctx.fillStyle = background;
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       if (horizontal) {
         ctx.fillRect(0, 0, (averageVolume / 120) * canvasWidth, canvasHeight);
       } else {
@@ -400,15 +431,6 @@ class AudioEngine {
           if (canvasContext != null) {
             this.drawVolumeOf(this.busses[i].analyser, this.dataArray, this.bufferLength,
               canvasContext, 90, 30, color, true);
-          }
-        }
-      }
-      if (this.drumDataArray != null) {
-        if (modalManager.isModalOpen('mixerModal')) {
-          for (let i = 0; i < this.drumBusses.length; i += 1) {
-            this.drawVolumeOf(this.drumBusses[i].analyser, this.drumDataArray,
-              this.drumBufferLength, (modalManager.getHandler(MODALS.MIXER.id) as MixerModalHandler).getMixerVolumeContext(i)!,
-              20, 82, 'rgba(6, 54, 122, 0.72)', false);
           }
         }
       }
@@ -438,10 +460,10 @@ class AudioEngine {
     note: number,
     volume: number,
     noteStart: number,
-    beat: Measure,
+    beat: Beat,
   ): GainNode | null {
     const drumInfo = this.noteToDrum.get(note);
-    if (drumInfo == null || drumInfo[4] === false) {
+    if (drumInfo == null || !this.isDrumAudible(note)) {
       return null;
     }
     const source = this.context.createBufferSource();
@@ -454,7 +476,7 @@ class AudioEngine {
     }
     source.buffer = drumsBuffer[drumInfo[1]].buffer;
     const gainNode = this.playSource(trackId, voiceId, source, 0, volume, noteStart,
-      2, 'drums', beat, null, 0, Song.tracks.length + note - 35);
+      2, 'drums', beat, null, 0, note - 35);
     return gainNode;
   }
 
@@ -467,14 +489,20 @@ class AudioEngine {
     duration: number,
     startpoint: number,
     type: string,
-    beat: Measure,
+    beat: Beat,
     noteEffects: Note,
     nextNote: number,
     note: number,
   ): GainNode {
     let fret = fretIn;
     const source = this.context.createBufferSource();
-    if (!noteEffects.dead && !noteEffects.slap && !(noteEffects.palmMute && type === 'guitar') && !noteEffects.artificialPresent) {
+    // Effect samples load separately; until they have (or for instruments without them) the
+    // note plays as a normal one instead of stopping playback.
+    const slapSample = noteEffects.slap ? this.loadedSample('slap') : null;
+    const deadSample = noteEffects.dead ? this.loadedSample('dead') : null;
+    const palmMuteReady = noteEffects.palmMute && type === 'guitar' && this.loadedSample('palmMute') != null;
+    const harmonicSample = noteEffects.artificialStyle != null ? this.loadedSample('naturalHarmonic') : null;
+    if (!slapSample && !deadSample && !palmMuteReady && !harmonicSample) {
       const bufferListLength = this.bufferList[type].length;
       if (string >= bufferListLength) {
         console.log(fret, Song.tracks[trackId].strings[string],
@@ -485,12 +513,12 @@ class AudioEngine {
       } else {
         source.buffer = this.bufferList[type][string].buffer;
       }
-    } else if (noteEffects.slap) {
+    } else if (slapSample) {
       // slap always not pitched
-      source.buffer = this.bufferList.slap[0].buffer;
-    } else if (noteEffects.dead) {
-      source.buffer = this.bufferList.dead[0].buffer;
-    } else if (noteEffects.palmMute && type === 'guitar') {
+      source.buffer = slapSample;
+    } else if (deadSample) {
+      source.buffer = deadSample;
+    } else if (palmMuteReady) {
       const bufferListLength = this.bufferList.palmMute.length;
       if (string >= bufferListLength) {
         fret += Song.tracks[trackId].strings[string]
@@ -499,8 +527,8 @@ class AudioEngine {
       } else {
         source.buffer = this.bufferList.palmMute[string].buffer;
       }
-    } else if (noteEffects.artificialPresent) {
-      source.buffer = this.bufferList.naturalHarmonic[0].buffer;
+    } else if (harmonicSample) {
+      source.buffer = harmonicSample;
     }
     /* if(this.bufferList[type][string].loopStart != null){
             source.loop = true;
@@ -577,7 +605,7 @@ class AudioEngine {
     type: string,
     noteStart: number,
     duration: number,
-    beat: Measure,
+    beat: Beat,
     noteEffects: Note,
     nextNote: number | null,
   ) {
@@ -620,6 +648,11 @@ class AudioEngine {
     // sf2Parser.loadSoundFont("./GeneralMidi/YamahaXGSoundSet.sf2");
   }
 
+  /** The first buffer of an effect sample set, or null while it isn't loaded. */
+  loadedSample(name: string): AudioBuffer | null {
+    return this.bufferList[name]?.[0]?.buffer ?? null;
+  }
+
   playSF2(
     trackId: number,
     voiceId: number,
@@ -628,7 +661,7 @@ class AudioEngine {
     volumeIn: number,
     start: number,
     durationIn: number,
-    beat: Measure,
+    beat: Beat,
     noteEffects: Note | null,
     instr: string,
     nextFretIn: number | null,
@@ -654,7 +687,7 @@ class AudioEngine {
       note += Song.tracks[trackId].strings[string];
     }
     const drumInfo = this.noteToDrum.get(note);
-    if (instrumentId === 9 && drumInfo != null && drumInfo[4] === false) {
+    if (instrumentId === 9 && drumInfo != null && !this.isDrumAudible(note)) {
       return null;
     }
     // console.log(instrumentId, note);
@@ -667,11 +700,13 @@ class AudioEngine {
       duration += 0.5;
     }
 
-    // Extras
-    if (noteEffects != null && noteEffects.slap) {
+    // Extras (effect samples fall back to the plain note while they aren't loaded)
+    const slapSample = noteEffects?.slap ? this.loadedSample('slap') : null;
+    const harmonicSample = noteEffects?.artificialStyle != null ? this.loadedSample('naturalHarmonic') : null;
+    if (slapSample) {
       // slap always not pitched
-      source.buffer = this.bufferList.slap[0].buffer;
-    } else if (noteEffects != null && noteEffects.dead) {
+      source.buffer = slapSample;
+    } else if (noteEffects != null && noteEffects.dead && !noteEffects.slap) {
       // source.buffer = this.bufferList["dead"][0].buffer;
       return null;
       /* }else if(noteEffects.palmMute){
@@ -687,8 +722,8 @@ class AudioEngine {
       }else{
           source.buffer = this.bufferList["palmMute"][string].buffer;
       } */
-    } else if (noteEffects != null && noteEffects.artificialPresent) {
-      source.buffer = this.bufferList.naturalHarmonic[0].buffer;
+    } else if (harmonicSample) {
+      source.buffer = harmonicSample;
     } else {
       if (res == null) {
         console.log('BUFFER ERROR: ', trackId, voiceId, string, fret);
@@ -702,6 +737,10 @@ class AudioEngine {
       source.loopEnd = res.loopEnd;
     }
 
+    // The envelope comes from the SoundFont; without it (not loaded yet) skip the note.
+    if (res == null) {
+      return null;
+    }
     const { volSustain } = res;
     // var volRelease = res.volRelease;
     const volRelease = 0.015;
@@ -733,13 +772,13 @@ class AudioEngine {
     let finalGain = sf2Gain;
     // TODO extra gain node for avoding interference
     if (noteEffects != null) {
-      if (noteEffects.trillPresent) {
+      if (noteEffects.trill != null) {
         const trillGain = this.context.createGain();
         trillGain.gain.setValueAtTime(0, start);
         sf2Gain.connect(trillGain);
         finalGain = trillGain;
         makeTrill(trillGain, duration + volEndTime, start);
-      } else if (noteEffects.bendPresent) { // do not allow bend and vibrato at the same time
+      } else if (noteEffects.bendObj != null) { // do not allow bend and vibrato at the same time
         makeBend(noteEffects.bendObj, source, duration, start, res.playBackRate);
       } else if (noteEffects.slide && nextFret != null) {
         source.playbackRate.setValueAtTime(source.playbackRate.value, start + duration * 0.8);
@@ -757,7 +796,7 @@ class AudioEngine {
         return null;
       }
       finalGain.connect(this.drumBusses[note].pan);
-      this.drumBusses[note].pan.connect(this.busses[trackId].pan);
+      this.connectDrumBus(note, trackId);
     } else {
       console.log('Connect bus', this.busses);
       finalGain.connect(this.busses[trackId].pan);
@@ -798,7 +837,7 @@ class AudioEngine {
 
   static getVolumeOfBeat(
     startVolume: number,
-    beat: Measure,
+    beat: Beat,
   ): number {
     const typeToVolume: {[a: string]: number} = {
       ppp: 0.2, pp: 0.4, p: 0.6, mp: 0.8, mf: 0.9, f: 1.0, ff: 1.2, fff: 1.4,
@@ -812,18 +851,24 @@ class AudioEngine {
     return trimmedValue;
   }
 
+  /**
+   * Metronome click: a short synthesized blip (no samples to load), higher and
+   * louder on the first beat of a bar.
+   */
   playMetronomeNote(startpoint: number, isHigh: boolean) {
-    const source = this.context.createBufferSource();
-    if (isHigh) {
-      source.buffer = this.bufferList.metronome[0].buffer;
-    } else {
-      source.buffer = this.bufferList.metronome[1].buffer;
-    }
+    const start = Math.max(startpoint, this.context.currentTime);
+    const oscillator = this.context.createOscillator();
+    oscillator.type = 'square';
+    oscillator.frequency.value = isHigh ? 1760 : 1320;
     const gainNode = this.context.createGain();
-    gainNode.gain.value = 0.15;
-    source.connect(gainNode);
-    gainNode.connect(this.limiter!);
-    source.start(startpoint, 0, 2);
+    const peak = isHigh ? 0.3 : 0.18;
+    gainNode.gain.setValueAtTime(0.0001, start);
+    gainNode.gain.exponentialRampToValueAtTime(peak, start + 0.002);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, start + 0.05);
+    oscillator.connect(gainNode);
+    gainNode.connect(this.limiter ?? this.context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + 0.06);
   }
 
   playSource(
@@ -835,7 +880,7 @@ class AudioEngine {
     startpoint: number,
     duration: number,
     instr: string,
-    beat: Measure,
+    beat: Beat,
     noteEffects: Note | null,
     nextNote: number,
     note: number,
@@ -859,15 +904,15 @@ class AudioEngine {
       postNode.connect(this.busses[trackId].pan);
     } else if (instr === 'drums') {
       gainNode.connect(this.drumBusses[note].pan);
-      this.drumBusses[note].pan.connect(this.busses[trackId].pan);
+      this.connectDrumBus(note, trackId);
     } else {
       gainNode.connect(this.busses[trackId].pan);
     }
     const isVibrato = (beat.effects != null && beat.effects.vibrato);
     if (noteEffects != null) {
-      if (noteEffects.trillPresent) {
+      if (noteEffects.trill != null) {
         makeTrill(gainNode, duration, startpoint);
-      } else if (noteEffects.bendPresent && !isVibrato) {
+      } else if (noteEffects.bendObj != null && !isVibrato) {
         // do not allow bend and vibrato at the same time
         makeBend(noteEffects.bendObj, source, duration,
           startpoint, source.playbackRate.value);

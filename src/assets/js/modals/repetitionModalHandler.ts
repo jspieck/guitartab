@@ -56,23 +56,17 @@ export class RepetitionModalHandler extends BaseModalHandler {
         if (blockId === undefined || trackId === undefined || voiceId === undefined) return;
 
         const meta = Song.measureMeta[blockId];
-        const repeatClosePresentBefore = meta.repeatClosePresent;
-        
-        if (!repeatClosePresentBefore) {
-            meta.repeatClosePresent = true;
-            typedEventBus.emit("menu.activateEffectsForBlock");
-        }
-        
         const repeatCloseBefore = meta.repeatClose;
         meta.repeatClose = numRepetitions;
+        if (repeatCloseBefore == null) {
+            typedEventBus.emit("menu.activateEffectsForBlock");
+        }
         
         revertHandler.addRepeatClose(
             trackId, 
             blockId, 
             repeatCloseBefore,
-            meta.repeatClose, 
-            repeatClosePresentBefore,
-            meta.repeatClosePresent
+            meta.repeatClose,
         );
         
         requestBlockRender(trackId, blockId, voiceId);

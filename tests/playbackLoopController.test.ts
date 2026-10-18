@@ -91,7 +91,6 @@ describe('playbackLoopController', () => {
 
   it('uses tab repeat jump when no loop is active', () => {
     const measureMeta = [{
-      repeatClosePresent: true,
       repeatClose: 2,
     }, {}, {}]
     const result = resolveNextBlockAfterCurrent(
@@ -114,6 +113,15 @@ describe('playbackLoopController', () => {
     ]
 
     expect(applyRepeatAlternativeSkip(1, 1, measureMeta)).toBe(2)
+  })
+
+  it('plays ordinary bars before an alternative ending instead of jumping to it', () => {
+    // Bars without a volta have no repeatAlternative; they used to default to 0,
+    // which made playback jump straight to the next "1." ending.
+    const measureMeta = [{}, {}, {}, { repeatAlternative: 0b01 }]
+
+    expect(applyRepeatAlternativeSkip(1, 1, measureMeta)).toBe(1)
+    expect(applyRepeatAlternativeSkip(2, 1, measureMeta)).toBe(2)
   })
 
   it('truncates effective block length at the loop end', () => {

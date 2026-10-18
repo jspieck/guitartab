@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hand-written for this project in the GPIF layout Guitar Pro 7 uses (GP6 differences are
+     covered by the parser, not by this file). Two tracks, four bars, one of most effects. -->
+<GPIF version="7">
+  <GPVersion>7.6</GPVersion>
+  <Score>
+    <Title><![CDATA[GPIF Showcase]]></Title>
+    <SubTitle><![CDATA[Fixture]]></SubTitle>
+    <Artist><![CDATA[GuitarTab Tests]]></Artist>
+    <Album><![CDATA[]]></Album>
+    <Words><![CDATA[]]></Words>
+    <Music><![CDATA[Nobody]]></Music>
+    <Copyright><![CDATA[]]></Copyright>
+    <Tabber><![CDATA[Fixture author]]></Tabber>
+    <Instructions><![CDATA[]]></Instructions>
+    <Notices><![CDATA[Line one
+Line two]]></Notices>
+  </Score>
+  <MasterTrack>
+    <Tracks>0 1</Tracks>
+    <Automations>
+      <Automation>
+        <Type>Tempo</Type>
+        <Linear>false</Linear>
+        <Bar>0</Bar>
+        <Position>0</Position>
+        <Visible>true</Visible>
+        <Value>100 2</Value>
+      </Automation>
+      <Automation>
+        <Type>Tempo</Type>
+        <Linear>false</Linear>
+        <Bar>2</Bar>
+        <Position>0</Position>
+        <Visible>true</Visible>
+        <Value>90 3</Value>
+      </Automation>
+    </Automations>
+  </MasterTrack>
+  <Tracks>
+    <Track id="0">
+      <Name><![CDATA[Lead Guitar]]></Name>
+      <ShortName><![CDATA[l.guit.]]></ShortName>
+      <Color>30 120 200</Color>
+      <InstrumentSet>
+        <Name>Electric Guitar</Name>
+        <Type>electricGuitar</Type>
+      </InstrumentSet>
+      <Sounds>
+        <Sound>
+          <Name><![CDATA[Overdrive]]></Name>
+          <MIDI><LSB>0</LSB><MSB>0</MSB><Program>29</Program></MIDI>
+        </Sound>
+      </Sounds>
+      <MidiConnection>
+        <Port>0</Port>
+        <PrimaryChannel>0</PrimaryChannel>
+        <SecondaryChannel>1</SecondaryChannel>
+      </MidiConnection>
+      <Staves>
+        <Staff>
+          <Properties>
+            <Property name="CapoFret"><Fret>2</Fret></Property>
+            <Property name="Tuning"><Pitches>40 45 50 55 59 64</Pitches></Property>
+            <Property name="DiagramCollection">
+              <Items>
+                <Item id="0" name="Am">
+                  <Diagram stringCount="6" fretCount="5" baseFret="0">
+                    <Fret string="1" fret="0"/>
+                    <Fret string="2" fret="2"/>
+                    <Fret string="3" fret="2"/>
+                    <Fret string="4" fret="1"/>
+                    <Fret string="5" fret="0"/>
+                  </Diagram>
+                </Item>
+              </Items>
+            </Property>
+          </Properties>
+        </Staff>
+      </Staves>
+    </Track>
+    <Track id="1">
+      <Name><![CDATA[Drums]]></Name>
+      <Color>200 60 60</Color>
+      <InstrumentSet>
+        <Name>Drums</Name>
+        <Type>drumKit</Type>
+        <Elements>
+          <Element>
+            <Name>Kick</Name>
+            <Articulations>
+              <Articulation><Name>Hit</Name><OutputMidiNumber>36</OutputMidiNumber></Articulation>
+            </Articulations>
+          </Element>
+          <Element>
+            <Name>Snare</Name>
+            <Articulations>
+              <Articulation><Name>Hit</Name><OutputMidiNumber>38</OutputMidiNumber></Articulation>
+              <Articulation><Name>Side Stick</Name><OutputMidiNumber>37</OutputMidiNumber></Articulation>
+            </Articulations>
+          </Element>
+          <Element>
+            <Name>Hi-Hat</Name>
+            <Articulations>
+              <Articulation><Name>Closed</Name><OutputMidiNumber>42</OutputMidiNumber></Articulation>
+            </Articulations>
+          </Element>
+        </Elements>
+      </InstrumentSet>
+      <Sounds>
+        <Sound><Name><![CDATA[Drumkit]]></Name><MIDI><LSB>0</LSB><MSB>0</MSB><Program>0</Program></MIDI></Sound>
+      </Sounds>
+      <MidiConnection>
+        <Port>0</Port>
+        <PrimaryChannel>9</PrimaryChannel>
+        <SecondaryChannel>9</SecondaryChannel>
+      </MidiConnection>
+      <Staves>
+        <Staff><Properties></Properties></Staff>
+      </Staves>
+    </Track>
+  </Tracks>
+  <MasterBars>
+    <MasterBar>
+      <Key><AccidentalCount>0</AccidentalCount><Mode>Major</Mode></Key>
+      <Time>4/4</Time>
+      <Repeat start="true" end="false" count="0"/>
+      <Section><Letter><![CDATA[A]]></Letter><Text><![CDATA[Intro]]></Text></Section>
+      <Bars>0 1</Bars>
+    </MasterBar>
+    <MasterBar>
+      <Key><AccidentalCount>0</AccidentalCount><Mode>Major</Mode></Key>
+      <Time>4/4</Time>
+      <Repeat start="false" end="true" count="3"/>
+      <AlternateEndings>1 2</AlternateEndings>
+      <Bars>2 3</Bars>
+    </MasterBar>
+    <MasterBar>
+      <Key><AccidentalCount>0</AccidentalCount><Mode>Major</Mode></Key>
+      <Time>3/4</Time>
+      <Bars>4 5</Bars>
+    </MasterBar>
+    <MasterBar>
+      <Key><AccidentalCount>0</AccidentalCount><Mode>Major</Mode></Key>
+      <Time>3/4</Time>
+      <Bars>6 7</Bars>
+    </MasterBar>
+  </MasterBars>
+  <Bars>
+    <Bar id="0"><Clef>G2</Clef><Voices>0 -1 -1 -1</Voices></Bar>
+    <Bar id="1"><Clef>Neutral</Clef><Voices>1 -1 -1 -1</Voices></Bar>
+    <Bar id="2"><Clef>G2</Clef><Voices>2 3 -1 -1</Voices></Bar>
+    <Bar id="3"><Clef>Neutral</Clef><Voices>4 -1 -1 -1</Voices></Bar>
+    <Bar id="4"><Clef>G2</Clef><Voices>5 -1 -1 -1</Voices></Bar>
+    <Bar id="5"><Clef>Neutral</Clef><Voices>-1 -1 -1 -1</Voices></Bar>
+    <Bar id="6"><Clef>G2</Clef><Voices>6 -1 -1 -1</Voices></Bar>
+    <Bar id="7"><Clef>Neutral</Clef><Voices>-1 -1 -1 -1</Voices></Bar>
+  </Bars>
+  <Voices>
+    <Voice id="0"><Beats>0 1 2 3 4</Beats></Voice>
+    <Voice id="1"><Beats>5 6 7</Beats></Voice>
+    <Voice id="2"><Beats>8 9 10 11 12 13</Beats></Voice>
+    <Voice id="3"><Beats>14</Beats></Voice>
+    <Voice id="4"><Beats>15</Beats></Voice>
+    <Voice id="5"><Beats>16 17</Beats></Voice>
+    <Voice id="6"><Beats>18</Beats></Voice>
+  </Voices>
+  <Beats>
+    <!-- Bar 1, guitar: chord + text, bend, grace note into a strummed beat, rest -->
+    <Beat id="0"><Dynamic>P</Dynamic><Chord>0</Chord><FreeText><![CDATA[Let it ring]]></FreeText><Rhythm ref="0"/><Notes>0</Notes></Beat>
+    <Beat id="1"><Dynamic>P</Dynamic><Rhythm ref="0"/><Notes>1</Notes></Beat>
+    <Beat id="2"><Dynamic>P</Dynamic><GraceNotes>BeforeBeat</GraceNotes><Rhythm ref="5"/><Notes>2</Notes></Beat>
+    <Beat id="3"><Dynamic>F</Dynamic><Rhythm ref="0"/><Notes>3</Notes>
+      <Properties><Property name="Brush"><Direction>Down</Direction></Property></Properties></Beat>
+    <Beat id="4"><Dynamic>F</Dynamic><Rhythm ref="0"/></Beat>
+    <!-- Bar 1, drums: kick + hi-hat, snare, rest -->
+    <Beat id="5"><Dynamic>MF</Dynamic><Rhythm ref="0"/><Notes>4 5</Notes></Beat>
+    <Beat id="6"><Dynamic>MF</Dynamic><Rhythm ref="0"/><Notes>6</Notes></Beat>
+    <Beat id="7"><Dynamic>MF</Dynamic><Rhythm ref="3"/></Beat>
+    <!-- Bar 2, guitar voice 1: triplet hammer-on run, harmonic, slide, dead note -->
+    <Beat id="8"><Dynamic>F</Dynamic><Rhythm ref="2"/><Notes>7</Notes></Beat>
+    <Beat id="9"><Dynamic>F</Dynamic><Rhythm ref="2"/><Notes>8</Notes></Beat>
+    <Beat id="10"><Dynamic>F</Dynamic><Rhythm ref="2"/><Notes>9</Notes></Beat>
+    <Beat id="11"><Dynamic>F</Dynamic><Rhythm ref="4"/><Notes>10</Notes></Beat>
+    <Beat id="12"><Dynamic>F</Dynamic><Rhythm ref="1"/><Notes>11</Notes></Beat>
+    <Beat id="13"><Dynamic>F</Dynamic><Rhythm ref="0"/><Notes>12</Notes></Beat>
+    <!-- Bar 2, guitar voice 2: one let-ring whole note -->
+    <Beat id="14"><Dynamic>F</Dynamic><Rhythm ref="6"/><Notes>13</Notes></Beat>
+    <!-- Bar 2, drums: whole rest -->
+    <Beat id="15"><Dynamic>MF</Dynamic><Rhythm ref="6"/></Beat>
+    <!-- Bar 3 (3/4), guitar: tied note with whammy and tremolo picking -->
+    <Beat id="16"><Dynamic>F</Dynamic><Tremolo>1/16</Tremolo><Rhythm ref="3"/><Notes>14</Notes>
+      <Properties>
+        <Property name="WhammyBar"><Enable/></Property>
+        <Property name="WhammyBarOriginValue"><Float>0</Float></Property>
+        <Property name="WhammyBarDestinationValue"><Float>-100</Float></Property>
+        <Property name="WhammyBarDestinationOffset"><Float>100</Float></Property>
+      </Properties></Beat>
+    <Beat id="17"><Dynamic>F</Dynamic><Rhythm ref="0"/><Notes>15</Notes></Beat>
+    <!-- Bar 4 (3/4), guitar: trill -->
+    <Beat id="18"><Dynamic>F</Dynamic><Rhythm ref="7"/><Notes>16</Notes></Beat>
+  </Beats>
+  <Notes>
+    <Note id="0"><Properties>
+      <Property name="String"><String>0</String></Property><Property name="Fret"><Fret>3</Fret></Property>
+    </Properties></Note>
+    <Note id="1"><Properties>
+      <Property name="String"><String>3</String></Property><Property name="Fret"><Fret>5</Fret></Property>
+      <Property name="Bended"><Enable/></Property>
+      <Property name="BendOriginValue"><Float>0</Float></Property>
+      <Property name="BendDestinationValue"><Float>100</Float></Property>
+      <Property name="BendDestinationOffset"><Float>50</Float></Property>
+    </Properties></Note>
+    <Note id="2"><Properties>
+      <Property name="String"><String>2</String></Property><Property name="Fret"><Fret>4</Fret></Property>
+    </Properties></Note>
+    <Note id="3"><Properties>
+      <Property name="String"><String>2</String></Property><Property name="Fret"><Fret>5</Fret></Property>
+    </Properties></Note>
+    <Note id="4"><InstrumentArticulation>0</InstrumentArticulation></Note>
+    <Note id="5"><InstrumentArticulation>3</InstrumentArticulation></Note>
+    <Note id="6"><InstrumentArticulation>1</InstrumentArticulation></Note>
+    <Note id="7"><Properties>
+      <Property name="String"><String>4</String></Property><Property name="Fret"><Fret>7</Fret></Property>
+      <Property name="PalmMuted"><Enable/></Property>
+      <Property name="HopoOrigin"><Enable/></Property>
+    </Properties></Note>
+    <Note id="8"><Properties>
+      <Property name="String"><String>4</String></Property><Property name="Fret"><Fret>9</Fret></Property>
+      <Property name="HopoDestination"><Enable/></Property>
+    </Properties></Note>
+    <Note id="9"><Properties>
+      <Property name="String"><String>4</String></Property><Property name="Fret"><Fret>7</Fret></Property>
+    </Properties></Note>
+    <Note id="10"><Vibrato>Slight</Vibrato><Properties>
+      <Property name="String"><String>5</String></Property><Property name="Fret"><Fret>12</Fret></Property>
+      <Property name="HarmonicType"><HType>Natural</HType></Property>
+      <Property name="HarmonicFret"><HFret>12</HFret></Property>
+    </Properties></Note>
+    <Note id="11"><Properties>
+      <Property name="String"><String>1</String></Property><Property name="Fret"><Fret>3</Fret></Property>
+      <Property name="Slide"><Flags>2</Flags></Property>
+    </Properties></Note>
+    <Note id="12"><Properties>
+      <Property name="String"><String>0</String></Property><Property name="Fret"><Fret>0</Fret></Property>
+      <Property name="Muted"><Enable/></Property>
+    </Properties></Note>
+    <Note id="13"><LetRing/><Properties>
+      <Property name="String"><String>0</String></Property><Property name="Fret"><Fret>0</Fret></Property>
+    </Properties></Note>
+    <Note id="14"><Tie origin="true" destination="false"/><Properties>
+      <Property name="String"><String>3</String></Property><Property name="Fret"><Fret>7</Fret></Property>
+    </Properties></Note>
+    <Note id="15"><Tie origin="false" destination="true"/><AntiAccent>Normal</AntiAccent><Accent>8</Accent><Properties>
+      <Property name="String"><String>3</String></Property><Property name="Fret"><Fret>7</Fret></Property>
+    </Properties></Note>
+    <Note id="16"><Accent>4</Accent><Trill>59</Trill><Properties>
+      <Property name="String"><String>2</String></Property><Property name="Fret"><Fret>5</Fret></Property>
+    </Properties></Note>
+  </Notes>
+  <Rhythms>
+    <Rhythm id="0"><NoteValue>Quarter</NoteValue></Rhythm>
+    <Rhythm id="1"><NoteValue>Eighth</NoteValue></Rhythm>
+    <Rhythm id="2"><NoteValue>Eighth</NoteValue><PrimaryTuplet num="3" den="2"/></Rhythm>
+    <Rhythm id="3"><NoteValue>Half</NoteValue></Rhythm>
+    <Rhythm id="4"><NoteValue>Quarter</NoteValue><AugmentationDot count="1"/></Rhythm>
+    <Rhythm id="5"><NoteValue>16th</NoteValue></Rhythm>
+    <Rhythm id="6"><NoteValue>Whole</NoteValue></Rhythm>
+    <Rhythm id="7"><NoteValue>Half</NoteValue><AugmentationDot count="1"/></Rhythm>
+  </Rhythms>
+</GPIF>
