@@ -6,9 +6,7 @@ import { revertHandler } from '../../assets/js/revertHandler'
 import { tab, Tab } from '../../assets/js/tab'
 import { classicalNotation } from './classicalNotationAdapter'
 import type { Beat } from '../../types/tab'
-import {
-  requestDurationRender,
-} from './renderCommands'
+import { requestDurationRender } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
 
 export function toggleBeatDotModifier(
@@ -25,15 +23,7 @@ export function toggleBeatDotModifier(
     if (beat.dotted) {
       beat.dotted = false
     } else if (
-      tab.isNotePlaceable(
-        trackId,
-        blockId,
-        voiceId,
-        beatId,
-        string,
-        previousDuration * 1.5,
-        previousDuration,
-      )
+      tab.isNotePlaceable(trackId, blockId, voiceId, beatId, string, previousDuration * 1.5, previousDuration)
     ) {
       beat.dotted = true
     } else {
@@ -50,15 +40,7 @@ export function toggleBeatDotModifier(
   if (beat.doubleDotted) {
     beat.doubleDotted = false
   } else if (
-    tab.isNotePlaceable(
-      trackId,
-      blockId,
-      voiceId,
-      beatId,
-      string,
-      previousDuration * 1.75,
-      previousDuration,
-    )
+    tab.isNotePlaceable(trackId, blockId, voiceId, beatId, string, previousDuration * 1.75, previousDuration)
   ) {
     beat.doubleDotted = true
   } else {
@@ -86,9 +68,7 @@ export function handleTupletSpecialSelect(
     requestDurationRender(trackId, blockId, voiceId)
     tab.drawTrack(trackId, voiceId, true, null)
     if (duringRestoration === false) {
-      revertHandler.addNoteLengthSpecialSelect(
-        trackId, blockId, voiceId, beatId, string, tupleSel, 'tuplet',
-      )
+      revertHandler.addNoteLengthSpecialSelect(trackId, blockId, voiceId, beatId, string, tupleSel, 'tuplet')
     }
   }
 }
@@ -106,15 +86,7 @@ export function finalizeSpecialDurationChange(
   duringRestoration: boolean,
 ): void {
   if (duringRestoration === false) {
-    revertHandler.addNoteLengthSpecialSelect(
-      trackId,
-      blockId,
-      voiceId,
-      beatId,
-      string,
-      tupleSel,
-      id,
-    )
+    revertHandler.addNoteLengthSpecialSelect(trackId, blockId, voiceId, beatId, string, tupleSel, id)
   }
 
   const newDuration = Duration.getDurationOfNote(beat, true)
@@ -152,9 +124,8 @@ export function setNotesTied(
 ): void {
   for (let blockId = blockIdBegin; blockId <= blockIdEnd; blockId += 1) {
     const firstBeatId = blockId === blockIdBegin ? beatIdStart : 0
-    const lastBeatId = blockId === blockIdEnd
-      ? beatIdEnd
-      : Song.measures[trackId][blockId][voiceId].length - 1
+    const lastBeatId =
+      blockId === blockIdEnd ? beatIdEnd : Song.measures[trackId][blockId][voiceId].length - 1
     for (let beatId = firstBeatId; beatId <= lastBeatId; beatId += 1) {
       const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
       const selectedNote = beat.notes[string]
@@ -191,17 +162,29 @@ export function processTiedButtonPress(
 ): void {
   const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
   let shouldBeTied = false
-  if (beat.notes[string] == null || beat.notes[string]!.tied == null
-    || beat.notes[string]!.tied === false) {
+  if (beat.notes[string] == null || beat.notes[string]!.tied == null || beat.notes[string]!.tied === false) {
     shouldBeTied = true
   }
-  const tiedToNote = Song.getBeat({ trackId, blockId: tiedTarget.blockId, voiceId, beatId: tiedTarget.beatId }).notes[string]
+  const tiedToNote = Song.getBeat({
+    trackId,
+    blockId: tiedTarget.blockId,
+    voiceId,
+    beatId: tiedTarget.beatId,
+  }).notes[string]
   if (tiedToNote != null) {
     tiedToNote.tieBegin = shouldBeTied
     const { fret } = tiedToNote
     setNotesTied(
-      trackId, voiceId, tiedTarget.blockId, blockId, tiedTarget.beatId + 1,
-      beatId, string, fret, shouldBeTied, noteTiedTo,
+      trackId,
+      voiceId,
+      tiedTarget.blockId,
+      blockId,
+      tiedTarget.beatId + 1,
+      beatId,
+      string,
+      fret,
+      shouldBeTied,
+      noteTiedTo,
     )
   }
 
@@ -285,11 +268,7 @@ export function noteLengthSpecialSelect(
     alert('Please set note first.')
     return false
   }
-  const {
-    trackId, blockId, voiceId, beatId, string,
-  } = tab.markedNoteObj
-  processSpecialSelect(
-    trackId, blockId, voiceId, beatId, string, selectedTuplet, id, false, noteTiedTo,
-  )
+  const { trackId, blockId, voiceId, beatId, string } = tab.markedNoteObj
+  processSpecialSelect(trackId, blockId, voiceId, beatId, string, selectedTuplet, id, false, noteTiedTo)
   return true
 }

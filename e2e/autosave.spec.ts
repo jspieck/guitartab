@@ -4,9 +4,20 @@ import { waitForEditorShell } from './helpers'
 const AUTOSAVE_DEBOUNCE_MS = 3000
 
 async function enterNote(page: Page, fret: string): Promise<void> {
-  await page.locator('.tab-row').first().locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+  await page
+    .locator('.tab-row')
+    .first()
+    .locator('.string-click-area')
+    .first()
+    .click({ position: { x: 80, y: 4 } })
   await page.keyboard.press(fret)
-  await expect(page.locator('.tab-row').first().locator('.note-text').filter({ hasText: new RegExp(`^${fret}$`) })).toHaveCount(1)
+  await expect(
+    page
+      .locator('.tab-row')
+      .first()
+      .locator('.note-text')
+      .filter({ hasText: new RegExp(`^${fret}$`) }),
+  ).toHaveCount(1)
 }
 
 /** Close the page the way a user would; returns whether a leave-page prompt appeared. */
@@ -43,7 +54,9 @@ test.describe('autosave and recovery', () => {
     await expect(banner).toContainText('Restore unsaved changes')
     await banner.getByRole('button', { name: 'Restore' }).click()
 
-    await expect(next.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^7$/ })).toHaveCount(1)
+    await expect(
+      next.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^7$/ }),
+    ).toHaveCount(1)
     // The restored work is still not saved to a file.
     expect(await closeAndDetectPrompt(next)).toBe(true)
   })
@@ -61,7 +74,12 @@ test.describe('autosave and recovery', () => {
   test('does not warn or offer recovery when nothing was edited', async ({ page }) => {
     await waitForEditorShell(page)
     // A click gives the page user activation, so a prompt would be allowed to show.
-    await page.locator('.tab-row').first().locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page
+      .locator('.tab-row')
+      .first()
+      .locator('.string-click-area')
+      .first()
+      .click({ position: { x: 80, y: 4 } })
 
     expect(await closeAndDetectPrompt(page)).toBe(false)
     const next = await reopen(page)
@@ -94,12 +112,17 @@ test.describe('autosave and recovery', () => {
     const savedFile = await (await downloadPromise).path()
 
     const next = await reopen(page)
-    await next.locator('input[type="file"][accept*=".gt"]').first().setInputFiles({
-      name: 'saved.gt',
-      mimeType: 'application/octet-stream',
-      buffer: await import('node:fs').then((fs) => fs.readFileSync(savedFile)),
-    })
-    await expect(next.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^9$/ })).toHaveCount(1)
+    await next
+      .locator('input[type="file"][accept*=".gt"]')
+      .first()
+      .setInputFiles({
+        name: 'saved.gt',
+        mimeType: 'application/octet-stream',
+        buffer: await import('node:fs').then((fs) => fs.readFileSync(savedFile)),
+      })
+    await expect(
+      next.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^9$/ }),
+    ).toHaveCount(1)
     await next.waitForTimeout(AUTOSAVE_DEBOUNCE_MS + 500)
 
     expect(await closeAndDetectPrompt(next)).toBe(false)
@@ -122,6 +145,8 @@ test.describe('autosave and recovery', () => {
     await expect(items).toHaveCount(2)
     await items.nth(1).getByRole('button', { name: 'Restore' }).click()
 
-    await expect(page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^8$/ })).toHaveCount(1)
+    await expect(
+      page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^8$/ }),
+    ).toHaveCount(1)
   })
 })

@@ -2,10 +2,7 @@ import Song from '../../assets/js/songData'
 import { revertHandler } from '../../assets/js/revertHandler'
 import { menuHandler } from '../../assets/js/menuHandler'
 import { requestOverBarRender } from './renderCommands'
-import {
-  findMenuEffectGroup,
-  getDynamicValue,
-} from '../menuMutationRouting'
+import { findMenuEffectGroup, getDynamicValue } from '../menuMutationRouting'
 import { MENU_EFFECT_GROUPS } from '../../utils/menuUiState'
 
 export interface DynamicSelectionTarget {
@@ -28,18 +25,14 @@ export function processDynamicSelect(
   const effectGroup = findMenuEffectGroup(id, MENU_EFFECT_GROUPS)
 
   let isVariableSet = true
-  for (const {
-    trackId, blockId, voiceId, beatId,
-  } of arr.notes) {
+  for (const { trackId, blockId, voiceId, beatId } of arr.notes) {
     const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
     if (!beat.dynamicPresent || beat.dynamic !== dynamic) {
       isVariableSet = false
     }
   }
 
-  for (const {
-    trackId, blockId, voiceId, beatId, string,
-  } of arr.notes) {
+  for (const { trackId, blockId, voiceId, beatId, string } of arr.notes) {
     const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
     const note = beat.notes[string]
     beat.dynamic = dynamic

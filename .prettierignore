@@ -1,0 +1,12 @@
+# Not formatted yet: the legacy core keeps its semicolon style and the Vue components their
+# mixed indentation. Remove a line here when that part gets its one-off formatting commit.
+src/assets/
+*.vue
+
+dist/
+coverage/
+test-results/
+playwright-report/
+public/
+package-lock.json
+yarn.lock

@@ -45,12 +45,7 @@ export function createText(
   return textElem
 }
 
-export function createPath(
-  path: string,
-  stroke: string,
-  strokeWidth: string,
-  fill: string,
-): SVGPathElement {
+export function createPath(path: string, stroke: string, strokeWidth: string, fill: string): SVGPathElement {
   const pathElem = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   pathElem.setAttribute('d', path)
   pathElem.setAttribute('stroke', stroke)
@@ -96,11 +91,7 @@ export function drawPoint(
   return group
 }
 
-export function connectPoints(
-  pointA: SVGElement,
-  pointB: SVGElement,
-  svgElem: SVGElement,
-): SVGPathElement {
+export function connectPoints(pointA: SVGElement, pointB: SVGElement, svgElem: SVGElement): SVGPathElement {
   const pathStr = `M${pointA.getAttribute('cx')} ${pointA.getAttribute('cy')}L${pointB.getAttribute('cx')} ${pointB.getAttribute('cy')}`
   const pathEl = createPath(pathStr, '#123e74', '2', 'none')
   pathEl.setAttribute('class', 'pointConnectionLine')

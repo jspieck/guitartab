@@ -1,17 +1,45 @@
 import { describe, expect, it } from 'vitest'
 import type { Beat, MeasureMetaInfo, Note, Track } from '../src/assets/js/songData'
 import {
-  beatDivisions, buildMusicXml, escapeXml, fillerRests, musicXmlFileName, type MusicXmlSource,
+  beatDivisions,
+  buildMusicXml,
+  escapeXml,
+  fillerRests,
+  musicXmlFileName,
+  type MusicXmlSource,
 } from '../src/services/musicXmlExport'
 
 const QUARTER = 6720
 
 function note(fret: number, extra: Partial<Note> = {}): Note {
   return {
-    string: 0, fret, dead: false, height: 0, tied: false, tieBegin: false, tiedTo: { blockId: -1, beatId: -1 },
-    palmMute: false, stacatto: false, tap: false, fadeIn: false, pop: false, slap: false, ghost: false,
-    accentuated: false, heavyAccentuated: false, vibrato: false, tremoloPickingLength: 'e', tremoloPicking: false,
-    pullDown: false, letRing: false, slide: false, velocity: 0, element: 0, octave: 0, tone: 0, ...extra,
+    string: 0,
+    fret,
+    dead: false,
+    height: 0,
+    tied: false,
+    tieBegin: false,
+    tiedTo: { blockId: -1, beatId: -1 },
+    palmMute: false,
+    stacatto: false,
+    tap: false,
+    fadeIn: false,
+    pop: false,
+    slap: false,
+    ghost: false,
+    accentuated: false,
+    heavyAccentuated: false,
+    vibrato: false,
+    tremoloPickingLength: 'e',
+    tremoloPicking: false,
+    pullDown: false,
+    letRing: false,
+    slide: false,
+    velocity: 0,
+    element: 0,
+    octave: 0,
+    tone: 0,
+    ...extra,
   }
 }
 
@@ -21,33 +49,89 @@ function beat(duration: string, notes: Record<number, Note> = {}, extra: Partial
   for (const [string, value] of Object.entries(notes)) list[Number(string)] = value
   const hasNotes = Object.keys(notes).length > 0
   return {
-    duration: hasNotes ? duration : `${duration}r`, notes: list, effects: { vibrato: false, fadeIn: false, tap: false, slap: false, pop: false },
-    dynamic: 'mf', otherNotes: [], tuplet: null, tupletId: 0, dotted: false, doubleDotted: false, dynamicPresent: false,
-    empty: false, keySignature: '', noteIds: [], rhythmId: 0, ...extra,
+    duration: hasNotes ? duration : `${duration}r`,
+    notes: list,
+    effects: { vibrato: false, fadeIn: false, tap: false, slap: false, pop: false },
+    dynamic: 'mf',
+    otherNotes: [],
+    tuplet: null,
+    tupletId: 0,
+    dotted: false,
+    doubleDotted: false,
+    dynamicPresent: false,
+    empty: false,
+    keySignature: '',
+    noteIds: [],
+    rhythmId: 0,
+    ...extra,
   }
 }
 
 function meta(numerator: number, denominator: number, extra: Partial<MeasureMetaInfo> = {}): MeasureMetaInfo {
-  return { numerator, denominator, timeMeterPresent: false, repeatOpen: false, keySignature: 0, automations: [], ...extra }
+  return {
+    numerator,
+    denominator,
+    timeMeterPresent: false,
+    repeatOpen: false,
+    keySignature: 0,
+    automations: [],
+    ...extra,
+  }
 }
 
 function track(name: string, extra: Partial<Track> = {}): Track {
   return {
-    name, numStrings: 6, capo: 0, strings: [40, 45, 50, 55, 59, 64], volume: 127, balance: 63, reverb: 0,
-    color: { red: 0, green: 0, blue: 0 }, channel: { index: 0, effectChannel: 0 }, program: 25, primaryChannel: 0, ...extra,
+    name,
+    numStrings: 6,
+    capo: 0,
+    strings: [40, 45, 50, 55, 59, 64],
+    volume: 127,
+    balance: 63,
+    reverb: 0,
+    color: { red: 0, green: 0, blue: 0 },
+    channel: { index: 0, effectChannel: 0 },
+    program: 25,
+    primaryChannel: 0,
+    ...extra,
   }
 }
 
 const description = {
-  title: 'Test & <Song>', subtitle: '', artist: 'Someone', album: '', author: 'Me', music: '', copyright: '',
-  writer: '', instructions: '', comments: [], wordsAndMusic: '',
+  title: 'Test & <Song>',
+  subtitle: '',
+  artist: 'Someone',
+  album: '',
+  author: 'Me',
+  music: '',
+  copyright: '',
+  writer: '',
+  instructions: '',
+  comments: [],
+  wordsAndMusic: '',
 }
 
 function source(): MusicXmlSource {
   const guitar = [
     [
       [
-        beat('q', { 0: note(3, { pullDown: true }) }, { dynamicPresent: true, dynamic: 'f', text: 'Riff', chord: { name: 'G', capo: 0, frets: [], chordType: '', chordRoot: '', fingers: [], display: true } }),
+        beat(
+          'q',
+          { 0: note(3, { pullDown: true }) },
+          {
+            dynamicPresent: true,
+            dynamic: 'f',
+            text: 'Riff',
+            chord: {
+              name: 'G',
+              capo: 0,
+              frets: [],
+              chordType: '',
+              chordRoot: '',
+              fingers: [],
+              display: true,
+            },
+          },
+        ),
         beat('q', { 0: note(5) }),
         beat('e', { 3: note(2) }, { tuplet: 3 }),
         beat('e', { 3: note(4) }, { tuplet: 3 }),
@@ -58,7 +142,17 @@ function source(): MusicXmlSource {
     ],
     [
       [beat('h', { 5: note(7, { tied: true }), 4: note(5, { dead: true }) }, { dotted: true })],
-      [beat('q', { 1: note(2) }), beat('h', { 2: note(2, { bendObj: [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 60, bendValue: 100, vibrato: 0 }] }) })],
+      [
+        beat('q', { 1: note(2) }),
+        beat('h', {
+          2: note(2, {
+            bendObj: [
+              { bendPosition: 0, bendValue: 0, vibrato: 0 },
+              { bendPosition: 60, bendValue: 100, vibrato: 0 },
+            ],
+          }),
+        }),
+      ],
     ],
   ]
   const drums = [
@@ -67,9 +161,16 @@ function source(): MusicXmlSource {
   ]
   return {
     description,
-    tracks: [track('Guitar'), track('Drums', { strings: [0, 0, 0, 0, 0, 0], channel: { index: 9, effectChannel: 9 } })],
+    tracks: [
+      track('Guitar'),
+      track('Drums', { strings: [0, 0, 0, 0, 0, 0], channel: { index: 9, effectChannel: 9 } }),
+    ],
     measureMeta: [
-      meta(4, 4, { bpm: 120, repeatOpen: true, marker: { text: 'Intro', color: { red: 0, green: 0, blue: 0 } } }),
+      meta(4, 4, {
+        bpm: 120,
+        repeatOpen: true,
+        marker: { text: 'Intro', color: { red: 0, green: 0, blue: 0 } },
+      }),
       meta(3, 4, { repeatClose: 1, repeatAlternative: 1 }),
     ],
     measures: [guitar, drums],
@@ -78,15 +179,17 @@ function source(): MusicXmlSource {
 
 /** Sums `<duration>` per voice in each measure of each part, skipping chord notes and graces. */
 function voiceTotals(xml: string): number[][][] {
-  return [...xml.matchAll(/<part id="[^"]+">(.*?)<\/part>/gs)].map(([, part]) => [...part.matchAll(/<measure[^>]*>(.*?)<\/measure>/gs)].map(([, measure]) => {
-    const totals = new Map<number, number>()
-    for (const [, body] of measure.matchAll(/<note>(.*?)<\/note>/gs)) {
-      if (body.includes('<chord/>') || body.includes('<grace')) continue
-      const voice = Number(/<voice>(\d+)<\/voice>/.exec(body)![1])
-      totals.set(voice, (totals.get(voice) ?? 0) + Number(/<duration>(\d+)<\/duration>/.exec(body)![1]))
-    }
-    return [...totals.keys()].sort().map((voice) => totals.get(voice)!)
-  }))
+  return [...xml.matchAll(/<part id="[^"]+">(.*?)<\/part>/gs)].map(([, part]) =>
+    [...part.matchAll(/<measure[^>]*>(.*?)<\/measure>/gs)].map(([, measure]) => {
+      const totals = new Map<number, number>()
+      for (const [, body] of measure.matchAll(/<note>(.*?)<\/note>/gs)) {
+        if (body.includes('<chord/>') || body.includes('<grace')) continue
+        const voice = Number(/<voice>(\d+)<\/voice>/.exec(body)![1])
+        totals.set(voice, (totals.get(voice) ?? 0) + Number(/<duration>(\d+)<\/duration>/.exec(body)![1]))
+      }
+      return [...totals.keys()].sort().map((voice) => totals.get(voice)!)
+    }),
+  )
 }
 
 describe('MusicXML export', () => {
@@ -112,8 +215,8 @@ describe('MusicXML export', () => {
     short.measures[0][0][0].pop() // the bar now holds 3 quarters of 4
     expect(voiceTotals(buildMusicXml(short))[0][0]).toEqual([QUARTER * 4])
     expect(fillerRests(QUARTER * 1.5, 1)).toBe(
-      `<note><rest/><duration>${QUARTER}</duration><voice>1</voice><type>quarter</type></note>`
-      + `<note><rest/><duration>${QUARTER / 2}</duration><voice>1</voice><type>eighth</type></note>`,
+      `<note><rest/><duration>${QUARTER}</duration><voice>1</voice><type>quarter</type></note>` +
+        `<note><rest/><duration>${QUARTER / 2}</duration><voice>1</voice><type>eighth</type></note>`,
     )
   })
 
@@ -125,7 +228,9 @@ describe('MusicXML export', () => {
     // High E string, fret 7 = B4
     expect(xml).toContain('<pitch><step>B</step><octave>4</octave></pitch>')
     expect(xml).toContain('<string>1</string><fret>7</fret>')
-    expect(xml).toContain('<staff-tuning line="1"><tuning-step>E</tuning-step><tuning-octave>2</tuning-octave></staff-tuning>')
+    expect(xml).toContain(
+      '<staff-tuning line="1"><tuning-step>E</tuning-step><tuning-octave>2</tuning-octave></staff-tuning>',
+    )
   })
 
   it('pairs ties, hammer-ons and tuplets', () => {
@@ -151,7 +256,9 @@ describe('MusicXML export', () => {
     expect(xml).toContain('<words>Riff</words>')
     expect(xml).toContain('<time><beats>3</beats><beat-type>4</beat-type></time>')
     // Drum notes are unpitched, placed by their General MIDI note, on channel 10.
-    expect(xml).toContain('<unpitched><display-step>C</display-step><display-octave>2</display-octave></unpitched>')
+    expect(xml).toContain(
+      '<unpitched><display-step>C</display-step><display-octave>2</display-octave></unpitched>',
+    )
     expect(xml).toContain('<midi-channel>10</midi-channel>')
     // Tempo and rehearsal marks appear once, not per part.
     expect(xml.match(/<rehearsal>/g)).toHaveLength(1)

@@ -37,7 +37,8 @@ export function useOverlaySelection(options: UseOverlaySelectionOptions) {
     }
 
     const range = normalizeOverlayRange(start, end)
-    const beatCountInEndBlock = Song.measures[options.trackId]?.[range.blockIdEnd]?.[options.voiceId]?.length ?? 0
+    const beatCountInEndBlock =
+      Song.measures[options.trackId]?.[range.blockIdEnd]?.[options.voiceId]?.length ?? 0
 
     return computeOverlayRectForRow(
       options.trackId,

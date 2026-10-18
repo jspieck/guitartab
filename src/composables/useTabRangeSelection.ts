@@ -1,10 +1,7 @@
 import { ref, unref, type Ref } from 'vue'
 import { overlayHandler } from '../assets/js/overlayHandler'
 import type { RenderedTabRow, TabSelectionData } from '../types/tab'
-import {
-  resolveTabPointerPosition,
-  TAB_CONSTANTS,
-} from '../utils/tabLayout'
+import { resolveTabPointerPosition, TAB_CONSTANTS } from '../utils/tabLayout'
 import { usePlaybackEngine } from './usePlaybackEngine'
 
 const DRAG_THRESHOLD_PX = 8
@@ -82,13 +79,7 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
       return
     }
 
-    overlayHandler.selectionMove(
-      event,
-      options.trackId,
-      current.blockId,
-      options.voiceId,
-      current.beatIndex,
-    )
+    overlayHandler.selectionMove(event, options.trackId, current.blockId, options.voiceId, current.beatIndex)
   }
 
   function handleWindowMouseUp(event: MouseEvent): void {
@@ -119,7 +110,12 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
       })
       // A click while the song plays moves playback there.
       if (playbackEngine.getPlayingState()) {
-        void playbackEngine.jumpToBeat(options.trackId, pointerStart.blockId, options.voiceId, pointerStart.beatIndex)
+        void playbackEngine.jumpToBeat(
+          options.trackId,
+          pointerStart.blockId,
+          options.voiceId,
+          pointerStart.beatIndex,
+        )
       }
     }
 

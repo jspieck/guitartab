@@ -1,6 +1,14 @@
 import Song, {
-  type Beat, type Bend, type Chord, type Grace, type MeasureMetaInfo, type Note, type SongDescription,
-  type Stroke, type Track, type TremoloBar,
+  type Beat,
+  type Bend,
+  type Chord,
+  type Grace,
+  type MeasureMetaInfo,
+  type Note,
+  type SongDescription,
+  type Stroke,
+  type Track,
+  type TremoloBar,
 } from '../assets/js/songData'
 import { IMPORT_LIMITS, ImportError } from './importErrors'
 import { assignDrumLines } from '../utils/drumLines'
@@ -22,19 +30,47 @@ const CURVE_POSITION_SCALE = 0.6
 const CURVE_END = 60
 
 const NOTE_VALUES: Record<string, string> = {
-  Long: 'w', DoubleWhole: 'w', Whole: 'w', Half: 'h', Quarter: 'q', Eighth: 'e',
-  '16th': 's', '32nd': 't', '64th': 'z', '128th': 'o', '256th': '2',
+  Long: 'w',
+  DoubleWhole: 'w',
+  Whole: 'w',
+  Half: 'h',
+  Quarter: 'q',
+  Eighth: 'e',
+  '16th': 's',
+  '32nd': 't',
+  '64th': 'z',
+  '128th': 'o',
+  '256th': '2',
 }
 const HARMONICS: Record<string, string> = {
-  Natural: 'N.H.', Artificial: 'A.H.', Pinch: 'P.H.', Tap: 'T.H.', Semi: 'S.H.', Feedback: 'N.H.',
+  Natural: 'N.H.',
+  Artificial: 'A.H.',
+  Pinch: 'P.H.',
+  Tap: 'T.H.',
+  Semi: 'S.H.',
+  Feedback: 'N.H.',
 }
 const TREMOLO_PICKING: Record<string, string> = { '1/8': 'e', '1/16': 's', '1/32': 't' }
 // Tempo automations name the beat unit: 1 = eighth, 2 = quarter, 3 = dotted quarter, 4 = half, 5 = dotted half.
 const TEMPO_UNIT_TO_QUARTERS = [1, 0.5, 1, 1.5, 2, 3]
 // GP6 drum notes name a kit element (and variation) instead of a MIDI note.
 export const GP6_DRUM_ELEMENTS: Record<number, number[]> = {
-  0: [36], 1: [38], 2: [37], 3: [56], 4: [54], 5: [39], 6: [43], 7: [45], 8: [47],
-  9: [48], 10: [42, 44, 46], 11: [49], 12: [49], 13: [51, 53], 14: [57], 15: [52],
+  0: [36],
+  1: [38],
+  2: [37],
+  3: [56],
+  4: [54],
+  5: [39],
+  6: [43],
+  7: [45],
+  8: [47],
+  9: [48],
+  10: [42, 44, 46],
+  11: [49],
+  12: [49],
+  13: [51, 53],
+  14: [57],
+  15: [52],
 }
 
 export interface GpifSong {
@@ -46,7 +82,11 @@ export interface GpifSong {
   measures: Beat[][][][]
 }
 
-interface Rhythm { duration: string, dots: number, tuplet: number | null }
+interface Rhythm {
+  duration: string
+  dots: number
+  tuplet: number | null
+}
 
 interface GpifNote {
   note: Note
@@ -118,7 +158,10 @@ function float(value: string | null | undefined): number | null {
 }
 
 function idList(value: string | null): string[] {
-  return (value ?? '').trim().split(/\s+/).filter((id) => id !== '')
+  return (value ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter((id) => id !== '')
 }
 
 /** `<Properties><Property name="X">…</Property></Properties>` as a name → element map. */
@@ -173,7 +216,8 @@ function readChords(props: Map<string, Element>, stringCount: number): Map<strin
       const frets = new Array(count).fill(-1)
       for (const fret of childElements(diagram, 'Fret')) {
         const string = int(fret.getAttribute('string'), -1)
-        if (string >= 0 && string < count) frets[count - 1 - string] = int(fret.getAttribute('fret'), 0) + baseFret
+        if (string >= 0 && string < count)
+          frets[count - 1 - string] = int(fret.getAttribute('fret'), 0) + baseFret
       }
       chords.set(id, {
         ...Song.defaultChord(),
@@ -197,16 +241,23 @@ function readStaves(trackNode: Element): Staff[] {
   const trackProps = properties(trackNode)
   const name = text(trackNode, 'Name') || text(trackNode, 'ShortName') || 'Track'
   const rgb = idList(text(trackNode, 'Color')).map((value) => int(value, 0))
-  const color = rgb.length === 3 ? { red: rgb[0], green: rgb[1], blue: rgb[2] } : { red: 220, green: 60, blue: 60 }
+  const color =
+    rgb.length === 3 ? { red: rgb[0], green: rgb[1], blue: rgb[2] } : { red: 220, green: 60, blue: 60 }
 
   // GP6 keeps sound settings in <GeneralMidi>; GP7 splits them into <Sounds> and <MidiConnection>.
   const generalMidi = child(trackNode, 'GeneralMidi')
   const sound = child(child(trackNode, 'Sounds'), 'Sound')
   const program = int(text(generalMidi, 'Program') ?? text(child(sound, 'MIDI'), 'Program'), 0)
-  let channel = int(text(generalMidi, 'PrimaryChannel') ?? text(child(trackNode, 'MidiConnection'), 'PrimaryChannel'), 0)
+  let channel = int(
+    text(generalMidi, 'PrimaryChannel') ?? text(child(trackNode, 'MidiConnection'), 'PrimaryChannel'),
+    0,
+  )
   const instrumentSet = child(trackNode, 'InstrumentSet')
   const instrumentRef = child(trackNode, 'Instrument')?.getAttribute('ref') ?? ''
-  const isDrums = channel === DRUM_CHANNEL || text(instrumentSet, 'Type') === 'drumKit' || instrumentRef.startsWith('drumkit')
+  const isDrums =
+    channel === DRUM_CHANNEL ||
+    text(instrumentSet, 'Type') === 'drumKit' ||
+    instrumentRef.startsWith('drumkit')
   if (isDrums) channel = DRUM_CHANNEL
 
   const drumArticulations: number[] = []
@@ -218,15 +269,20 @@ function readStaves(trackNode: Element): Staff[] {
 
   const staffNodes = childElements(child(trackNode, 'Staves'), 'Staff')
   // GP6 has no <Staves>; its grand-staff instruments ("…-gs") use two bars per master bar.
-  const staffProps = staffNodes.length > 0
-    ? staffNodes.map((staff) => properties(staff))
-    : (instrumentRef.endsWith('-gs') ? [trackProps, trackProps] : [trackProps])
+  const staffProps =
+    staffNodes.length > 0
+      ? staffNodes.map((staff) => properties(staff))
+      : instrumentRef.endsWith('-gs')
+        ? [trackProps, trackProps]
+        : [trackProps]
 
   return staffProps.map((props, index) => {
-    const tuning = readTuning(props) ?? readTuning(trackProps) ?? (isDrums ? new Array(6).fill(0) : GUITAR_TUNING)
+    const tuning =
+      readTuning(props) ?? readTuning(trackProps) ?? (isDrums ? new Array(6).fill(0) : GUITAR_TUNING)
     const capo = int(text(props.get('CapoFret') ?? trackProps.get('CapoFret'), 'Fret'), 0)
     const chords = readChords(props, tuning.length)
-    for (const [id, chord] of readChords(trackProps, tuning.length)) if (!chords.has(id)) chords.set(id, chord)
+    for (const [id, chord] of readChords(trackProps, tuning.length))
+      if (!chords.has(id)) chords.set(id, chord)
     return {
       name: staffProps.length > 1 ? `${name} ${index + 1}` : name,
       tuning: [...tuning],
@@ -260,7 +316,7 @@ function toTrack(staff: Staff): Track {
 // ---------------------------------------------------------------------------
 // Bars and tempo
 
-function readMasterBars(gpif: Element): { meta: MeasureMetaInfo[], barIds: string[][] } {
+function readMasterBars(gpif: Element): { meta: MeasureMetaInfo[]; barIds: string[][] } {
   const nodes = childElements(child(gpif, 'MasterBars'), 'MasterBar')
   if (nodes.length > IMPORT_LIMITS.measures) {
     throw new ImportError(`The song is longer than ${IMPORT_LIMITS.measures} bars.`, 'gp')
@@ -273,8 +329,8 @@ function readMasterBars(gpif: Element): { meta: MeasureMetaInfo[], barIds: strin
     const bar = Song.defaultMeasureMeta()
     bar.numerator = numerator > 0 && numerator <= 32 ? numerator : 4
     bar.denominator = [1, 2, 4, 8, 16, 32].includes(denominator) ? denominator : 4
-    bar.timeMeterPresent = previous == null
-      || previous.numerator !== bar.numerator || previous.denominator !== bar.denominator
+    bar.timeMeterPresent =
+      previous == null || previous.numerator !== bar.numerator || previous.denominator !== bar.denominator
     bar.keySignature = int(text(child(node, 'Key'), 'AccidentalCount'), 0)
 
     const repeat = child(node, 'Repeat')
@@ -283,8 +339,11 @@ function readMasterBars(gpif: Element): { meta: MeasureMetaInfo[], barIds: strin
       // GPIF counts plays; the app counts repeats.
       bar.repeatClose = Math.max(1, int(repeat.getAttribute('count'), 2) - 1)
     }
-    const endings = idList(text(node, 'AlternateEndings')).map((value) => int(value, 0)).filter((pass) => pass >= 1 && pass <= 8)
-    if (endings.length > 0) bar.repeatAlternative = endings.reduce((mask, pass) => mask | (1 << (pass - 1)), 0)
+    const endings = idList(text(node, 'AlternateEndings'))
+      .map((value) => int(value, 0))
+      .filter((pass) => pass >= 1 && pass <= 8)
+    if (endings.length > 0)
+      bar.repeatAlternative = endings.reduce((mask, pass) => mask | (1 << (pass - 1)), 0)
 
     const section = child(node, 'Section')
     const sectionText = text(section, 'Text') || text(section, 'Letter')
@@ -337,7 +396,7 @@ function readCurve(
   props: Map<string, Element>,
   prefix: string,
   scale: (value: number) => number,
-): { position: number, value: number }[] {
+): { position: number; value: number }[] {
   const value = (name: string) => float(text(props.get(`${prefix}${name}`), 'Float'))
   const offset = (name: string, fallback: number) => {
     const raw = value(name)
@@ -362,7 +421,11 @@ function readCurve(
 
 function readBeat(node: Element, rhythms: Map<string, Rhythm>): GpifBeat {
   const props = properties(node)
-  const rhythm = rhythms.get(child(node, 'Rhythm')?.getAttribute('ref') ?? '') ?? { duration: 'q', dots: 0, tuplet: null }
+  const rhythm = rhythms.get(child(node, 'Rhythm')?.getAttribute('ref') ?? '') ?? {
+    duration: 'q',
+    dots: 0,
+    tuplet: null,
+  }
   const graceText = text(node, 'GraceNotes')
   const direction = text(props.get('Brush'), 'Direction')
   const whammy = props.get('WhammyBar') != null && child(props.get('WhammyBar'), 'Enable') != null
@@ -370,19 +433,21 @@ function readBeat(node: Element, rhythms: Map<string, Rhythm>): GpifBeat {
     rhythm,
     noteIds: idList(text(node, 'Notes')),
     dynamic: text(node, 'Dynamic')?.toLowerCase() ?? null,
-    grace: graceText == null ? null : (graceText === 'OnBeat' ? 'with' : 'before'),
+    grace: graceText == null ? null : graceText === 'OnBeat' ? 'with' : 'before',
     chordId: text(node, 'Chord'),
     text: text(node, 'FreeText'),
     tremoloPicking: TREMOLO_PICKING[text(node, 'Tremolo') ?? ''] ?? null,
     fadeIn: text(node, 'Fadding') === 'FadeIn',
     slap: child(props.get('Slapped'), 'Enable') != null,
     pop: child(props.get('Popped'), 'Enable') != null,
-    stroke: direction === 'Up' || direction === 'Down'
-      ? { strokeType: direction === 'Up' ? 'up' : 'down', strokeLength: 16 }
-      : null,
+    stroke:
+      direction === 'Up' || direction === 'Down'
+        ? { strokeType: direction === 'Up' ? 'up' : 'down', strokeLength: 16 }
+        : null,
     tremoloBar: whammy
-      ? readCurve(props, 'WhammyBar', (value) => Math.max(-800, Math.min(400, Math.round(value))))
-        .map((point) => ({ ...point, vibrato: 0 }))
+      ? readCurve(props, 'WhammyBar', (value) => Math.max(-800, Math.min(400, Math.round(value)))).map(
+          (point) => ({ ...point, vibrato: 0 }),
+        )
       : null,
   }
 }
@@ -398,7 +463,9 @@ function concertPitch(props: Map<string, Element>): number | null {
     const steps: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
     const accidentals: Record<string, number> = { '#': 1, '##': 2, b: -1, bb: -2 }
     const base = steps[text(pitch, 'Step') ?? ''] ?? 0
-    return (int(text(pitch, 'Octave'), 4) + 1) * 12 + base + (accidentals[text(pitch, 'Accidental') ?? ''] ?? 0)
+    return (
+      (int(text(pitch, 'Octave'), 4) + 1) * 12 + base + (accidentals[text(pitch, 'Accidental') ?? ''] ?? 0)
+    )
   }
   return null
 }
@@ -430,8 +497,11 @@ function readNote(node: Element): GpifNote {
   if (harmonic) note.artificialStyle = harmonic
   if (enabled('Bended')) {
     // GPIF bend values are the same scale as GP3–5: 100 = one whole tone.
-    const bend: Bend = readCurve(props, 'Bend', (value) => Math.round(value))
-      .map((point) => ({ bendPosition: point.position, bendValue: point.value, vibrato: 0 }))
+    const bend: Bend = readCurve(props, 'Bend', (value) => Math.round(value)).map((point) => ({
+      bendPosition: point.position,
+      bendValue: point.value,
+      vibrato: 0,
+    }))
     note.bendObj = bend
   }
   const trill = text(node, 'Trill')
@@ -455,7 +525,10 @@ function readNote(node: Element): GpifNote {
 // ---------------------------------------------------------------------------
 // Assembling beats per staff
 
-function durationOf(rhythm: Rhythm, hasNotes: boolean): Pick<Beat, 'duration' | 'dotted' | 'doubleDotted' | 'tuplet'> {
+function durationOf(
+  rhythm: Rhythm,
+  hasNotes: boolean,
+): Pick<Beat, 'duration' | 'dotted' | 'doubleDotted' | 'tuplet'> {
   return {
     duration: hasNotes ? rhythm.duration : `${rhythm.duration}r`,
     dotted: rhythm.dots === 1,
@@ -474,7 +547,8 @@ interface BuildContext {
 
 /** Drums store the MIDI note as the fret. */
 function drumMidi(gpNote: GpifNote, staff: Staff): number {
-  const fromArticulation = gpNote.drumArticulation != null ? staff.drumArticulations[gpNote.drumArticulation] : undefined
+  const fromArticulation =
+    gpNote.drumArticulation != null ? staff.drumArticulations[gpNote.drumArticulation] : undefined
   return fromArticulation ?? gpNote.pitch ?? gpNote.note.fret
 }
 
@@ -482,7 +556,11 @@ function drumMidi(gpNote: GpifNote, staff: Staff): number {
  * Notes given only as pitches (piano, keyboard): highest first, each on the free string
  * with the lowest playable fret. What doesn't fit is dropped from the tab.
  */
-function placePitches(unplaced: { note: Note, pitch: number }[], placed: (Note | null)[], staff: Staff): void {
+function placePitches(
+  unplaced: { note: Note; pitch: number }[],
+  placed: (Note | null)[],
+  staff: Staff,
+): void {
   const fretOn = (pitch: number, string: number) => pitch - staff.capo - staff.tuning[string]
   for (const { note, pitch } of [...unplaced].sort((a, b) => b.pitch - a.pitch)) {
     let best = -1
@@ -498,7 +576,7 @@ function placePitches(unplaced: { note: Note, pitch: number }[], placed: (Note |
 function placeNotes(gpBeat: GpifBeat, context: BuildContext): (Note | null)[] {
   const { staff } = context
   const placed: (Note | null)[] = new Array(staff.tuning.length).fill(null)
-  const unplaced: { note: Note, pitch: number }[] = []
+  const unplaced: { note: Note; pitch: number }[] = []
   const drums: Note[] = []
   for (const id of gpBeat.noteIds) {
     const gpNote = context.notes.get(id)
@@ -519,7 +597,10 @@ function placeNotes(gpBeat: GpifBeat, context: BuildContext): (Note | null)[] {
     }
   }
   // Each drum on its own line (kick at the bottom, cymbals on top), as the demo song lays them out.
-  assignDrumLines(drums.map((note) => note.fret), placed.length).forEach((line, i) => {
+  assignDrumLines(
+    drums.map((note) => note.fret),
+    placed.length,
+  ).forEach((line, i) => {
     if (line >= 0) placed[line] = { ...drums[i], string: line }
   })
   placePitches(unplaced, placed, staff)
@@ -544,7 +625,7 @@ function buildVoice(beatIds: string[], voiceIndex: number, context: BuildContext
     throw new ImportError(`A bar has more than ${IMPORT_LIMITS.beatsPerVoice} beats.`, 'gp')
   }
   const out: Beat[] = []
-  let pendingGrace: { notes: (Note | null)[], duration: string, setOnBeat: string } | null = null
+  let pendingGrace: { notes: (Note | null)[]; duration: string; setOnBeat: string } | null = null
   for (const id of beatIds) {
     const gpBeat = context.beats.get(id)
     if (gpBeat == null) continue
@@ -560,7 +641,8 @@ function buildVoice(beatIds: string[], voiceIndex: number, context: BuildContext
     if (pendingGrace) {
       pendingGrace.notes.forEach((grace, string) => {
         const target = notes[string]
-        if (grace != null && target != null) target.graceObj = graceFrom(grace, pendingGrace!.duration, pendingGrace!.setOnBeat)
+        if (grace != null && target != null)
+          target.graceObj = graceFrom(grace, pendingGrace!.duration, pendingGrace!.setOnBeat)
       })
       pendingGrace = null
     }
@@ -606,7 +688,8 @@ export function parseGpif(xml: string, format: string): GpifSong {
   const trackNodes = childElements(child(gpif, 'Tracks'), 'Track')
   const staves = trackNodes.flatMap(readStaves)
   if (staves.length === 0) throw new ImportError('The file contains no tracks.', format)
-  if (staves.length > IMPORT_LIMITS.tracks) throw new ImportError(`Too many tracks (${staves.length}).`, format)
+  if (staves.length > IMPORT_LIMITS.tracks)
+    throw new ImportError(`Too many tracks (${staves.length}).`, format)
 
   const { meta, barIds } = readMasterBars(gpif)
   if (meta.length === 0) throw new ImportError('The file contains no bars.', format)
@@ -641,7 +724,9 @@ export function parseGpif(xml: string, format: string): GpifSong {
     bpm,
     measureMeta: meta,
     tracks: staves.map(toTrack),
-    chords: staves.map((staff) => new Map([...staff.chordsById.values()].map((chord) => [chord.name, chord]))),
+    chords: staves.map(
+      (staff) => new Map([...staff.chordsById.values()].map((chord) => [chord.name, chord])),
+    ),
     measures,
   }
 }

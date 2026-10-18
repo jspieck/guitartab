@@ -1,5 +1,11 @@
 import Song, {
-  type Beat, type BeatEffects, type Chord, type Grace, type MeasureMetaInfo, type Note, type Track,
+  type Beat,
+  type BeatEffects,
+  type Chord,
+  type Grace,
+  type MeasureMetaInfo,
+  type Note,
+  type Track,
 } from '../assets/js/songData'
 import type { GpifSong } from '../services/gpifImport'
 import { drumLine } from '../utils/drumLines'
@@ -38,12 +44,18 @@ function beat(duration: string, stringCount: number, notes: NoteSpec[], extra: P
   Object.assign(beatData, extra)
   // Every beat gets its own effects object, so editing one stroke doesn't change the others.
   const stroke = extra.effects?.stroke
-  beatData.effects = { ...Song.defaultMeasureEffects(), ...extra.effects, ...(stroke ? { stroke: { ...stroke } } : {}) }
+  beatData.effects = {
+    ...Song.defaultMeasureEffects(),
+    ...extra.effects,
+    ...(stroke ? { stroke: { ...stroke } } : {}),
+  }
   return beatData
 }
 
-const g = (duration: string, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) => beat(duration, GUITAR.length, notes, extra)
-const b = (duration: string, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) => beat(duration, BASS.length, notes, extra)
+const g = (duration: string, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
+  beat(duration, GUITAR.length, notes, extra)
+const b = (duration: string, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
+  beat(duration, BASS.length, notes, extra)
 
 function effects(more: Partial<BeatEffects>): Partial<Beat> {
   return { effects: { ...Song.defaultMeasureEffects(), ...more } }
@@ -103,7 +115,11 @@ const down = effects({ stroke: { strokeType: 'down', strokeLength: 32 } })
 const up = effects({ stroke: { strokeType: 'up', strokeLength: 32 } })
 
 /** Strum pattern D – D U – D U (quarter, eighth, eighth, quarter, eighth, eighth). */
-function strumBar(name: string, first: Partial<Beat> = {}, { mutedUps = false, accent = false } = {}): Beat[] {
+function strumBar(
+  name: string,
+  first: Partial<Beat> = {},
+  { mutedUps = false, accent = false } = {},
+): Beat[] {
   const upStrum = () => (mutedUps ? mutedStrum(name) : strum(name))
   return [
     g('q', strum(name, accent ? { accentuated: true } : {}), { ...down, chord: diagram(name), ...first }),
@@ -118,7 +134,9 @@ function strumBar(name: string, first: Partial<Beat> = {}, { mutedUps = false, a
 /** Eighth-note arpeggio over the strings in `order`, every note ringing. */
 function arpeggio(name: string, order: number[], first: Partial<Beat> = {}): Beat[] {
   const shape = SHAPES[name]
-  return order.map((string, i) => g('e', [[string, shape[string], { letRing: true }]], i === 0 ? { chord: diagram(name), ...first } : {}))
+  return order.map((string, i) =>
+    g('e', [[string, shape[string], { letRing: true }]], i === 0 ? { chord: diagram(name), ...first } : {}),
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -143,11 +161,13 @@ const rhythm: Beat[][] = [
   strumBar('F'),
   strumBar('E'),
   strumBar('E'),
-  [g('w', strum('Am', { letRing: true, heavyAccentuated: true }), {
-    ...effects({ stroke: { strokeType: 'down', strokeLength: 8 } }),
-    chord: diagram('Am'),
-    text: 'slow strum, let ring',
-  })],
+  [
+    g('w', strum('Am', { letRing: true, heavyAccentuated: true }), {
+      ...effects({ stroke: { strokeType: 'down', strokeLength: 8 } }),
+      chord: diagram('Am'),
+      text: 'slow strum, let ring',
+    }),
+  ],
 ]
 
 // ---------------------------------------------------------------------------
@@ -169,61 +189,134 @@ const staccato = { stacatto: true }
 function slideFrom(fret: number, string: number): { graceObj: Grace } {
   return {
     graceObj: {
-      fret, string, height: 0, dynamic: 'mf', transition: 'slide', duration: 's', setOnBeat: 'before', dead: false,
+      fret,
+      string,
+      height: 0,
+      dynamic: 'mf',
+      transition: 'slide',
+      duration: 's',
+      setOnBeat: 'before',
+      dead: false,
     },
   }
 }
 
 const lead: Beat[][] = [
   // Intro: 12th-fret harmonics, a volume swell, then a pickup into the riff
-  [g('q', [[1, 12, harmonic]], { dynamic: 'pp', dynamicPresent: true, text: 'natural harmonics' }), g('q', [[0, 12, harmonic]]), g('h', [[5, 12, harmonic]])],
+  [
+    g('q', [[1, 12, harmonic]], { dynamic: 'pp', dynamicPresent: true, text: 'natural harmonics' }),
+    g('q', [[0, 12, harmonic]]),
+    g('h', [[5, 12, harmonic]]),
+  ],
   [g('h', [[1, 12, harmonic]]), g('h', [[5, 12, harmonic]])],
-  [g('w', [[3, 5, vib]], { ...effects({ fadeIn: true }), dynamic: 'mp', dynamicPresent: true, text: 'volume swell' })],
+  [
+    g('w', [[3, 5, vib]], {
+      ...effects({ fadeIn: true }),
+      dynamic: 'mp',
+      dynamicPresent: true,
+      text: 'volume swell',
+    }),
+  ],
   [g('h'), g('q'), g('e', [[2, 7]]), g('e', [[3, 5]])],
   // Riff hook
-  [g('e', [[4, 5]], { dynamic: 'f', dynamicPresent: true }), g('e', [[4, 8]]), g('q', [[5, 5, vib]]), g('e', [[4, 8]]), g('e', [[4, 5]]), g('q', [[3, 7]])],
-  [g('q', [[3, 5, hammer]], { text: 'hammer-on' }), g('e', [[3, 7]]), g('e', [[4, 5]]), g('h', [[4, 6, { ...vib, ...slideFrom(4, 4) }]], { text: 'grace slide' })],
-  [g('e', [[4, 5, staccato]]), g('e', [[4, 8, staccato]]), g('e', [[5, 5, staccato]]), g('e', [[4, 8, staccato]]), g('q', [[4, 5, { slide: true }]]), g('q', [[3, 5]])],
+  [
+    g('e', [[4, 5]], { dynamic: 'f', dynamicPresent: true }),
+    g('e', [[4, 8]]),
+    g('q', [[5, 5, vib]]),
+    g('e', [[4, 8]]),
+    g('e', [[4, 5]]),
+    g('q', [[3, 7]]),
+  ],
+  [
+    g('q', [[3, 5, hammer]], { text: 'hammer-on' }),
+    g('e', [[3, 7]]),
+    g('e', [[4, 5]]),
+    g('h', [[4, 6, { ...vib, ...slideFrom(4, 4) }]], { text: 'grace slide' }),
+  ],
+  [
+    g('e', [[4, 5, staccato]]),
+    g('e', [[4, 8, staccato]]),
+    g('e', [[5, 5, staccato]]),
+    g('e', [[4, 8, staccato]]),
+    g('q', [[4, 5, { slide: true }]]),
+    g('q', [[3, 5]]),
+  ],
   [g('q', [[3, 7, vib]]), g('e', [[3, 5]]), g('e', [[2, 7]]), g('h', [[2, 5, { ...vib, letRing: true }]])],
   // 2nd ending: tapped E5 pulled off down the pentatonic, landing on D for the Dm
   [
-    g('e', [[5, 12, { tap: true, pullDown: true }]], { text: 'tapping' }), g('e', [[5, 8, hammer]]), g('e', [[5, 5]]),
-    g('e', [[4, 8, hammer]]), g('e', [[4, 5]]), g('e', [[3, 7]]), g('q', [[1, 5, vib]]),
+    g('e', [[5, 12, { tap: true, pullDown: true }]], { text: 'tapping' }),
+    g('e', [[5, 8, hammer]]),
+    g('e', [[5, 5]]),
+    g('e', [[4, 8, hammer]]),
+    g('e', [[4, 5]]),
+    g('e', [[3, 7]]),
+    g('q', [[1, 5, vib]]),
   ],
   // Solo
-  [g('q', [[5, 5, vib]]), g('e', [[5, 8, hammer]], { text: 'pull-off' }), g('e', [[5, 5]]), g('q', [[4, 6, bend(100)]]), g('q', [[4, 5]])],
   [
-    g('e', [[4, 8]], { tuplet: 3, text: 'triplets' }), g('e', [[4, 6]], { tuplet: 3 }), g('e', [[4, 5]], { tuplet: 3 }),
-    g('e', [[3, 7]], { tuplet: 3 }), g('e', [[3, 5]], { tuplet: 3 }), g('e', [[3, 7]], { tuplet: 3 }),
+    g('q', [[5, 5, vib]]),
+    g('e', [[5, 8, hammer]], { text: 'pull-off' }),
+    g('e', [[5, 5]]),
+    g('q', [[4, 6, bend(100)]]),
+    g('q', [[4, 5]]),
+  ],
+  [
+    g('e', [[4, 8]], { tuplet: 3, text: 'triplets' }),
+    g('e', [[4, 6]], { tuplet: 3 }),
+    g('e', [[4, 5]], { tuplet: 3 }),
+    g('e', [[3, 7]], { tuplet: 3 }),
+    g('e', [[3, 5]], { tuplet: 3 }),
+    g('e', [[3, 7]], { tuplet: 3 }),
     g('h', [[3, 5, vib]]),
   ],
   [
     g('h', [[4, 9, { tremoloPicking: true, tremoloPickingLength: 's' }]], { text: 'tremolo picking' }),
-    g('e', [[4, 6]]), g('e', [[4, 9]]), g('q', [[4, 5]]),
+    g('e', [[4, 6]]),
+    g('e', [[4, 9]]),
+    g('q', [[4, 5]]),
   ],
-  [g('q', [[5, 7, { trill: { fret: 8, period: 1 } }]], { text: 'trill' }), g('q', [[5, 5]]), g('q', [[4, 6]]), g('q', [[4, 9, bend(50)]])],
+  [
+    g('q', [[5, 7, { trill: { fret: 8, period: 1 } }]], { text: 'trill' }),
+    g('q', [[5, 5]]),
+    g('q', [[4, 6]]),
+    g('q', [[4, 9, bend(50)]]),
+  ],
   // Resolves the G# into A, with a dip on the whammy bar
-  [g('w', [[4, 10, { ...vib, letRing: true }]], {
-    ...effects({
-      tremoloBar: [
-        { position: 0, value: 0, vibrato: 0 },
-        { position: 15, value: -50, vibrato: 0 },
-        { position: 30, value: 0, vibrato: 0 },
-        { position: 60, value: 0, vibrato: 0 },
-      ],
+  [
+    g('w', [[4, 10, { ...vib, letRing: true }]], {
+      ...effects({
+        tremoloBar: [
+          { position: 0, value: 0, vibrato: 0 },
+          { position: 15, value: -50, vibrato: 0 },
+          { position: 30, value: 0, vibrato: 0 },
+          { position: 60, value: 0, vibrato: 0 },
+        ],
+      }),
+      text: 'whammy dip',
     }),
-    text: 'whammy dip',
-  })],
+  ],
 ]
 
 // ---------------------------------------------------------------------------
 // Bass (4 strings, E1 A1 D2 G2)
 
 const roots: Record<string, [NoteSpec, NoteSpec]> = {
-  Am: [[1, 0], [3, 2]],
-  F: [[0, 1], [2, 3]],
-  C: [[1, 3], [3, 5]],
-  G: [[0, 3], [2, 5]],
+  Am: [
+    [1, 0],
+    [3, 2],
+  ],
+  F: [
+    [0, 1],
+    [2, 3],
+  ],
+  C: [
+    [1, 3],
+    [3, 5],
+  ],
+  G: [
+    [0, 3],
+    [2, 5],
+  ],
 }
 
 /** Eighths on the root with an octave pop: R R O R R R O R; optionally slapped roots and popped octaves. */
@@ -280,7 +373,7 @@ function rockBar(top: number, { crash = false, openEnd = false, ghosts = false, 
   const kick = new Set([0, 3, 4])
   const snare = new Set([2, 6])
   return Array.from({ length: 8 }, (_, i) => {
-    const cymbal: DrumHit = i === 0 && crash ? accentCrash : (i === 7 && openEnd ? OPEN_HAT : top)
+    const cymbal: DrumHit = i === 0 && crash ? accentCrash : i === 7 && openEnd ? OPEN_HAT : top
     const hits: DrumHit[] = [cymbal]
     if (kick.has(i)) hits.push(KICK)
     if (snare.has(i)) hits.push(SNARE)
@@ -291,7 +384,9 @@ function rockBar(top: number, { crash = false, openEnd = false, ghosts = false, 
 
 /** Intro groove: hats, kick on 1 and 3, side stick on 2 and 4. */
 function softBar(): Beat[] {
-  return Array.from({ length: 8 }, (_, i) => d('e', [HAT, ...(i % 4 === 0 ? [KICK] : []), ...(i % 4 === 2 ? [STICK] : [])]))
+  return Array.from({ length: 8 }, (_, i) =>
+    d('e', [HAT, ...(i % 4 === 0 ? [KICK] : []), ...(i % 4 === 2 ? [STICK] : [])]),
+  )
 }
 
 const drums: Beat[][] = [
@@ -306,18 +401,32 @@ const drums: Beat[][] = [
   rockBar(HAT, { ghosts: true, openEnd: true }),
   // 2nd ending: snare and toms into the solo
   [
-    d('e', [HAT, KICK]), d('e', [HAT]), d('e', [SNARE]), d('e', [SNARE]),
-    d('s', [TOM_HIGH]), d('s', [TOM_HIGH]), d('s', [TOM_LOW]), d('s', [TOM_LOW]),
-    d('e', [SNARE, KICK]), d('e', [SNARE]),
+    d('e', [HAT, KICK]),
+    d('e', [HAT]),
+    d('e', [SNARE]),
+    d('e', [SNARE]),
+    d('s', [TOM_HIGH]),
+    d('s', [TOM_HIGH]),
+    d('s', [TOM_LOW]),
+    d('s', [TOM_LOW]),
+    d('e', [SNARE, KICK]),
+    d('e', [SNARE]),
   ],
   rockBar(RIDE, { crash: true }),
   rockBar(RIDE),
   rockBar(RIDE),
   // Fill: two beats of groove, then sixteenths down the toms
   [
-    d('q', [RIDE, KICK]), d('q', [RIDE, SNARE]),
-    d('s', [SNARE]), d('s', [SNARE]), d('s', [SNARE]), d('s', [SNARE]),
-    d('s', [TOM_HIGH]), d('s', [TOM_HIGH]), d('s', [TOM_LOW]), d('s', [TOM_LOW, KICK]),
+    d('q', [RIDE, KICK]),
+    d('q', [RIDE, SNARE]),
+    d('s', [SNARE]),
+    d('s', [SNARE]),
+    d('s', [SNARE]),
+    d('s', [SNARE]),
+    d('s', [TOM_HIGH]),
+    d('s', [TOM_HIGH]),
+    d('s', [TOM_LOW]),
+    d('s', [TOM_LOW, KICK]),
   ],
   [d('q', [accentCrash, KICK]), d('h'), d('q')],
 ]
@@ -351,7 +460,13 @@ function bars(): MeasureMetaInfo[] {
   })
 }
 
-function track(name: string, strings: number[], program: number, channel: number, color: Track['color']): Track {
+function track(
+  name: string,
+  strings: number[],
+  program: number,
+  channel: number,
+  color: Track['color'],
+): Track {
   return {
     ...Song.defaultTrack(),
     name,

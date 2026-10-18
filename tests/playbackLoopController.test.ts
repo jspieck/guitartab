@@ -77,40 +77,28 @@ describe('playbackLoopController', () => {
       endRatio: 1,
     }
 
-    const result = resolveNextBlockAfterCurrent(
-      5,
-      1,
-      loopInterval,
-      [],
-      {},
-    )
+    const result = resolveNextBlockAfterCurrent(5, 1, loopInterval, [], {})
 
     expect(result.nextBlock).toBe(2)
     expect(result.playingIteration).toBe(1)
   })
 
   it('uses tab repeat jump when no loop is active', () => {
-    const measureMeta = [{
-      repeatClose: 2,
-    }, {}, {}]
-    const result = resolveNextBlockAfterCurrent(
-      0,
-      1,
-      null,
-      measureMeta,
-      { 0: 0 },
-    )
+    const measureMeta = [
+      {
+        repeatClose: 2,
+      },
+      {},
+      {},
+    ]
+    const result = resolveNextBlockAfterCurrent(0, 1, null, measureMeta, { 0: 0 })
 
     expect(result.nextBlock).toBe(0)
     expect(result.playingIteration).toBe(2)
   })
 
   it('skips repeat-alternative sections that do not match the iteration', () => {
-    const measureMeta = [
-      {},
-      { repeatAlternative: 0b10 },
-      { repeatAlternative: 0b01 },
-    ]
+    const measureMeta = [{}, { repeatAlternative: 0b10 }, { repeatAlternative: 0b01 }]
 
     expect(applyRepeatAlternativeSkip(1, 1, measureMeta)).toBe(2)
   })

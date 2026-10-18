@@ -45,9 +45,7 @@ export const songState = reactive<SongStateData>({
   bpm: 100,
   numVoices: 2,
   chordsMap: [],
-  playBackInstrument: [
-    { instrument: 'guitar', solo: false, mute: false } as PlayBackInstrument,
-  ],
+  playBackInstrument: [{ instrument: 'guitar', solo: false, mute: false } as PlayBackInstrument],
   allChannels: [],
   numMeasures: 12,
 })

@@ -14,7 +14,9 @@ vi.mock('../src/assets/js/tab', () => ({
 
 vi.mock('../src/assets/js/songData', async () => {
   const { createSongMock } = await import('./helpers/songMock')
-  return { default: createSongMock({ measures: [[[[{ duration: 'e' }, { duration: 'e' }, { duration: 'e' }]]]] }) }
+  return {
+    default: createSongMock({ measures: [[[[{ duration: 'e' }, { duration: 'e' }, { duration: 'e' }]]]] }),
+  }
 })
 
 import {

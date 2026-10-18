@@ -41,12 +41,7 @@ export interface ClassicalNotationEngine {
 }
 
 export type ClassicalLifecyclePhase =
-  | 'idle'
-  | 'loading'
-  | 'structures-ready'
-  | 'metrics-published'
-  | 'active'
-  | 'deactivated'
+  'idle' | 'loading' | 'structures-ready' | 'metrics-published' | 'active' | 'deactivated'
 
 let lastPhase: ClassicalLifecyclePhase = 'idle'
 
@@ -103,9 +98,7 @@ export function activateClassicalNotation(
  * Full deactivate path when classical is currently on.
  * Caller handles Vue invalidation.
  */
-export function deactivateClassicalNotation(
-  engine: ClassicalNotationEngine,
-): void {
+export function deactivateClassicalNotation(engine: ClassicalNotationEngine): void {
   if (!Settings.vexFlowIsActive) {
     setClassicalNotationActive(false)
     clearClassicalLayoutMetrics()

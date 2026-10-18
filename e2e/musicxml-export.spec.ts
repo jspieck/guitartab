@@ -26,17 +26,20 @@ async function checkExport(page: Page) {
     const steps: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }
     parts.forEach((part, trackId) => {
       const measures = [...part.querySelectorAll(':scope > measure')]
-      if (measures.length !== Song.measureMeta.length) problems.push(`part ${trackId}: ${measures.length} measures`)
+      if (measures.length !== Song.measureMeta.length)
+        problems.push(`part ${trackId}: ${measures.length} measures`)
       measures.forEach((measure, blockId) => {
         // Bar length in quarters, from the editor's own duration math (64 = whole note).
-        const barQuarters = (Duration.getDurationOfBlock(blockId) / 16)
+        const barQuarters = Duration.getDurationOfBlock(blockId) / 16
         const totals = new Map<string, number>()
         for (const note of measure.querySelectorAll(':scope > note')) {
           if (note.querySelector('grace')) continue
           const pitch = note.querySelector('pitch')
           if (pitch) {
-            const midi = (Number(pitch.querySelector('octave')!.textContent) + 1) * 12
-              + steps[pitch.querySelector('step')!.textContent!] + Number(pitch.querySelector('alter')?.textContent ?? 0)
+            const midi =
+              (Number(pitch.querySelector('octave')!.textContent) + 1) * 12 +
+              steps[pitch.querySelector('step')!.textContent!] +
+              Number(pitch.querySelector('alter')?.textContent ?? 0)
             exportedPitches.push(midi)
           }
           if (pitch || note.querySelector('unpitched')) exportedNotes += 1
@@ -46,7 +49,9 @@ async function checkExport(page: Page) {
         }
         for (const [voice, total] of totals) {
           if (Math.abs(total / divisions - barQuarters) > 1e-6) {
-            problems.push(`track ${trackId} bar ${blockId + 1} voice ${voice}: ${total / divisions} of ${barQuarters} quarters`)
+            problems.push(
+              `track ${trackId} bar ${blockId + 1} voice ${voice}: ${total / divisions} of ${barQuarters} quarters`,
+            )
           }
         }
       })
@@ -94,21 +99,38 @@ test.describe('MusicXML export', () => {
 
   test('an imported GP7 song with drums, tuplets and two voices exports completely', async ({ page }) => {
     await waitForEditorShell(page)
-    await page.evaluate(async (bytes) => {
-      const { gProReader } = await import('/src/assets/js/GProReader.ts')
-      gProReader.importSongBytes('showcase.gp', new Uint8Array(bytes))
-    }, Array.from(buildGpArchive(readShowcaseGpif())))
+    await page.evaluate(
+      async (bytes) => {
+        const { gProReader } = await import('/src/assets/js/GProReader.ts')
+        gProReader.importSongBytes('showcase.gp', new Uint8Array(bytes))
+      },
+      Array.from(buildGpArchive(readShowcaseGpif())),
+    )
     const result = await checkExport(page)
-    expect(result).toMatchObject({ error: '', parts: 2, problems: [], sameNoteCount: true, samePitches: true })
+    expect(result).toMatchObject({
+      error: '',
+      parts: 2,
+      problems: [],
+      sameNoteCount: true,
+      samePitches: true,
+    })
   })
 
   test('the GP5 fixture exports complete bars', async ({ page }) => {
     await waitForEditorShell(page)
-    await page.evaluate(async (bytes) => {
-      const { gProReader } = await import('/src/assets/js/GProReader.ts')
-      gProReader.importSongBytes('showcase.gp5', new Uint8Array(bytes))
-    }, Array.from(readFileSync('e2e/fixtures/files/showcase.gp5')))
-    expect(await checkExport(page)).toMatchObject({ error: '', problems: [], sameNoteCount: true, samePitches: true })
+    await page.evaluate(
+      async (bytes) => {
+        const { gProReader } = await import('/src/assets/js/GProReader.ts')
+        gProReader.importSongBytes('showcase.gp5', new Uint8Array(bytes))
+      },
+      Array.from(readFileSync('e2e/fixtures/files/showcase.gp5')),
+    )
+    expect(await checkExport(page)).toMatchObject({
+      error: '',
+      problems: [],
+      sameNoteCount: true,
+      samePitches: true,
+    })
   })
 
   test('the download menu saves MusicXML and Guitar Pro 5 files', async ({ page }) => {
@@ -127,7 +149,11 @@ test.describe('MusicXML export', () => {
     await page.locator('#download-gp5').click()
     const gpFile = await gpDownload
     expect(gpFile.suggestedFilename()).toMatch(/\.gp5$/)
-    expect(readFileSync((await gpFile.path())!).subarray(1, 25).toString('latin1')).toMatch(/^FICHIER GUITAR PRO v5\.\d\d$/)
+    expect(
+      readFileSync((await gpFile.path())!)
+        .subarray(1, 25)
+        .toString('latin1'),
+    ).toMatch(/^FICHIER GUITAR PRO v5\.\d\d$/)
 
     // Escape and outside clicks close the menu.
     await page.locator('#downloadGP').click()

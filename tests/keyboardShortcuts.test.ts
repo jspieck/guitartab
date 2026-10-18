@@ -12,7 +12,13 @@ import {
 
 function key(init: Partial<KeyboardEvent>): KeyboardEvent {
   return {
-    key: '', code: '', ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...init,
+    key: '',
+    code: '',
+    ctrlKey: false,
+    metaKey: false,
+    altKey: false,
+    shiftKey: false,
+    ...init,
   } as KeyboardEvent
 }
 
@@ -65,7 +71,14 @@ describe('keyboard shortcut table', () => {
 
   it('groups shortcuts in table order', () => {
     const groups = groupShortcuts()
-    expect(groups.map((group) => group.name)).toEqual(['Enter notes', 'Move', 'Note length', 'Playback', 'Edit', 'View'])
+    expect(groups.map((group) => group.name)).toEqual([
+      'Enter notes',
+      'Move',
+      'Note length',
+      'Playback',
+      'Edit',
+      'View',
+    ])
     expect(groups.flatMap((group) => group.items)).toHaveLength(SHORTCUTS.length)
   })
 
@@ -104,9 +117,15 @@ describe('fret entry', () => {
 describe('focus targets', () => {
   it('leaves keys to text fields and keyboard-driven controls', () => {
     expect(isKeyboardControlTarget({ tagName: 'INPUT' } as unknown as EventTarget)).toBe(true)
-    expect(isKeyboardControlTarget({ tagName: 'DIV', isContentEditable: true } as unknown as EventTarget)).toBe(true)
-    expect(isKeyboardControlTarget({ tagName: 'DIV', getAttribute: () => 'slider' } as unknown as EventTarget)).toBe(true)
-    expect(isKeyboardControlTarget({ tagName: 'svg', getAttribute: () => null } as unknown as EventTarget)).toBe(false)
+    expect(
+      isKeyboardControlTarget({ tagName: 'DIV', isContentEditable: true } as unknown as EventTarget),
+    ).toBe(true)
+    expect(
+      isKeyboardControlTarget({ tagName: 'DIV', getAttribute: () => 'slider' } as unknown as EventTarget),
+    ).toBe(true)
+    expect(
+      isKeyboardControlTarget({ tagName: 'svg', getAttribute: () => null } as unknown as EventTarget),
+    ).toBe(false)
     expect(isKeyboardControlTarget(null)).toBe(false)
   })
 })

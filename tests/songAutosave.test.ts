@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   configureAutosave,
+  confirmReplaceUnsavedSong,
   createMemorySnapshotStore,
   dismissRecoverableDraft,
   flushAutosave,
@@ -16,10 +17,18 @@ import {
 } from '../src/services/songAutosave'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 // Vitest runs in node: the module only needs window as an event target.
@@ -30,7 +39,12 @@ let content = 'song-v1'
 let clock = 1_000
 let store: SnapshotStore
 let cleanAt = 0
-const cleanMarker: CleanMarker = { get: () => cleanAt, set: (time) => { cleanAt = time } }
+const cleanMarker: CleanMarker = {
+  get: () => cleanAt,
+  set: (time) => {
+    cleanAt = time
+  },
+}
 
 /** Simulate a new page session sharing the same persisted store and marker. */
 function startSession(): void {
@@ -104,6 +118,25 @@ describe('songAutosave', () => {
 
     scheduleAutosave()
     await vi.advanceTimersByTimeAsync(3000)
+    expect(await listDrafts()).toHaveLength(1)
+  })
+
+  it('opens another song without asking while nothing is unsaved', () => {
+    const ask = vi.fn(() => false)
+    expect(confirmReplaceUnsavedSong('next.gp5', ask)).toBe(true)
+    expect(ask).not.toHaveBeenCalled()
+  })
+
+  it('asks before replacing unsaved edits, and keeps them as a draft on yes', async () => {
+    edit('song-v2')
+    const ask = vi.fn(() => false)
+    expect(confirmReplaceUnsavedSong('next.gp5', ask)).toBe(false)
+    expect(ask.mock.calls[0][0]).toContain('"next.gp5"')
+    await vi.advanceTimersByTimeAsync(0)
+    expect(await listDrafts()).toHaveLength(0)
+
+    expect(confirmReplaceUnsavedSong('next.gp5', () => true)).toBe(true)
+    await vi.advanceTimersByTimeAsync(0)
     expect(await listDrafts()).toHaveLength(1)
   })
 

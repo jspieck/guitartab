@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 coverage/
+
+# Playwright output
+test-results/
+playwright-report/
+
+# Audio samples and the SoundFont are not in the repository (licence unclear, see
+# public/audio/README.txt). CI generates a stand-in: scripts/make-test-soundfont.mjs
+public/audio/*
+!public/audio/README.txt

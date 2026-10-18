@@ -1,6 +1,4 @@
-import type {
-  Beat, MeasureMetaInfo, Note, SongDescription, Track,
-} from '../assets/js/songData'
+import type { Beat, MeasureMetaInfo, Note, SongDescription, Track } from '../assets/js/songData'
 
 /**
  * Writes a song as MusicXML 4.0 (score-partwise), for MuseScore, Finale, Sibelius, Dorico
@@ -23,7 +21,7 @@ const DIVISIONS = 6720
 const DRUM_CHANNEL = 9
 const MAX_VOICES = 2
 
-const NOTE_TYPES: Record<string, { type: string, quarters: number }> = {
+const NOTE_TYPES: Record<string, { type: string; quarters: number }> = {
   w: { type: 'whole', quarters: 4 },
   h: { type: 'half', quarters: 2 },
   q: { type: 'quarter', quarters: 1 },
@@ -37,12 +35,20 @@ const NOTE_TYPES: Record<string, { type: string, quarters: number }> = {
 const SHARP_STEPS = ['C', 'C', 'D', 'D', 'E', 'F', 'F', 'G', 'G', 'A', 'A', 'B']
 const SHARP_ALTERS = [0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]
 const DYNAMICS = new Set(['ppp', 'pp', 'p', 'mp', 'mf', 'f', 'ff', 'fff'])
-const HARMONICS: Record<string, string> = { 'A.H.': '<artificial/>', 'T.H.': '<artificial/>', 'P.H.': '<artificial/>' }
+const HARMONICS: Record<string, string> = {
+  'A.H.': '<artificial/>',
+  'T.H.': '<artificial/>',
+  'P.H.': '<artificial/>',
+}
 const TREMOLO_MARKS: Record<string, number> = { e: 1, s: 2, t: 3 }
 
 export function escapeXml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
 
 /** How many plain notes a tuplet of `actual` replaces (same table as `Duration`). */
@@ -78,8 +84,10 @@ function pitchXml(midi: number): string {
 
 /** Drums: the fret is the General MIDI drum note; place it on the staff at that note's pitch. */
 function unpitchedXml(midi: number): string {
-  return `<unpitched><display-step>${SHARP_STEPS[midi % 12]}</display-step>`
-    + `<display-octave>${Math.floor(midi / 12) - 1}</display-octave></unpitched>`
+  return (
+    `<unpitched><display-step>${SHARP_STEPS[midi % 12]}</display-step>` +
+    `<display-octave>${Math.floor(midi / 12) - 1}</display-octave></unpitched>`
+  )
 }
 
 function isDrumTrack(track: Track): boolean {
@@ -101,26 +109,33 @@ function scorePart(track: Track, index: number): string {
   const id = `P${index + 1}`
   const channel = (isDrumTrack(track) ? DRUM_CHANNEL : Math.max(0, track.channel?.index ?? 0) % 16) + 1
   const program = Math.min(128, Math.max(1, (track.program >= 0 ? track.program : 0) + 1))
-  return `<score-part id="${id}"><part-name>${escapeXml(track.name || `Track ${index + 1}`)}</part-name>`
-    + `<score-instrument id="${id}-I1"><instrument-name>${escapeXml(track.name || 'Instrument')}</instrument-name></score-instrument>`
-    + `<midi-instrument id="${id}-I1"><midi-channel>${channel}</midi-channel>`
-    + `${isDrumTrack(track) ? '' : `<midi-program>${program}</midi-program>`}</midi-instrument></score-part>`
+  return (
+    `<score-part id="${id}"><part-name>${escapeXml(track.name || `Track ${index + 1}`)}</part-name>` +
+    `<score-instrument id="${id}-I1"><instrument-name>${escapeXml(track.name || 'Instrument')}</instrument-name></score-instrument>` +
+    `<midi-instrument id="${id}-I1"><midi-channel>${channel}</midi-channel>` +
+    `${isDrumTrack(track) ? '' : `<midi-program>${program}</midi-program>`}</midi-instrument></score-part>`
+  )
 }
 
 function clefAndTuning(track: Track): string {
   if (isDrumTrack(track)) return '<clef><sign>percussion</sign></clef>'
   const lowest = Math.min(...track.strings)
   // Guitar-family parts are written an octave above sounding pitch.
-  const clef = lowest < 36
-    ? '<clef><sign>F</sign><line>4</line><clef-octave-change>-1</clef-octave-change></clef>'
-    : '<clef><sign>G</sign><line>2</line><clef-octave-change>-1</clef-octave-change></clef>'
+  const clef =
+    lowest < 36
+      ? '<clef><sign>F</sign><line>4</line><clef-octave-change>-1</clef-octave-change></clef>'
+      : '<clef><sign>G</sign><line>2</line><clef-octave-change>-1</clef-octave-change></clef>'
   // MusicXML numbers tuning lines from the lowest string up, as the app indexes strings.
-  const tuning = track.strings.map((midi, i) => {
-    const step = SHARP_STEPS[midi % 12]
-    const alter = SHARP_ALTERS[midi % 12]
-    return `<staff-tuning line="${i + 1}"><tuning-step>${step}</tuning-step>`
-      + `${alter ? `<tuning-alter>${alter}</tuning-alter>` : ''}<tuning-octave>${Math.floor(midi / 12) - 1}</tuning-octave></staff-tuning>`
-  }).join('')
+  const tuning = track.strings
+    .map((midi, i) => {
+      const step = SHARP_STEPS[midi % 12]
+      const alter = SHARP_ALTERS[midi % 12]
+      return (
+        `<staff-tuning line="${i + 1}"><tuning-step>${step}</tuning-step>` +
+        `${alter ? `<tuning-alter>${alter}</tuning-alter>` : ''}<tuning-octave>${Math.floor(midi / 12) - 1}</tuning-octave></staff-tuning>`
+      )
+    })
+    .join('')
   const capo = track.capo > 0 ? `<capo>${track.capo}</capo>` : ''
   return `${clef}<staff-details><staff-lines>${track.strings.length}</staff-lines>${tuning}${capo}</staff-details>`
 }
@@ -128,13 +143,20 @@ function clefAndTuning(track: Track): string {
 // ---------------------------------------------------------------------------
 // Bar-level markings
 
-function barAttributes(meta: MeasureMetaInfo, previous: MeasureMetaInfo | undefined, track: Track, first: boolean): string {
-  const timeChanged = previous == null
-    || previous.numerator !== meta.numerator || previous.denominator !== meta.denominator
+function barAttributes(
+  meta: MeasureMetaInfo,
+  previous: MeasureMetaInfo | undefined,
+  track: Track,
+  first: boolean,
+): string {
+  const timeChanged =
+    previous == null || previous.numerator !== meta.numerator || previous.denominator !== meta.denominator
   if (!first && !timeChanged) return ''
   const parts = [
     first ? `<divisions>${DIVISIONS}</divisions><key><fifths>0</fifths></key>` : '',
-    timeChanged ? `<time><beats>${meta.numerator}</beats><beat-type>${meta.denominator}</beat-type></time>` : '',
+    timeChanged
+      ? `<time><beats>${meta.numerator}</beats><beat-type>${meta.denominator}</beat-type></time>`
+      : '',
     first ? clefAndTuning(track) : '',
   ]
   return `<attributes>${parts.join('')}</attributes>`
@@ -168,16 +190,18 @@ function endingNumbers(mask: number): string {
 function leftBarline(meta: MeasureMetaInfo, previous: MeasureMetaInfo | undefined): string {
   const repeat = meta.repeatOpen ? '<bar-style>heavy-light</bar-style><repeat direction="forward"/>' : ''
   // An ending starts where the previous bar had a different (or no) ending.
-  const ending = meta.repeatAlternative != null && meta.repeatAlternative !== previous?.repeatAlternative
-    ? `<ending number="${endingNumbers(meta.repeatAlternative)}" type="start"/>`
-    : ''
+  const ending =
+    meta.repeatAlternative != null && meta.repeatAlternative !== previous?.repeatAlternative
+      ? `<ending number="${endingNumbers(meta.repeatAlternative)}" type="start"/>`
+      : ''
   return repeat || ending ? `<barline location="left">${repeat}${ending}</barline>` : ''
 }
 
 function rightBarline(meta: MeasureMetaInfo, next: MeasureMetaInfo | undefined): string {
-  const repeat = meta.repeatClose != null && meta.repeatClose > 0
-    ? `<bar-style>light-heavy</bar-style><repeat direction="backward" times="${meta.repeatClose + 1}"/>`
-    : ''
+  const repeat =
+    meta.repeatClose != null && meta.repeatClose > 0
+      ? `<bar-style>light-heavy</bar-style><repeat direction="backward" times="${meta.repeatClose + 1}"/>`
+      : ''
   const endsHere = meta.repeatAlternative != null && next?.repeatAlternative !== meta.repeatAlternative
   const ending = endsHere
     ? `<ending number="${endingNumbers(meta.repeatAlternative!)}" type="${repeat ? 'stop' : 'discontinue'}"/>`
@@ -218,7 +242,13 @@ function legatoKind(from: Note, to: Note): 'hammer-on' | 'pull-off' {
   return to.fret < from.fret ? 'pull-off' : 'hammer-on'
 }
 
-function technicalXml(note: Note, string: number, context: BeatContext, nextNote: Note | null, previousNote: Note | null): string {
+function technicalXml(
+  note: Note,
+  string: number,
+  context: BeatContext,
+  nextNote: Note | null,
+  previousNote: Note | null,
+): string {
   const technical: string[] = []
   if (!context.drums) {
     // MusicXML strings count from the highest (1); the app's index 0 is the lowest.
@@ -229,7 +259,8 @@ function technicalXml(note: Note, string: number, context: BeatContext, nextNote
     const kind = legatoKind(note, nextNote)
     technical.push(`<${kind} type="start">${kind === 'pull-off' ? 'P' : 'H'}</${kind}>`)
   }
-  if (note.artificialStyle) technical.push(`<harmonic>${HARMONICS[note.artificialStyle] ?? '<natural/>'}</harmonic>`)
+  if (note.artificialStyle)
+    technical.push(`<harmonic>${HARMONICS[note.artificialStyle] ?? '<natural/>'}</harmonic>`)
   if (note.tap) technical.push('<tap/>')
   // Bend values use 100 per whole tone (50 per semitone), as in Guitar Pro.
   const peak = Math.max(0, ...(note.bendObj ?? []).map((point) => point.bendValue))
@@ -252,7 +283,13 @@ function ornamentsXml(note: Note): string {
   return marks ? `<ornaments>${marks}</ornaments>` : ''
 }
 
-function noteNotations(note: Note, string: number, beat: Beat, context: BeatContext, tieStart: boolean): string {
+function noteNotations(
+  note: Note,
+  string: number,
+  beat: Beat,
+  context: BeatContext,
+  tieStart: boolean,
+): string {
   const nextNote = noteOf(context.next, string)
   const previousNote = noteOf(context.previous, string)
   const stroke = beat.effects?.stroke
@@ -273,10 +310,16 @@ function noteNotations(note: Note, string: number, beat: Beat, context: BeatCont
 function graceNoteXml(note: Note, string: number, context: BeatContext, chord: boolean): string {
   const grace = note.graceObj!
   const type = NOTE_TYPES[grace.duration]?.type ?? '16th'
-  const midi = context.drums ? grace.fret : context.track.strings[string] + grace.fret + Math.max(0, context.track.capo)
-  const technical = context.drums ? '' : `<notations><technical><string>${context.track.strings.length - string}</string><fret>${grace.fret}</fret></technical></notations>`
-  return `<note><grace${grace.setOnBeat === 'with' ? '' : ' slash="yes"'}/>${chord ? '<chord/>' : ''}${pitchXml(midi)}`
-    + `<voice>${context.voice}</voice><type>${type}</type>${grace.dead ? '<notehead>x</notehead>' : ''}${technical}</note>`
+  const midi = context.drums
+    ? grace.fret
+    : context.track.strings[string] + grace.fret + Math.max(0, context.track.capo)
+  const technical = context.drums
+    ? ''
+    : `<notations><technical><string>${context.track.strings.length - string}</string><fret>${grace.fret}</fret></technical></notations>`
+  return (
+    `<note><grace${grace.setOnBeat === 'with' ? '' : ' slash="yes"'}/>${chord ? '<chord/>' : ''}${pitchXml(midi)}` +
+    `<voice>${context.voice}</voice><type>${type}</type>${grace.dead ? '<notehead>x</notehead>' : ''}${technical}</note>`
+  )
 }
 
 function noteheadXml(note: Note): string {
@@ -294,19 +337,25 @@ function beatXml(beat: Beat, context: BeatContext): string {
   }
   const sounding = (beat.notes ?? [])
     .map((note, string) => ({ note, string }))
-    .filter((entry): entry is { note: Note, string: number } => entry.note != null)
+    .filter((entry): entry is { note: Note; string: number } => entry.note != null)
     // Highest string first reads naturally in chords; order doesn't matter to MusicXML.
     .sort((a, b) => midiOf(b.note, b.string, context) - midiOf(a.note, a.string, context))
-  const graces = sounding.filter((entry) => entry.note.graceObj != null)
-    .map((entry, i) => graceNoteXml(entry.note, entry.string, context, i > 0)).join('')
-  const notes = sounding.map(({ note, string }, i) => {
-    const nextNote = noteOf(context.next, string)
-    const tieStart = nextNote?.tied === true && !context.drums
-    const ties = `${note.tied ? '<tie type="stop"/>' : ''}${tieStart ? '<tie type="start"/>' : ''}`
-    const pitch = context.drums ? unpitchedXml(note.fret) : pitchXml(midiOf(note, string, context))
-    return `<note>${i > 0 ? '<chord/>' : ''}${pitch}<duration>${duration}</duration>${ties}${tail}${noteheadXml(note)}`
-      + `${noteNotations(note, string, beat, context, tieStart)}</note>`
-  }).join('')
+  const graces = sounding
+    .filter((entry) => entry.note.graceObj != null)
+    .map((entry, i) => graceNoteXml(entry.note, entry.string, context, i > 0))
+    .join('')
+  const notes = sounding
+    .map(({ note, string }, i) => {
+      const nextNote = noteOf(context.next, string)
+      const tieStart = nextNote?.tied === true && !context.drums
+      const ties = `${note.tied ? '<tie type="stop"/>' : ''}${tieStart ? '<tie type="start"/>' : ''}`
+      const pitch = context.drums ? unpitchedXml(note.fret) : pitchXml(midiOf(note, string, context))
+      return (
+        `<note>${i > 0 ? '<chord/>' : ''}${pitch}<duration>${duration}</duration>${ties}${tail}${noteheadXml(note)}` +
+        `${noteNotations(note, string, beat, context, tieStart)}</note>`
+      )
+    })
+    .join('')
   return graces + notes
 }
 
@@ -328,7 +377,9 @@ export function fillerRests(missing: number, voice: number): string {
   let out = ''
   let left = missing
   // Longest first. (Not Object.values: the numeric key '2' would come first.)
-  for (const { type, quarters } of ['w', 'h', 'q', 'e', 's', 't', 'z', 'o', '2'].map((key) => NOTE_TYPES[key])) {
+  for (const { type, quarters } of ['w', 'h', 'q', 'e', 's', 't', 'z', 'o', '2'].map(
+    (key) => NOTE_TYPES[key],
+  )) {
     const size = Math.round(quarters * DIVISIONS)
     while (left >= size) {
       out += `<note><rest/><duration>${size}</duration><voice>${voice}</voice><type>${type}</type></note>`
@@ -354,9 +405,10 @@ function partXml(source: MusicXmlSource, trackIndex: number): string {
   const measures = source.measureMeta.map((meta, barIndex) => {
     const previous = source.measureMeta[barIndex - 1]
     const block = bars[barIndex] ?? []
-    let body = leftBarline(meta, previous)
-      + barAttributes(meta, previous, track, barIndex === 0)
-      + barDirections(meta, trackIndex === 0)
+    let body =
+      leftBarline(meta, previous) +
+      barAttributes(meta, previous, track, barIndex === 0) +
+      barDirections(meta, trackIndex === 0)
     let written = 0
     for (let voice = 0; voice < MAX_VOICES; voice += 1) {
       const beats = block[voice] ?? []
@@ -400,13 +452,16 @@ export function buildMusicXml(source: MusicXmlSource): string {
     description.author ? `<creator type="arranger">${escapeXml(description.author)}</creator>` : '',
   ].join('')
   const rights = description.copyright ? `<rights>${escapeXml(description.copyright)}</rights>` : ''
-  const identification = `<identification>${creators}${rights}<encoding><software>GuitarTab</software>`
-    + `<encoding-date>${new Date().toISOString().slice(0, 10)}</encoding-date></encoding></identification>`
+  const identification =
+    `<identification>${creators}${rights}<encoding><software>GuitarTab</software>` +
+    `<encoding-date>${new Date().toISOString().slice(0, 10)}</encoding-date></encoding></identification>`
   const partList = `<part-list>${source.tracks.map(scorePart).join('')}</part-list>`
   const parts = source.tracks.map((_, i) => partXml(source, i)).join('')
-  return '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n'
-    + '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\n'
-    + `<score-partwise version="4.0">${credits}${identification}${partList}${parts}</score-partwise>\n`
+  return (
+    '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' +
+    '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">\n' +
+    `<score-partwise version="4.0">${credits}${identification}${partList}${parts}</score-partwise>\n`
+  )
 }
 
 /** File name for the download, from the song title. */

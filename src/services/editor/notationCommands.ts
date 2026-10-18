@@ -13,7 +13,11 @@ import {
 } from '../menuMutationRouting'
 import { MENU_EFFECT_GROUPS } from '../../utils/menuUiState'
 import {
-  captureMenuEffectState, deactivateMenuEffectsInGroup, getMenuEffectVariable, setMenuEffectVariable, type MenuEffectState,
+  captureMenuEffectState,
+  deactivateMenuEffectsInGroup,
+  getMenuEffectVariable,
+  setMenuEffectVariable,
+  type MenuEffectState,
 } from '../menuEffectMutations'
 import { requestBlockRender } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
@@ -57,9 +61,10 @@ export function processNotationSelect(
   // Snapshot the effect group so undo restores data (text, chord, repeat count…)
   // instead of only flipping a flag.
   const effectGroup = findMenuEffectGroup(id, MENU_EFFECT_GROUPS) ?? [id]
-  const captureGroup = (): Record<string, MenuEffectState> => Object.fromEntries(
-    effectGroup.map((effectId) => [effectId, captureMenuEffectState(beat, null, effectId, measureMeta)]),
-  )
+  const captureGroup = (): Record<string, MenuEffectState> =>
+    Object.fromEntries(
+      effectGroup.map((effectId) => [effectId, captureMenuEffectState(beat, null, effectId, measureMeta)]),
+    )
   const stateBefore = captureGroup()
   if (id === 'addMarker' && measureMeta.marker != null) {
     revertHandler.addMarker(trackId, blockId, { ...measureMeta.marker }, undefined)
@@ -77,8 +82,16 @@ export function processNotationSelect(
 
     if (notesBefore != null) {
       revertHandler.addTimeMeter(
-        trackId, blockId, voiceId, currentNumerator, newNumerator, currentDenominator,
-        newDenominator, true, false, notesBefore,
+        trackId,
+        blockId,
+        voiceId,
+        currentNumerator,
+        newNumerator,
+        currentDenominator,
+        newDenominator,
+        true,
+        false,
+        notesBefore,
       )
     } else {
       console.error('Notes before are null')

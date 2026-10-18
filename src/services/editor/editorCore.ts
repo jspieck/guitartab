@@ -1,5 +1,5 @@
 import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
-import { typedEventBus } from '../../utils/typedEventBus';
+import { typedEventBus } from '../../utils/typedEventBus'
 import playBackLogic from '../../assets/js/playBackLogicNew'
 import Song, {
   type Beat as SongBeat,
@@ -21,12 +21,8 @@ import type {
   TabNoteData,
   TabSelectionData,
 } from '../../types/tab'
-import renderBridge, {
-  type RenderTrackLayoutState,
-} from './renderBridge'
-import {
-  computeTrackLayout,
-} from './measureLayoutEngine'
+import renderBridge, { type RenderTrackLayoutState } from './renderBridge'
+import { computeTrackLayout } from './measureLayoutEngine'
 
 export interface SongSnapshot {
   measures: SongBeat[][][][]
@@ -90,7 +86,8 @@ function getSelectedNoteState(selection: TabSelectionData | null): SelectedNoteS
     return null
   }
 
-  const beat = getBeat(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex) as TabBeat | undefined
+  const beat = getBeat(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex) as
+    TabBeat | undefined
   const note = beat?.notes?.[selection.stringIndex] as TabNoteData | null | undefined
   const rawDuration = beat?.duration || 'q'
   const cleanDuration = rawDuration.replace('r', '')
@@ -118,12 +115,7 @@ function syncSelectionEffects(selection: TabSelectionData | null): void {
   }
 
   typedEventBus.emit('menu.clickedOnPos', payload)
-  playBackLogic.setPlayPosition(
-    selection.trackId,
-    selection.blockId,
-    selection.voiceId,
-    selection.beatIndex,
-  )
+  playBackLogic.setPlayPosition(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex)
 }
 
 function ensureBeatAtPosition(
@@ -164,9 +156,8 @@ function findPreviousNoteOnString(
   stringIndex: number,
 ): { blockId: number; beatId: number } | null {
   for (let currentBlockId = blockId; currentBlockId >= 0; currentBlockId -= 1) {
-    const startBeatId = currentBlockId === blockId
-      ? beatId - 1
-      : getVoiceBeatCount(trackId, currentBlockId, voiceId) - 1
+    const startBeatId =
+      currentBlockId === blockId ? beatId - 1 : getVoiceBeatCount(trackId, currentBlockId, voiceId) - 1
 
     for (let currentBeatId = startBeatId; currentBeatId >= 0; currentBeatId -= 1) {
       const note = getNote(trackId, currentBlockId, voiceId, currentBeatId, stringIndex)

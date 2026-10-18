@@ -53,7 +53,12 @@ const AppManager = {
     playBackLogic.resetPlayBack();
   },
 
-  showNotification(text: string, kind: 'info' | 'error' = 'info') {
+  /** Banner message; `action` adds a button (e.g. "Undo") that runs once and closes the banner. */
+  showNotification(
+    text: string,
+    kind: 'info' | 'error' = 'info',
+    action?: { label: string, run: () => void },
+  ) {
     const notificationLabel = document.getElementById('notificationLabel');
     if (notificationLabel) {
       notificationLabel.textContent = text;
@@ -62,6 +67,16 @@ const AppManager = {
       clearTimeout(this.notificationTimeOut);
     }
     const notificationEmblem = document.getElementById('notificationEmblem');
+    const actionButton = document.getElementById('notificationAction') as HTMLButtonElement | null;
+    if (actionButton) {
+      actionButton.hidden = action == null;
+      actionButton.textContent = action?.label ?? '';
+      actionButton.onclick = action == null ? null : () => {
+        actionButton.onclick = null;
+        if (notificationEmblem) notificationEmblem.style.display = 'none';
+        action.run();
+      };
+    }
     if (notificationEmblem) {
       notificationEmblem.classList.toggle('notification-error', kind === 'error');
       notificationEmblem.style.opacity = '0';
@@ -76,7 +91,7 @@ const AppManager = {
           notificationEmblem.style.display = 'none';
           notificationEmblem.classList.remove('notification-error');
         }, 500);
-      }, kind === 'error' ? 8000 : 5000);
+      }, kind === 'error' || action != null ? 8000 : 5000);
     }
   },
 

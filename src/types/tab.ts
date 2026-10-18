@@ -56,7 +56,7 @@ export interface TabRow {
 
 export interface TabPage {
   rows: TabRow[]
-} 
+}
 
 export type TabBeat = SongBeat
 export type TabNoteData = SongNote

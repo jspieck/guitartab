@@ -18,7 +18,9 @@ export type GpContainer = 'zip' | 'bcfs' | 'bcfz'
 
 function readInt32(bytes: Uint8Array, offset: number): number {
   if (offset < 0 || offset + 4 > bytes.length) return 0
-  return (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0
+  return (
+    (bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24)) >>> 0
+  )
 }
 
 /** Which container `bytes` are, judged by the first bytes rather than the file name. */
@@ -140,7 +142,8 @@ export function extractGpifXml(bytes: Uint8Array, format: string): string {
     } catch (error) {
       throw new ImportError('The file is not a readable Guitar Pro archive.', format, { cause: error })
     }
-    const name = Object.keys(entries).find((entry) => entry === 'Content/score.gpif') ?? Object.keys(entries)[0]
+    const name =
+      Object.keys(entries).find((entry) => entry === 'Content/score.gpif') ?? Object.keys(entries)[0]
     return decodeScore(name != null ? entries[name] : undefined, format)
   }
   if (container === 'bcfz') return decodeScore(readBcfsFiles(decompressBcfz(bytes)).get('score.gpif'), format)

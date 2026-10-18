@@ -9,8 +9,14 @@ const showcase = readFileSync('e2e/fixtures/files/showcase.gpif', 'utf-8')
 
 /** The smallest score with one track and `bars` bars of quarter-note E's, with `extra` XML spliced in. */
 function score({ track = '', masterBar = '', beat = '', note = '', bars = 1 } = {}): string {
-  const masterBars = Array.from({ length: bars }, (_, i) => `<MasterBar><Time>4/4</Time><Bars>${i}</Bars>${i === 0 ? masterBar : ''}</MasterBar>`).join('')
-  const barList = Array.from({ length: bars }, (_, i) => `<Bar id="${i}"><Voices>0 -1 -1 -1</Voices></Bar>`).join('')
+  const masterBars = Array.from(
+    { length: bars },
+    (_, i) => `<MasterBar><Time>4/4</Time><Bars>${i}</Bars>${i === 0 ? masterBar : ''}</MasterBar>`,
+  ).join('')
+  const barList = Array.from(
+    { length: bars },
+    (_, i) => `<Bar id="${i}"><Voices>0 -1 -1 -1</Voices></Bar>`,
+  ).join('')
   return `<GPIF><Tracks><Track id="0"><Name><![CDATA[T]]></Name>${track}</Track></Tracks>
     <MasterBars>${masterBars}</MasterBars><Bars>${barList}</Bars>
     <Voices><Voice id="0"><Beats>0 0 0 0</Beats></Voice></Voices>
@@ -26,21 +32,33 @@ describe('GPIF import', () => {
     expect(song.tracks.map((track) => track.name)).toEqual(['Lead Guitar', 'Drums'])
     expect(song.measureMeta.map((bar) => bar.bpm)).toEqual([100, undefined, 135, undefined])
     expect(song.measures[0][0][0].map((beat) => beat.duration)).toEqual(['q', 'q', 'q', 'qr'])
-    expect(song.measures[1][0][0][0].notes.filter((note) => note != null).map((note) => note!.fret)).toEqual([36, 42])
+    expect(song.measures[1][0][0][0].notes.filter((note) => note != null).map((note) => note!.fret)).toEqual([
+      36, 42,
+    ])
   })
 
   it('reads GP6 track settings: tuning and capo on the track, GeneralMidi sound', () => {
-    const song = parseGpif(score({
-      track: `<Properties><Property name="Tuning"><Pitches>38 45 50 55 59 64</Pitches></Property>
+    const song = parseGpif(
+      score({
+        track: `<Properties><Property name="Tuning"><Pitches>38 45 50 55 59 64</Pitches></Property>
         <Property name="CapoFret"><Fret>3</Fret></Property></Properties>
         <GeneralMidi table="Instrument"><Program>24</Program><PrimaryChannel>2</PrimaryChannel></GeneralMidi>`,
-    }), 'gpx')
-    expect(song.tracks[0]).toMatchObject({ strings: [38, 45, 50, 55, 59, 64], capo: 3, program: 24, channel: { index: 2 } })
+      }),
+      'gpx',
+    )
+    expect(song.tracks[0]).toMatchObject({
+      strings: [38, 45, 50, 55, 59, 64],
+      capo: 3,
+      program: 24,
+      channel: { index: 2 },
+    })
   })
 
   it('splits GP6 grand-staff instruments into two tracks', () => {
-    const xml = score({ track: '<Instrument ref="a-piano-gs"/>' })
-      .replace('<Bars>0</Bars>', '<Bars>0 0</Bars>')
+    const xml = score({ track: '<Instrument ref="a-piano-gs"/>' }).replace(
+      '<Bars>0</Bars>',
+      '<Bars>0 0</Bars>',
+    )
     const song = parseGpif(xml, 'gpx')
     expect(song.tracks.map((track) => track.name)).toEqual(['T 1', 'T 2'])
     expect(song.measures).toHaveLength(2)
@@ -57,11 +75,22 @@ describe('GPIF import', () => {
   })
 
   it('reads tempo units, repeats and endings', () => {
-    const song = parseGpif(score({
-      bars: 2,
-      masterBar: '<Repeat start="true" end="true" count="4"/><AlternateEndings>2 3</AlternateEndings>',
-    }).replace('</MasterBars>', '</MasterBars><MasterTrack><Automations><Automation><Type>Tempo</Type><Bar>1</Bar><Value>60 4</Value></Automation></Automations></MasterTrack>'), 'gp')
-    expect(song.measureMeta[0]).toMatchObject({ bpm: 120, repeatOpen: true, repeatClose: 3, repeatAlternative: 0b110 })
+    const song = parseGpif(
+      score({
+        bars: 2,
+        masterBar: '<Repeat start="true" end="true" count="4"/><AlternateEndings>2 3</AlternateEndings>',
+      }).replace(
+        '</MasterBars>',
+        '</MasterBars><MasterTrack><Automations><Automation><Type>Tempo</Type><Bar>1</Bar><Value>60 4</Value></Automation></Automations></MasterTrack>',
+      ),
+      'gp',
+    )
+    expect(song.measureMeta[0]).toMatchObject({
+      bpm: 120,
+      repeatOpen: true,
+      repeatClose: 3,
+      repeatAlternative: 0b110,
+    })
     // 60 half notes per minute = 120 quarters
     expect(song.measureMeta[1].bpm).toBe(120)
   })
@@ -70,6 +99,8 @@ describe('GPIF import', () => {
     expect(() => parseGpif('<html></html>', 'gp')).toThrow(ImportError)
     expect(() => parseGpif('<GPIF><Tracks>', 'gp')).toThrow(ImportError)
     expect(() => parseGpif('<GPIF><Tracks></Tracks></GPIF>', 'gp')).toThrow(/no tracks/)
-    expect(() => parseGpif(score().replace(/<MasterBars>.*<\/MasterBars>/s, '<MasterBars></MasterBars>'), 'gp')).toThrow(/no bars/)
+    expect(() =>
+      parseGpif(score().replace(/<MasterBars>.*<\/MasterBars>/s, '<MasterBars></MasterBars>'), 'gp'),
+    ).toThrow(/no bars/)
   })
 })

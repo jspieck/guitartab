@@ -13,7 +13,7 @@ export function generateCurve(
   const values = new Float32Array(valueCount)
   for (let i = 0; i < valueCount; i += 1) {
     const percent = (i / valueCount) * duration * frequency
-    values[i] = base + (Math.sin(percent * 2 * Math.PI) * scale)
+    values[i] = base + Math.sin(percent * 2 * Math.PI) * scale
     if (i === valueCount - 1) {
       values[i] = 1
     }
@@ -22,19 +22,19 @@ export function generateCurve(
 }
 
 export function makeBend(
-  bendObj: { bendPosition: number, bendValue: number }[],
+  bendObj: { bendPosition: number; bendValue: number }[],
   source: AudioBufferSourceNode,
   duration: number,
   startpoint: number,
   playBackRate: number,
 ): void {
   const lastTime = startpoint + duration * (bendObj[0].bendPosition / 60)
-  const pBrate = playBackRate * 2 ** ((bendObj[0].bendValue / 100) / 12)
+  const pBrate = playBackRate * 2 ** (bendObj[0].bendValue / 100 / 12)
   source.playbackRate.setValueAtTime(pBrate, lastTime)
 
   for (let i = 1; i < bendObj.length; i += 1) {
     const newTime = startpoint + duration * (bendObj[i].bendPosition / 60)
-    const newValue = playBackRate * 2 ** ((bendObj[i].bendValue / 100) / 12)
+    const newValue = playBackRate * 2 ** (bendObj[i].bendValue / 100 / 12)
     source.playbackRate.exponentialRampToValueAtTime(newValue, newTime)
   }
 }
@@ -100,11 +100,7 @@ export interface EffectBus {
 }
 
 /** Apply mixer effect gain (0–127) onto a track bus. */
-export function setEffectGain(
-  bus: EffectBus,
-  value: number,
-  type: EffectGainType,
-): void {
+export function setEffectGain(bus: EffectBus, value: number, type: EffectGainType): void {
   switch (type) {
     case 'reverb':
       bus.convolver.wetGain = value / 127

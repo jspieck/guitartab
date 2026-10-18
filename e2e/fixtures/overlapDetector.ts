@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 export interface LayoutCollision {
   a: string
   b: string
-  overlap: { width: number, height: number }
+  overlap: { width: number; height: number }
 }
 
 /**
@@ -29,15 +29,27 @@ export async function findLayoutCollisions(page: Page, tolerance = 0.5): Promise
     const SELECTORS: Array<[string, string]> = [
       ['digit', '.tab-row .note-text'],
       ['digit', '.tab-row .grace-note'],
-      ['effect-text', '.tab-row .effect-text, .tab-row .bend-text, .tab-row .trill-text, .tab-row .grace-fret-text'],
-      ['effect-line', '.tab-row .bend-path, .tab-row .bend-arrow, .tab-row .vibrato-path, .tab-row .trill-wave, .tab-row .tremolo-bar-path, .tab-row .let-ring-line, .tab-row .tremolo-picking-line, .tab-row .effect-line'],
+      [
+        'effect-text',
+        '.tab-row .effect-text, .tab-row .bend-text, .tab-row .trill-text, .tab-row .grace-fret-text',
+      ],
+      [
+        'effect-line',
+        '.tab-row .bend-path, .tab-row .bend-arrow, .tab-row .vibrato-path, .tab-row .trill-wave, .tab-row .tremolo-bar-path, .tab-row .let-ring-line, .tab-row .tremolo-picking-line, .tab-row .effect-line',
+      ],
       ['arc', '.tab-row .slide-path, .tab-row .tie-path, .tab-row .pulldown-path, .tab-row .grace-slur'],
       ['annotation', '.tab-row .beat-text, .tab-row .dynamic-text, .tab-row .stroke-mark'],
-      ['measure-info', '.tab-row .block-number, .tab-row .bpm-marking, .tab-row .marker, .tab-row .alternative-ending, .tab-row .repeat-count-text'],
+      [
+        'measure-info',
+        '.tab-row .block-number, .tab-row .bpm-marking, .tab-row .marker, .tab-row .alternative-ending, .tab-row .repeat-count-text',
+      ],
       ['time-signature', '.tab-row .time-signature'],
       ['repeat', '.tab-row .repeat-dot'],
       ['chord', '.tab-row .chord-diagram'],
-      ['rhythm', '.tab-row .stem-line, .tab-row .beam-path, .tab-row .flag-path, .tab-row .rest-symbol, .tab-row .tuplet-bracket, .tab-row .tuplet-number'],
+      [
+        'rhythm',
+        '.tab-row .stem-line, .tab-row .beam-path, .tab-row .flag-path, .tab-row .rest-symbol, .tab-row .tuplet-bracket, .tab-row .tuplet-number',
+      ],
       ['staff', '.vexFlowRow .vf-stavenote, .vexFlowRow .vf-clef, .vexFlowRow .vf-stave'],
     ]
 
@@ -92,7 +104,7 @@ export async function findLayoutCollisions(page: Page, tolerance = 0.5): Promise
       })
     }
 
-    const collisions: Array<{ a: string, b: string, overlap: { width: number, height: number } }> = []
+    const collisions: Array<{ a: string; b: string; overlap: { width: number; height: number } }> = []
     for (let i = 0; i < marks.length; i += 1) {
       for (let j = i + 1; j < marks.length; j += 1) {
         const a = marks[i]

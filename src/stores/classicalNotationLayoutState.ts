@@ -79,7 +79,10 @@ export function publishClassicalLayoutMetrics(
 ): boolean {
   let changed = false
 
-  if (metrics.beatWidthByBlock && !sameRecord(classicalNotationLayoutState.beatWidthByBlock, metrics.beatWidthByBlock)) {
+  if (
+    metrics.beatWidthByBlock &&
+    !sameRecord(classicalNotationLayoutState.beatWidthByBlock, metrics.beatWidthByBlock)
+  ) {
     classicalNotationLayoutState.beatWidthByBlock = { ...metrics.beatWidthByBlock }
     changed = true
   }
@@ -143,6 +146,9 @@ export function getRowStaffExtents(startBlockId: number, endBlockIdExclusive: nu
 }
 
 /** Classical area of one row, sized from that row's notes only. */
-export function getClassicalRowGeometry(startBlockId: number, endBlockIdExclusive: number): ClassicalAreaGeometry {
+export function getClassicalRowGeometry(
+  startBlockId: number,
+  endBlockIdExclusive: number,
+): ClassicalAreaGeometry {
   return computeClassicalAreaGeometry(getRowStaffExtents(startBlockId, endBlockIdExclusive))
 }

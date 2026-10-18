@@ -36,7 +36,7 @@ export type AppEvents = {
   'classical-notation-changed': void
   'song-loaded': void
   'song-saved': void
-  
+
   // Menu events
   'menu.clickedOnPos': TabPosition
   'menu.activateEffectsForPos': TabPosition
@@ -48,27 +48,27 @@ export type AppEvents = {
   'menu.activateEffectsForBeat': TabBeat
   'menu.selectNoteLength': NoteLengthCode
   'menu.setEffectOnCollision': EffectCollisionData
-  
+
   // Selection events
   'selection.changed': SelectionChangeData | null
   'selection.cleared': void
-  
+
   // Playback events
   'playback.started': void
   'playback.stopped': void
   'playback.paused': void
   'playback.positionChanged': { blockId: number; beatId: number }
-  
+
   // UI events
   'ui.zoomChanged': number
   'ui.pageModeChanged': boolean
   'ui.disablePageMode': void
-  
+
   // Navigation events - for scrolling/clicking position in tab view
   'navigation.setClickedPos': TabPosition
   'navigation.scrollToBlock': { trackId: number; voiceId: number; blockId: number }
   'navigation.moveMarker': TabPosition & { pageId: number }
-  
+
   // Rendering events - for triggering re-renders
   'render.block': { trackId: number; blockId: number; voiceId: number }
   'render.blocks': { trackId: number; blockIds: number[]; voiceId: number }
@@ -77,7 +77,7 @@ export type AppEvents = {
   'render.durations': { trackId: number; blockId: number; voiceId: number }
   'render.chordDiagrams': void
   'render.deleteTrack': { trackId: number }
-  
+
   // Modal events
   'modal.opened': string
   'modal.closed': string

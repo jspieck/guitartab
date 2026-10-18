@@ -13,10 +13,7 @@ import {
   showPlaybackBar,
 } from '../../composables/usePlaybackBarState'
 import { getPositionMarkerHeight } from './tabLayoutMetrics'
-import {
-  resolveCurrentPlaybackPos,
-  resolveNextPlaybackXPos,
-} from './playbackPositionResolver'
+import { resolveCurrentPlaybackPos, resolveNextPlaybackXPos } from './playbackPositionResolver'
 
 let lastPlayBackBarPageId = -1
 let lastCurrentPos = 0
@@ -66,9 +63,10 @@ function movePlayBackBarToXPos(
     return
   }
 
-  if (Settings.songPlaying
-    && (lastPlayBackBarPageId !== pageId
-      || (useReactivePlaybackBar && !isPlaybackBarVisible()))) {
+  if (
+    Settings.songPlaying &&
+    (lastPlayBackBarPageId !== pageId || (useReactivePlaybackBar && !isPlaybackBarVisible()))
+  ) {
     hidePlayBackBars()
 
     if (useReactivePlaybackBar) {
@@ -107,8 +105,7 @@ export function movePlayBackBarToPosInBlock(
   const leftOffset = Helper.getLeftOffset(blockId)
   let xPos = renderBridge.getBlockX(trackId, voiceId, blockId) + leftOffset + 5
 
-  const timeQuotient = Song.measureMeta[blockId].numerator
-    / Song.measureMeta[blockId].denominator
+  const timeQuotient = Song.measureMeta[blockId].numerator / Song.measureMeta[blockId].denominator
   const posPercentage = posInBlock / (64 * timeQuotient)
   const blockWidth = renderBridge.getBlockWidth(trackId, voiceId, blockId)
 

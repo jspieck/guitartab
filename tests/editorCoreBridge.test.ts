@@ -37,13 +37,7 @@ vi.mock('../src/assets/js/tab', async () => {
       return { minWidth: 200, minOffset: 40, num16ths: 4 }
     }
 
-    static deleteNote(
-      trackId: number,
-      blockId: number,
-      voiceId: number,
-      beatId: number,
-      string: number,
-    ) {
+    static deleteNote(trackId: number, blockId: number, voiceId: number, beatId: number, string: number) {
       Song.measures[trackId][blockId][voiceId][beatId].notes[string] = null
     }
   }
@@ -87,7 +81,10 @@ import Song, {
   type Track,
 } from '../src/assets/js/songData'
 import { resetPlaybackBarState, usePlaybackBarState } from '../src/composables/usePlaybackBarState'
-import { registerSelectionSurface, resetSelectionSurfaceState } from '../src/composables/useSelectionSurfaceState'
+import {
+  registerSelectionSurface,
+  resetSelectionSurfaceState,
+} from '../src/composables/useSelectionSurfaceState'
 import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/useTabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
@@ -226,12 +223,7 @@ describe('editorCore bridge', () => {
   it('stores modern layout in the render bridge and keeps tab arrays synced', () => {
     const { getTrackLayout } = useTabRenderLayout()
 
-    Song.measures = [
-      [
-        [[Song.defaultMeasure()]],
-        [[Song.defaultMeasure()]],
-      ],
-    ]
+    Song.measures = [[[[Song.defaultMeasure()]], [[Song.defaultMeasure()]]]]
 
     const rows = editorCore.buildModernTabRows(0, 0, Song.measures[0], {
       availableWidth: 250,
@@ -275,13 +267,9 @@ describe('editorCore bridge', () => {
     editorCore.setNoteAtPosition(0, 0, 0, 1, 2, 7)
     editorCore.setNoteAtPosition(0, 0, 0, 3, 2, 9)
 
-    expect(
-      editorCore.findPreviousNoteOnString(0, 0, 0, 3, 2),
-    ).toEqual({ blockId: 0, beatId: 1 })
+    expect(editorCore.findPreviousNoteOnString(0, 0, 0, 3, 2)).toEqual({ blockId: 0, beatId: 1 })
 
-    expect(
-      editorCore.findPreviousNoteOnString(0, 0, 0, 0, 2),
-    ).toBeNull()
+    expect(editorCore.findPreviousNoteOnString(0, 0, 0, 0, 2)).toBeNull()
   })
 })
 

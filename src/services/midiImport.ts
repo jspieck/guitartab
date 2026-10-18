@@ -30,12 +30,25 @@ export interface ImportedSong {
 }
 
 type MidiEvent = MidiFileData['tracks'][number]['events'][number]
-interface MidiNote { start: number, end: number, pitch: number, velocity: number }
-interface NoteGroup { name: string, channel: number, notes: MidiNote[] }
-interface Bar { start: number, length: number, meta: MeasureMetaInfo }
+interface MidiNote {
+  start: number
+  end: number
+  pitch: number
+  velocity: number
+}
+interface NoteGroup {
+  name: string
+  channel: number
+  notes: MidiNote[]
+}
+interface Bar {
+  start: number
+  length: number
+  meta: MeasureMetaInfo
+}
 interface Timeline {
-  tempos: { tick: number, bpm: number }[]
-  meters: { tick: number, numerator: number, denominator: number }[]
+  tempos: { tick: number; bpm: number }[]
+  meters: { tick: number; numerator: number; denominator: number }[]
   groups: Map<string, NoteGroup>
   programs: Map<number, number>
 }
@@ -45,7 +58,7 @@ const GUITAR_TUNING = [40, 45, 50, 55, 59, 64]
 const BASS_TUNING = [28, 33, 38, 43]
 const MAX_FRET = 24
 // Note values in 16ths, longest first; dotted values included.
-const NOTE_VALUES: { sixteenths: number, duration: string, dotted: boolean }[] = [
+const NOTE_VALUES: { sixteenths: number; duration: string; dotted: boolean }[] = [
   { sixteenths: 16, duration: 'w', dotted: false },
   { sixteenths: 12, duration: 'h', dotted: true },
   { sixteenths: 8, duration: 'h', dotted: false },
@@ -60,7 +73,11 @@ function largestValue(sixteenths: number) {
   return NOTE_VALUES.find((value) => value.sixteenths <= sixteenths) ?? NOTE_VALUES[NOTE_VALUES.length - 1]
 }
 
-function makeBeat(value: { duration: string, dotted: boolean }, notes: (Note | null)[] | null, stringCount: number): Beat {
+function makeBeat(
+  value: { duration: string; dotted: boolean },
+  notes: (Note | null)[] | null,
+  stringCount: number,
+): Beat {
   const beat = Song.defaultMeasure()
   beat.duration = notes == null ? `${value.duration}r` : value.duration
   beat.dotted = value.dotted
@@ -95,20 +112,32 @@ function readMetaEvent(event: MidiEvent, tick: number, timeline: Timeline): void
   } else if (event.metaType === 0x58 && event.metaData.length >= 2) {
     const numerator = event.metaData[0]
     const denominator = 2 ** event.metaData[1]
-    if (numerator > 0 && numerator <= 32 && denominator <= 32) timeline.meters.push({ tick, numerator, denominator })
+    if (numerator > 0 && numerator <= 32 && denominator <= 32)
+      timeline.meters.push({ tick, numerator, denominator })
   }
 }
 
-function readChannelEvent(event: MidiEvent, tick: number, trackName: string, key: string, timeline: Timeline): void {
+function readChannelEvent(
+  event: MidiEvent,
+  tick: number,
+  trackName: string,
+  key: string,
+  timeline: Timeline,
+): void {
   const channel = event.midiChannel
-  if (event.midiEventType === 0x0c && !timeline.programs.has(channel)) timeline.programs.set(channel, event.parameter1)
+  if (event.midiEventType === 0x0c && !timeline.programs.has(channel))
+    timeline.programs.set(channel, event.parameter1)
   const velocity = event.parameter2 ?? 0
   if (event.midiEventType === 0x09 && velocity > 0) {
     if (!timeline.groups.has(key)) timeline.groups.set(key, { name: trackName, channel, notes: [] })
-    timeline.groups.get(key)!.notes.push({ start: tick, end: Number.POSITIVE_INFINITY, pitch: event.parameter1, velocity })
+    timeline.groups
+      .get(key)!
+      .notes.push({ start: tick, end: Number.POSITIVE_INFINITY, pitch: event.parameter1, velocity })
   } else if (event.midiEventType === 0x08 || event.midiEventType === 0x09) {
     // Note off (or note on with velocity 0) ends the earliest still-sounding note of that pitch.
-    const open = timeline.groups.get(key)?.notes.find((note) => note.pitch === event.parameter1 && !Number.isFinite(note.end))
+    const open = timeline.groups
+      .get(key)
+      ?.notes.find((note) => note.pitch === event.parameter1 && !Number.isFinite(note.end))
     if (open) open.end = tick
   }
 }
@@ -120,7 +149,8 @@ function readTimeline(midi: MidiFileData): Timeline {
     for (const event of track.events) {
       tick += event.delta
       if (event.type === 'meta') readMetaEvent(event, tick, timeline)
-      else if (event.type === 'MIDI') readChannelEvent(event, tick, track.trackName, `${trackIndex}:${event.midiChannel}`, timeline)
+      else if (event.type === 'MIDI')
+        readChannelEvent(event, tick, track.trackName, `${trackIndex}:${event.midiChannel}`, timeline)
     }
   })
   timeline.tempos.sort((a, b) => a.tick - b.tick)
@@ -137,8 +167,11 @@ function buildBars(timeline: Timeline, lastOnset: number, toSixteenths: (tick: n
     if (bars.length >= IMPORT_LIMITS.measures) {
       throw new ImportError(`The song is longer than ${IMPORT_LIMITS.measures} bars.`, 'mid')
     }
-    const change = [...timeline.meters].reverse().find((candidate) => toSixteenths(candidate.tick) <= position)
-    const changed = change != null && (change.numerator !== meter.numerator || change.denominator !== meter.denominator)
+    const change = [...timeline.meters]
+      .reverse()
+      .find((candidate) => toSixteenths(candidate.tick) <= position)
+    const changed =
+      change != null && (change.numerator !== meter.numerator || change.denominator !== meter.denominator)
     if (change) meter = { numerator: change.numerator, denominator: change.denominator }
     const meta = Song.defaultMeasureMeta()
     meta.numerator = meter.numerator
@@ -152,7 +185,9 @@ function buildBars(timeline: Timeline, lastOnset: number, toSixteenths: (tick: n
   bars[0].meta.bpm = timeline.tempos.find((tempo) => tempo.tick === 0)?.bpm ?? timeline.tempos[0]?.bpm ?? 120
   for (const tempo of timeline.tempos) {
     const at = toSixteenths(tempo.tick)
-    const bar = bars.findIndex((candidate) => at >= candidate.start && at < candidate.start + candidate.length)
+    const bar = bars.findIndex(
+      (candidate) => at >= candidate.start && at < candidate.start + candidate.length,
+    )
     if (bar > 0) bars[bar].meta.bpm = tempo.bpm
   }
   return bars
@@ -186,7 +221,9 @@ function collectOnsets(group: NoteGroup, toSixteenths: (tick: number) => number)
   for (const note of group.notes) {
     const at = toSixteenths(note.start)
     onsets.set(at, [...(onsets.get(at) ?? []), note.pitch])
-    const length = Number.isFinite(note.end) ? Math.max(1, toSixteenths(note.end) - at) : Number.POSITIVE_INFINITY
+    const length = Number.isFinite(note.end)
+      ? Math.max(1, toSixteenths(note.end) - at)
+      : Number.POSITIVE_INFINITY
     lengths.set(at, Math.max(lengths.get(at) ?? 0, length))
   }
   return { onsets, lengths }
@@ -199,7 +236,9 @@ function buildBarBeats(
   tuning: number[],
   isDrums: boolean,
 ): Beat[] {
-  const starts = [...onsets.keys()].filter((at) => at >= bar.start && at < bar.start + bar.length).sort((a, b) => a - b)
+  const starts = [...onsets.keys()]
+    .filter((at) => at >= bar.start && at < bar.start + bar.length)
+    .sort((a, b) => a - b)
   const beats: Beat[] = []
   const fillRests = (sixteenths: number) => {
     for (let left = sixteenths; left > 0;) {
@@ -214,7 +253,9 @@ function buildBarBeats(
     const end = starts[i + 1] ?? bar.start + bar.length
     // Short notes followed by silence keep their length; the gap becomes rests.
     const value = largestValue(Math.min(end - at, lengths.get(at) ?? Number.POSITIVE_INFINITY))
-    const frets = isDrums ? [...new Set(onsets.get(at)!)].slice(0, tuning.length) : placeOnStrings(onsets.get(at)!, tuning)
+    const frets = isDrums
+      ? [...new Set(onsets.get(at)!)].slice(0, tuning.length)
+      : placeOnStrings(onsets.get(at)!, tuning)
     const notes: (Note | null)[] = new Array(tuning.length).fill(null)
     frets.forEach((fret, string) => {
       if (fret != null) notes[string] = { ...Song.defaultNote(), fret, string, velocity: 96 }
@@ -243,10 +284,14 @@ export function buildSongFromMidi(midi: MidiFileData, fileName: string): Importe
 
   const sixteenth = midi.ticksPerBeat / 4
   const toSixteenths = (tick: number) => Math.round(tick / sixteenth)
-  const lastOnset = Math.max(...playable.flatMap((group) => group.notes.map((note) => toSixteenths(note.start))))
+  const lastOnset = Math.max(
+    ...playable.flatMap((group) => group.notes.map((note) => toSixteenths(note.start))),
+  )
   const bars = buildBars(timeline, lastOnset, toSixteenths)
 
-  const tracks = playable.map((group, index) => buildTrack(group, index, chooseTuning(group), timeline.programs))
+  const tracks = playable.map((group, index) =>
+    buildTrack(group, index, chooseTuning(group), timeline.programs),
+  )
   const measures = playable.map((group, index) => {
     const tuning = tracks[index].strings
     const onsets = collectOnsets(group, toSixteenths)

@@ -139,7 +139,11 @@ export function getAvailableTupletOptions(duration: string): number[] {
   return tuplets
 }
 
-function collectPressedModifierButtons(beat: Beat, note: Note | null | undefined, pressedButtonIds: Set<string>): void {
+function collectPressedModifierButtons(
+  beat: Beat,
+  note: Note | null | undefined,
+  pressedButtonIds: Set<string>,
+): void {
   if (beat.dotted) pressedButtonIds.add('dotted')
   if (beat.doubleDotted) pressedButtonIds.add('doubleDotted')
   if (beat.tuplet != null) pressedButtonIds.add('tuplet')

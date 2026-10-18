@@ -5,20 +5,9 @@ import tseslint from 'typescript-eslint'
 
 const lintTargets = [
   'vite.config.ts',
-  'src/App.vue',
-  'src/components/BaseModal.vue',
-  'src/components/CloudSongsModal.vue',
-  'src/components/Compressor.vue',
-  'src/components/Equalizer.vue',
-  'src/components/Footer.vue',
-  'src/components/Menu.vue',
-  'src/components/AddChordModal.vue',
-  'src/components/ChordManagerModal.vue',
-  'src/components/ChordThumbnail.vue',
-  'src/components/TremoloBarModal.vue',
-  'src/components/BendModal.vue',
-  'src/components/tab/**/*.vue',
+  'src/**/*.vue',
   'src/composables/**/*.ts',
+  'src/stores/**/*.ts',
   'src/services/**/*.ts',
   'src/types/**/*.ts',
   'src/utils/**/*.ts',
@@ -27,6 +16,10 @@ const lintTargets = [
   'src/assets/js/modals/tremoloBarModalHandler.ts',
   'src/assets/js/modals/chordModalHandler.ts',
   'tests/**/*.ts',
+  'e2e/**/*.ts',
+  'scripts/**/*.mjs',
+  'eslint.config.mjs',
+  'playwright.config.ts',
 ]
 
 export default [
@@ -35,17 +28,18 @@ export default [
       'dist/**',
       'node_modules/**',
       'public/**',
-      // Vendored / legacy assets — except critical editor handlers below
-      'src/assets/js/pdfkit.js',
-      'src/assets/js/jspdf.debug.js',
-      'src/assets/js/blob-stream.js',
-      'src/assets/js/svgToPdf.js',
-      'src/assets/js/pdfCreationWorker.js',
-      'src/assets/images/**',
-      'src/assets/css/**',
-      'src/assets/fonts/**',
-      'src/assets/index.html',
-      'src/assets/main.ts',
+      'coverage/**',
+      'test-results/**',
+      'playwright-report/**',
+      'src/vue-shims.d.ts',
+      // The legacy core (src/assets/js) is not linted yet, except the handlers listed in lintTargets.
+      'src/assets/js/**',
+      '!src/assets/js/revertHandler.ts',
+      '!src/assets/js/modals/',
+      'src/assets/js/modals/**',
+      '!src/assets/js/modals/bendModalHandler.ts',
+      '!src/assets/js/modals/tremoloBarModalHandler.ts',
+      '!src/assets/js/modals/chordModalHandler.ts',
     ],
   },
   js.configs.recommended,
@@ -66,24 +60,40 @@ export default [
     },
     rules: {
       complexity: ['warn', 15],
-      'max-lines-per-function': ['warn', {
-        max: 80,
-        skipBlankLines: true,
-        skipComments: true,
-      }],
+      'max-lines-per-function': [
+        'warn',
+        {
+          max: 80,
+          skipBlankLines: true,
+          skipComments: true,
+        },
+      ],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'vue/multi-word-component-names': 'off',
+      // TypeScript already reports undefined names, and knows DOM types such as BiquadFilterType.
+      'no-undef': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        ignoreRestSiblings: true,
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
   {
-    files: ['tests/**/*.ts'],
+    files: ['tests/**/*.ts', 'e2e/**/*.ts'],
     rules: {
       'max-lines-per-function': 'off',
+    },
+  },
+  {
+    // Command-line scripts and benchmarks report on the console.
+    files: ['scripts/**/*.mjs', 'e2e/perf-*.spec.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ]

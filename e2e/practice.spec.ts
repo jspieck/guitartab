@@ -19,14 +19,16 @@ async function recordAudio(page: Page): Promise<void> {
       playClick(time, accent)
     }
     const playNote = audioEngine.playSF2.bind(audioEngine) as (...args: unknown[]) => unknown
-    ;(audioEngine as unknown as { playSF2: (...args: unknown[]) => unknown }).playSF2 = (...args: unknown[]) => {
+    ;(audioEngine as unknown as { playSF2: (...args: unknown[]) => unknown }).playSF2 = (
+      ...args: unknown[]
+    ) => {
       log.push({ kind: 'note', time: args[5] as number })
       return playNote(...args)
     }
   })
 }
 
-async function playFor(page: Page, ms: number): Promise<{ clicks: AudioEvent[], notes: AudioEvent[] }> {
+async function playFor(page: Page, ms: number): Promise<{ clicks: AudioEvent[]; notes: AudioEvent[] }> {
   await page.locator('#play').click()
   await page.waitForTimeout(ms)
   await page.locator('#play').click()
@@ -122,7 +124,8 @@ test.describe('practice transport', () => {
     await page.locator('#speedTrainerToggle').click()
 
     await page.locator('#play').click()
-    await expect.poll(async () => Number(await page.locator('#playbackSpeed').inputValue()), { timeout: 12_000 })
+    await expect
+      .poll(async () => Number(await page.locator('#playbackSpeed').inputValue()), { timeout: 12_000 })
       .toBeGreaterThan(1)
     await page.locator('#play').click()
   })

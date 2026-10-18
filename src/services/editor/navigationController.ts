@@ -2,9 +2,7 @@ import Settings from '../../assets/js/settingManager'
 import AppManager from '../../assets/js/appManager'
 import { tab } from '../../assets/js/tab'
 import renderBridge from './renderBridge'
-import {
-  getBlockRenderPageId,
-} from '../../composables/useTabRenderLayout'
+import { getBlockRenderPageId } from '../../composables/useTabRenderLayout'
 import { getYPosOfPage } from './tabLayoutMetrics'
 import { getScrollTop, setScrollTop, TAB_SHEET } from '../../utils/tabSheetConstants'
 import { getRowRenderLayout, getTrackRenderLayout } from '../../composables/useTabRenderLayout'
@@ -29,12 +27,7 @@ export function scrollToSvgBlock(trackId: number, voiceId: number, blockId: numb
  * when it isn't (playback reached the bottom of the screen, or jumped back), the view scrolls
  * once so the row sits just below the top and the following rows show underneath.
  */
-export function scrollToSvgPos(
-  trackId: number,
-  voiceId: number,
-  rowId: number,
-  blockId: number,
-): void {
+export function scrollToSvgPos(trackId: number, voiceId: number, rowId: number, blockId: number): void {
   if (AppManager.duringTrackCreation) {
     return
   }
@@ -44,9 +37,10 @@ export function scrollToSvgPos(
     return
   }
   const span = measuredRowSpan(mainContentDiv, trackId, voiceId, rowId)
-  const target = span != null
-    ? revealScrollTop(span, mainContentDiv.scrollTop, mainContentDiv.clientHeight)
-    : estimatedRowScrollTop(trackId, voiceId, rowId, blockId)
+  const target =
+    span != null
+      ? revealScrollTop(span, mainContentDiv.scrollTop, mainContentDiv.clientHeight)
+      : estimatedRowScrollTop(trackId, voiceId, rowId, blockId)
   if (target == null) {
     return
   }
@@ -59,7 +53,12 @@ export function scrollToSvgPos(
  * coordinates, measured through the sheet's own transform (zoom, page margins).
  * Null when the sheet isn't rendered.
  */
-function measuredRowSpan(scroller: HTMLElement, trackId: number, voiceId: number, rowId: number): { top: number, bottom: number } | null {
+function measuredRowSpan(
+  scroller: HTMLElement,
+  trackId: number,
+  voiceId: number,
+  rowId: number,
+): { top: number; bottom: number } | null {
   const row = getRowRenderLayout(trackId, voiceId, rowId)
   const content = scroller.querySelector('.tab-svg > g')
   if (!row || !(content instanceof SVGGraphicsElement)) {
@@ -77,7 +76,12 @@ function measuredRowSpan(scroller: HTMLElement, trackId: number, voiceId: number
 }
 
 /** Fallback without a rendered sheet: the row's position from the layout numbers. */
-function estimatedRowScrollTop(trackId: number, voiceId: number, rowId: number, blockId: number): number | null {
+function estimatedRowScrollTop(
+  trackId: number,
+  voiceId: number,
+  rowId: number,
+  blockId: number,
+): number | null {
   const rowY = renderBridge.getRowY(trackId, voiceId, rowId)
   if (rowY === 0 && renderBridge.getRowIdForBlock(trackId, voiceId, blockId) == null) {
     return null

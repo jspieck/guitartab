@@ -61,13 +61,17 @@ export const practiceState = reactive<PracticeSettings>(
   typeof localStorage === 'undefined' ? { ...DEFAULTS } : readStored(),
 )
 
-watch(practiceState, (settings) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-  } catch {
-    // Storage unavailable: settings last for this session only.
-  }
-}, { deep: true })
+watch(
+  practiceState,
+  (settings) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    } catch {
+      // Storage unavailable: settings last for this session only.
+    }
+  },
+  { deep: true },
+)
 
 export function setPlaybackRate(rate: number): void {
   practiceState.playbackRate = clampPlaybackRate(rate)

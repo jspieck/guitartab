@@ -15,15 +15,8 @@ interface GuitarTabLayoutProps {
 
 const HEADER_HEIGHT = 80
 
-export function useGuitarTabLayout(
-  props: Readonly<GuitarTabLayoutProps>,
-  renderVersion: Ref<number>,
-) {
-  const {
-    reactiveSongData,
-    songDataVersion,
-    syncSongData,
-  } = useSongData()
+export function useGuitarTabLayout(props: Readonly<GuitarTabLayoutProps>, renderVersion: Ref<number>) {
+  const { reactiveSongData, songDataVersion, syncSongData } = useSongData()
 
   const margins = computed(() => getPageMargins(props.width, props.height))
   const paddingLeft = computed(() => margins.value.left)

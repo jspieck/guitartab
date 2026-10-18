@@ -75,7 +75,11 @@ export function fitCompactSheet(container: HTMLElement, requestedZoom = readComp
   if (container.clientWidth === 0) return false
   const zoom = effectiveCompactZoom(container.clientWidth, requestedZoom)
   const width = compactSheetWidth(container.clientWidth, zoom)
-  if (!tabViewportState.pageMode && tabViewportState.sheetWidthPx === width && tabViewportState.zoom === zoom) {
+  if (
+    !tabViewportState.pageMode &&
+    tabViewportState.sheetWidthPx === width &&
+    tabViewportState.zoom === zoom
+  ) {
     return false
   }
   applyViewportPageMode(false, width)
@@ -99,7 +103,7 @@ export function setCompactZoom(container: HTMLElement, zoom: number): number {
   return next
 }
 
-export function pinchDistance(a: { x: number, y: number }, b: { x: number, y: number }): number {
+export function pinchDistance(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.hypot(a.x - b.x, a.y - b.y)
 }
 
@@ -108,7 +112,7 @@ export function pinchDistance(a: { x: number, y: number }, b: { x: number, y: nu
  * (cheap); when they lift, the rows reflow at the new zoom.
  */
 function attachPinchZoom(container: HTMLElement): () => void {
-  const pointers = new Map<number, { x: number, y: number }>()
+  const pointers = new Map<number, { x: number; y: number }>()
   let startDistance = 0
   let startZoom = 1
   let scale = 1

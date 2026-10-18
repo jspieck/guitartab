@@ -30,8 +30,12 @@ describe('SaveFormatMenu', () => {
     // Teleported to <body>, not inside the (clipping) toolbar markup.
     expect(popover()?.parentElement).toBe(document.body)
     expect(wrapper!.element.contains(popover())).toBe(false)
-    expect([...document.querySelectorAll('[role="menuitem"]')].map((item) => item.id))
-      .toEqual(['download-gt', 'download-gpx', 'download-gp5', 'download-musicxml'])
+    expect([...document.querySelectorAll('[role="menuitem"]')].map((item) => item.id)).toEqual([
+      'download-gt',
+      'download-gpx',
+      'download-gp5',
+      'download-musicxml',
+    ])
     expect(wrapper!.get('#downloadGP').attributes('aria-expanded')).toBe('true')
   })
 

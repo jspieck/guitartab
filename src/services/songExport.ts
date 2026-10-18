@@ -57,7 +57,11 @@ export function exportSong(format: ExportFormat): void {
     } else if (format === 'gpx') {
       download(songAsGpx(), `${baseName()}.gpx`, 'application/octet-stream')
     } else {
-      download(songAsMusicXml(), musicXmlFileName(Song.songDescription.title), 'application/vnd.recordare.musicxml+xml')
+      download(
+        songAsMusicXml(),
+        musicXmlFileName(Song.songDescription.title),
+        'application/vnd.recordare.musicxml+xml',
+      )
     }
   } catch (error) {
     console.error('Export failed', error)

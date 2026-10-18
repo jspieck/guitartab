@@ -9,7 +9,9 @@ async function readFirstBeats(page: Page) {
     const beats = Song.measures[0][0][0]
     return {
       cursor: { beatId: tab.markedNoteObj.beatId, string: tab.markedNoteObj.string },
-      beats: beats.map((beat) => `${beat.duration}:${Array.from(beat.notes, (note) => note?.fret ?? '-').join(',')}`),
+      beats: beats.map(
+        (beat) => `${beat.duration}:${Array.from(beat.notes, (note) => note?.fret ?? '-').join(',')}`,
+      ),
     }
   })
 }
@@ -22,7 +24,10 @@ async function isPlaying(page: Page): Promise<boolean> {
 }
 
 async function selectTopStringOfFirstBeat(page: Page): Promise<void> {
-  await page.locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+  await page
+    .locator('.string-click-area')
+    .first()
+    .click({ position: { x: 80, y: 4 } })
 }
 
 test.describe('keyboard shortcuts', () => {
@@ -131,7 +136,10 @@ test.describe('first-run hint', () => {
 
   test('"All shortcuts" opens the shortcut list', async ({ page }) => {
     await waitForEditorShell(page, { demo: 'arrangement' })
-    await page.locator('#firstRunHint').getByRole('button', { name: /All shortcuts/ }).click()
+    await page
+      .locator('#firstRunHint')
+      .getByRole('button', { name: /All shortcuts/ })
+      .click()
     await expect(page.locator('#shortcutsHelp')).toBeVisible()
     await expect(page.locator('#firstRunHint')).toHaveCount(0)
   })

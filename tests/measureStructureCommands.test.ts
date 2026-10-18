@@ -4,6 +4,7 @@ vi.mock('../src/assets/js/appManager', () => ({
   default: {
     duringTrackCreation: false,
     setTracks: vi.fn(),
+    showNotification: vi.fn(),
   },
 }))
 
@@ -17,6 +18,8 @@ vi.mock('../src/assets/js/revertHandler', () => ({
   revertHandler: {
     addBlock: vi.fn(),
     removeBlock: vi.fn(),
+    peekUndo: vi.fn(),
+    revertState: vi.fn(),
   },
 }))
 
@@ -97,7 +100,11 @@ describe('measureStructureCommands', () => {
     const host = createHost()
     addBlock(host, true)
     host.markedNoteObj = {
-      trackId: 0, voiceId: 0, blockId: Song.numMeasures - 1, beatId: 3, string: 0,
+      trackId: 0,
+      voiceId: 0,
+      blockId: Song.numMeasures - 1,
+      beatId: 3,
+      string: 0,
     }
     const before = Song.numMeasures
 
@@ -107,6 +114,36 @@ describe('measureStructureCommands', () => {
     expect(host.markedNoteObj.blockId).toBe(Song.numMeasures - 1)
     expect(host.markedNoteObj.beatId).toBe(0)
     expect(revertHandler.removeBlock).toHaveBeenCalled()
+  })
+
+  it('removeBlock offers an Undo that only reverts while the removal is the last edit', () => {
+    const removal = { type: 'RemoveBlock', info: {} }
+    vi.mocked(revertHandler.peekUndo).mockReturnValue(removal)
+    const host = createHost()
+    addBlock(host, true)
+    const before = Song.numMeasures
+
+    removeBlock(host, false)
+
+    const [text, kind, action] = vi.mocked(AppManager.showNotification).mock.calls.at(-1)!
+    expect(text).toBe(`Removed bar ${before}`)
+    expect(kind).toBe('info')
+    expect(action?.label).toBe('Undo')
+
+    vi.mocked(revertHandler.peekUndo).mockReturnValue({ type: 'NotePlacement', info: {} })
+    action!.run()
+    expect(revertHandler.revertState).not.toHaveBeenCalled()
+
+    vi.mocked(revertHandler.peekUndo).mockReturnValue(removal)
+    action!.run()
+    expect(revertHandler.revertState).toHaveBeenCalledTimes(1)
+  })
+
+  it('removeBlock does not offer Undo while restoring', () => {
+    const host = createHost()
+    addBlock(host, true)
+    removeBlock(host, true)
+    expect(AppManager.showNotification).not.toHaveBeenCalled()
   })
 
   it('createNewTrack seeds measures and offsets for a track', () => {

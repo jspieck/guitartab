@@ -45,7 +45,7 @@
               <span class="cloud-song-updated">Updated {{ formatDate(song.updatedAt) }}</span>
             </div>
             <div class="cloud-song-buttons">
-              <button type="button" class="modal-secondary-button" @click="openSong(song.id)">Open</button>
+              <button type="button" class="modal-secondary-button" @click="openSong(song.id, song.title || 'Untitled')">Open</button>
               <button type="button" class="modal-secondary-button" @click="setShareUrl(song.id)">Share</button>
             </div>
           </li>
@@ -63,6 +63,7 @@ import AppManager from '../assets/js/appManager'
 import { modalManager } from '../assets/js/modals/modalManager'
 import { serializeSongToGtBytes } from '../utils/gtSerialization'
 import { loadCloudSongById } from '../services/cloudSongLoader'
+import { confirmReplaceUnsavedSong } from '../services/songAutosave'
 import {
   getCloudShareUrl,
   getStoredCloudApiKey,
@@ -130,7 +131,8 @@ async function saveCurrentToCloud() {
   }
 }
 
-async function openSong(songId: string) {
+async function openSong(songId: string, title: string) {
+  if (!confirmReplaceUnsavedSong(title)) return
   loading.value = true
   statusMessage.value = ''
   try {

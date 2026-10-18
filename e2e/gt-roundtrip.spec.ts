@@ -15,7 +15,15 @@ test.describe('.gt files', () => {
 
       const beat = Song.measures[0][1][0][0]
       beat.text = 'Chorus'
-      beat.chord = { name: 'A', capo: 0, frets: [0, 2, 2, 2, 0, -1], fingers: [], chordType: '', chordRoot: 'A', display: true }
+      beat.chord = {
+        name: 'A',
+        capo: 0,
+        frets: [0, 2, 2, 2, 0, -1],
+        fingers: [],
+        chordType: '',
+        chordRoot: 'A',
+        display: true,
+      }
       audioEngine.noteToDrum.get(38)![2] = 0.5
 
       const bytes = serializeSongToGtBytes()
@@ -63,7 +71,13 @@ test.describe('.gt files', () => {
         audible: audioEngine.isDrumAudible(36),
       }
     })
-    expect(result).toEqual({ legacyText: 'Legacy text', flagsLeft: 0, nullChords: 0, drumMapIsMap: true, audible: true })
+    expect(result).toEqual({
+      legacyText: 'Legacy text',
+      flagsLeft: 0,
+      nullChords: 0,
+      drumMapIsMap: true,
+      audible: true,
+    })
     await expect(page.locator('.tab-row').first()).toBeVisible()
   })
 })

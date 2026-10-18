@@ -97,9 +97,14 @@ test.describe('incremental tab rendering', () => {
     await waitForEditorShell(page)
 
     const firstRow = page.locator('.tab-row').first()
-    await firstRow.evaluate((element) => { element.setAttribute('data-e2e-marker', 'kept') })
+    await firstRow.evaluate((element) => {
+      element.setAttribute('data-e2e-marker', 'kept')
+    })
 
-    await page.locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page
+      .locator('.string-click-area')
+      .first()
+      .click({ position: { x: 80, y: 4 } })
     await page.keyboard.press('7')
     const note = page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^7$/ })
     await expect(note).toHaveCount(1, { timeout: 5_000 })
@@ -120,12 +125,21 @@ test.describe('pointer hit-testing on long songs', () => {
   test('enters the note in the clicked row when the song is longer than one page', async ({ page }) => {
     await waitForEditorShell(page)
     await growSong(page)
-    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = 0 })
+    await page.locator('#mainContent').evaluate((element) => {
+      element.scrollTop = 0
+    })
 
-    await page.locator('.tab-row').first().locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page
+      .locator('.tab-row')
+      .first()
+      .locator('.string-click-area')
+      .first()
+      .click({ position: { x: 80, y: 4 } })
     await page.keyboard.press('9')
 
-    await expect(page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^9$/ })).toHaveCount(1)
+    await expect(
+      page.locator('.tab-row').first().locator('.note-text').filter({ hasText: /^9$/ }),
+    ).toHaveCount(1)
   })
 })
 
@@ -150,6 +164,6 @@ test.describe('selection indicator', () => {
       const box = (await locator.boundingBox())!
       return box.x + box.width / 2
     }
-    expect(Math.abs(await center(indicator) - await center(digit))).toBeLessThanOrEqual(1)
+    expect(Math.abs((await center(indicator)) - (await center(digit)))).toBeLessThanOrEqual(1)
   })
 })

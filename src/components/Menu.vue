@@ -288,6 +288,7 @@ import { overlayHandler } from '../assets/js/overlayHandler';
 import { onMounted, onBeforeUnmount, reactive, ref } from 'vue';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
+import { confirmReplaceUnsavedSong } from '../services/songAutosave';
 import type { Note, Beat, TabPosition } from '../types/tab';
 import { useEditorScopeState } from '../composables/useEditorScopeState';
 import { setTempoState, useTempoState } from '../composables/useTempoState';
@@ -448,11 +449,12 @@ function openGuitarProFile() {
 function handleFileSelect(event: Event) {
     const input = event.target as HTMLInputElement;
     const files = input.files;
-    if (files && files.length > 0) {
+    // Asked after picking, so the question can name the file.
+    if (files && files.length > 0 && confirmReplaceUnsavedSong(files[0].name)) {
         gProReader.handleFiles(files);
-        // Reset the input so the same file can be selected again
-        input.value = '';
     }
+    // Reset the input so the same file can be selected again
+    input.value = '';
 }
 
 function openCloudSongsModal() {

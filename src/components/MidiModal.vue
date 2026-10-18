@@ -21,10 +21,6 @@
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
 import { MODALS } from "../assets/js/modals/modalTypes";
-import { MidiModalHandler } from "../assets/js/modals/MidiModalHandler";
-import { modalManager } from "../assets/js/modals/modalManager";
-
-const handler = modalManager.getHandler<MidiModalHandler>(MODALS.MIDI.id);
 </script>
 
 <style scoped>

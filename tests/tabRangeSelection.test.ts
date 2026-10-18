@@ -3,10 +3,18 @@ import type { RenderedTabRow } from '../src/types/tab'
 import { findRowAtY, resolveStringIndexInRow } from '../src/utils/tabLayout'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 function row(id: number, yOffset: number): RenderedTabRow {

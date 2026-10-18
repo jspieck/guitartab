@@ -4,11 +4,7 @@ import { hasRegisteredSelectionSurface } from './useSelectionSurfaceState'
 import { overlayHandler } from '../assets/js/overlayHandler'
 import editorCore from '../services/editor/editorCore'
 import { NAME_TO_CODE, DURATION_NAMES } from '../utils/musicUtils'
-import type {
-  SelectedNoteState,
-  TabClipboardData,
-  TabSelectionData,
-} from '../types/tab'
+import type { SelectedNoteState, TabClipboardData, TabSelectionData } from '../types/tab'
 
 export type TabSelection = TabSelectionData
 
@@ -22,7 +18,7 @@ const selectedNote = ref<SelectedNoteState | null>(null)
  */
 export function useTabSelection() {
   const hasSelection = computed(() => currentSelection.value !== null)
-  
+
   function setSelection(selection: TabSelection | null) {
     currentSelection.value = selection
     if (selection) {
@@ -42,11 +38,17 @@ export function useTabSelection() {
     setSelection(null)
     toolbarVisible.value = false
   }
-  
-  function toggleToolbar() { toolbarVisible.value = !toolbarVisible.value }
-  function showToolbar() { toolbarVisible.value = true }
-  function hideToolbar() { toolbarVisible.value = false }
-  
+
+  function toggleToolbar() {
+    toolbarVisible.value = !toolbarVisible.value
+  }
+  function showToolbar() {
+    toolbarVisible.value = true
+  }
+  function hideToolbar() {
+    toolbarVisible.value = false
+  }
+
   function hasRangeSelection(): boolean {
     return overlayHandler.startPosOverlay != null && overlayHandler.endPosOverlay != null
   }
@@ -81,7 +83,7 @@ export function useTabSelection() {
   function getSelection(): TabSelection | null {
     return currentSelection.value
   }
-  
+
   function durationToCode(duration: string): string {
     return NAME_TO_CODE[duration as keyof typeof NAME_TO_CODE] ?? 'q'
   }
@@ -89,7 +91,7 @@ export function useTabSelection() {
   function codeToDuration(code: string): string {
     return DURATION_NAMES[code as keyof typeof DURATION_NAMES] ?? 'quarter'
   }
-  
+
   function handleNoteSelectionEvent(detail: SelectionChangeData | null) {
     if (detail) {
       setSelection({
@@ -97,13 +99,13 @@ export function useTabSelection() {
         voiceId: detail.voiceId,
         blockId: detail.blockId,
         beatIndex: detail.beatIndex,
-        stringIndex: detail.stringIndex
+        stringIndex: detail.stringIndex,
       })
     } else {
       setSelection(null)
     }
   }
-  
+
   return {
     currentSelection,
     selectedNote,
@@ -120,6 +122,6 @@ export function useTabSelection() {
     getSelection,
     durationToCode,
     codeToDuration,
-    handleNoteSelectionEvent
+    handleNoteSelectionEvent,
   }
 }

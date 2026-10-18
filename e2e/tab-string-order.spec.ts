@@ -22,21 +22,31 @@ test.describe('tab string order', () => {
     expect(frets).toEqual([0, 2, 2, 0, 0, 0])
 
     const measure = page.locator('.tab-measure').nth(5)
-    const drawn = await measure.locator('.tab-note').first().locator('.note-text').evaluateAll((texts) => texts
-      .map((text) => ({ fret: text.textContent!.trim(), y: (text as SVGTextElement).getBBox().y }))
-      .sort((a, b) => a.y - b.y)
-      .map((entry) => entry.fret))
+    const drawn = await measure
+      .locator('.tab-note')
+      .first()
+      .locator('.note-text')
+      .evaluateAll((texts) =>
+        texts
+          .map((text) => ({ fret: text.textContent!.trim(), y: (text as SVGTextElement).getBBox().y }))
+          .sort((a, b) => a.y - b.y)
+          .map((entry) => entry.fret),
+      )
     expect(drawn).toEqual(['0', '0', '0', '2', '2', '0'])
   })
 
   test('clicking the top line enters the note on the highest string', async ({ page }) => {
     await waitForEditorShell(page)
     // The first click area is the top line.
-    await page.locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page
+      .locator('.string-click-area')
+      .first()
+      .click({ position: { x: 80, y: 4 } })
     await page.keyboard.press('7')
     const strings = await page.evaluate(async () => {
       const { default: Song } = await import('/src/assets/js/songData.ts')
-      return Song.measures[0][0][0].flatMap((beat) => beat.notes.map((note, string) => (note?.fret === 7 ? string : -1)))
+      return Song.measures[0][0][0]
+        .flatMap((beat) => beat.notes.map((note, string) => (note?.fret === 7 ? string : -1)))
         .filter((string) => string >= 0)
     })
     expect(strings).toEqual([5])

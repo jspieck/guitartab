@@ -10,11 +10,7 @@ export function publishPlaybackTransport(update: Partial<typeof playbackTranspor
   bumpPlaybackTransportVersion()
 }
 
-export function publishPlaybackPosition(
-  blockId: number,
-  beatId: number,
-  positionInBlock: number,
-): void {
+export function publishPlaybackPosition(blockId: number, beatId: number, positionInBlock: number): void {
   publishPlaybackTransport({
     isPlaying: Settings.songPlaying,
     blockId,

@@ -8,7 +8,9 @@ function diff(a: unknown, b: unknown, path = ''): string[] {
   if (JSON.stringify(a) === JSON.stringify(b)) return []
   if (a && b && typeof a === 'object' && typeof b === 'object') {
     const keys = new Set([...Object.keys(a as object), ...Object.keys(b as object)])
-    return [...keys].flatMap((key) => diff((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], `${path}/${key}`))
+    return [...keys].flatMap((key) =>
+      diff((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], `${path}/${key}`),
+    )
   }
   return [`${path}: ${JSON.stringify(a)} -> ${JSON.stringify(b)}`]
 }

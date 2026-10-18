@@ -42,16 +42,21 @@ vi.mock('../src/services/editor/renderCommands', () => ({
 
 import Song from '../src/assets/js/songData'
 import { tab } from '../src/assets/js/tab'
-import {
-  revertNoteLength,
-  restoreNoteLength,
-} from '../src/services/editor/revertCommandHandlers'
+import { revertNoteLength, restoreNoteLength } from '../src/services/editor/revertCommandHandlers'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 describe('revertCommandHandlers', () => {

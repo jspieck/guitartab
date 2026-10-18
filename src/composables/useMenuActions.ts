@@ -9,19 +9,14 @@ import { overlayHandler } from '../assets/js/overlayHandler'
 import { menuHandler } from '../assets/js/menuHandler'
 import { applyNoteLengthSelection } from '../services/menuActionCommands'
 import type { NoteLengthCode } from '../types/tab'
-import {
-  resolveNoteEffectModalRequest,
-  type NoteEffectSelection,
-} from '../services/menuMutationRouting'
+import { resolveNoteEffectModalRequest, type NoteEffectSelection } from '../services/menuMutationRouting'
 import { requestBlockRender } from '../services/editor/renderCommands'
 import { processDynamicSelect } from '../services/editor/dynamicsCommands'
 import {
   measureSelect as runMeasureSelect,
   notationSelect as runNotationSelect,
 } from '../services/editor/notationCommands'
-import {
-  noteLengthSpecialSelect as runNoteLengthSpecialSelect,
-} from '../services/editor/durationModifierCommands'
+import { noteLengthSpecialSelect as runNoteLengthSpecialSelect } from '../services/editor/durationModifierCommands'
 import { usePlaybackEngine } from './usePlaybackEngine'
 
 interface UseMenuActionsOptions {
@@ -33,13 +28,7 @@ interface UseMenuActionsOptions {
 }
 
 export function useMenuActions(options: UseMenuActionsOptions) {
-  const {
-    currentTrackId,
-    currentVoiceId,
-    selectedTuplet,
-    noteTiedTo,
-    syncMenuState,
-  } = options
+  const { currentTrackId, currentVoiceId, selectedTuplet, noteTiedTo, syncMenuState } = options
 
   const playbackEngine = usePlaybackEngine()
 
@@ -74,14 +63,15 @@ export function useMenuActions(options: UseMenuActionsOptions) {
     }
   }
 
-  function processEffectSelect(
-    arr: NoteEffectSelection,
-    id: string,
-    isRevert: boolean,
-  ) {
+  function processEffectSelect(arr: NoteEffectSelection, id: string, isRevert: boolean) {
     let isVariableSet = true
     for (const no of arr.notes) {
-      const beat = Song.getBeat({ trackId: no.trackId, blockId: no.blockId, voiceId: no.voiceId, beatId: no.beatId })
+      const beat = Song.getBeat({
+        trackId: no.trackId,
+        blockId: no.blockId,
+        voiceId: no.voiceId,
+        beatId: no.beatId,
+      })
       const note = beat.notes[no.string]
       isVariableSet = menuHandler.getEffectVariable(beat, note, id)
     }
@@ -97,10 +87,7 @@ export function useMenuActions(options: UseMenuActionsOptions) {
       revertHandler.addNoteEffectSelect(arr, id, changes)
     }
     if (id === 'grace') {
-      classicalNotation.computeVexFlowDataStructures(
-        currentTrackId.value,
-        currentVoiceId.value,
-      )
+      classicalNotation.computeVexFlowDataStructures(currentTrackId.value, currentVoiceId.value)
     }
     for (const blockId of arr.blocks) {
       requestBlockRender(currentTrackId.value, blockId, currentVoiceId.value)

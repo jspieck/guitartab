@@ -94,22 +94,26 @@ function createNote(overrides: Partial<Note> = {}): Note {
 
 function createSelection(): NoteEffectSelection {
   return {
-    notes: [{
-      trackId: 0,
-      blockId: 1,
-      voiceId: 0,
-      beatId: 2,
-      string: 3,
-      note: createNote(),
-    }],
+    notes: [
+      {
+        trackId: 0,
+        blockId: 1,
+        voiceId: 0,
+        beatId: 2,
+        string: 3,
+        note: createNote(),
+      },
+    ],
     blocks: [1],
-    beats: [{
-      trackId: 0,
-      blockId: 1,
-      voiceId: 0,
-      beatId: 2,
-      beat: createBeat(),
-    }],
+    beats: [
+      {
+        trackId: 0,
+        blockId: 1,
+        voiceId: 0,
+        beatId: 2,
+        beat: createBeat(),
+      },
+    ],
   }
 }
 
@@ -199,10 +203,7 @@ describe('menuMutationRouting', () => {
   })
 
   it('routes note-effect ids through dedicated toolbar groups', () => {
-    const effectGroups = [
-      ['slide', 'bend'],
-      ['grace'],
-    ] as const
+    const effectGroups = [['slide', 'bend'], ['grace']] as const
 
     expect(findMenuEffectGroup('bend', effectGroups)).toEqual(['slide', 'bend'])
     expect(findMenuEffectGroup('grace', effectGroups)).toEqual(['grace'])

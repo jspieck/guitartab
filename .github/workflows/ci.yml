@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # No git hooks on the runner.
+  HUSKY: 0
+
+jobs:
+  checks:
+    name: Unit tests, typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Unit tests with coverage floors
+        run: npm run test:coverage
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      # `npm run build:check` without its second typecheck.
+      - name: Build and bundle budgets
+        run: npx vite build && npm run check:bundle
+
+  e2e:
+    name: Playwright (desktop + phone)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # The real SoundFont is not in the repository (public/audio/README.txt); playback tests
+      # run against a generated one-sample SoundFont instead.
+      - name: Generate test SoundFont
+        run: node scripts/make-test-soundfont.mjs
+
+      # Missing Linux screenshot baselines are written instead of failing, and uploaded below
+      # so they can be committed. Existing baselines are compared as usual.
+      - name: Run Playwright
+        run: npx playwright test --update-snapshots=missing
+
+      - name: Collect new Linux baselines
+        id: snapshots
+        if: always()
+        run: |
+          new=$(git ls-files --others --exclude-standard 'e2e/*-snapshots/*')
+          if [ -n "$new" ]; then
+            echo "::warning::New Linux screenshot baselines were written; download the linux-snapshots artifact and commit them."
+            echo "$new"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload new Linux baselines
+        if: always() && steps.snapshots.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-snapshots
+          path: e2e/*-snapshots/*-linux.png
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

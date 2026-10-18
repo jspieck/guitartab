@@ -27,8 +27,8 @@ export function addNoteToBlock(
 
 export function tupletOnlyRests(
   startBeatId: number,
-  blockObj: { tuplet: number | null, duration: string }[],
-): { lastIndex: number, onlyRests: boolean } {
+  blockObj: { tuplet: number | null; duration: string }[],
+): { lastIndex: number; onlyRests: boolean } {
   let lastIndex = startBeatId
   let onlyRests = true
   for (let x = startBeatId; x < blockObj.length; x += 1) {
@@ -60,9 +60,7 @@ export function deleteNote(
     if (!calledDuringRestore) {
       const clonedNote = JSON.parse(JSON.stringify(beatObj.notes[string]))
       const clonedEffect = JSON.parse(JSON.stringify(beatObj.effects))
-      revertHandler.deleteNote(
-        trackId, blockId, voiceId, beatId, string, clonedNote, clonedEffect,
-      )
+      revertHandler.deleteNote(trackId, blockId, voiceId, beatId, string, clonedNote, clonedEffect)
     }
     beatObj.notes[string] = null
   }
@@ -77,7 +75,9 @@ export function deleteNote(
   }
 
   if (currentBlockId < Song.measures[trackId].length) {
-    const note = Song.getBeat({ trackId, blockId: currentBlockId, voiceId, beatId: currentBeatId }).notes[string]
+    const note = Song.getBeat({ trackId, blockId: currentBlockId, voiceId, beatId: currentBeatId }).notes[
+      string
+    ]
     if (note != null && note.tied) {
       deleteNote(trackId, currentBlockId, voiceId, currentBeatId, string, false)
     }

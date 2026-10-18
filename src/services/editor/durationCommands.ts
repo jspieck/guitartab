@@ -28,12 +28,7 @@ export interface TabDurationHost {
     noteLength: string,
   ): void
   trackRerenderNecessary(trackId: number, blockId: number, voiceId: number): boolean
-  drawTrack(
-    trackId: number,
-    voiceId: number,
-    forceScale: boolean,
-    callback: (() => void) | null,
-  ): void
+  drawTrack(trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null): void
 }
 
 export function changeNoteDuration(
@@ -53,9 +48,9 @@ export function changeNoteDuration(
   const newDuration = Duration.getDurationOfNote(beat, true)
   beat.duration = previousDur
 
-  if (!tabInstance.isNotePlaceable(
-    trackId, blockId, voiceId, beatId, string, newDuration, previousDuration,
-  )) {
+  if (
+    !tabInstance.isNotePlaceable(trackId, blockId, voiceId, beatId, string, newDuration, previousDuration)
+  ) {
     return false
   }
 
@@ -63,7 +58,14 @@ export function changeNoteDuration(
   overlayHandler.initOverlay(trackId, blockId, voiceId, beatId)
 
   tabInstance.changeBeatDuration(
-    trackId, blockId, voiceId, beatId, string, newDuration, previousDuration, noteLength,
+    trackId,
+    blockId,
+    voiceId,
+    beatId,
+    string,
+    newDuration,
+    previousDuration,
+    noteLength,
   )
   menuHandler.showAvailableTupletSizes(newDuration)
 

@@ -403,6 +403,26 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+#notificationAction{
+    margin-left: 10px;
+    padding: 0 8px;
+    height: 21px;
+    line-height: 19px;
+    font: inherit;
+    font-weight: 600;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 4px;
+    cursor: pointer;
+}
+#notificationAction:hover{
+    background: rgba(255, 255, 255, 0.3);
+}
+#notificationAction:focus-visible{
+    outline: 2px solid white;
+    outline-offset: 1px;
+}
 #notificationEmblem.notification-error{
     background: #d45e5e;
 }

@@ -46,7 +46,7 @@ export function getBeamedBeatGroups(beats: TabBeat[]): BeamGroupBeat[][] {
     }
 
     const isTuplet = isTupletBeat(beat)
-    const tupletId = isTuplet ? beat.tupletId ?? null : null
+    const tupletId = isTuplet ? (beat.tupletId ?? null) : null
     const durationInBeats = getDurationBeats(beat.duration)
 
     if (!isTuplet && currentTupletId != null) {
@@ -65,7 +65,10 @@ export function getBeamedBeatGroups(beats: TabBeat[]): BeamGroupBeat[][] {
       return
     }
 
-    if (groupedBeatProgress > 0 && groupedBeatProgress + durationInBeats > QUARTER_NOTE_BEATS + FLOAT_EPSILON) {
+    if (
+      groupedBeatProgress > 0 &&
+      groupedBeatProgress + durationInBeats > QUARTER_NOTE_BEATS + FLOAT_EPSILON
+    ) {
       currentGroup = finalizeGroup(groups, currentGroup)
       groupedBeatProgress = 0
     }

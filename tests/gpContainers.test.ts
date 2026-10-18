@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { zipSync } from 'fflate'
 import {
-  decompressBcfz, detectGpContainer, extractGpifXml, readBcfsFiles,
+  decompressBcfz,
+  detectGpContainer,
+  extractGpifXml,
+  readBcfsFiles,
 } from '../src/services/gpContainers'
 import { ImportError } from '../src/services/importErrors'
 import { buildBcfs } from '../e2e/fixtures/gpFiles'
@@ -26,7 +29,9 @@ class BitWriter {
 
   bytes(): Uint8Array {
     const out = new Uint8Array(Math.ceil(this.bits.length / 8))
-    this.bits.forEach((bit, i) => { out[i >> 3] |= bit << (7 - (i & 7)) })
+    this.bits.forEach((bit, i) => {
+      out[i >> 3] |= bit << (7 - (i & 7))
+    })
     return out
   }
 }
@@ -36,8 +41,8 @@ function compressBcfz(data: Uint8Array): Uint8Array {
   const writer = new BitWriter()
   let i = 0
   while (i < data.length) {
-    const canCopy = i >= 4 && i + 4 <= data.length
-      && data.subarray(i, i + 4).every((byte, k) => byte === data[i - 4 + k])
+    const canCopy =
+      i >= 4 && i + 4 <= data.length && data.subarray(i, i + 4).every((byte, k) => byte === data[i - 4 + k])
     if (canCopy) {
       writer.write(1, 1)
       writer.write(3, 4) // 3-bit words
@@ -72,7 +77,9 @@ describe('Guitar Pro containers', () => {
   })
 
   it('reads files from BCFS by following the sector index', () => {
-    const files = readBcfsFiles(buildBcfs({ misc: encoder.encode('other'), 'score.gpif': encoder.encode(score) }))
+    const files = readBcfsFiles(
+      buildBcfs({ misc: encoder.encode('other'), 'score.gpif': encoder.encode(score) }),
+    )
     expect(new TextDecoder().decode(files.get('score.gpif'))).toBe(score)
     expect(new TextDecoder().decode(files.get('misc'))).toBe('other')
   })
@@ -91,7 +98,8 @@ describe('Guitar Pro containers', () => {
   })
 
   it('fails with an ImportError for damaged or unrelated data', () => {
-    const expectImportError = (bytes: Uint8Array) => expect(() => extractGpifXml(bytes, 'gp')).toThrow(ImportError)
+    const expectImportError = (bytes: Uint8Array) =>
+      expect(() => extractGpifXml(bytes, 'gp')).toThrow(ImportError)
     expectImportError(zipSync({ 'Content/other.xml': encoder.encode('x') }))
     expectImportError(buildBcfs({ misc: encoder.encode('x') }))
     expectImportError(encoder.encode('not a guitar pro file'))

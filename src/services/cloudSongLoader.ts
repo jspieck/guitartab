@@ -14,5 +14,4 @@ export async function loadCloudSongById(id: string): Promise<void> {
 
 export function getCloudSongIdFromUrl(url: string = window.location.href): string | null {
   return new URL(url).searchParams.get('song')
-}
-
+}

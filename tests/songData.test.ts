@@ -3,9 +3,7 @@ import Song, { type Beat } from '../src/assets/js/songData'
 
 describe('Song.isBeatEmpty', () => {
   beforeEach(() => {
-    Song.measures = [[[
-      [Song.defaultMeasure()],
-    ]]] as Beat[][][][]
+    Song.measures = [[[[Song.defaultMeasure()]]]] as Beat[][][][]
   })
 
   it('treats a rest-only block as empty', () => {
@@ -16,11 +14,13 @@ describe('Song.isBeatEmpty', () => {
     Song.measures[0][0][0][0] = {
       ...Song.defaultMeasure(),
       duration: 'er',
-      notes: [{
-        ...Song.defaultNote(),
-        fret: 7,
-        string: 2,
-      }],
+      notes: [
+        {
+          ...Song.defaultNote(),
+          fret: 7,
+          string: 2,
+        },
+      ],
     }
 
     expect(Song.isBeatEmpty(0, 0)).toBe(false)

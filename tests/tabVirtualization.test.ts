@@ -3,10 +3,18 @@ import { isRowInWindow } from '../src/composables/useVisibleTabRows'
 import { isRenderingAllRows, withAllRowsRendered } from '../src/stores/tabVirtualizationState'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 describe('tab row virtualization', () => {
@@ -26,7 +34,11 @@ describe('tab row virtualization', () => {
     expect(seen).toBe(true)
     expect(isRenderingAllRows()).toBe(false)
 
-    await expect(withAllRowsRendered(() => { throw new Error('boom') })).rejects.toThrow('boom')
+    await expect(
+      withAllRowsRendered(() => {
+        throw new Error('boom')
+      }),
+    ).rejects.toThrow('boom')
     expect(isRenderingAllRows()).toBe(false)
   })
 })

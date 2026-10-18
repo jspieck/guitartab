@@ -9,10 +9,16 @@ test.describe('demo song on the first visit', () => {
     await waitForEditorShell(page, { demo: 'arrangement' })
 
     // The arrangement loads from its own chunk right after startup.
-    await expect.poll(() => page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
-      return Song.songDescription.title
-    }), { timeout: 10_000 }).toBe('Open Road')
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async () => {
+            const { default: Song } = await import('/src/assets/js/songData.ts')
+            return Song.songDescription.title
+          }),
+        { timeout: 10_000 },
+      )
+      .toBe('Open Road')
 
     const state = await page.evaluate(async () => {
       const { default: Song } = await import('/src/assets/js/songData.ts')
@@ -56,10 +62,16 @@ test.describe('demo song on the first visit', () => {
 
   test('is shown only once: a returning visitor keeps an empty song', async ({ page }) => {
     await waitForEditorShell(page, { demo: 'arrangement' })
-    await expect.poll(() => page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
-      return Song.tracks.length
-    }), { timeout: 10_000 }).toBe(4)
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async () => {
+            const { default: Song } = await import('/src/assets/js/songData.ts')
+            return Song.tracks.length
+          }),
+        { timeout: 10_000 },
+      )
+      .toBe(4)
     await page.reload()
     await page.waitForSelector('.tab-row')
     await page.waitForTimeout(1000)
@@ -70,24 +82,40 @@ test.describe('demo song on the first visit', () => {
     expect(tracks).toBe(1)
   })
 
-  test('the exported demo file (open-road.gpx) opens through the file picker as the same song', async ({ page }) => {
+  test('the exported demo file (open-road.gpx) opens through the file picker as the same song', async ({
+    page,
+  }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await waitForEditorShell(page, { demo: 'arrangement' })
-    await expect.poll(() => page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.tracks.length), { timeout: 10_000 }).toBe(4)
+    await expect
+      .poll(
+        () => page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.tracks.length),
+        { timeout: 10_000 },
+      )
+      .toBe(4)
     const fingerprint = () => page.evaluate(songFingerprintSource())
     const builtIn = await fingerprint()
 
-    // Start from an empty song, then open the file.
+    // Start from an empty song, then open the file (over the now "unsaved" empty song).
+    page.on('dialog', (dialog) => void dialog.accept())
     await page.evaluate(async () => {
       const { default: Song } = await import('/src/assets/js/songData.ts')
       Song.initEmptySong()
     })
-    await page.locator('input[type="file"][accept*=".gpx"]').first().setInputFiles('e2e/fixtures/files/open-road.gpx')
-    await expect.poll(() => page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.songDescription.title)).toBe('Open Road')
+    await page
+      .locator('input[type="file"][accept*=".gpx"]')
+      .first()
+      .setInputFiles('e2e/fixtures/files/open-road.gpx')
+    await expect
+      .poll(() =>
+        page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.songDescription.title),
+      )
+      .toBe('Open Road')
     const opened = await fingerprint()
     // GPIF stores no strum length; the importer uses a 16th for every brush.
-    const strokeType = (value: unknown) => JSON.parse(JSON.stringify(value), (key, entry) => (key === 'strokeLength' ? undefined : entry))
+    const strokeType = (value: unknown) =>
+      JSON.parse(JSON.stringify(value), (key, entry) => (key === 'strokeLength' ? undefined : entry))
     expect(strokeType(opened)).toEqual(strokeType(builtIn))
     expect(errors).toEqual([])
   })

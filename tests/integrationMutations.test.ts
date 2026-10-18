@@ -42,10 +42,7 @@ import { revertHandler } from '../src/assets/js/revertHandler'
 import { overlayHandler } from '../src/assets/js/overlayHandler'
 import { changeNoteDuration } from '../src/services/editor/durationCommands'
 import { processDynamicSelect } from '../src/services/editor/dynamicsCommands'
-import {
-  initPlayBackParameters,
-  movePlayBackBarToBeat,
-} from '../src/services/editor/playbackController'
+import { initPlayBackParameters, movePlayBackBarToBeat } from '../src/services/editor/playbackController'
 import {
   registerPlaybackBarElement,
   resetPlaybackBarState,
@@ -55,10 +52,18 @@ import { clearTrackRenderLayout } from '../src/composables/useTabRenderLayout'
 import { assertTabAndRenderLayoutMatch } from './helpers/layoutConvergence'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const tabDurationHost = {
@@ -100,16 +105,22 @@ describe('integration mutations', () => {
 
   describe('effect toggle', () => {
     it('applies a dynamic marking and requests over-bar render', () => {
-      processDynamicSelect({
-        notes: [{
-          trackId: 0,
-          blockId: 0,
-          voiceId: 0,
-          beatId: 0,
-          string: 0,
-        }],
-        blocks: [0],
-      }, 'mfDynamic', false)
+      processDynamicSelect(
+        {
+          notes: [
+            {
+              trackId: 0,
+              blockId: 0,
+              voiceId: 0,
+              beatId: 0,
+              string: 0,
+            },
+          ],
+          blocks: [0],
+        },
+        'mfDynamic',
+        false,
+      )
 
       expect(Song.measures[0][0][0][0].dynamic).toBe('mf')
     })
@@ -117,16 +128,22 @@ describe('integration mutations', () => {
 
   describe('undo / redo stack', () => {
     it('pops the revert stack when undo is invoked', () => {
-      processDynamicSelect({
-        notes: [{
-          trackId: 0,
-          blockId: 0,
-          voiceId: 0,
-          beatId: 0,
-          string: 0,
-        }],
-        blocks: [0],
-      }, 'mfDynamic', null)
+      processDynamicSelect(
+        {
+          notes: [
+            {
+              trackId: 0,
+              blockId: 0,
+              voiceId: 0,
+              beatId: 0,
+              string: 0,
+            },
+          ],
+          blocks: [0],
+        },
+        'mfDynamic',
+        null,
+      )
 
       expect(revertHandler.revertStackIndex).toBe(0)
 

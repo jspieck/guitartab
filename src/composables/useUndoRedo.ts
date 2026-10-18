@@ -2,10 +2,7 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import { revertHandler } from '../assets/js/revertHandler'
 import { typedEventBus } from '../utils/typedEventBus'
 
-function syncUndoRedoState(
-  canUndo: { value: boolean },
-  canRedo: { value: boolean },
-): void {
+function syncUndoRedoState(canUndo: { value: boolean }, canRedo: { value: boolean }): void {
   canUndo.value = revertHandler.canUndo()
   canRedo.value = revertHandler.canRedo()
 }

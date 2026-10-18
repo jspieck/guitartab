@@ -12,14 +12,22 @@
 // ─── Duration constants (ticks, where whole = 64) ───────────────────────────
 
 export const DURATION_TICKS: Record<string, number> = {
-  w: 64, wr: 64,
-  h: 32, hr: 32,
-  q: 16, qr: 16,
-  e: 8,  er: 8,
-  s: 4,  sr: 4,
-  t: 2,  tr: 2,
-  z: 1,  zr: 1,
-  o: 0.5, or: 0.5,
+  w: 64,
+  wr: 64,
+  h: 32,
+  hr: 32,
+  q: 16,
+  qr: 16,
+  e: 8,
+  er: 8,
+  s: 4,
+  sr: 4,
+  t: 2,
+  tr: 2,
+  z: 1,
+  zr: 1,
+  o: 0.5,
+  or: 0.5,
 }
 
 const TICKS_TO_CODE: [number, string][] = [
@@ -74,7 +82,6 @@ export interface GrowResult {
 // ─── Core class ─────────────────────────────────────────────────────────────
 
 export class DurationReplacer {
-
   // ── Duration helpers (static, pure) ─────────────────────────────────────
 
   static baseDuration(code: string): string {
@@ -203,7 +210,7 @@ export class DurationReplacer {
     result[beatIndex] = updatedBeat
 
     // Insert rests after the beat
-    const restBeats: Beat[] = rests.map(r => ({
+    const restBeats: Beat[] = rests.map((r) => ({
       duration: r.duration + 'r',
       dotted: r.dotted,
       doubleDotted: r.doubleDotted,
@@ -214,7 +221,7 @@ export class DurationReplacer {
 
     result.splice(beatIndex + 1, 0, ...restBeats)
 
-    const rescaleNeeded = rests.some(r => DurationReplacer.ticksOf(r.duration) <= 4)
+    const rescaleNeeded = rests.some((r) => DurationReplacer.ticksOf(r.duration) <= 4)
 
     return { beats: result, insertedRests: rests, rescaleNeeded }
   }
@@ -238,8 +245,11 @@ export class DurationReplacer {
 
     if (newTicks <= oldTicks) {
       return {
-        beats: [...beats], removedCount: 0, insertedRests: [],
-        rescaleNeeded: false, success: true,
+        beats: [...beats],
+        removedCount: 0,
+        insertedRests: [],
+        rescaleNeeded: false,
+        success: true,
       }
     }
 
@@ -277,8 +287,11 @@ export class DurationReplacer {
 
     if (availableTicks < neededTicks - EPS) {
       return {
-        beats: [...beats], removedCount: 0, insertedRests: [],
-        rescaleNeeded: false, success: false,
+        beats: [...beats],
+        removedCount: 0,
+        insertedRests: [],
+        rescaleNeeded: false,
+        success: false,
       }
     }
 
@@ -300,7 +313,7 @@ export class DurationReplacer {
     const excessTicks = availableTicks - neededTicks
     const excessRests = excessTicks > EPS ? DurationReplacer.decompose(excessTicks) : []
 
-    const excessBeats: Beat[] = excessRests.map(r => ({
+    const excessBeats: Beat[] = excessRests.map((r) => ({
       duration: r.duration + 'r',
       dotted: r.dotted,
       doubleDotted: r.doubleDotted,
@@ -350,7 +363,11 @@ export class DurationReplacer {
       return { beats: newBeats, rescaleNeeded, success: true }
     }
 
-    const { beats: newBeats, rescaleNeeded, success } = DurationReplacer.grow(beats, beatIndex, newDurationCode)
+    const {
+      beats: newBeats,
+      rescaleNeeded,
+      success,
+    } = DurationReplacer.grow(beats, beatIndex, newDurationCode)
     return { beats: newBeats, rescaleNeeded, success }
   }
 

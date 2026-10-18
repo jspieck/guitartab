@@ -29,12 +29,7 @@ export function disablePageMode(): void {
     lastWidth = sheetWidthPx
   }
 
-  tab.drawTrackMain(
-    Song.currentTrackId,
-    Song.currentVoiceId,
-    true,
-    () => {},
-  )
+  tab.drawTrackMain(Song.currentTrackId, Song.currentVoiceId, true, () => {})
 
   typedEventBus.emit('ui.pageModeChanged', tabViewportState.pageMode)
 }

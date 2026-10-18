@@ -50,16 +50,38 @@ export class ModalManager {
             return;
         }
 
+        const modal = document.getElementById(id);
+        if (modal == null) {
+            // The modal windows mount lazily (ModalsContainer). Opening one before that used to
+            // mark it open without showing it, so the next toggle "closed" an invisible window.
+            this.displayWhenMounted(id, name);
+            return;
+        }
+
         this.windows.set(id, new Date().getTime());
         document.getElementById('content')?.classList.add('blurFilter');
+        modal.classList.add('active');
+        this.setupModalPosition(modal);
+        this.setupModalListeners(modal, id, name);
+    }
 
-        const modal = document.getElementById(id);
-        console.log(modal, id);
-        if (modal) {
-            modal.classList.add('active');
-            this.setupModalPosition(modal);
-            this.setupModalListeners(modal, id, name);
-        }
+    private pendingDisplays = new Set<string>();
+
+    private displayWhenMounted(id: string, name: string, timeoutMs = 10_000) {
+        if (this.pendingDisplays.has(id)) return;
+        this.pendingDisplays.add(id);
+        const finish = () => {
+            observer.disconnect();
+            clearTimeout(timer);
+            this.pendingDisplays.delete(id);
+        };
+        const observer = new MutationObserver(() => {
+            if (document.getElementById(id) == null) return;
+            finish();
+            this.displayModal(id, name);
+        });
+        const timer = setTimeout(finish, timeoutMs);
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
     closeModal(id: string) {

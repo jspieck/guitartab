@@ -73,7 +73,11 @@ describe('classicalNotationLayoutState', () => {
 
   it('sizes each row staff area from the blocks of that row only', () => {
     publishClassicalLayoutMetrics({
-      staffExtentsByBlock: { 0: { above: 0, below: 0 }, 1: { above: 0, below: 0 }, 2: { above: 0, below: 90 } },
+      staffExtentsByBlock: {
+        0: { above: 0, below: 0 },
+        1: { above: 0, below: 0 },
+        2: { above: 0, below: 90 },
+      },
     })
 
     expect(getClassicalRowGeometry(0, 2).height).toBeLessThan(getClassicalRowGeometry(2, 3).height)

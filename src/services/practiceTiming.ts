@@ -30,7 +30,7 @@ export function computeCountIn(
   bpm: number,
   rate: number,
   startTime: number,
-): { clicks: Click[], duration: number } {
+): { clicks: Click[]; duration: number } {
   const beatSeconds = secondsPerWhole(bpm, rate) / denominator
   const duration = beatSeconds * numerator
   const clicks = Array.from({ length: numerator }, (_, beat) => ({

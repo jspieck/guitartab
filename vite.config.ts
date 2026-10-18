@@ -35,17 +35,21 @@ function manualChunks(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, '/')
 
   if (normalizedId.includes('/node_modules/')) {
-    if (normalizedId.includes('/vue/') || normalizedId.includes('/pinia/') || normalizedId.includes('/mitt/')) {
+    if (
+      normalizedId.includes('/vue/') ||
+      normalizedId.includes('/pinia/') ||
+      normalizedId.includes('/mitt/')
+    ) {
       return 'framework'
     }
     if (normalizedId.includes('/vexflow/')) {
       return 'notation'
     }
     if (
-      normalizedId.includes('/interactjs/')
-      || normalizedId.includes('/fastdom/')
-      || normalizedId.includes('/tinycolor2/')
-      || normalizedId.includes('/vanilla-picker/')
+      normalizedId.includes('/interactjs/') ||
+      normalizedId.includes('/fastdom/') ||
+      normalizedId.includes('/tinycolor2/') ||
+      normalizedId.includes('/vanilla-picker/')
     ) {
       return 'ui-vendor'
     }
@@ -66,15 +70,15 @@ function manualChunks(id: string): string | undefined {
   }
 
   if (
-    normalizedId.includes('/src/assets/js/audioEngine.ts')
-    || normalizedId.includes('/src/assets/js/chorus.ts')
-    || normalizedId.includes('/src/assets/js/compositeAudioNode.ts')
-    || normalizedId.includes('/src/assets/js/combFilter.ts')
-    || normalizedId.includes('/src/assets/js/freeverb.ts')
-    || normalizedId.includes('/src/assets/js/lowpassCombFilter.ts')
-    || normalizedId.includes('/src/assets/js/midiReceiver.ts')
-    || normalizedId.includes('/src/assets/js/playBackLogicNew.ts')
-    || normalizedId.includes('/src/assets/js/sf2parser.ts')
+    normalizedId.includes('/src/assets/js/audioEngine.ts') ||
+    normalizedId.includes('/src/assets/js/chorus.ts') ||
+    normalizedId.includes('/src/assets/js/compositeAudioNode.ts') ||
+    normalizedId.includes('/src/assets/js/combFilter.ts') ||
+    normalizedId.includes('/src/assets/js/freeverb.ts') ||
+    normalizedId.includes('/src/assets/js/lowpassCombFilter.ts') ||
+    normalizedId.includes('/src/assets/js/midiReceiver.ts') ||
+    normalizedId.includes('/src/assets/js/playBackLogicNew.ts') ||
+    normalizedId.includes('/src/assets/js/sf2parser.ts')
   ) {
     return 'audio-engine'
   }
@@ -89,25 +93,25 @@ function manualChunks(id: string): string | undefined {
 
   // Studio panels open from ModalsContainer, which is lazy-loaded.
   if (
-    normalizedId.includes('/src/components/Mixer.vue')
-    || normalizedId.includes('/src/components/Equalizer.vue')
-    || normalizedId.includes('/src/components/Compressor.vue')
-    || normalizedId.includes('/src/components/audio/VerticalFader.vue')
-    || normalizedId.includes('/src/components/audio/audioPlugin.css')
-    || normalizedId.includes('/src/services/drumMixer.ts')
-    || normalizedId.includes('/src/composables/useModalOpen.ts')
+    normalizedId.includes('/src/components/Mixer.vue') ||
+    normalizedId.includes('/src/components/Equalizer.vue') ||
+    normalizedId.includes('/src/components/Compressor.vue') ||
+    normalizedId.includes('/src/components/audio/VerticalFader.vue') ||
+    normalizedId.includes('/src/components/audio/audioPlugin.css') ||
+    normalizedId.includes('/src/services/drumMixer.ts') ||
+    normalizedId.includes('/src/composables/useModalOpen.ts')
   ) {
     return 'studio-panels'
   }
 
   if (
-    normalizedId.includes('/src/components/EffectsBar.vue')
-    || normalizedId.includes('/src/components/Sequencer.vue')
-    || normalizedId.includes('/src/components/Fader.vue')
-    || normalizedId.includes('/src/components/Knob.vue')
-    || normalizedId.includes('/src/components/audio/RotaryKnob.vue')
-    || normalizedId.includes('/src/components/PracticeControls.vue')
-    || normalizedId.includes('/src/components/SaveFormatMenu.vue')
+    normalizedId.includes('/src/components/EffectsBar.vue') ||
+    normalizedId.includes('/src/components/Sequencer.vue') ||
+    normalizedId.includes('/src/components/Fader.vue') ||
+    normalizedId.includes('/src/components/Knob.vue') ||
+    normalizedId.includes('/src/components/audio/RotaryKnob.vue') ||
+    normalizedId.includes('/src/components/PracticeControls.vue') ||
+    normalizedId.includes('/src/components/SaveFormatMenu.vue')
   ) {
     return 'studio-ui'
   }

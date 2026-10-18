@@ -16,12 +16,7 @@ export interface MeasureStructureHost {
     string: number
   } | null
   fillMeasure: (trackId: number, blockId: number, voiceId: number) => void
-  drawTrack: (
-    trackId: number,
-    voiceId: number,
-    forceScale: boolean,
-    callback: (() => void) | null,
-  ) => void
+  drawTrack: (trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null) => void
 }
 
 export function addTakt(
@@ -103,16 +98,29 @@ export function removeBlock(host: MeasureStructureHost, duringRestoration: boole
     sequencerHandler.redrawSequencerMain()
     if (duringRestoration === false) {
       revertHandler.removeBlock(blocksBefore, measureMetaBefore)
+      offerUndoOfRemovedBar(Song.numMeasures + 1)
     }
+  })
+}
+
+// Removing a bar deletes its notes on every track, so offer the undo right where the user looks
+// instead of asking first. The button only undoes while the removal is still the last edit.
+function offerUndoOfRemovedBar(barNumber: number): void {
+  const removal = revertHandler.peekUndo()
+  AppManager.showNotification(`Removed bar ${barNumber}`, 'info', {
+    label: 'Undo',
+    run: () => {
+      if (revertHandler.peekUndo() === removal) revertHandler.revertState()
+    },
   })
 }
 
 export function createNewTrack(
   host: Pick<MeasureStructureHost, 'measureOffset'>,
   trackId: number,
-  instrObj: { name: string, channel: number, numStrings: number, strings: number[] },
+  instrObj: { name: string; channel: number; numStrings: number; strings: number[] },
 ): void {
-  let channelId = (trackId >= 9) ? trackId + 1 : trackId
+  let channelId = trackId >= 9 ? trackId + 1 : trackId
   if (instrObj.name === 'Drums') {
     channelId = 9
   }

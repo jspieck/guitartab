@@ -18,18 +18,21 @@ export const TAB_CONSTANTS = {
   BEAT_WIDTH: 40,
   TAB_LABEL_WIDTH: 32,
   START_PADDING: 15,
-  MIN_BEAT_DISPLAY_WIDTH: 20,  // Minimum width for short notes (ensures clickability)
+  MIN_BEAT_DISPLAY_WIDTH: 20, // Minimum width for short notes (ensures clickability)
   PAGE_WIDTH: 1200,
-  PAGE_HEIGHT: 1600
+  PAGE_HEIGHT: 1600,
 }
 
 /**
  * Calculate the standard page margins
  */
-export function getPageMargins(width: number = TAB_CONSTANTS.PAGE_WIDTH, height: number = TAB_CONSTANTS.PAGE_HEIGHT) {
+export function getPageMargins(
+  width: number = TAB_CONSTANTS.PAGE_WIDTH,
+  height: number = TAB_CONSTANTS.PAGE_HEIGHT,
+) {
   return {
     left: width * (1 / 21),
-    top: height * (1 / 29.7)
+    top: height * (1 / 29.7),
   }
 }
 
@@ -60,16 +63,15 @@ export function getDurationInBeats(duration: string): number {
  * Calculate the X offset for a measure within a row
  */
 export function getMeasureXOffset(
-  measures: RenderedMeasureData[], 
-  measureIndex: number, 
-  isFirstRow: boolean
+  measures: RenderedMeasureData[],
+  measureIndex: number,
+  isFirstRow: boolean,
 ): number {
   let offset = isFirstRow ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
   for (let i = 0; i < measureIndex; i++) {
     const measure = measures[i]
-    offset += Number.isFinite(measure.width) && measure.width > 0
-      ? measure.width
-      : TAB_CONSTANTS.MEASURE_WIDTH
+    offset +=
+      Number.isFinite(measure.width) && measure.width > 0 ? measure.width : TAB_CONSTANTS.MEASURE_WIDTH
   }
   return offset
 }
@@ -78,9 +80,9 @@ export function getMeasureXOffset(
  * Calculate the X position of a beat within a measure
  */
 export function getBeatXOffset(
-  measureData: TabBeat[], 
-  beatIndex: number, 
-  contentPadding: number = 0
+  measureData: TabBeat[],
+  beatIndex: number,
+  contentPadding: number = 0,
 ): number {
   let xOffset = 0
   for (let i = 0; i < beatIndex; i++) {
@@ -95,57 +97,50 @@ export function getBeatXOffset(
  */
 export function findMeasureAtPosition(
   measures: RenderedMeasureData[],
-  relativeX: number
+  relativeX: number,
 ): { measureIndex: number; measureRelativeX: number } | null {
   let currentX = 0
-  
+
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i]
-    const width = Number.isFinite(measure.width) && measure.width > 0
-      ? measure.width
-      : TAB_CONSTANTS.MEASURE_WIDTH
-    
+    const width =
+      Number.isFinite(measure.width) && measure.width > 0 ? measure.width : TAB_CONSTANTS.MEASURE_WIDTH
+
     if (relativeX >= currentX && relativeX < currentX + width) {
       return {
         measureIndex: i,
-        measureRelativeX: relativeX - currentX
+        measureRelativeX: relativeX - currentX,
       }
     }
     currentX += width
   }
-  
+
   return null
 }
 
 /**
  * Find which beat was clicked based on X position within a measure
  */
-export function findBeatAtPosition(
-  measureData: TabBeat[],
-  beatX: number
-): number {
+export function findBeatAtPosition(measureData: TabBeat[], beatX: number): number {
   let currentBeatX = 0
-  
+
   for (let i = 0; i < measureData.length; i++) {
     const beat = measureData[i]
     const width = getDisplayWidth(beat?.duration)
-    
+
     if (beatX >= currentBeatX && beatX < currentBeatX + width) {
       return i
     }
-    
+
     currentBeatX += width
   }
-  
+
   // Default to last beat if past the end, or first if before
   if (beatX < 0) return 0
   return Math.max(0, measureData.length - 1)
 }
 
-function findBeatAtLayoutX(
-  beatPositions: number[],
-  measureRelativeX: number,
-): number {
+function findBeatAtLayoutX(beatPositions: number[], measureRelativeX: number): number {
   if (beatPositions.length === 0) {
     return 0
   }
@@ -201,12 +196,12 @@ function getSvgViewportSize(svgElement: SVGSVGElement): { width: number; height:
  * margins are derived from the page height).
  */
 export function getSvgPageMargins(svgElement: SVGSVGElement) {
-  const contentGroup = typeof svgElement.querySelector === 'function'
-    ? svgElement.querySelector(':scope > g')
-    : null
-  const matrix = typeof SVGGraphicsElement !== 'undefined' && contentGroup instanceof SVGGraphicsElement
-    ? contentGroup.transform.baseVal.consolidate()?.matrix
-    : null
+  const contentGroup =
+    typeof svgElement.querySelector === 'function' ? svgElement.querySelector(':scope > g') : null
+  const matrix =
+    typeof SVGGraphicsElement !== 'undefined' && contentGroup instanceof SVGGraphicsElement
+      ? contentGroup.transform.baseVal.consolidate()?.matrix
+      : null
   if (matrix) {
     return { left: matrix.e, top: matrix.f }
   }
@@ -270,19 +265,19 @@ export function clickToTabPosition(
   if (!transformedPoint) {
     return null
   }
-  
+
   // Adjust for padding
   const paddingLeft = getSvgPageMargins(svgElement).left
   const adjustedX = transformedPoint.x - paddingLeft
-  
+
   // Calculate relative X after TAB label offset
   const tabOffset = isFirstRow ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
   const relativeX = adjustedX - tabOffset
-  
+
   // Find measure
   const measureResult = findMeasureAtPosition(rowData.measures, relativeX)
   if (!measureResult) return null
-  
+
   const { measureIndex, measureRelativeX } = measureResult
   const blockId = rowData.startBlockId + measureIndex
   const padding = getMeasureContentPadding(blockId) + TAB_CONSTANTS.START_PADDING
@@ -295,7 +290,7 @@ export function clickToTabPosition(
     measureRelativeX,
     padding,
   )
-  
+
   return { measureIndex, blockId, beatIndex }
 }
 
@@ -318,7 +313,12 @@ export function findRowAtY(
 }
 
 /** The string under `localY`: lines are counted from the top, strings from the lowest (see `tabStrings`). */
-export function resolveStringIndexInRow(localY: number, rowYOffset: number, stringSpacing: number, numStrings: number): number {
+export function resolveStringIndexInRow(
+  localY: number,
+  rowYOffset: number,
+  stringSpacing: number,
+  numStrings: number,
+): number {
   const line = Math.round((localY - rowYOffset) / stringSpacing)
   return stringLine(Math.min(numStrings - 1, Math.max(0, line)), numStrings)
 }
@@ -395,7 +395,13 @@ export function getSelectionRenderPoint(
     if (rowX != null) {
       // Same width TabNote centres its digit in (also correct for the last beat,
       // which has no following beat to measure against).
-      const beatWidth = getMeasureBeatWidth(trackId, voiceId, selection.blockId, selection.beatIndex, measure.data)
+      const beatWidth = getMeasureBeatWidth(
+        trackId,
+        voiceId,
+        selection.blockId,
+        selection.beatIndex,
+        measure.data,
+      )
       return {
         x: rowX + beatWidth / 2,
         y,
@@ -404,11 +410,7 @@ export function getSelectionRenderPoint(
   }
 
   const measureX = getMeasureXOffset(rowData.measures, selection.measureIndex, isFirstRow)
-  const beatX = getBeatXOffset(
-    measure.data,
-    selection.beatIndex,
-    getMeasureContentPadding(selection.blockId),
-  )
+  const beatX = getBeatXOffset(measure.data, selection.beatIndex, getMeasureContentPadding(selection.blockId))
 
   return {
     x: measureX + beatX + getDisplayWidth(measure.data[selection.beatIndex]?.duration) / 2,

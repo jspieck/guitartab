@@ -23,26 +23,37 @@ export function useSongData() {
   function getMeasures(trackId: number, voiceId: number) {
     return getMeasuresForTrackVoice(songState, trackId, voiceId)
   }
-  
-  function getBeat(trackId: number, blockId: number, voiceId: number, beatIndex: number): SongBeat | undefined {
+
+  function getBeat(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatIndex: number,
+  ): SongBeat | undefined {
     return editorCore.getBeat(trackId, blockId, voiceId, beatIndex)
   }
-  
-  function getNote(trackId: number, blockId: number, voiceId: number, beatIndex: number, stringIndex: number): SongNote | null | undefined {
+
+  function getNote(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatIndex: number,
+    stringIndex: number,
+  ): SongNote | null | undefined {
     return editorCore.getNote(trackId, blockId, voiceId, beatIndex, stringIndex)
   }
-  
+
   function setNote(
-    trackId: number, 
-    blockId: number, 
-    voiceId: number, 
-    beatIndex: number, 
-    stringIndex: number, 
-    fretNumber: number
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatIndex: number,
+    stringIndex: number,
+    fretNumber: number,
   ): void {
     editorCore.setNoteAtPosition(trackId, blockId, voiceId, beatIndex, stringIndex, fretNumber)
   }
-  
+
   return {
     reactiveSongData: songState,
     songDataVersion,
@@ -50,7 +61,7 @@ export function useSongData() {
     getMeasures,
     getBeat,
     getNote,
-    setNote
+    setNote,
   }
 }
 

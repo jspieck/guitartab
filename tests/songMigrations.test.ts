@@ -19,7 +19,15 @@ describe('song migrations', () => {
   })
 
   it('turns chordPresent + chord into an optional chord', () => {
-    const chord = { name: 'E', capo: 0, frets: [0, 0, 1, 2, 2, 0], fingers: [], chordType: '', chordRoot: 'E', display: true }
+    const chord = {
+      name: 'E',
+      capo: 0,
+      frets: [0, 0, 1, 2, 2, 0],
+      fingers: [],
+      chordType: '',
+      chordRoot: 'E',
+      display: true,
+    }
     const kept = legacyBeat({ chordPresent: true, chord })
     const hidden = legacyBeat({ chordPresent: false, chord })
     const nulled = legacyBeat({ chord: null })
@@ -32,9 +40,24 @@ describe('song migrations', () => {
   })
 
   it('turns note effect flags into optional data and drops stale defaults', () => {
-    const curve = [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 60, bendValue: 100, vibrato: 0 }]
-    const bent = { fret: 5, bendPresent: true, bendObj: curve, trillPresent: false, trill: { fret: 0, period: 0 } }
-    const harmonic = { fret: 12, artificialPresent: true, artificialStyle: 'N.H.', gracePresent: false, graceObj: { fret: 0 } }
+    const curve = [
+      { bendPosition: 0, bendValue: 0, vibrato: 0 },
+      { bendPosition: 60, bendValue: 100, vibrato: 0 },
+    ]
+    const bent = {
+      fret: 5,
+      bendPresent: true,
+      bendObj: curve,
+      trillPresent: false,
+      trill: { fret: 0, period: 0 },
+    }
+    const harmonic = {
+      fret: 12,
+      artificialPresent: true,
+      artificialStyle: 'N.H.',
+      gracePresent: false,
+      graceObj: { fret: 0 },
+    }
     const beat = legacyBeat({ notes: [bent, null, harmonic], gracePresent: false, graceObj: '' })
     migrateSongMeasures([[[[beat]]]])
 
@@ -56,13 +79,25 @@ describe('song migrations', () => {
   it('turns bar flags into optional fields and keeps the first tempo', () => {
     const marker = { text: 'Chorus', color: { red: 1, green: 2, blue: 3 } }
     const legacy = (fields: Record<string, unknown>) => ({
-      bpmPresent: false, bpm: 90, markerPresent: false, marker: { text: '', color: { red: 0, green: 0, blue: 0 } },
-      repeatAlternativePresent: false, repeatAlternative: 0, repeatClosePresent: false, repeatClose: 0, ...fields,
+      bpmPresent: false,
+      bpm: 90,
+      markerPresent: false,
+      marker: { text: '', color: { red: 0, green: 0, blue: 0 } },
+      repeatAlternativePresent: false,
+      repeatAlternative: 0,
+      repeatClosePresent: false,
+      repeatClose: 0,
+      ...fields,
     })
     const bars = [
       legacy({ bpmPresent: false, bpm: 100 }),
       legacy({ bpmPresent: true, bpm: 140, markerPresent: true, marker }),
-      legacy({ repeatClosePresent: true, repeatClose: 2, repeatAlternativePresent: true, repeatAlternative: 1 }),
+      legacy({
+        repeatClosePresent: true,
+        repeatClose: 2,
+        repeatAlternativePresent: true,
+        repeatAlternative: 1,
+      }),
     ]
     migrateMeasureMeta(bars)
 

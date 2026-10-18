@@ -75,7 +75,8 @@ export function compressBcfz(data: Uint8Array): Uint8Array {
   const writer = new BitWriter()
   const lastSeen = new Map<number, number[]>()
   const maxDistance = (1 << MAX_WORD_BITS) - 1
-  const key = (at: number) => (data[at] << 24 | data[at + 1] << 16 | data[at + 2] << 8 | data[at + 3]) >>> 0
+  const key = (at: number) =>
+    ((data[at] << 24) | (data[at + 1] << 16) | (data[at + 2] << 8) | data[at + 3]) >>> 0
   const remember = (at: number) => {
     if (at + MIN_MATCH > data.length) return
     const list = lastSeen.get(key(at)) ?? []

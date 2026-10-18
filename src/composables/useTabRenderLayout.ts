@@ -65,13 +65,15 @@ function sameNumbers(a: number[], b: number[]): boolean {
 }
 
 function isSameBlockLayout(a: RenderBlockLayout, b: RenderBlockLayout): boolean {
-  return a.xOffset === b.xOffset
-    && a.rowId === b.rowId
-    && a.numInRow === b.numInRow
-    && a.width === b.width
-    && a.minOffset === b.minOffset
-    && a.pageId === b.pageId
-    && sameNumbers(a.beatPositions, b.beatPositions)
+  return (
+    a.xOffset === b.xOffset &&
+    a.rowId === b.rowId &&
+    a.numInRow === b.numInRow &&
+    a.width === b.width &&
+    a.minOffset === b.minOffset &&
+    a.pageId === b.pageId &&
+    sameNumbers(a.beatPositions, b.beatPositions)
+  )
 }
 
 // Layout is computed inside render-time computeds; reads made while writing must not
@@ -141,11 +143,7 @@ export function getBlockRenderLayout(
   return blockLayoutCells[blockKey(trackId, voiceId, blockId)] ?? null
 }
 
-export function getBlockRenderPageId(
-  trackId: number,
-  voiceId: number,
-  blockId: number,
-): number | null {
+export function getBlockRenderPageId(trackId: number, voiceId: number, blockId: number): number | null {
   return getBlockRenderLayout(trackId, voiceId, blockId)?.pageId ?? null
 }
 
@@ -158,11 +156,7 @@ export function getBeatRenderPosition(
   return getBlockRenderLayout(trackId, voiceId, blockId)?.beatPositions[beatId] ?? null
 }
 
-export function getRowRenderLayout(
-  trackId: number,
-  voiceId: number,
-  rowId: number,
-): RenderRowLayout | null {
+export function getRowRenderLayout(trackId: number, voiceId: number, rowId: number): RenderRowLayout | null {
   return getTrackRenderLayout(trackId, voiceId)?.rowLayouts[rowId] ?? null
 }
 

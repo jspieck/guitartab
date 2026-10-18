@@ -65,14 +65,15 @@ export function createIndexedDbSnapshotStore(): SnapshotStore {
     })
     return dbPromise
   }
-  const store = async (mode: IDBTransactionMode) => (await open()).transaction(STORE_NAME, mode).objectStore(STORE_NAME)
+  const store = async (mode: IDBTransactionMode) =>
+    (await open()).transaction(STORE_NAME, mode).objectStore(STORE_NAME)
 
   return {
     async put(snapshot) {
       await requestToPromise((await store('readwrite')).put(snapshot))
     },
     async list() {
-      const records = await requestToPromise((await store('readonly')).getAll()) as AutosaveSnapshot[]
+      const records = (await requestToPromise((await store('readonly')).getAll())) as AutosaveSnapshot[]
       return records.sort((left, right) => right.savedAt - left.savedAt)
     },
     async delete(ids) {
@@ -147,7 +148,7 @@ const dependencies = () => (deps ??= defaults())
 let baseline: string | null = null
 let lastSnapshotContent: string | null = null
 let changeCounter = 0
-let dirtyCache: { counter: number, dirty: boolean } | null = null
+let dirtyCache: { counter: number; dirty: boolean } | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let snapshotCounter = 0
 /** Clean marker as it was when this page session started (before any load or save). */
@@ -191,6 +192,28 @@ function setBaselineToCurrentSong(): void {
 export function markSongSaved(): void {
   setBaselineToCurrentSong()
   dependencies().cleanMarker.set(dependencies().now())
+}
+
+/**
+ * Asks before another song replaces one with unsaved changes. Loading clears the undo history,
+ * so unlike other destructive edits this can't be offered as "Undo" afterwards. On yes the
+ * edits are written to the drafts as well.
+ */
+export function confirmReplaceUnsavedSong(
+  incoming: string,
+  ask: (message: string) => boolean = (message) => window.confirm(message),
+): boolean {
+  if (!isSongDirty()) {
+    return true
+  }
+  const message =
+    `Open "${incoming}"? The current song has unsaved changes.\n\n` +
+    'They stay available under "Recover drafts", but opening a song clears the undo history.'
+  if (!ask(message)) {
+    return false
+  }
+  void flushAutosave().catch(reportAutosaveError)
+  return true
 }
 
 /** Write a snapshot now if there are unsaved changes not yet captured. */

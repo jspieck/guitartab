@@ -23,8 +23,14 @@ describe('per-block render layout cells', () => {
     setTrackRenderLayout(9, 0, stateWith([block(0), block(200)]))
 
     const runs = [0, 0]
-    effect(() => { void getBlockRenderLayout(9, 0, 0); runs[0] += 1 })
-    effect(() => { void getBlockRenderLayout(9, 0, 1); runs[1] += 1 })
+    effect(() => {
+      void getBlockRenderLayout(9, 0, 0)
+      runs[0] += 1
+    })
+    effect(() => {
+      void getBlockRenderLayout(9, 0, 1)
+      runs[1] += 1
+    })
 
     const firstBefore = getBlockRenderLayout(9, 0, 0)
     setTrackRenderLayout(9, 0, stateWith([block(0), block(200, [10, 55])]))

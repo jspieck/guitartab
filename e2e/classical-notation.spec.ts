@@ -14,7 +14,7 @@ interface StaffGeometry {
 }
 
 /** Screen geometry of every mounted tab row and classical row, in document order. */
-async function readRowGeometry(page: Page): Promise<{ tab: RowGeometry[], staves: StaffGeometry[] }> {
+async function readRowGeometry(page: Page): Promise<{ tab: RowGeometry[]; staves: StaffGeometry[] }> {
   return page.evaluate(() => {
     const tab = [...document.querySelectorAll('.tab-row')].map((row) => {
       const lines = [...row.querySelectorAll('.tab-string-line')].map((line) => line.getBoundingClientRect())
@@ -25,7 +25,9 @@ async function readRowGeometry(page: Page): Promise<{ tab: RowGeometry[], staves
     })
     const staves = [...document.querySelectorAll<HTMLElement>('.vexFlowRow')].map((row) => {
       const box = row.getBoundingClientRect()
-      const staveLines = [...row.querySelectorAll('.vf-stave path')].map((line) => line.getBoundingClientRect())
+      const staveLines = [...row.querySelectorAll('.vf-stave path')].map((line) =>
+        line.getBoundingClientRect(),
+      )
       return {
         top: box.top,
         bottom: box.bottom,
@@ -40,23 +42,30 @@ async function readRowGeometry(page: Page): Promise<{ tab: RowGeometry[], staves
 /** Toggling classical scrolls (animated) to the selected measure; wait until it stops. */
 async function waitForScrollIdle(page: Page): Promise<void> {
   let previous = -1
-  await expect.poll(async () => {
-    const current = await page.locator('#mainContent').evaluate((element) => element.scrollTop)
-    const idle = current === previous
-    previous = current
-    return idle
-  }, { intervals: [250] }).toBe(true)
+  await expect
+    .poll(
+      async () => {
+        const current = await page.locator('#mainContent').evaluate((element) => element.scrollTop)
+        const idle = current === previous
+        previous = current
+        return idle
+      },
+      { intervals: [250] },
+    )
+    .toBe(true)
 }
 
 async function expectOneStaffUnderEachRow(page: Page): Promise<void> {
   // Row heights change when classical turns on, so wait until both counts settle together.
-  await expect.poll(async () => {
-    const [tabRows, staves] = await Promise.all([
-      page.locator('.tab-row').count(),
-      page.locator('.vexFlowRow svg').count(),
-    ])
-    return tabRows > 0 && tabRows === staves
-  }).toBe(true)
+  await expect
+    .poll(async () => {
+      const [tabRows, staves] = await Promise.all([
+        page.locator('.tab-row').count(),
+        page.locator('.vexFlowRow svg').count(),
+      ])
+      return tabRows > 0 && tabRows === staves
+    })
+    .toBe(true)
   const { tab, staves } = await readRowGeometry(page)
 
   expect(staves.length).toBe(tab.length)
@@ -90,8 +99,12 @@ test.describe('classical notation', () => {
     // After an intended visual change, refresh it: npx playwright test classical-notation --update-snapshots
     await page.evaluate(() => document.fonts.ready)
     await waitForScrollIdle(page)
-    await expect(page.locator('.vexFlowRow').first()).toHaveScreenshot('first-staff.png', { maxDiffPixelRatio: 0.01 })
-    await expect(page.locator('.tab-row').first()).toHaveScreenshot('first-tab-row.png', { maxDiffPixelRatio: 0.01 })
+    await expect(page.locator('.vexFlowRow').first()).toHaveScreenshot('first-staff.png', {
+      maxDiffPixelRatio: 0.01,
+    })
+    await expect(page.locator('.tab-row').first()).toHaveScreenshot('first-tab-row.png', {
+      maxDiffPixelRatio: 0.01,
+    })
   })
 
   test('aligns note heads with the tab digits above them', async ({ page }) => {
@@ -107,7 +120,9 @@ test.describe('classical notation', () => {
       return {
         tabCenters: [...document.querySelectorAll('.tab-row .note-text')].map(center),
         // First path of a notehead group is the head glyph itself.
-        headCenters: [...document.querySelectorAll('.vexFlowRow .vf-notehead > path:first-child')].map(center),
+        headCenters: [...document.querySelectorAll('.vexFlowRow .vf-notehead > path:first-child')].map(
+          center,
+        ),
       }
     })
 
@@ -136,26 +151,45 @@ test.describe('classical notation', () => {
       return rect.left + rect.width / 2
     })
 
-    await expect.poll(async () => page.locator('.vexFlowRow').nth(1).locator('.vf-notehead > path:first-child')
-      .evaluateAll((heads, x) => heads.some((head) => {
-        const rect = head.getBoundingClientRect()
-        return Math.abs(rect.left + rect.width / 2 - x) <= 1.5
-      }), digitX)).toBe(true)
+    await expect
+      .poll(async () =>
+        page
+          .locator('.vexFlowRow')
+          .nth(1)
+          .locator('.vf-notehead > path:first-child')
+          .evaluateAll(
+            (heads, x) =>
+              heads.some((head) => {
+                const rect = head.getBoundingClientRect()
+                return Math.abs(rect.left + rect.width / 2 - x) <= 1.5
+              }),
+            digitX,
+          ),
+      )
+      .toBe(true)
   })
 
-  test('draws exactly one non-overlapping staff under every row, also deep into a long song', async ({ page }) => {
+  test('draws exactly one non-overlapping staff under every row, also deep into a long song', async ({
+    page,
+  }) => {
     await waitForEditorShell(page)
     await growSong(page)
     await toggleClassicalNotation(page)
     await waitForScrollIdle(page)
 
-    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = 0 })
+    await page.locator('#mainContent').evaluate((element) => {
+      element.scrollTop = 0
+    })
     await expectOneStaffUnderEachRow(page)
 
-    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = element.scrollHeight / 2 })
+    await page.locator('#mainContent').evaluate((element) => {
+      element.scrollTop = element.scrollHeight / 2
+    })
     await expectOneStaffUnderEachRow(page)
 
-    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = element.scrollHeight })
+    await page.locator('#mainContent').evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
     await expectOneStaffUnderEachRow(page)
     await expect(page.locator('.vexFlowRow').last()).toBeInViewport()
   })

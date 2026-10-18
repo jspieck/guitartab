@@ -33,7 +33,13 @@ const RENDERED_EFFECTS: Record<string, string> = {
 
 async function expectNoCollisions(page: Page): Promise<void> {
   const collisions = await findLayoutCollisions(page)
-  expect(collisions, collisions.slice(0, 10).map((c) => `${c.a} / ${c.b}`).join('\n')).toEqual([])
+  expect(
+    collisions,
+    collisions
+      .slice(0, 10)
+      .map((c) => `${c.a} / ${c.b}`)
+      .join('\n'),
+  ).toEqual([])
 }
 
 test.describe('effects layout', () => {
@@ -53,14 +59,18 @@ test.describe('effects layout', () => {
 
   test('renders every effect without overlaps with classical notation', async ({ page }) => {
     await toggleClassicalNotation(page)
-    await expect.poll(async () => {
-      const [rows, staves] = await Promise.all([
-        page.locator('.tab-row').count(),
-        page.locator('.vexFlowRow svg').count(),
-      ])
-      return rows > 0 && rows === staves
-    }).toBe(true)
-    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = 0 })
+    await expect
+      .poll(async () => {
+        const [rows, staves] = await Promise.all([
+          page.locator('.tab-row').count(),
+          page.locator('.vexFlowRow svg').count(),
+        ])
+        return rows > 0 && rows === staves
+      })
+      .toBe(true)
+    await page.locator('#mainContent').evaluate((element) => {
+      element.scrollTop = 0
+    })
 
     for (const [name, selector] of Object.entries(RENDERED_EFFECTS)) {
       expect(await page.locator(`.tab-row ${selector}`).count(), name).toBeGreaterThan(0)

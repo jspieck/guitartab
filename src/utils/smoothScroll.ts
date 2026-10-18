@@ -12,11 +12,13 @@ interface Running {
 const running = new WeakMap<HTMLElement, Running>()
 
 function easeInOutQuad(t: number): number {
-  return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2
+  return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
 }
 
 function prefersReducedMotion(): boolean {
-  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return (
+    typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
 }
 
 export function cancelSmoothScroll(element: HTMLElement): void {
@@ -60,7 +62,7 @@ export const ROW_SCROLL_MARGIN = 16
  * visible. A row that doesn't fit goes to the top.
  */
 export function revealScrollTop(
-  span: { top: number, bottom: number },
+  span: { top: number; bottom: number },
   scrollTop: number,
   viewHeight: number,
   margin = ROW_SCROLL_MARGIN,

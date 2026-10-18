@@ -5,7 +5,10 @@ import { expect, type Page } from '@playwright/test'
  * (`src/data/demoSong.ts`), which most tests rely on; `demo: 'arrangement'` gives the
  * real multi-track demo song.
  */
-export async function waitForEditorShell(page: Page, { demo = 'riff' }: { demo?: 'riff' | 'arrangement' } = {}): Promise<void> {
+export async function waitForEditorShell(
+  page: Page,
+  { demo = 'riff' }: { demo?: 'riff' | 'arrangement' } = {},
+): Promise<void> {
   if (demo === 'riff') {
     await page.addInitScript(() => localStorage.setItem('guitartab:demoSong', 'riff'))
   }
@@ -23,7 +26,9 @@ export async function waitForSoundFont(page: Page): Promise<void> {
 }
 
 export async function toggleClassicalNotation(page: Page): Promise<void> {
-  const classicalToggle = page.locator('#classicalToggleButton, #classicalToggle, button.classicalButton').first()
+  const classicalToggle = page
+    .locator('#classicalToggleButton, #classicalToggle, button.classicalButton')
+    .first()
   await classicalToggle.click()
 }
 
@@ -34,5 +39,7 @@ export async function growSong(page: Page, extraMeasures = 80): Promise<void> {
   for (let index = 0; index < extraMeasures; index += 1) {
     await addMeasure.click()
   }
-  await expect.poll(async () => Number(await page.locator('.tab-svg').getAttribute('height'))).toBeGreaterThan(2500)
+  await expect
+    .poll(async () => Number(await page.locator('.tab-svg').getAttribute('height')))
+    .toBeGreaterThan(2500)
 }

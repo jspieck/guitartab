@@ -46,7 +46,9 @@ test.describe('phone layout', () => {
     const width = page.viewportSize()!.width
     for (const right of await rowRightEdges(page)) expect(right).toBeLessThanOrEqual(width)
     // Nothing scrolls sideways.
-    const overflow = await page.locator('#mainContent').evaluate((element) => element.scrollWidth - element.clientWidth)
+    const overflow = await page
+      .locator('#mainContent')
+      .evaluate((element) => element.scrollWidth - element.clientWidth)
     expect(overflow).toBeLessThanOrEqual(1)
     await expect(page.locator('#compactTrackSelect')).toHaveValue('0')
   })
@@ -64,7 +66,9 @@ test.describe('phone layout', () => {
   test('the speed menu sets the practice speed', async ({ page }) => {
     await openPhoneLayout(page)
     await page.locator('#compactSpeed').selectOption('0.75')
-    const rate = await page.evaluate(async () => (await import('/src/stores/practiceState.ts')).practiceState.playbackRate)
+    const rate = await page.evaluate(
+      async () => (await import('/src/stores/practiceState.ts')).practiceState.playbackRate,
+    )
     expect(rate).toBe(0.75)
   })
 
@@ -106,7 +110,10 @@ test.describe('phone layout', () => {
     await openPhoneLayout(page)
     await page.locator('#compactEditToggle').tap()
     // The first click area is the top line of the first bar.
-    await page.locator('.string-click-area').first().tap({ position: { x: 60, y: 4 } })
+    await page
+      .locator('.string-click-area')
+      .first()
+      .tap({ position: { x: 60, y: 4 } })
     await expect(page.locator('.note-pad__position')).toHaveText(/String 1$/)
     await page.locator('[data-fret="3"]').tap()
     await expect.poll(async () => (await firstBeatFrets(page)).at(-1)).toBe(3)
@@ -142,13 +149,17 @@ test.describe('phone layout', () => {
     await expect.poll(() => sheetWidth(page)).toBeLessThanOrEqual(412)
   })
 
-  test('a tablet in landscape keeps the desktop toolbar but fits the sheet to the window', async ({ page }) => {
+  test('a tablet in landscape keeps the desktop toolbar but fits the sheet to the window', async ({
+    page,
+  }) => {
     await openPhoneLayout(page)
     await page.setViewportSize({ width: 1024, height: 768 })
     await expect(page.locator('#completeBar')).toBeVisible()
     await expect(page.locator('#compactBar')).toHaveCount(0)
     await expect.poll(() => sheetWidth(page)).toBeLessThanOrEqual(1024)
-    const containerRight = await page.locator('#mainContent').evaluate((element) => element.getBoundingClientRect().right)
+    const containerRight = await page
+      .locator('#mainContent')
+      .evaluate((element) => element.getBoundingClientRect().right)
     for (const right of await rowRightEdges(page)) expect(right).toBeLessThanOrEqual(containerRight + 1)
   })
 
@@ -168,7 +179,11 @@ test.describe('phone layout', () => {
 
     await expect(page.locator('#compactTrackSelect option')).toHaveCount(4)
     await page.locator('#compactTrackSelect').selectOption({ label: 'Bass' })
-    await expect.poll(() => page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.currentTrackId)).toBe(2)
+    await expect
+      .poll(() =>
+        page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.currentTrackId),
+      )
+      .toBe(2)
   })
 })
 
@@ -178,9 +193,17 @@ async function pinch(page: Page, factor: number): Promise<void> {
     const rect = container.getBoundingClientRect()
     const cx = rect.left + rect.width / 2
     const cy = rect.top + rect.height / 2
-    const send = (type: string, pointerId: number, x: number, y: number) => container.dispatchEvent(new PointerEvent(type, {
-      pointerId, pointerType: 'touch', clientX: x, clientY: y, bubbles: true, isPrimary: pointerId === 1,
-    }))
+    const send = (type: string, pointerId: number, x: number, y: number) =>
+      container.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId,
+          pointerType: 'touch',
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          isPrimary: pointerId === 1,
+        }),
+      )
     const start = 60
     send('pointerdown', 1, cx - start, cy)
     send('pointerdown', 2, cx + start, cy)

@@ -68,26 +68,31 @@ const renderBridge = {
   },
 
   getRowIdForBlock(trackId: number, voiceId: number, blockId: number): number | null {
-    return getBlockRenderLayout(trackId, voiceId, blockId)?.rowId
-      ?? tab.blockToRow?.[trackId]?.[voiceId]?.[blockId]?.rowId
-      ?? null
+    return (
+      getBlockRenderLayout(trackId, voiceId, blockId)?.rowId ??
+      tab.blockToRow?.[trackId]?.[voiceId]?.[blockId]?.rowId ??
+      null
+    )
   },
 
   getBlockX(trackId: number, voiceId: number, blockId: number): number {
-    return getBlockRenderLayout(trackId, voiceId, blockId)?.xOffset
-      ?? 0
+    return getBlockRenderLayout(trackId, voiceId, blockId)?.xOffset ?? 0
   },
 
   getBlockWidth(trackId: number, voiceId: number, blockId: number): number {
-    return getBlockRenderLayout(trackId, voiceId, blockId)?.width
-      ?? tab.finalBlockWidths?.[trackId]?.[voiceId]?.[blockId]
-      ?? 0
+    return (
+      getBlockRenderLayout(trackId, voiceId, blockId)?.width ??
+      tab.finalBlockWidths?.[trackId]?.[voiceId]?.[blockId] ??
+      0
+    )
   },
 
   getMeasureOffset(trackId: number, voiceId: number, blockId: number): number {
-    return getBlockRenderLayout(trackId, voiceId, blockId)?.minOffset
-      ?? tab.measureOffset?.[trackId]?.[blockId]?.[voiceId]
-      ?? 0
+    return (
+      getBlockRenderLayout(trackId, voiceId, blockId)?.minOffset ??
+      tab.measureOffset?.[trackId]?.[blockId]?.[voiceId] ??
+      0
+    )
   },
 
   getRowY(trackId: number, voiceId: number, rowId: number): number {

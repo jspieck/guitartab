@@ -1,11 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
 import type { RenderedTabRow } from '../types/tab'
 import { tabViewportState } from '../stores/tabViewportState'
-import {
-  beginRenderAllRows,
-  endRenderAllRows,
-  isRenderingAllRows,
-} from '../stores/tabVirtualizationState'
+import { beginRenderAllRows, endRenderAllRows, isRenderingAllRows } from '../stores/tabVirtualizationState'
 
 interface VisibleWindow {
   top: number
@@ -71,9 +67,9 @@ export function useVisibleTabRows(
     const current = visibleWindow.value
     // Ignore sub-row scroll jitter: only publish when the window moved noticeably.
     if (
-      current
-      && Math.abs(current.top - next.top) < FALLBACK_ROW_HEIGHT / 2
-      && Math.abs(current.bottom - next.bottom) < FALLBACK_ROW_HEIGHT / 2
+      current &&
+      Math.abs(current.top - next.top) < FALLBACK_ROW_HEIGHT / 2 &&
+      Math.abs(current.bottom - next.bottom) < FALLBACK_ROW_HEIGHT / 2
     ) {
       return
     }

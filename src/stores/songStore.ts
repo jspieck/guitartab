@@ -1,12 +1,7 @@
 import { defineStore } from 'pinia'
 import type { Beat, MeasureMeta, Track } from '../types/tab'
 import { syncEditorScope } from '../composables/useEditorScopeState'
-import {
-  bumpSongDataVersion,
-  songDataVersion,
-  songState,
-  type SongStateData,
-} from './songState'
+import { bumpSongDataVersion, songDataVersion, songState, type SongStateData } from './songState'
 
 export const useSongStore = defineStore('song', {
   getters: {

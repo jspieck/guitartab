@@ -1,7 +1,5 @@
 // @vitest-environment happy-dom
-import {
-  afterEach, beforeAll, beforeEach, describe, expect, it, vi,
-} from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
  * Drives the real playback scheduler (`playBackLogicNew.scheduler`) on a fake clock: Vitest's
@@ -28,8 +26,12 @@ vi.mock('../src/assets/js/audioEngine', () => {
   })
   return { audioEngine: engine, default: engine }
 })
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 
 type PlaybackModule = typeof import('../src/assets/js/playBackLogicNew')
 type SongModule = typeof import('../src/assets/js/songData')
@@ -39,7 +41,14 @@ let Song: SongModule['default']
 let audioEngine: { playMetronomeNote: ReturnType<typeof vi.fn> }
 let practice: typeof import('../src/stores/practiceState')
 let tempo: typeof import('../src/composables/useTempoState')
-const scheduled: { track: number, voice: number, block: number, beat: number, start: number, duration: number }[] = []
+const scheduled: {
+  track: number
+  voice: number
+  block: number
+  beat: number
+  start: number
+  duration: number
+}[] = []
 
 const TICK_MS = 25
 
@@ -52,7 +61,17 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame'] })
+  vi.useFakeTimers({
+    toFake: [
+      'setInterval',
+      'clearInterval',
+      'setTimeout',
+      'clearTimeout',
+      'Date',
+      'requestAnimationFrame',
+      'cancelAnimationFrame',
+    ],
+  })
   clock.startMs = Date.now()
   scheduled.length = 0
   audioEngine.playMetronomeNote.mockClear()
@@ -106,7 +125,9 @@ function melody() {
 }
 
 function startTimesOf(block: number): number[] {
-  return melody().filter((entry) => entry.block === block).map((entry) => entry.start)
+  return melody()
+    .filter((entry) => entry.block === block)
+    .map((entry) => entry.start)
 }
 
 describe('playback scheduler', () => {

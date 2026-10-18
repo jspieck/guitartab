@@ -94,10 +94,7 @@ export function composeTabExportSvg(): ComposedTabExport | null {
   const tabWidth = Number(tabSvg.getAttribute('width')) || tabSvg.clientWidth || 800
   const tabHeight = Number(tabSvg.getAttribute('height')) || tabSvg.clientHeight || 600
   const classical = findClassicalSvgs(view)
-  const { width, height } = computeExportBounds(
-    { width: tabWidth, height: tabHeight },
-    classical,
-  )
+  const { width, height } = computeExportBounds({ width: tabWidth, height: tabHeight }, classical)
 
   const root = document.createElementNS(SVG_NS, 'svg')
   root.setAttribute('xmlns', SVG_NS)

@@ -1,16 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RenderedTabRow, TabBeat } from '../src/types/tab'
-import {
-  clickToTabPosition,
-  findBeatAtPosition,
-  getSelectionRenderPoint,
-} from '../src/utils/tabLayout'
+import { clickToTabPosition, findBeatAtPosition, getSelectionRenderPoint } from '../src/utils/tabLayout'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const { getBlockRenderLayout } = vi.hoisted(() => ({
@@ -131,12 +135,7 @@ describe('tabLayout', () => {
       beatPositions: [53, 103, 203, 303],
     })
 
-    const rowData = createRow([[
-      createBeat('e'),
-      createBeat('e'),
-      createBeat('q'),
-      createBeat('q'),
-    ]])
+    const rowData = createRow([[createBeat('e'), createBeat('e'), createBeat('q'), createBeat('q')]])
     rowData.measures[0].width = 400
     const svgElement = createSvgElement(1200, 1600)
     const paddingLeft = 1200 / 21

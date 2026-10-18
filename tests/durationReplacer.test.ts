@@ -1,15 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import {
-  DurationReplacer,
-  Beat,
-} from '../src/utils/durationReplacer'
+import { DurationReplacer, Beat } from '../src/utils/durationReplacer'
 
 // ─── Test helpers ───────────────────────────────────────────────────────────
 
-function makeBeat(
-  duration: string,
-  opts: Partial<Beat> = {},
-): Beat {
+function makeBeat(duration: string, opts: Partial<Beat> = {}): Beat {
   return {
     duration,
     dotted: false,
@@ -21,10 +15,7 @@ function makeBeat(
   }
 }
 
-function makeRest(
-  duration: string,
-  opts: Partial<Beat> = {},
-): Beat {
+function makeRest(duration: string, opts: Partial<Beat> = {}): Beat {
   const code = duration.endsWith('r') ? duration : duration + 'r'
   return makeBeat(code, { hasNotes: false, ...opts })
 }
@@ -537,10 +528,7 @@ describe('Edge cases', () => {
         const bigTicks = DurationReplacer.ticksOf(big)
 
         const { beats: result } = DurationReplacer.shrink(beats, 0, small)
-        expect(DurationReplacer.measureTotalTicks(result, true)).toBeCloseTo(
-          bigTicks,
-          6,
-        )
+        expect(DurationReplacer.measureTotalTicks(result, true)).toBeCloseTo(bigTicks, 6)
       }
     }
   })

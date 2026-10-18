@@ -5,12 +5,7 @@ import {
   getMeasureEndPositionInRow,
   getRowContentWidthFromLayout,
 } from './beatPositionInRow'
-import {
-  getBeatXOffset,
-  getDisplayWidth,
-  getMeasureXOffset,
-  TAB_CONSTANTS,
-} from './tabLayout'
+import { getBeatXOffset, getDisplayWidth, getMeasureXOffset, TAB_CONSTANTS } from './tabLayout'
 
 export interface OverlayPosition {
   trackId: number
@@ -34,10 +29,7 @@ export interface NormalizedOverlayRange {
   beatIdEnd: number
 }
 
-export function normalizeOverlayRange(
-  start: OverlayPosition,
-  end: OverlayPosition,
-): NormalizedOverlayRange {
+export function normalizeOverlayRange(start: OverlayPosition, end: OverlayPosition): NormalizedOverlayRange {
   const blockIdStart = start.blockId
   const blockIdEnd = end.blockId
   const beatIdStart = start.beatId
@@ -144,12 +136,7 @@ export function computeOverlayRectForRow(
   getMeasureContentPadding: (blockId: number) => number,
   numStrings: number,
 ): OverlaySelectionRect | null {
-  const {
-    blockIdStart,
-    blockIdEnd,
-    beatIdStart,
-    beatIdEnd,
-  } = range
+  const { blockIdStart, blockIdEnd, beatIdStart, beatIdEnd } = range
 
   const rowBegin = renderBridge.getRowIdForBlock(trackId, voiceId, blockIdStart)
   const rowEnd = renderBridge.getRowIdForBlock(trackId, voiceId, blockIdEnd)
@@ -158,17 +145,18 @@ export function computeOverlayRectForRow(
     return null
   }
 
-  const xPosStart = rowId === rowBegin
-    ? getBeatXInRow(
-      trackId,
-      voiceId,
-      rowData,
-      blockIdStart,
-      beatIdStart,
-      isFirstRow,
-      getMeasureContentPadding,
-    )
-    : 0
+  const xPosStart =
+    rowId === rowBegin
+      ? getBeatXInRow(
+          trackId,
+          voiceId,
+          rowData,
+          blockIdStart,
+          beatIdStart,
+          isFirstRow,
+          getMeasureContentPadding,
+        )
+      : 0
 
   if (xPosStart == null) {
     return null
@@ -203,9 +191,7 @@ export function computeOverlayRectForRow(
   }
 
   const stringSpan = Math.max(0, (numStrings - 1) * TAB_CONSTANTS.STRING_SPACING)
-  const height = stringSpan > 0
-    ? stringSpan
-    : getDisplayWidth('q')
+  const height = stringSpan > 0 ? stringSpan : getDisplayWidth('q')
 
   return {
     x: xPosStart,

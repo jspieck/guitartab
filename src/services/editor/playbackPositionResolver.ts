@@ -1,25 +1,15 @@
 import Duration from '../../assets/js/duration'
 import Song from '../../assets/js/songData'
 import { tab } from '../../assets/js/tab'
-import type {
-  BeatLocation,
-  PlaybackBeatTransition,
-  PlaybackInterpolationInput,
-} from '../../types/playback'
+import type { BeatLocation, PlaybackBeatTransition, PlaybackInterpolationInput } from '../../types/playback'
 import renderBridge from './renderBridge'
 
 export function resolveCurrentPlaybackPos(
   location: BeatLocation,
   interpolation: PlaybackInterpolationInput,
 ): { currentPos: number; jumpToNewPos: boolean } {
-  const {
-    jumpToNewPos,
-    lastNextPos,
-    lastCurrentPos,
-    lastTime,
-    lastTransformTime,
-    currentTime,
-  } = interpolation
+  const { jumpToNewPos, lastNextPos, lastCurrentPos, lastTime, lastTransformTime, currentTime } =
+    interpolation
   const { trackId, voiceId, blockId, beatId } = location
 
   if (jumpToNewPos) {
@@ -39,22 +29,25 @@ export function resolveCurrentPlaybackPos(
   }
 
   return {
-    currentPos: lastCurrentPos + (lastNextPos - lastCurrentPos)
-      * ((currentTime - lastTime) / lastTransformTime),
+    currentPos:
+      lastCurrentPos + (lastNextPos - lastCurrentPos) * ((currentTime - lastTime) / lastTransformTime),
     jumpToNewPos,
   }
 }
 
 function shouldJumpPlaybackWithinRow(transition: PlaybackBeatTransition): boolean {
   const { current, next, rows } = transition
-  return rows.rowId !== rows.nextRowId
-    || (current.blockId === next.blockId && next.beatId !== current.beatId + 1)
-    || (current.blockId !== next.blockId && (next.beatId !== 0 || current.blockId + 1 !== next.blockId))
+  return (
+    rows.rowId !== rows.nextRowId ||
+    (current.blockId === next.blockId && next.beatId !== current.beatId + 1) ||
+    (current.blockId !== next.blockId && (next.beatId !== 0 || current.blockId + 1 !== next.blockId))
+  )
 }
 
-export function resolveNextPlaybackXPos(
-  transition: PlaybackBeatTransition,
-): { nextXPos: number; jumpToNewPos: boolean } {
+export function resolveNextPlaybackXPos(transition: PlaybackBeatTransition): {
+  nextXPos: number
+  jumpToNewPos: boolean
+} {
   const { current, next } = transition
   const { trackId, voiceId } = current
 
@@ -65,8 +58,11 @@ export function resolveNextPlaybackXPos(
 
   if (shouldJumpPlaybackWithinRow(transition)) {
     nextXPos = renderBridge.getPositionInRow(trackId, voiceId, current.blockId, current.beatId)
-    nextXPos += tab.measureOffset[trackId][current.blockId][voiceId]
-      * Duration.getDurationWidth(Song.getBeat({ trackId, blockId: current.blockId, voiceId, beatId: current.beatId }))
+    nextXPos +=
+      tab.measureOffset[trackId][current.blockId][voiceId] *
+      Duration.getDurationWidth(
+        Song.getBeat({ trackId, blockId: current.blockId, voiceId, beatId: current.beatId }),
+      )
     return { nextXPos, jumpToNewPos: true }
   }
 

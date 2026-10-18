@@ -41,19 +41,26 @@ export function isUndoShortcut(event: KeyboardEvent): boolean {
 }
 
 export function isRedoShortcut(event: KeyboardEvent): boolean {
-  return (event.metaKey || event.ctrlKey)
-    && (event.code === 'KeyY' || (event.code === 'KeyZ' && event.shiftKey))
+  return (
+    (event.metaKey || event.ctrlKey) && (event.code === 'KeyY' || (event.code === 'KeyZ' && event.shiftKey))
+  )
 }
 
 const hasModifier = (event: KeyboardEvent) => event.ctrlKey || event.metaKey || event.altKey
 
-const plainKey = (...keys: string[]) => (event: KeyboardEvent) => !hasModifier(event) && keys.includes(event.key)
+const plainKey =
+  (...keys: string[]) =>
+  (event: KeyboardEvent) =>
+    !hasModifier(event) && keys.includes(event.key)
 
-const letter = (code: string) => (event: KeyboardEvent) => !hasModifier(event) && !event.shiftKey
-  && event.code === `Key${code.toUpperCase()}`
+const letter = (code: string) => (event: KeyboardEvent) =>
+  !hasModifier(event) && !event.shiftKey && event.code === `Key${code.toUpperCase()}`
 
-const modLetter = (code: string) => (event: KeyboardEvent) => (event.ctrlKey || event.metaKey) && !event.altKey
-  && !event.shiftKey && event.code === `Key${code.toUpperCase()}`
+const modLetter = (code: string) => (event: KeyboardEvent) =>
+  (event.ctrlKey || event.metaKey) &&
+  !event.altKey &&
+  !event.shiftKey &&
+  event.code === `Key${code.toUpperCase()}`
 
 export const SHORTCUTS: readonly ShortcutDefinition[] = [
   {
@@ -77,15 +84,51 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     keys: [['Esc']],
     // Handled by the tab view, which owns the selection.
   },
-  { id: 'moveLeft', group: 'Move', description: 'Previous beat', keys: [['←']], match: plainKey('ArrowLeft') },
+  {
+    id: 'moveLeft',
+    group: 'Move',
+    description: 'Previous beat',
+    keys: [['←']],
+    match: plainKey('ArrowLeft'),
+  },
   { id: 'moveRight', group: 'Move', description: 'Next beat', keys: [['→']], match: plainKey('ArrowRight') },
-  { id: 'stringUp', group: 'Move', description: 'Next higher string', keys: [['↑']], match: plainKey('ArrowUp') },
-  { id: 'stringDown', group: 'Move', description: 'Next lower string', keys: [['↓']], match: plainKey('ArrowDown') },
+  {
+    id: 'stringUp',
+    group: 'Move',
+    description: 'Next higher string',
+    keys: [['↑']],
+    match: plainKey('ArrowUp'),
+  },
+  {
+    id: 'stringDown',
+    group: 'Move',
+    description: 'Next lower string',
+    keys: [['↓']],
+    match: plainKey('ArrowDown'),
+  },
   { id: 'durationWhole', group: 'Note length', description: 'Whole note', keys: [['W']], match: letter('w') },
   { id: 'durationHalf', group: 'Note length', description: 'Half note', keys: [['H']], match: letter('h') },
-  { id: 'durationQuarter', group: 'Note length', description: 'Quarter note', keys: [['Q']], match: letter('q') },
-  { id: 'durationEighth', group: 'Note length', description: 'Eighth note', keys: [['E']], match: letter('e') },
-  { id: 'durationSixteenth', group: 'Note length', description: 'Sixteenth note', keys: [['S']], match: letter('s') },
+  {
+    id: 'durationQuarter',
+    group: 'Note length',
+    description: 'Quarter note',
+    keys: [['Q']],
+    match: letter('q'),
+  },
+  {
+    id: 'durationEighth',
+    group: 'Note length',
+    description: 'Eighth note',
+    keys: [['E']],
+    match: letter('e'),
+  },
+  {
+    id: 'durationSixteenth',
+    group: 'Note length',
+    description: 'Sixteenth note',
+    keys: [['S']],
+    match: letter('s'),
+  },
   {
     id: 'durationThirtySecond',
     group: 'Note length',
@@ -101,9 +144,30 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
     match: (event) => !hasModifier(event) && event.code === 'Space',
   },
   { id: 'undo', group: 'Edit', description: 'Undo', keys: [['Mod', 'Z']], match: isUndoShortcut },
-  { id: 'redo', group: 'Edit', description: 'Redo', keys: [['Mod', 'Y'], ['Mod', 'Shift', 'Z']], match: isRedoShortcut },
-  { id: 'copy', group: 'Edit', description: 'Copy the selected range', keys: [['Mod', 'C']], match: modLetter('c') },
-  { id: 'paste', group: 'Edit', description: 'Paste at the selected beat', keys: [['Mod', 'V']], match: modLetter('v') },
+  {
+    id: 'redo',
+    group: 'Edit',
+    description: 'Redo',
+    keys: [
+      ['Mod', 'Y'],
+      ['Mod', 'Shift', 'Z'],
+    ],
+    match: isRedoShortcut,
+  },
+  {
+    id: 'copy',
+    group: 'Edit',
+    description: 'Copy the selected range',
+    keys: [['Mod', 'C']],
+    match: modLetter('c'),
+  },
+  {
+    id: 'paste',
+    group: 'Edit',
+    description: 'Paste at the selected beat',
+    keys: [['Mod', 'V']],
+    match: modLetter('v'),
+  },
   { id: 'zoom', group: 'View', description: 'Zoom the tab (mouse wheel)', keys: [['Mod', 'Wheel']] },
   {
     id: 'help',
@@ -118,7 +182,9 @@ export function matchShortcut(event: KeyboardEvent): ShortcutDefinition | undefi
   return SHORTCUTS.find((shortcut) => shortcut.match?.(event) === true)
 }
 
-export function isMacPlatform(platform = typeof navigator === 'undefined' ? '' : navigator.platform): boolean {
+export function isMacPlatform(
+  platform = typeof navigator === 'undefined' ? '' : navigator.platform,
+): boolean {
   return /mac|iphone|ipad/i.test(platform)
 }
 
@@ -173,7 +239,11 @@ export function maxFretFor(instrument: string | undefined): number {
 /** Focus is somewhere the key belongs to: a text field or a control that uses keys itself. */
 export function isKeyboardControlTarget(target: EventTarget | null): boolean {
   if (!target || typeof target !== 'object') return false
-  const element = target as { tagName?: string; isContentEditable?: boolean; getAttribute?: (name: string) => string | null }
+  const element = target as {
+    tagName?: string
+    isContentEditable?: boolean
+    getAttribute?: (name: string) => string | null
+  }
   const tag = element.tagName?.toLowerCase()
   if (tag === 'input' || tag === 'textarea' || tag === 'select' || element.isContentEditable === true) {
     return true
@@ -190,7 +260,9 @@ export function wantsNativeSpace(target: EventTarget | null): boolean {
   if (!target || typeof target !== 'object') return false
   const element = target as Element
   if (typeof element.matches !== 'function') return false
-  const interactive = element.matches('button, a[href], summary, [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [role="tab"]')
+  const interactive = element.matches(
+    'button, a[href], summary, [role="button"], [role="checkbox"], [role="switch"], [role="menuitem"], [role="tab"]',
+  )
   if (!interactive) return false
   try {
     return element.matches(':focus-visible')

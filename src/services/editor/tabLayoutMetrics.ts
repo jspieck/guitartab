@@ -74,9 +74,10 @@ export function getNumChordsPerRow(availableWidth: number): number {
 }
 
 export function getNumChordDiagramRows(trackId: number, availableWidth?: number): number {
-  const rowWidth = availableWidth ?? getTrackRenderLayout(trackId, Song.currentVoiceId)?.availableWidth
-    ?? (TAB_SHEET.completeWidth - 2 * TAB_SHEET.PAGE_MARGIN_SIDE)
+  const rowWidth =
+    availableWidth ??
+    getTrackRenderLayout(trackId, Song.currentVoiceId)?.availableWidth ??
+    TAB_SHEET.completeWidth - 2 * TAB_SHEET.PAGE_MARGIN_SIDE
   const numChordsPerRow = Math.max(1, getNumChordsPerRow(rowWidth))
   return Math.ceil(getNumChords(trackId) / numChordsPerRow)
 }
-

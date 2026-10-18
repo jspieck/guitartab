@@ -7,15 +7,24 @@ import {
   type LaneBlockInput,
 } from '../src/utils/tabRowLanes'
 
-function beat(overrides: Partial<TabBeat> = {}, notes: Array<Partial<TabNoteData> | null> = [{ fret: 1 }]): TabBeat {
-  return { duration: 'q', notes: notes.map((note) => (note ? { fret: 0, ...note } : null)), ...overrides } as TabBeat
+function beat(
+  overrides: Partial<TabBeat> = {},
+  notes: Array<Partial<TabNoteData> | null> = [{ fret: 1 }],
+): TabBeat {
+  return {
+    duration: 'q',
+    notes: notes.map((note) => (note ? { fret: 0, ...note } : null)),
+    ...overrides,
+  } as TabBeat
 }
 
 function row(beats: TabBeat[], meta: LaneBlockInput['meta'] = undefined, spacing = 30) {
   return computeRowLanes({
     numStrings: 6,
     stringSpacing: 12,
-    blocks: [{ blockId: 0, meta, beats: beats.map((b, index) => ({ beat: b, centerX: 20 + index * spacing })) }],
+    blocks: [
+      { blockId: 0, meta, beats: beats.map((b, index) => ({ beat: b, centerX: 20 + index * spacing })) },
+    ],
   })
 }
 
@@ -34,13 +43,28 @@ describe('computeRowLanes', () => {
   })
 
   it('stacks used lanes above the strings without overlap, nearest lane first', () => {
-    const lanes = row([
-      beat({}, [{ fret: 5, bendObj: [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 60, bendValue: 100, vibrato: 0 }], palmMute: true, vibrato: true }]),
-      beat({ text: 'hi' }, [{ fret: 3, accentuated: true }]),
-    ], { bpm: 120, marker: { text: 'A', color: { red: 0, green: 0, blue: 0 } } })
+    const lanes = row(
+      [
+        beat({}, [
+          {
+            fret: 5,
+            bendObj: [
+              { bendPosition: 0, bendValue: 0, vibrato: 0 },
+              { bendPosition: 60, bendValue: 100, vibrato: 0 },
+            ],
+            palmMute: true,
+            vibrato: true,
+          },
+        ]),
+        beat({ text: 'hi' }, [{ fret: 3, accentuated: true }]),
+      ],
+      { bpm: 120, marker: { text: 'A', color: { red: 0, green: 0, blue: 0 } } },
+    )
 
     const boxes = Object.entries(lanes.above).map(([id, box]) => ({ id, ...box! }))
-    expect(boxes.map((box) => box.id).sort()).toEqual(['articulation', 'bend', 'marker', 'palmMute', 'tempo', 'text', 'vibrato'].sort())
+    expect(boxes.map((box) => box.id).sort()).toEqual(
+      ['articulation', 'bend', 'marker', 'palmMute', 'tempo', 'text', 'vibrato'].sort(),
+    )
     boxes.sort((a, b) => b.top - a.top)
     expect(boxes[0].id).toBe('bend')
     expect(boxes[0].top + boxes[0].height).toBe(-MEASURE_NUMBER_STRIP)
@@ -51,17 +75,19 @@ describe('computeRowLanes', () => {
   })
 
   it('puts horizontally clashing texts on separate lines', () => {
-    const lanes = row([
-      beat({ text: 'A long annotation text' }),
-      beat({ text: 'next' }),
-    ], undefined, 30)
+    const lanes = row([beat({ text: 'A long annotation text' }), beat({ text: 'next' })], undefined, 30)
 
     expect(lanes.textLine['0:0']).not.toBe(lanes.textLine['0:1'])
     expect(lanes.above.text!.height).toBe(30)
   })
 
   it('stacks several articulations of one beat on separate lines', () => {
-    const lanes = row([beat({}, [{ fret: 1, accentuated: true, stacatto: true }, { fret: 2, tap: true }])])
+    const lanes = row([
+      beat({}, [
+        { fret: 1, accentuated: true, stacatto: true },
+        { fret: 2, tap: true },
+      ]),
+    ])
 
     const lines = ['•', '>', 'T'].map((token) => lanes.articulationLine[`0:0:${token}`])
     expect(new Set(lines).size).toBe(3)

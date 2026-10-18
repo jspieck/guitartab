@@ -86,34 +86,30 @@ describe('deriveMenuSelectionState', () => {
       { canTie: true, hasOverlaySelection: false },
     )
 
-    expect(state.pressedButtonIds).toEqual(expect.arrayContaining([
-      'quarterNote',
-      'dotted',
-      'slide',
-      'tied',
-      'stroke',
-      'addText',
-      'bpmMeter',
-      'openBar',
-    ]))
+    expect(state.pressedButtonIds).toEqual(
+      expect.arrayContaining([
+        'quarterNote',
+        'dotted',
+        'slide',
+        'tied',
+        'stroke',
+        'addText',
+        'bpmMeter',
+        'openBar',
+      ]),
+    )
     expect(state.disabledButtonIds).not.toContain('slide')
   })
 
   it('disables note effect buttons when no note or overlay selection exists', () => {
-    const state = deriveMenuSelectionState(
-      createBeat({ duration: 'z' }),
-      null,
-      createMeasureMeta(),
-      { canTie: false, hasOverlaySelection: false },
-    )
+    const state = deriveMenuSelectionState(createBeat({ duration: 'z' }), null, createMeasureMeta(), {
+      canTie: false,
+      hasOverlaySelection: false,
+    })
 
-    expect(state.disabledButtonIds).toEqual(expect.arrayContaining([
-      'pullDown',
-      'slide',
-      'bend',
-      'tied',
-      'tuplet',
-    ]))
+    expect(state.disabledButtonIds).toEqual(
+      expect.arrayContaining(['pullDown', 'slide', 'bend', 'tied', 'tuplet']),
+    )
   })
 })
 

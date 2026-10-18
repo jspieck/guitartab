@@ -33,7 +33,15 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
       ],
     })
     const chord = (name: string, frets: number[]) => ({
-      chord: { name, capo: 0, frets, fingers: frets.map(() => 0), chordType: '', chordRoot: '', display: true },
+      chord: {
+        name,
+        capo: 0,
+        frets,
+        fingers: frets.map(() => 0),
+        chordType: '',
+        chordRoot: '',
+        display: true,
+      },
     })
 
     Song.songDescription.title = 'Effects Showcase'
@@ -41,7 +49,8 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
 
     // Measure 0: measure-level annotations + chord / text / dynamics + palm mute run.
     meta(0, {
-      timeMeterPresent: true, bpm: 140,
+      timeMeterPresent: true,
+      bpm: 140,
       marker: { text: 'Intro', color: { red: 200, green: 30, blue: 30 } },
       repeatOpen: true,
     })
@@ -77,11 +86,26 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
     note(2, 3, 2, 4, { tremoloPicking: true, tremoloPickingLength: 'e' })
     note(2, 4, 2, 4, { tremoloPicking: true, tremoloPickingLength: 's' })
     note(2, 5, 2, 4, { tremoloPicking: true, tremoloPickingLength: 't' })
-    note(2, 6, 3, 5, { graceObj: { duration: 's', setOnBeat: 'before', dynamic: 'f', transition: 'slide', fret: 3, string: 3, height: 0, dead: false } })
+    note(2, 6, 3, 5, {
+      graceObj: {
+        duration: 's',
+        setOnBeat: 'before',
+        dynamic: 'f',
+        transition: 'slide',
+        fret: 3,
+        string: 3,
+        height: 0,
+        dead: false,
+      },
+    })
     note(2, 7, 4, 0, { dead: true })
     note(2, 7, 5, 5, { ghost: true })
     Object.assign(beat(2, 4).effects, {
-      tremoloBar: [{ position: 0, value: 0, vibrato: 0 }, { position: 30, value: -100, vibrato: 0 }, { position: 60, value: 0, vibrato: 0 }],
+      tremoloBar: [
+        { position: 0, value: 0, vibrato: 0 },
+        { position: 30, value: -100, vibrato: 0 },
+        { position: 60, value: 0, vibrato: 0 },
+      ],
     })
     Object.assign(beat(2, 1), { text: 'Text' })
     Object.assign(beat(2, 2), { text: 'Neighbour text' })
@@ -116,8 +140,10 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
       bpm: 180,
     })
     meta(5, { marker: { text: 'Solo', color: { red: 200, green: 120, blue: 0 } }, timeMeterPresent: true })
-    for (let b = 0; b < 8; b += 1) note(4, b, b % 6, 10 + b, b % 2 === 0 ? bend(25 * ((b % 4) + 1)) : { vibrato: true })
-    for (let b = 0; b < 8; b += 1) note(5, b, 0, 15, { letRing: b < 4, palmMute: b >= 4, accentuated: b % 3 === 0 })
+    for (let b = 0; b < 8; b += 1)
+      note(4, b, b % 6, 10 + b, b % 2 === 0 ? bend(25 * ((b % 4) + 1)) : { vibrato: true })
+    for (let b = 0; b < 8; b += 1)
+      note(5, b, 0, 15, { letRing: b < 4, palmMute: b >= 4, accentuated: b % 3 === 0 })
     Object.assign(beat(5, 0), { text: 'A long text that runs into the next beats' })
     Object.assign(beat(5, 0), chord('C', [0, 1, 0, 2, 3, -1]))
     Object.assign(beat(5, 7), { dynamicPresent: true, dynamic: 'ppp' })

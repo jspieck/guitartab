@@ -9,10 +9,18 @@ import {
 } from '../src/stores/layoutModeState'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 describe('layout mode', () => {
@@ -89,7 +97,8 @@ describe('compact sheet', () => {
   })
 
   it('keeps the zoom within its limits, rounded to whole percent', async () => {
-    const { clampCompactZoom, COMPACT_ZOOM_MAX, COMPACT_ZOOM_MIN } = await import('../src/services/compactLayout')
+    const { clampCompactZoom, COMPACT_ZOOM_MAX, COMPACT_ZOOM_MIN } =
+      await import('../src/services/compactLayout')
     expect(clampCompactZoom(5)).toBe(COMPACT_ZOOM_MAX)
     expect(clampCompactZoom(0.1)).toBe(COMPACT_ZOOM_MIN)
     expect(clampCompactZoom(1.23456)).toBe(1.23)

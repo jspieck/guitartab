@@ -60,11 +60,13 @@ export interface LaneBeatInput {
 export interface LaneBlockInput {
   blockId: number
   beats: LaneBeatInput[]
-  meta: {
-    bpm?: number
-    marker?: unknown
-    repeatAlternative?: number
-  } | undefined
+  meta:
+    | {
+        bpm?: number
+        marker?: unknown
+        repeatAlternative?: number
+      }
+    | undefined
 }
 
 export interface RowLaneInput {
@@ -148,9 +150,9 @@ function notesOf(beat: TabBeat | undefined): NoteRecord[] {
 
 export function getArticulationTokens(beat: TabBeat | undefined): string[] {
   const notes = notesOf(beat)
-  return ARTICULATION_TOKENS
-    .filter(([property]) => notes.some((note) => Boolean(note[property])))
-    .map(([, label]) => label)
+  return ARTICULATION_TOKENS.filter(([property]) => notes.some((note) => Boolean(note[property]))).map(
+    ([, label]) => label,
+  )
 }
 
 export function estimateTextWidth(text: string, charWidth = TEXT_CHAR_WIDTH): number {
@@ -158,7 +160,7 @@ export function estimateTextWidth(text: string, charWidth = TEXT_CHAR_WIDTH): nu
 }
 
 /** Greedy line assignment so horizontally overlapping items go to separate lines. */
-function assignLines(items: Array<{ key: string, left: number, right: number }>): {
+function assignLines(items: Array<{ key: string; left: number; right: number }>): {
   lines: Record<string, number>
   count: number
 } {
@@ -177,7 +179,7 @@ function assignLines(items: Array<{ key: string, left: number, right: number }>)
   return { lines, count: lineEnds.length }
 }
 
-function whammyRange(beat: TabBeat | undefined): { up: number, down: number } {
+function whammyRange(beat: TabBeat | undefined): { up: number; down: number } {
   const effects = beat?.effects as { tremoloBar?: Array<{ value?: number }> } | undefined
   if (!effects?.tremoloBar) {
     return { up: 0, down: 0 }
@@ -205,8 +207,8 @@ const NOTE_LANES: Array<[AboveLaneId, (note: NoteRecord) => boolean]> = [
 
 interface RowScan {
   used: Set<AboveLaneId | BelowLaneId>
-  textItems: Array<{ key: string, left: number, right: number }>
-  chordItems: Array<{ key: string, left: number, right: number }>
+  textItems: Array<{ key: string; left: number; right: number }>
+  chordItems: Array<{ key: string; left: number; right: number }>
   articulationLine: Record<string, number>
   articulationLines: number
   whammyUp: number
@@ -245,7 +247,11 @@ function scanBeatAnnotations(scan: RowScan, key: string, beat: TabBeat | undefin
     scan.textItems.push({ key, left, right: left + estimateTextWidth(String(beat.text)) })
   }
   if (beat?.chord != null) {
-    scan.chordItems.push({ key, left: centerX - CHORD_DIAGRAM_WIDTH / 2, right: centerX + CHORD_DIAGRAM_WIDTH / 2 })
+    scan.chordItems.push({
+      key,
+      left: centerX - CHORD_DIAGRAM_WIDTH / 2,
+      right: centerX + CHORD_DIAGRAM_WIDTH / 2,
+    })
   }
   if (beat?.dynamicPresent && beat.dynamic) scan.used.add('dynamic')
   if (beat?.tuplet) scan.used.add('tuplet')
@@ -274,7 +280,16 @@ function scanRow(input: RowLaneInput): RowScan {
 }
 
 export function computeRowLanes(input: RowLaneInput): RowLanes {
-  const { used, textItems, chordItems, articulationLine, articulationLines, whammyUp, whammyDown, beamLevels } = scanRow(input)
+  const {
+    used,
+    textItems,
+    chordItems,
+    articulationLine,
+    articulationLines,
+    whammyUp,
+    whammyDown,
+    beamLevels,
+  } = scanRow(input)
   const text = assignLines(textItems)
   const chords = assignLines(chordItems)
   if (articulationLines > 0) used.add('articulation')
@@ -283,11 +298,16 @@ export function computeRowLanes(input: RowLaneInput): RowLanes {
 
   const heightOf = (lane: AboveLaneId | BelowLaneId): number => {
     switch (lane) {
-      case 'articulation': return LANE_HEIGHTS.articulation * articulationLines
-      case 'text': return LANE_HEIGHTS.text * text.count
-      case 'chord': return LANE_HEIGHTS.chord * chords.count
-      case 'whammy': return LANE_HEIGHTS.whammy + whammyUp + whammyDown
-      default: return LANE_HEIGHTS[lane]
+      case 'articulation':
+        return LANE_HEIGHTS.articulation * articulationLines
+      case 'text':
+        return LANE_HEIGHTS.text * text.count
+      case 'chord':
+        return LANE_HEIGHTS.chord * chords.count
+      case 'whammy':
+        return LANE_HEIGHTS.whammy + whammyUp + whammyDown
+      default:
+        return LANE_HEIGHTS[lane]
     }
   }
 

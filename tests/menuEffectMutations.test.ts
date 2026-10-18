@@ -90,14 +90,7 @@ describe('menuEffectMutations', () => {
     const measureMeta = createMeasureMeta()
     const slideGroupIndex = 0
 
-    const previousValues = applyMenuEffectCollision(
-      beat,
-      note,
-      slideGroupIndex,
-      'bend',
-      false,
-      measureMeta,
-    )
+    const previousValues = applyMenuEffectCollision(beat, note, slideGroupIndex, 'bend', false, measureMeta)
 
     expect(previousValues.slide).toBe(true)
     expect(note.slide).toBe(false)
@@ -110,13 +103,15 @@ describe('menuEffectMutations', () => {
     const measureMeta = createMeasureMeta()
 
     const changes = handleMenuEffectGroupCollision(
-      [{
-        trackId: 0,
-        blockId: 1,
-        voiceId: 0,
-        beatId: 2,
-        string: 0,
-      }],
+      [
+        {
+          trackId: 0,
+          blockId: 1,
+          voiceId: 0,
+          beatId: 2,
+          string: 0,
+        },
+      ],
       'bend',
       false,
       () => beat,
@@ -129,9 +124,15 @@ describe('menuEffectMutations', () => {
   })
 
   it('records effect data so undo can restore it after switching the effect off', () => {
-    const curve = [{ bendPosition: 0, bendValue: 0, vibrato: 0 }, { bendPosition: 30, bendValue: 150, vibrato: 0 }]
+    const curve = [
+      { bendPosition: 0, bendValue: 0, vibrato: 0 },
+      { bendPosition: 30, bendValue: 150, vibrato: 0 },
+    ]
     const note = createNote({ bendObj: curve })
-    const beat = createBeat({ notes: [note], effects: { ...createBeat().effects, stroke: { strokeLength: 16, strokeType: 'up' } } })
+    const beat = createBeat({
+      notes: [note],
+      effects: { ...createBeat().effects, stroke: { strokeLength: 16, strokeType: 'up' } },
+    })
     const measureMeta = createMeasureMeta()
 
     const previousBend = applyMenuEffectCollision(beat, note, 0, 'bend', true, measureMeta)
@@ -140,7 +141,9 @@ describe('menuEffectMutations', () => {
     expect(note.bendObj).toEqual(curve)
     expect(note.bendObj).not.toBe(previousBend.bend) // restored as a copy
 
-    const strokeGroup = MENU_EFFECT_GROUPS.findIndex((group) => (group as readonly string[]).includes('stroke'))
+    const strokeGroup = MENU_EFFECT_GROUPS.findIndex((group) =>
+      (group as readonly string[]).includes('stroke'),
+    )
     const previousStroke = applyMenuEffectCollision(beat, null, strokeGroup, 'stroke', true, measureMeta)
     expect(beat.effects.stroke).toBeUndefined()
     setMenuEffectVariable(beat, null, 'stroke', previousStroke.stroke, measureMeta)
@@ -159,14 +162,7 @@ describe('menuEffectMutations', () => {
     const note = createNote({ tremoloPicking: true, dead: false })
     const measureMeta = createMeasureMeta()
 
-    applyMenuEffectCollision(
-      beat,
-      note,
-      4,
-      'dead',
-      false,
-      measureMeta,
-    )
+    applyMenuEffectCollision(beat, note, 4, 'dead', false, measureMeta)
 
     expect(note.dead).toBe(true)
     expect(note.tremoloPicking).toBe(true)

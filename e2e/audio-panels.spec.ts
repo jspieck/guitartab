@@ -19,7 +19,9 @@ test.describe('studio panels', () => {
     // Remember the nodes createBusses() wired in at startup.
     await page.evaluate(async () => {
       const { modalManager } = await import('/src/assets/js/modals/modalManager.ts')
-      ;(window as unknown as { __eqNodes: unknown[] }).__eqNodes = [...modalManager.getHandler('equalizerModal').equalizerNodes]
+      ;(window as unknown as { __eqNodes: unknown[] }).__eqNodes = [
+        ...modalManager.getHandler('equalizerModal').equalizerNodes,
+      ]
     })
     await openModal(page, 'equalizerModal')
 
@@ -32,8 +34,9 @@ test.describe('studio panels', () => {
       const handler = modalManager.getHandler('equalizerModal')
       const before = (window as unknown as { __eqNodes: BiquadFilterNode[] }).__eqNodes
       return {
-        sameNodes: handler.equalizerNodes.length === before.length
-          && handler.equalizerNodes.every((node: BiquadFilterNode, i: number) => node === before[i]),
+        sameNodes:
+          handler.equalizerNodes.length === before.length &&
+          handler.equalizerNodes.every((node: BiquadFilterNode, i: number) => node === before[i]),
         frequency: handler.equalizerNodes[1].frequency.value,
       }
     })

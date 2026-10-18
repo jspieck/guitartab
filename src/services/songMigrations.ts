@@ -29,7 +29,7 @@ function migrateBeatChord(beat: LegacyBeat): void {
 
 /** `effects.strokePresent/stroke` and `effects.tremoloBarPresent/tremoloBar` became optional fields. */
 function migrateBeatEffects(beat: LegacyBeat): void {
-  const effects = beat.effects as unknown as (Record<string, unknown> | undefined)
+  const effects = beat.effects as unknown as Record<string, unknown> | undefined
   if (effects == null) return
   if ('strokePresent' in effects) {
     if (effects.strokePresent !== true || effects.stroke == null) delete effects.stroke
@@ -114,6 +114,8 @@ export function migrateSongMeasures(measures: unknown): void {
 }
 
 /** True when the beat shows a text annotation. */
-export function beatHasText<T extends Pick<Beat, 'text'>>(beat: T | null | undefined): beat is T & { text: string } {
+export function beatHasText<T extends Pick<Beat, 'text'>>(
+  beat: T | null | undefined,
+): beat is T & { text: string } {
   return typeof beat?.text === 'string' && beat.text !== ''
 }

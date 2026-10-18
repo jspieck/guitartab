@@ -32,20 +32,10 @@ export function buildLoopIntervalFromOverlays(
   getBeatDuration: (trackId: number, blockId: number, voiceId: number, beatId: number) => number,
   wholeRestDuration: number,
 ): PlaybackLoopInterval {
-  const {
-    trackId,
-    blockId: blockIdStart,
-    voiceId: voiceIdStart,
-    beatId: beatIdStart,
-  } = start
-  const {
-    blockId: blockEnd,
-    voiceId: voiceEnd,
-    beatId: beatEnd,
-  } = end
+  const { trackId, blockId: blockIdStart, voiceId: voiceIdStart, beatId: beatIdStart } = start
+  const { blockId: blockEnd, voiceId: voiceEnd, beatId: beatEnd } = end
 
-  if (blockIdStart > blockEnd
-    || ((blockIdStart === blockEnd) && beatIdStart > beatEnd)) {
+  if (blockIdStart > blockEnd || (blockIdStart === blockEnd && beatIdStart > beatEnd)) {
     const durEnd = getBeatDuration(trackId, blockEnd, voiceEnd, beatEnd)
     const startRatio = end.abstractTimePos - durEnd / wholeRestDuration
     const durStart = getBeatDuration(trackId, blockIdStart, voiceIdStart, beatIdStart)
@@ -84,8 +74,10 @@ export function resolveNextBlockAfterCurrent(
 
   if (loopInterval != null && currentBlock === loopInterval.endBlock) {
     nextBlock = loopInterval.startBlock
-  } else if (measureMeta[currentBlock]?.repeatClose != null
-    && measureMeta[currentBlock].repeatClose! >= playingIteration) {
+  } else if (
+    measureMeta[currentBlock]?.repeatClose != null &&
+    measureMeta[currentBlock].repeatClose! >= playingIteration
+  ) {
     nextBlock = jumpBackPositions[currentBlock] ?? 0
     newPlayingIteration = playingIteration + 1
   } else {

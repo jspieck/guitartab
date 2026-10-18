@@ -1,6 +1,6 @@
 /**
  * Music Theory Utilities
- * 
+ *
  * Constants and functions for music theory calculations including:
  * - Duration handling
  * - Note/pitch calculations
@@ -12,12 +12,19 @@
 // =============================================================================
 
 /** Duration code (w, h, q, e, s, t, z, o) with optional 'r' suffix for rests */
-export type DurationCode = 'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o' |
-                          'wr' | 'hr' | 'qr' | 'er' | 'sr' | 'tr' | 'zr' | 'or'
+export type DurationCode =
+  'w' | 'h' | 'q' | 'e' | 's' | 't' | 'z' | 'o' | 'wr' | 'hr' | 'qr' | 'er' | 'sr' | 'tr' | 'zr' | 'or'
 
 /** Human-readable duration names */
-export type DurationName = 'whole' | 'half' | 'quarter' | 'eighth' | 
-                          'sixteenth' | 'thirty-second' | 'sixty-fourth' | 'one-twenty-eighth'
+export type DurationName =
+  | 'whole'
+  | 'half'
+  | 'quarter'
+  | 'eighth'
+  | 'sixteenth'
+  | 'thirty-second'
+  | 'sixty-fourth'
+  | 'one-twenty-eighth'
 
 // =============================================================================
 // Duration Constants
@@ -25,74 +32,106 @@ export type DurationName = 'whole' | 'half' | 'quarter' | 'eighth' |
 
 /** Duration codes to tick values (64 ticks = whole note) */
 export const DURATION_TICKS: Record<string, number> = {
-  'w': 64, 'wr': 64,   // whole
-  'h': 32, 'hr': 32,   // half
-  'q': 16, 'qr': 16,   // quarter
-  'e': 8,  'er': 8,    // eighth
-  's': 4,  'sr': 4,    // sixteenth
-  't': 2,  'tr': 2,    // thirty-second
-  'z': 1,  'zr': 1,    // sixty-fourth
-  'o': 0.5, 'or': 0.5  // one-twenty-eighth (grace notes)
+  w: 64,
+  wr: 64, // whole
+  h: 32,
+  hr: 32, // half
+  q: 16,
+  qr: 16, // quarter
+  e: 8,
+  er: 8, // eighth
+  s: 4,
+  sr: 4, // sixteenth
+  t: 2,
+  tr: 2, // thirty-second
+  z: 1,
+  zr: 1, // sixty-fourth
+  o: 0.5,
+  or: 0.5, // one-twenty-eighth (grace notes)
 }
 
 /** Duration codes to display width (for spacing) */
 export const DURATION_WIDTH: Record<string, number> = {
-  'w': 8, 'wr': 8,
-  'h': 4, 'hr': 4,
-  'q': 2, 'qr': 2,
-  'e': 1, 'er': 1,
-  's': 1, 'sr': 1,
-  't': 1, 'tr': 1,
-  'z': 1, 'zr': 1,
-  'o': 0.5, 'or': 0.5
+  w: 8,
+  wr: 8,
+  h: 4,
+  hr: 4,
+  q: 2,
+  qr: 2,
+  e: 1,
+  er: 1,
+  s: 1,
+  sr: 1,
+  t: 1,
+  tr: 1,
+  z: 1,
+  zr: 1,
+  o: 0.5,
+  or: 0.5,
 }
 
 /** Duration codes to beam count */
 export const DURATION_BEAMS: Record<string, number> = {
-  'w': 0, 'wr': 0,   // no beam
-  'h': 0, 'hr': 0,   // no beam
-  'q': 0, 'qr': 0,   // no beam
-  'e': 1, 'er': 1,   // 1 beam
-  's': 2, 'sr': 2,   // 2 beams
-  't': 3, 'tr': 3,   // 3 beams
-  'z': 4, 'zr': 4,   // 4 beams
-  'o': 5, 'or': 5    // 5 beams
+  w: 0,
+  wr: 0, // no beam
+  h: 0,
+  hr: 0, // no beam
+  q: 0,
+  qr: 0, // no beam
+  e: 1,
+  er: 1, // 1 beam
+  s: 2,
+  sr: 2, // 2 beams
+  t: 3,
+  tr: 3, // 3 beams
+  z: 4,
+  zr: 4, // 4 beams
+  o: 5,
+  or: 5, // 5 beams
 }
 
 /** Duration code to human-readable name mapping */
 export const DURATION_NAMES: Record<string, DurationName> = {
-  'w': 'whole', 'wr': 'whole',
-  'h': 'half', 'hr': 'half',
-  'q': 'quarter', 'qr': 'quarter',
-  'e': 'eighth', 'er': 'eighth',
-  's': 'sixteenth', 'sr': 'sixteenth',
-  't': 'thirty-second', 'tr': 'thirty-second',
-  'z': 'sixty-fourth', 'zr': 'sixty-fourth',
-  'o': 'one-twenty-eighth', 'or': 'one-twenty-eighth'
+  w: 'whole',
+  wr: 'whole',
+  h: 'half',
+  hr: 'half',
+  q: 'quarter',
+  qr: 'quarter',
+  e: 'eighth',
+  er: 'eighth',
+  s: 'sixteenth',
+  sr: 'sixteenth',
+  t: 'thirty-second',
+  tr: 'thirty-second',
+  z: 'sixty-fourth',
+  zr: 'sixty-fourth',
+  o: 'one-twenty-eighth',
+  or: 'one-twenty-eighth',
 }
 
 /** Human-readable name to code mapping */
 export const NAME_TO_CODE: Record<DurationName, DurationCode> = {
-  'whole': 'w',
-  'half': 'h',
-  'quarter': 'q',
-  'eighth': 'e',
-  'sixteenth': 's',
+  whole: 'w',
+  half: 'h',
+  quarter: 'q',
+  eighth: 'e',
+  sixteenth: 's',
   'thirty-second': 't',
   'sixty-fourth': 'z',
-  'one-twenty-eighth': 'o'
+  'one-twenty-eighth': 'o',
 }
 
 /** Rest symbol characters (music font) */
 export const REST_SYMBOLS: Record<string, string> = {
-  'w': '𝄻',  // whole rest
-  'h': '𝄼',  // half rest
-  'q': '𝄽',  // quarter rest
-  'e': '𝄾',  // eighth rest
-  's': '𝄿',  // sixteenth rest
-  't': '𝅀',  // thirty-second rest
-  'z': '𝅁',  // sixty-fourth rest
-  'o': '𝅂'   // one-twenty-eighth rest
+  w: '𝄻', // whole rest
+  h: '𝄼', // half rest
+  q: '𝄽', // quarter rest
+  e: '𝄾', // eighth rest
+  s: '𝄿', // sixteenth rest
+  t: '𝅀', // thirty-second rest
+  z: '𝅁', // sixty-fourth rest
+  o: '𝅂', // one-twenty-eighth rest
 }
 
 // =============================================================================
@@ -175,11 +214,7 @@ export function ticksToDurationCode(ticks: number): DurationCode {
 /**
  * Calculate duration with dots
  */
-export function calculateDottedDuration(
-  baseTicks: number,
-  dotted: boolean,
-  doubleDotted: boolean
-): number {
+export function calculateDottedDuration(baseTicks: number, dotted: boolean, doubleDotted: boolean): number {
   let ticks = baseTicks
   if (dotted) {
     ticks += baseTicks / 2
@@ -193,18 +228,15 @@ export function calculateDottedDuration(
 /**
  * Calculate duration with tuplet
  */
-export function calculateTupletDuration(
-  baseTicks: number,
-  tuplet: number | null | undefined
-): number {
+export function calculateTupletDuration(baseTicks: number, tuplet: number | null | undefined): number {
   if (!tuplet || tuplet === 0) return baseTicks
-  
+
   const substitutedNotes = getTupletSubstitutedNotes(tuplet)
   if (substitutedNotes === 0) {
     // Fallback for unknown tuplet
     return (baseTicks * 2) / tuplet
   }
-  
+
   return (baseTicks * substitutedNotes) / tuplet
 }
 
@@ -214,9 +246,17 @@ export function calculateTupletDuration(
  */
 export function getTupletSubstitutedNotes(tuplet: number): number {
   const substitutions: Record<number, number> = {
-    3: 2,    // triplet: 3 notes in space of 2
-    5: 4, 6: 4, 7: 4,  // quintuplet etc: in space of 4
-    9: 8, 10: 8, 11: 8, 12: 8, 13: 8, 14: 8, 15: 8  // in space of 8
+    3: 2, // triplet: 3 notes in space of 2
+    5: 4,
+    6: 4,
+    7: 4, // quintuplet etc: in space of 4
+    9: 8,
+    10: 8,
+    11: 8,
+    12: 8,
+    13: 8,
+    14: 8,
+    15: 8, // in space of 8
   }
   return substitutions[tuplet] ?? 0
 }
@@ -227,7 +267,7 @@ export function getTupletSubstitutedNotes(tuplet: number): number {
 
 /** Note names */
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'] as const
-export type NoteName = typeof NOTE_NAMES[number]
+export type NoteName = (typeof NOTE_NAMES)[number]
 
 /** Standard guitar tuning (MIDI note numbers, low E to high E) */
 export const STANDARD_GUITAR_TUNING = [40, 45, 50, 55, 59, 64] // E2, A2, D3, G3, B3, E4
@@ -343,16 +383,16 @@ export function secondsToPosition(
   seconds: number,
   bpm: number,
   numerator: number = 4,
-  denominator: number = 4
+  denominator: number = 4,
 ): { measures: number; beats: number; ticks: number } {
-  const ticksPerSecond = bpm * 16 / 60
+  const ticksPerSecond = (bpm * 16) / 60
   const totalTicks = seconds * ticksPerSecond
   const ticksPerMeasure = getTicksPerMeasure(numerator, denominator)
-  
+
   const measures = Math.floor(totalTicks / ticksPerMeasure)
   const remainingTicks = totalTicks % ticksPerMeasure
   const beats = Math.floor(remainingTicks / 16)
   const ticks = Math.floor(remainingTicks % 16)
-  
+
   return { measures, beats, ticks }
 }

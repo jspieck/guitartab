@@ -13,7 +13,9 @@ async function isOnTop(page: Page, selector: string) {
     const rect = popover.getBoundingClientRect()
     const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
     const scrolled = document.querySelector('#completeBar')!.scrollTop
-    return popover.contains(hit) && scrolled < 2 ? 'visible' : `hidden (hit ${hit?.id || hit?.className}, toolbar scrolled ${scrolled})`
+    return popover.contains(hit) && scrolled < 2
+      ? 'visible'
+      : `hidden (hit ${hit?.id || hit?.className}, toolbar scrolled ${scrolled})`
   }, selector)
 }
 

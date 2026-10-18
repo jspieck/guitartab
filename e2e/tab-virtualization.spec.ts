@@ -3,10 +3,12 @@ import { expect, test, type Page } from '@playwright/test'
 import { growSong, waitForEditorShell } from './helpers'
 
 async function mountedRowOffsets(page: Page): Promise<number[]> {
-  return page.locator('.tab-row').evaluateAll((rows) => rows.map((row) => {
-    const match = /translate\(0,\s*([\d.]+)\)/.exec(row.getAttribute('transform') ?? '')
-    return match ? Number(match[1]) : NaN
-  }))
+  return page.locator('.tab-row').evaluateAll((rows) =>
+    rows.map((row) => {
+      const match = /translate\(0,\s*([\d.]+)\)/.exec(row.getAttribute('transform') ?? '')
+      return match ? Number(match[1]) : NaN
+    }),
+  )
 }
 
 test.describe('tab row virtualization', () => {
@@ -19,9 +21,13 @@ test.describe('tab row virtualization', () => {
     const firstRowOffset = Math.min(...atTop)
     expect(Math.max(...atTop)).toBeLessThan(sheetHeight / 2)
 
-    await page.locator('#mainContent').evaluate((element) => { element.scrollTop = element.scrollHeight })
+    await page.locator('#mainContent').evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+    })
     // The first row is unmounted once the view is at the end of the song.
-    await expect.poll(async () => Math.min(...await mountedRowOffsets(page))).toBeGreaterThan(firstRowOffset)
+    await expect
+      .poll(async () => Math.min(...(await mountedRowOffsets(page))))
+      .toBeGreaterThan(firstRowOffset)
 
     const atBottom = await mountedRowOffsets(page)
     expect(Math.max(...atBottom)).toBeGreaterThan(sheetHeight / 2)

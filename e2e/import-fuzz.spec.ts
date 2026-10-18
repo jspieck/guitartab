@@ -22,11 +22,15 @@ function randomBytes(seed: number, length: number): number[] {
   return out
 }
 
-function cases(): { name: string, file: string, bytes: number[] }[] {
-  const list: { name: string, file: string, bytes: number[] }[] = []
+function cases(): { name: string; file: string; bytes: number[] }[] {
+  const list: { name: string; file: string; bytes: number[] }[] = []
   for (const format of ['gp3', 'gp4', 'gp5', 'gpx', 'gp', 'gt', 'mid']) {
     for (let seed = 1; seed <= 12; seed += 1) {
-      list.push({ name: `random ${format} #${seed}`, file: `x.${format}`, bytes: randomBytes(seed * 97 + format.length, (seed * 337) % 3000) })
+      list.push({
+        name: `random ${format} #${seed}`,
+        file: `x.${format}`,
+        bytes: randomBytes(seed * 97 + format.length, (seed * 337) % 3000),
+      })
     }
   }
   // A valid GP5 header followed by garbage reaches the deeper parsing code.
@@ -37,27 +41,40 @@ function cases(): { name: string, file: string, bytes: number[] }[] {
     const bytes = showcaseGp5.slice()
     const noise = randomBytes(seed, 6)
     for (let i = 0; i < 3; i += 1) {
-      const at = 31 + ((noise[i * 2] << 8 | noise[i * 2 + 1]) % (bytes.length - 31))
+      const at = 31 + (((noise[i * 2] << 8) | noise[i * 2 + 1]) % (bytes.length - 31))
       bytes[at] ^= 0xff
     }
     list.push({ name: `gp5 corrupted #${seed}`, file: 'x.gp5', bytes })
   }
-  for (const [file, bytes] of [['x.gp', showcaseGp], ['x.gpx', showcaseGpx]] as const) {
+  for (const [file, bytes] of [
+    ['x.gp', showcaseGp],
+    ['x.gpx', showcaseGpx],
+  ] as const) {
     for (let cut = 4; cut < bytes.length; cut += Math.floor(bytes.length / 12)) {
       list.push({ name: `${file} truncated at ${cut}`, file, bytes: bytes.slice(0, cut) })
     }
   }
   // The score XML cut short or with bytes flipped (flips may still parse to an altered song).
   for (let cut = 100; cut < showcaseGpif.length; cut += Math.floor(showcaseGpif.length / 15)) {
-    list.push({ name: `gpif truncated at ${cut}`, file: 'x.gp', bytes: Array.from(buildGpArchive(showcaseGpif.slice(0, cut))) })
+    list.push({
+      name: `gpif truncated at ${cut}`,
+      file: 'x.gp',
+      bytes: Array.from(buildGpArchive(showcaseGpif.slice(0, cut))),
+    })
   }
   for (let seed = 1; seed <= 15; seed += 1) {
     const chars = showcaseGpif.split('')
     const noise = randomBytes(seed, 8)
     for (let i = 0; i < 4; i += 1) {
-      chars[(noise[i * 2] << 8 | noise[i * 2 + 1]) % chars.length] = String.fromCharCode(33 + (noise[i] % 90))
+      chars[((noise[i * 2] << 8) | noise[i * 2 + 1]) % chars.length] = String.fromCharCode(
+        33 + (noise[i] % 90),
+      )
     }
-    list.push({ name: `gpif corrupted #${seed}`, file: 'x.gp', bytes: Array.from(buildGpArchive(chars.join(''))) })
+    list.push({
+      name: `gpif corrupted #${seed}`,
+      file: 'x.gp',
+      bytes: Array.from(buildGpArchive(chars.join(''))),
+    })
   }
   for (const cut of [10, 100, 1000, showcaseGt.length - 3]) {
     list.push({ name: `gt truncated at ${cut}`, file: 'x.gt', bytes: showcaseGt.slice(0, cut) })
@@ -82,19 +99,23 @@ test('damaged or random files fail with an ImportError and leave the song intact
       try {
         gProReader.importSongBytes(file, new Uint8Array(bytes))
         // Some corruptions still decode to a song; that's fine as long as it is usable.
-        if (!Array.isArray(Song.measures[0]) || Song.measures[0].length === 0) problems.push(`${name}: empty song`)
+        if (!Array.isArray(Song.measures[0]) || Song.measures[0].length === 0)
+          problems.push(`${name}: empty song`)
         accepted.push(name)
         gProReader.importSongBytes('restore.gt', compressGtContent(original))
       } catch (error) {
         rejected += 1
-        if ((error as Error).name !== 'ImportError') problems.push(`${name}: ${(error as Error).name}: ${(error as Error).message}`)
+        if ((error as Error).name !== 'ImportError')
+          problems.push(`${name}: ${(error as Error).name}: ${(error as Error).message}`)
         if (serializeSongContent() !== original) problems.push(`${name}: song changed after a failed import`)
       }
       slowest = Math.max(slowest, performance.now() - started)
     }
     return { problems, rejected, total: all.length, slowest, accepted }
   }, cases())
-  console.log(`fuzz: ${results.rejected}/${results.total} rejected, slowest case ${Math.round(results.slowest)} ms`)
+  console.log(
+    `fuzz: ${results.rejected}/${results.total} rejected, slowest case ${Math.round(results.slowest)} ms`,
+  )
   expect(results.problems).toEqual([])
   // Bit flips inside a valid file may still decode (to an altered song); random or truncated data must not.
   expect(results.accepted.filter((name) => !/^(gp5|gpif) corrupted/.test(name))).toEqual([])

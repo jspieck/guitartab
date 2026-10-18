@@ -80,6 +80,11 @@ class RevertHandler {
     return this.stack.canRedo;
   }
 
+  /** The entry the next undo would revert, to check that it is still a given edit. */
+  peekUndo(): { type: string; info: unknown } | null {
+    return this.stack.peek() ?? null;
+  }
+
   clearHistory(): void {
     this.stack.clear();
   }

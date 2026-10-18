@@ -8,19 +8,23 @@ const requestOverBarRender = vi.fn()
 
 vi.mock('../src/assets/js/songData', async () => {
   const { createSongMock } = await import('./helpers/songMock')
-  return { default: createSongMock({
-    measures: [
-      [
+  return {
+    default: createSongMock({
+      measures: [
         [
-          [{
-            dynamicPresent: false,
-            dynamic: '',
-            notes: [{}, {}],
-          }],
+          [
+            [
+              {
+                dynamicPresent: false,
+                dynamic: '',
+                notes: [{}, {}],
+              },
+            ],
+          ],
         ],
       ],
-    ],
-  }) }
+    }),
+  }
 })
 
 vi.mock('../src/assets/js/revertHandler', () => ({
@@ -51,16 +55,22 @@ describe('dynamicsCommands', () => {
   })
 
   it('applies a dynamic marking to selected beats', () => {
-    processDynamicSelect({
-      notes: [{
-        trackId: 0,
-        blockId: 0,
-        voiceId: 0,
-        beatId: 0,
-        string: 0,
-      }],
-      blocks: [0],
-    }, 'pDynamic', false)
+    processDynamicSelect(
+      {
+        notes: [
+          {
+            trackId: 0,
+            blockId: 0,
+            voiceId: 0,
+            beatId: 0,
+            string: 0,
+          },
+        ],
+        blocks: [0],
+      },
+      'pDynamic',
+      false,
+    )
 
     expect(setEffectVariable).toHaveBeenCalled()
     expect(requestOverBarRender).toHaveBeenCalledWith(0, 0, 0)

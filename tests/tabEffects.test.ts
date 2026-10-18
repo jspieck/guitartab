@@ -8,10 +8,18 @@ import { buildTabEffects } from '../src/utils/tabEffects'
 import { computeRowLanes, type LaneBox, type RowLanes } from '../src/utils/tabRowLanes'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () => import('./helpers/legacyMocks').then((m) => m.audioEngineModule))
-vi.mock('../src/assets/js/playBackLogicNew', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/assets/js/midiReceiver', () => import('./helpers/legacyMocks').then((m) => m.midiReceiverModule))
-vi.mock('../src/assets/js/modals/modalManager', () => import('./helpers/legacyMocks').then((m) => m.modalManagerModule))
+vi.mock('../src/assets/js/audioEngine', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+)
+vi.mock('../src/assets/js/playBackLogicNew', () =>
+  import('./helpers/legacyMocks').then((m) => m.playbackModule),
+)
+vi.mock('../src/assets/js/midiReceiver', () =>
+  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+)
+vi.mock('../src/assets/js/modals/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
 vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const TRACK_ID = 0
@@ -34,8 +42,10 @@ function createBeat(duration: string, notes: Array<TabNoteData | null>): TabBeat
 }
 
 function beatCenter(measureData: TabBeat[], beatIndex: number): number {
-  return getMeasureBeatX(TRACK_ID, VOICE_ID, BLOCK_ID, beatIndex, measureData)
-    + getMeasureBeatWidth(TRACK_ID, VOICE_ID, BLOCK_ID, beatIndex, measureData) / 2
+  return (
+    getMeasureBeatX(TRACK_ID, VOICE_ID, BLOCK_ID, beatIndex, measureData) +
+    getMeasureBeatWidth(TRACK_ID, VOICE_ID, BLOCK_ID, beatIndex, measureData) / 2
+  )
 }
 
 /** Lanes for a row made of just this measure, as the layout engine would compute them. */
@@ -43,11 +53,13 @@ function lanesFor(measureData: TabBeat[]): RowLanes {
   return computeRowLanes({
     numStrings: 6,
     stringSpacing: 12,
-    blocks: [{
-      blockId: BLOCK_ID,
-      meta: undefined,
-      beats: measureData.map((beat, index) => ({ beat, centerX: beatCenter(measureData, index) })),
-    }],
+    blocks: [
+      {
+        blockId: BLOCK_ID,
+        meta: undefined,
+        beats: measureData.map((beat, index) => ({ beat, centerX: beatCenter(measureData, index) })),
+      },
+    ],
   })
 }
 
@@ -84,7 +96,8 @@ describe('buildTabEffects', () => {
 
     expect(effects.slides).toHaveLength(1)
     const [, startX, startY, endX, endY] = /M([\d.]+) (-?[\d.]+)L([\d.]+) (-?[\d.]+)/
-      .exec(effects.slides[0].path)!.map(Number)
+      .exec(effects.slides[0].path)!
+      .map(Number)
     expect(startX).toBeGreaterThan(beatCenter(measureData, 0) + 4)
     expect(endX).toBeLessThan(beatCenter(measureData, 1) - 4)
     // Upward slide (5 -> 8) rises from left to right.
@@ -93,7 +106,14 @@ describe('buildTabEffects', () => {
 
   it('draws one P.M. label per run of beats, in the palm-mute lane', () => {
     const measureData = [
-      createBeat('q', [createNote({ palmMute: true, string: 0 }), createNote({ palmMute: true, string: 1 }), null, null, null, null]),
+      createBeat('q', [
+        createNote({ palmMute: true, string: 0 }),
+        createNote({ palmMute: true, string: 1 }),
+        null,
+        null,
+        null,
+        null,
+      ]),
       createBeat('q', [createNote({ palmMute: true }), null, null, null, null, null]),
     ]
     const input = buildInput(measureData)
@@ -115,8 +135,9 @@ describe('buildTabEffects', () => {
     ]
 
     const effects = buildTabEffects(buildInput(measureData))
-    const endX = getMeasureBeatX(TRACK_ID, VOICE_ID, BLOCK_ID, 1, measureData)
-      + getMeasureBeatWidth(TRACK_ID, VOICE_ID, BLOCK_ID, 1, measureData)
+    const endX =
+      getMeasureBeatX(TRACK_ID, VOICE_ID, BLOCK_ID, 1, measureData) +
+      getMeasureBeatWidth(TRACK_ID, VOICE_ID, BLOCK_ID, 1, measureData)
 
     expect(effects.runs).toHaveLength(1)
     expect(effects.runs[0].kind).toBe('letRing')
@@ -126,8 +147,18 @@ describe('buildTabEffects', () => {
   it('gives every stacked effect of one beat its own vertical position', () => {
     const measureData = [
       createBeat('q', [
-        createNote({ palmMute: true, artificialStyle: 'N.H.', letRing: true, accentuated: true, stacatto: true }),
-        null, null, null, null, null,
+        createNote({
+          palmMute: true,
+          artificialStyle: 'N.H.',
+          letRing: true,
+          accentuated: true,
+          stacatto: true,
+        }),
+        null,
+        null,
+        null,
+        null,
+        null,
       ]),
     ]
     const input = buildInput(measureData)
@@ -144,7 +175,14 @@ describe('buildTabEffects', () => {
 
   it('places tremolo picking marks in their lane, centred on the note', () => {
     const measureData = [
-      createBeat('q', [createNote({ tremoloPicking: true, tremoloPickingLength: 's' }), null, null, null, null, null]),
+      createBeat('q', [
+        createNote({ tremoloPicking: true, tremoloPickingLength: 's' }),
+        null,
+        null,
+        null,
+        null,
+        null,
+      ]),
     ]
     const input = buildInput(measureData)
 
@@ -173,7 +211,14 @@ describe('buildTabEffects', () => {
   it('renders beat text, dynamics and strokes', () => {
     const measureData = [
       {
-        ...createBeat('q', [createNote({ fret: 1 }), createNote({ fret: 3, string: 1 }), null, null, null, null]),
+        ...createBeat('q', [
+          createNote({ fret: 1 }),
+          createNote({ fret: 3, string: 1 }),
+          null,
+          null,
+          null,
+          null,
+        ]),
         text: 'intro',
         dynamicPresent: true,
         dynamic: 'mf',

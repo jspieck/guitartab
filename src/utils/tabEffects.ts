@@ -159,27 +159,15 @@ export interface TabEffectCollections {
 }
 
 function getEffectNote(note: TabNoteData | null | undefined): EffectNote | null {
-  return note as EffectNote | null | undefined ?? null
+  return (note as EffectNote | null | undefined) ?? null
 }
 
 function getBeatX(input: TabEffectsInput, beatIndex: number): number {
-  return getMeasureBeatX(
-    input.trackId,
-    input.voiceId,
-    input.blockId,
-    beatIndex,
-    input.measureData,
-  )
+  return getMeasureBeatX(input.trackId, input.voiceId, input.blockId, beatIndex, input.measureData)
 }
 
 function getBeatWidth(input: TabEffectsInput, beatIndex: number): number {
-  return getMeasureBeatWidth(
-    input.trackId,
-    input.voiceId,
-    input.blockId,
-    beatIndex,
-    input.measureData,
-  )
+  return getMeasureBeatWidth(input.trackId, input.voiceId, input.blockId, beatIndex, input.measureData)
 }
 
 const NOTE_TEXT_BASELINE_OFFSET = 6
@@ -312,9 +300,7 @@ function createWavePath(startX: number, waveY: number, width: number): string {
   let pathData = `M${startX} ${waveY + 3}`
 
   for (let index = 3; index < width; index += 3) {
-    pathData += index % 6 === 0
-      ? `L${startX + index} ${waveY + 5}`
-      : `L${startX + index} ${waveY + 1}`
+    pathData += index % 6 === 0 ? `L${startX + index} ${waveY + 5}` : `L${startX + index} ${waveY + 1}`
   }
 
   return pathData
@@ -332,7 +318,8 @@ function collectSlideEffect(context: NoteEffectContext, slides: SlideEffect[]): 
   let endX = startX + Math.min(context.beatWidth * 0.6, 25)
   if (nextBeat) {
     // Stop before the next beat's digit on this string.
-    const nextCenter = getBeatX(context.input, context.beatIndex + 1) + getBeatWidth(context.input, context.beatIndex + 1) / 2
+    const nextCenter =
+      getBeatX(context.input, context.beatIndex + 1) + getBeatWidth(context.input, context.beatIndex + 1) / 2
     endX = Math.min(endX, nextCenter - getDigitHalfWidth(nextNote) - 2)
   }
   // Sliding up to a higher fret is drawn rising ("/"), sliding down falling ("\").
@@ -357,7 +344,8 @@ function collectBendEffect(context: NoteEffectContext, bends: BendEffect[]): voi
   const startY = context.yPos - 9
   const tipY = lane.top + lane.height - 1
   const maxBendValue = Math.max(0, ...context.note.bendObj.map((point) => point.bendValue || 0))
-  const yForValue = (value: number) => (maxBendValue > 0 ? startY + (tipY - startY) * (value / maxBendValue) : startY)
+  const yForValue = (value: number) =>
+    maxBendValue > 0 ? startY + (tipY - startY) * (value / maxBendValue) : startY
   let pathData = `M${startX} ${startY}`
   let arrowPath = ''
   let peakX = startX

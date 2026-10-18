@@ -46,6 +46,7 @@
     <div id="notificationEmblem">
       <img id="infoNotification" src="./assets/images/info.svg" alt="">
       <label id="notificationLabel">Saved!</label>
+      <button type="button" id="notificationAction" hidden></button>
     </div>
 
     <div v-if="autosavePrompt" id="autosaveBanner" class="autosave-banner">

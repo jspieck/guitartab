@@ -38,8 +38,9 @@ export function getMeasureBeatWidth(
 ): number {
   const beat = measureData[beatIndex]
   // Prefer the reactive layout state so cached computeds re-run when the row is re-justified.
-  const minOffset = getBlockRenderLayout(trackId, voiceId, blockId)?.minOffset
-    ?? tab.measureOffset[trackId]?.[blockId]?.[voiceId]
+  const minOffset =
+    getBlockRenderLayout(trackId, voiceId, blockId)?.minOffset ??
+    tab.measureOffset[trackId]?.[blockId]?.[voiceId]
 
   if (beat != null && minOffset != null && Number.isFinite(minOffset) && minOffset > 0) {
     return Duration.getDurationWidth(beat) * minOffset

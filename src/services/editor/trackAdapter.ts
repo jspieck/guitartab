@@ -147,9 +147,9 @@ function updateTrack(trackId: number, patch: TrackUpdate): void {
   if (patch.color !== undefined) {
     const nextColor = normalizeColor(patch.color)
     if (
-      track.color.red !== nextColor.red
-      || track.color.green !== nextColor.green
-      || track.color.blue !== nextColor.blue
+      track.color.red !== nextColor.red ||
+      track.color.green !== nextColor.green ||
+      track.color.blue !== nextColor.blue
     ) {
       track.color = nextColor
       didChange = true

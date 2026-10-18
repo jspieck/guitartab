@@ -10,17 +10,25 @@ async function openDemo(page: Page): Promise<void> {
 }
 
 test.describe('playback navigation', () => {
-  test('autoscroll turns pages: forward only, row always visible, fewer scrolls than rows', async ({ page }) => {
+  test('autoscroll turns pages: forward only, row always visible, fewer scrolls than rows', async ({
+    page,
+  }) => {
     test.setTimeout(150_000)
     // Desktop height: about three rows fit, so the next row is usually already on screen.
     await page.setViewportSize({ width: 1400, height: 1000 })
     await waitForEditorShell(page, { demo: 'arrangement' })
-  await waitForSoundFont(page)
+    await waitForSoundFont(page)
     await waitForSoundFont(page)
     await page.waitForFunction(() => document.body.innerText.includes('Open Road'), null, { timeout: 15_000 })
     await page.waitForTimeout(500)
     await page.locator('#play').click()
-    const samples: { scrollTop: number, rowId: number, top: number | null, bottom: number | null, view: number }[] = []
+    const samples: {
+      scrollTop: number
+      rowId: number
+      top: number | null
+      bottom: number | null
+      view: number
+    }[] = []
     // 30 s of the 36 s demo: rows 0 → 1, the repeat back inside row 1, then row 2.
     // Timed by the clock (not a sample count) and only while playing, so a slow run can't
     // run past the end of the song.
@@ -50,7 +58,9 @@ test.describe('playback navigation', () => {
     await page.locator('#play').click()
     const trace = JSON.stringify(samples.map((sample) => [sample.scrollTop, sample.rowId, sample.top]))
     // The only jump back (the repeat) stays inside one row, so the view never scrolls up.
-    samples.slice(1).forEach((sample, i) => expect(sample.scrollTop, trace).toBeGreaterThanOrEqual(samples[i].scrollTop))
+    samples
+      .slice(1)
+      .forEach((sample, i) => expect(sample.scrollTop, trace).toBeGreaterThanOrEqual(samples[i].scrollTop))
     // Once a scroll has settled, the playing row is on screen.
     samples.slice(1).forEach((sample, i) => {
       if (sample.scrollTop !== samples[i].scrollTop || sample.top == null) return
@@ -58,16 +68,26 @@ test.describe('playback navigation', () => {
       expect(sample.top, trace).toBeLessThan(sample.view)
     })
     const rowChanges = samples.slice(1).filter((sample, i) => sample.rowId !== samples[i].rowId).length
-    const scrolls = samples.slice(1).filter((sample, i) => sample.scrollTop !== samples[i].scrollTop && samples[i].scrollTop === (samples[i - 1] ?? samples[i]).scrollTop).length
+    const scrolls = samples
+      .slice(1)
+      .filter(
+        (sample, i) =>
+          sample.scrollTop !== samples[i].scrollTop &&
+          samples[i].scrollTop === (samples[i - 1] ?? samples[i]).scrollTop,
+      ).length
     expect(rowChanges, trace).toBeGreaterThanOrEqual(2)
     // The view doesn't follow every row: it only turns the page when the row would leave it.
     expect(scrolls, trace).toBeLessThan(rowChanges)
   })
 
-  test('after the user scrolled away, play goes straight back without first scrolling the other way', async ({ page }) => {
+  test('after the user scrolled away, play goes straight back without first scrolling the other way', async ({
+    page,
+  }) => {
     test.setTimeout(60_000)
     await openDemo(page)
-    await page.evaluate(() => { document.querySelector('#mainContent')!.scrollTop = 900 })
+    await page.evaluate(() => {
+      document.querySelector('#mainContent')!.scrollTop = 900
+    })
     await page.waitForTimeout(300)
     await page.locator('#play').click()
     const tops: number[] = []
@@ -84,7 +104,10 @@ test.describe('playback navigation', () => {
   test('pausing leaves the note marker on the beat that was playing', async ({ page }) => {
     test.setTimeout(60_000)
     await openDemo(page)
-    await page.locator('.string-click-area').first().click({ position: { x: 80, y: 4 } })
+    await page
+      .locator('.string-click-area')
+      .first()
+      .click({ position: { x: 80, y: 4 } })
     await page.locator('#play').click()
     await page.waitForTimeout(5000)
     await page.locator('#play').click()
@@ -112,10 +135,15 @@ test.describe('playback navigation', () => {
     // Click the third measure of the first row (bar 3) on its top string.
     const measure = page.locator('.tab-row[data-row-id="0"] .tab-measure').nth(2)
     const box = (await measure.boundingBox())!
-    const strings = (await page.locator('.tab-row[data-row-id="0"] .string-click-area').first().boundingBox())!
+    const strings = (await page
+      .locator('.tab-row[data-row-id="0"] .string-click-area')
+      .first()
+      .boundingBox())!
     await page.mouse.click(box.x + box.width / 2, strings.y + 6)
     await page.waitForTimeout(600)
-    const block = await page.evaluate(async () => (await import('/src/assets/js/playBackLogicNew.ts')).default.getCurrentBlock())
+    const block = await page.evaluate(async () =>
+      (await import('/src/assets/js/playBackLogicNew.ts')).default.getCurrentBlock(),
+    )
     await page.locator('#play').click()
     expect(block).toBe(2)
   })

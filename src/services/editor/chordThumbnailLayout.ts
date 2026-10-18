@@ -29,8 +29,7 @@ export function buildChordThumbnailMarkers(chord: Chord): ChordThumbMarker[] {
       result.push({ kind: 'cross', x: xPos })
     } else if (fretVal - (capo - 1) !== 0) {
       const fret = capo > 1 ? fretVal - capo + 1 : fretVal - capo
-      const yPos = height / (2 * CHORD_THUMB_HOSTEPS)
-        + (height / CHORD_THUMB_HOSTEPS) * (fret - 1)
+      const yPos = height / (2 * CHORD_THUMB_HOSTEPS) + (height / CHORD_THUMB_HOSTEPS) * (fret - 1)
       result.push({
         kind: 'finger',
         x: xPos,

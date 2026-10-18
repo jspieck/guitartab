@@ -49,7 +49,8 @@ export function resolveMeasureLayoutOptions(
     availableWidth,
     headerHeight: overrides.headerHeight ?? DEFAULT_MEASURE_LAYOUT_OPTIONS.headerHeight,
     paddingTop,
-    tabInformationHeight: overrides.tabInformationHeight ?? DEFAULT_MEASURE_LAYOUT_OPTIONS.tabInformationHeight,
+    tabInformationHeight:
+      overrides.tabInformationHeight ?? DEFAULT_MEASURE_LAYOUT_OPTIONS.tabInformationHeight,
   }
 }
 
@@ -107,9 +108,9 @@ function ensureTabLayoutContainers(trackId: number, voiceId: number): void {
 function syncTabLayoutArrays(
   trackId: number,
   voiceId: number,
-  blocksPerRow: Array<{ start: number, end: number }>,
+  blocksPerRow: Array<{ start: number; end: number }>,
   finalBlockWidths: number[],
-  blockToRow: Array<{ rowId: number, numInRow: number }>,
+  blockToRow: Array<{ rowId: number; numInRow: number }>,
   measureOffsets: number[],
   allWidths: BlockWidthInfo[],
   numRows: number,
@@ -131,11 +132,7 @@ function syncTabLayoutArrays(
   setTabNumRows(numRows)
 }
 
-function computeBlockWidth(
-  trackId: number,
-  blockId: number,
-  voiceId: number,
-): BlockWidthInfo {
+function computeBlockWidth(trackId: number, blockId: number, voiceId: number): BlockWidthInfo {
   try {
     Helper.groupMeasureBeats(trackId, blockId, voiceId)
     return Tab.computeWidthOfBlock(trackId, blockId, voiceId)
@@ -145,7 +142,7 @@ function computeBlockWidth(
   }
 }
 
-const previousLanes = new Map<string, { json: string, lanes: RowLanes }>()
+const previousLanes = new Map<string, { json: string; lanes: RowLanes }>()
 
 /**
  * Lanes are passed to every measure of a row as a prop. Returning the previous
@@ -175,14 +172,23 @@ export function computeTrackLayout(
   })
 
   const allWidths: BlockWidthInfo[] = []
-  const blocksPerRow: Array<{ start: number, end: number }> = []
+  const blocksPerRow: Array<{ start: number; end: number }> = []
   const finalBlockWidths: number[] = []
-  const blockToRow: Array<{ rowId: number, numInRow: number }> = []
+  const blockToRow: Array<{ rowId: number; numInRow: number }> = []
   const measureOffsets: number[] = []
 
   if (measures.length === 0) {
     state.numRows = 0
-    syncTabLayoutArrays(trackId, voiceId, blocksPerRow, finalBlockWidths, blockToRow, measureOffsets, allWidths, 0)
+    syncTabLayoutArrays(
+      trackId,
+      voiceId,
+      blocksPerRow,
+      finalBlockWidths,
+      blockToRow,
+      measureOffsets,
+      allWidths,
+      0,
+    )
     renderBridge.setTrackLayout(trackId, voiceId, state)
     return { rows, state, allWidths }
   }
@@ -209,12 +215,14 @@ export function computeTrackLayout(
 
     for (let blockId = groupStart; blockId < groupEnd; blockId += 1) {
       const widthInfo = allWidths[blockId]
-      const rawMinWidth = Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
-        ? widthInfo.minWidth
-        : TAB_CONSTANTS.MEASURE_WIDTH
-      const rawMinOffset = Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
-        ? widthInfo.minOffset
-        : TAB_CONSTANTS.BEAT_WIDTH
+      const rawMinWidth =
+        Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
+          ? widthInfo.minWidth
+          : TAB_CONSTANTS.MEASURE_WIDTH
+      const rawMinOffset =
+        Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
+          ? widthInfo.minOffset
+          : TAB_CONSTANTS.BEAT_WIDTH
       const num16ths = Math.max(1, widthInfo.num16ths || 0)
       const finalWidth = rawMinWidth + extraWidth
       const minOffset = rawMinOffset + extraWidth / num16ths
@@ -242,8 +250,10 @@ export function computeTrackLayout(
         meta: Song.measureMeta[blockId],
         beats: voiceMeasures.map((beat, beatIndex) => ({
           beat,
-          centerX: xOffset + blockLayout.beatPositions[beatIndex]
-            + (Duration.getDurationWidth(beat) * minOffset) / 2,
+          centerX:
+            xOffset +
+            blockLayout.beatPositions[beatIndex] +
+            (Duration.getDurationWidth(beat) * minOffset) / 2,
         })),
       })
       xOffset += finalWidth
@@ -288,9 +298,10 @@ export function computeTrackLayout(
     }
 
     allWidths[blockId] = computeBlockWidth(trackId, blockId, voiceId)
-    const blockMinWidth = Number.isFinite(allWidths[blockId].minWidth) && allWidths[blockId].minWidth > 0
-      ? allWidths[blockId].minWidth
-      : TAB_CONSTANTS.MEASURE_WIDTH
+    const blockMinWidth =
+      Number.isFinite(allWidths[blockId].minWidth) && allWidths[blockId].minWidth > 0
+        ? allWidths[blockId].minWidth
+        : TAB_CONSTANTS.MEASURE_WIDTH
 
     if (reachedWidth + blockMinWidth > availableWidth && blockId > groupStartIndex) {
       assignRow(groupStartIndex, blockId, reachedWidth)

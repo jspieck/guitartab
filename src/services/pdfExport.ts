@@ -121,21 +121,27 @@ export function buildJpegPdf(pages: PdfPage[]): Blob {
   }
 
   pushPdfObject(
-    chunks, sizeRef, objStarts, encoder,
+    chunks,
+    sizeRef,
+    objStarts,
+    encoder,
     `${catalogId} 0 obj\n<< /Type /Catalog /Pages ${pagesId} 0 R >>\nendobj\n`,
   )
   pushPdfObject(
-    chunks, sizeRef, objStarts, encoder,
+    chunks,
+    sizeRef,
+    objStarts,
+    encoder,
     `${pagesId} 0 obj\n<< /Type /Pages /Count ${kidIds.length} /Kids [${kidIds.map((id) => `${id} 0 R`).join(' ')}] >>\nendobj\n`,
   )
 
   for (const page of pending) {
     pushPdfObject(chunks, sizeRef, objStarts, encoder, [
       encoder.encode(
-        `${page.imageId} 0 obj\n`
-        + `<< /Type /XObject /Subtype /Image /Width ${page.widthPx} /Height ${page.heightPx} `
-        + `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode `
-        + `/Length ${page.jpeg.length} >>\nstream\n`,
+        `${page.imageId} 0 obj\n` +
+          `<< /Type /XObject /Subtype /Image /Width ${page.widthPx} /Height ${page.heightPx} ` +
+          `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode ` +
+          `/Length ${page.jpeg.length} >>\nstream\n`,
       ),
       page.jpeg,
       encoder.encode('\nendstream\nendobj\n'),
@@ -145,15 +151,21 @@ export function buildJpegPdf(pages: PdfPage[]): Blob {
     const y = A4_HEIGHT_PT - PAGE_MARGIN_PT - page.drawH
     const content = `q\n${page.drawW.toFixed(2)} 0 0 ${page.drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm\n/Im${page.imageId} Do\nQ\n`
     pushPdfObject(
-      chunks, sizeRef, objStarts, encoder,
+      chunks,
+      sizeRef,
+      objStarts,
+      encoder,
       `${page.contentId} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}endstream\nendobj\n`,
     )
     pushPdfObject(
-      chunks, sizeRef, objStarts, encoder,
-      `${page.pageId} 0 obj\n<< /Type /Page /Parent ${pagesId} 0 R `
-      + `/MediaBox [0 0 ${A4_WIDTH_PT} ${A4_HEIGHT_PT}] `
-      + `/Contents ${page.contentId} 0 R `
-      + `/Resources << /XObject << /Im${page.imageId} ${page.imageId} 0 R >> >> >>\nendobj\n`,
+      chunks,
+      sizeRef,
+      objStarts,
+      encoder,
+      `${page.pageId} 0 obj\n<< /Type /Page /Parent ${pagesId} 0 R ` +
+        `/MediaBox [0 0 ${A4_WIDTH_PT} ${A4_HEIGHT_PT}] ` +
+        `/Contents ${page.contentId} 0 R ` +
+        `/Resources << /XObject << /Im${page.imageId} ${page.imageId} 0 R >> >> >>\nendobj\n`,
     )
   }
 
@@ -201,11 +213,7 @@ async function rasterizeSvgPages(
     }
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.drawImage(
-      img,
-      0, y / scale, fullWidth, sliceHeight / scale,
-      0, 0, canvasWidth, sliceHeight,
-    )
+    ctx.drawImage(img, 0, y / scale, fullWidth, sliceHeight / scale, 0, 0, canvasWidth, sliceHeight)
     pages.push({
       jpeg: canvasToJpegBytes(canvas),
       widthPx: canvasWidth,
@@ -235,9 +243,7 @@ export async function exportTabAsSvg(): Promise<void> {
   }
   downloadSvgMarkup(composed.svgMarkup)
   showUserMessage(
-    composed.includesClassical
-      ? 'SVG downloaded (tab + classical notation).'
-      : 'SVG downloaded.',
+    composed.includesClassical ? 'SVG downloaded (tab + classical notation).' : 'SVG downloaded.',
     'info',
   )
 }
@@ -269,8 +275,6 @@ export async function exportTabAsPdf(): Promise<void> {
     )
   } catch (error) {
     console.error('PDF export failed', error)
-    showUserError(
-      error instanceof Error ? `PDF export failed: ${error.message}` : 'PDF export failed.',
-    )
+    showUserError(error instanceof Error ? `PDF export failed: ${error.message}` : 'PDF export failed.')
   }
 }

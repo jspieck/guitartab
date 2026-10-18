@@ -73,7 +73,12 @@ export function usePlaybackEngine() {
   }
 
   /** Running playback continues from this beat; when stopped, playback will start there. */
-  async function jumpToBeat(trackId: number, blockId: number, voiceId: number, beatId: number): Promise<void> {
+  async function jumpToBeat(
+    trackId: number,
+    blockId: number,
+    voiceId: number,
+    beatId: number,
+  ): Promise<void> {
     const playBackLogic = await getPlaybackEngine()
     playBackLogic.jumpToBeat(trackId, blockId, voiceId, beatId)
   }

@@ -18,8 +18,11 @@
     "test:e2e:install": "playwright install chromium",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
     "build:check": "npm run build && npm run check:bundle",
-    "lint": "eslint vite.config.ts src/components/Menu.vue src/components/tab/**/*.vue src/components/AddChordModal.vue src/components/ChordManagerModal.vue src/components/ChordThumbnail.vue src/components/TremoloBarModal.vue src/components/BendModal.vue src/composables/**/*.ts src/services/**/*.ts src/types/**/*.ts src/utils/**/*.ts src/assets/js/revertHandler.ts src/assets/js/modals/bendModalHandler.ts src/assets/js/modals/tremoloBarModalHandler.ts src/assets/js/modals/chordModalHandler.ts",
-    "lint:fix": "npm run lint -- --fix"
+    "lint": "eslint .",
+    "lint:fix": "npm run lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,mjs}\"",
+    "format:check": "prettier --check \"**/*.{ts,mjs}\"",
+    "prepare": "husky"
   },
   "dependencies": {
     "@types/vexflow": "^1.2.42",
@@ -45,14 +48,25 @@
     "@vue/test-utils": "^2.4.6",
     "eslint": "^10.4.0",
     "eslint-plugin-vue": "^10.9.1",
+    "fast-check": "^3.23.2",
     "globals": "^17.6.0",
     "happy-dom": "^20.0.10",
+    "husky": "^9.1.7",
     "jsdom": "^27.0.0",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.9.10",
     "typescript": "^4.9.3",
     "typescript-eslint": "^8.59.3",
     "vite": "^4.2.0",
     "vitest": "^4.0.18",
     "vue-eslint-parser": "^10.4.0",
     "vue-tsc": "^1.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,mjs}": [
+      "eslint --fix --no-warn-ignored",
+      "prettier --write --ignore-unknown"
+    ],
+    "*.vue": "eslint --fix --no-warn-ignored"
   }
 }

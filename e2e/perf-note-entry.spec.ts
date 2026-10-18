@@ -19,7 +19,10 @@ test.describe('perf: note entry latency', () => {
   test('keystroke to paint on a long song', async ({ page }) => {
     await waitForEditorShell(page)
 
-    await page.locator('input[type="file"][accept*=".gp5"]').first().setInputFiles(perfFile as string)
+    await page
+      .locator('input[type="file"][accept*=".gp5"]')
+      .first()
+      .setInputFiles(perfFile as string)
     const svgHeight = async () => Number(await page.locator('.tab-svg').getAttribute('height'))
     // Rows are virtualized, so wait on the full sheet height rather than mounted measures.
     await expect.poll(svgHeight, { timeout: 30_000 }).toBeGreaterThan(2000)
@@ -28,7 +31,9 @@ test.describe('perf: note entry latency', () => {
       await toggleClassicalNotation(page)
       await expect(page.locator('.vexFlowRow svg').first()).toBeVisible({ timeout: 10_000 })
       await page.waitForTimeout(1_500)
-      await page.locator('#mainContent').evaluate((element) => { element.scrollTop = 0 })
+      await page.locator('#mainContent').evaluate((element) => {
+        element.scrollTop = 0
+      })
       await page.waitForTimeout(300)
     }
 
@@ -45,9 +50,19 @@ test.describe('perf: note entry latency', () => {
       const latency = await page.evaluate(async (key) => {
         const target = document.activeElement ?? document.body
         const start = performance.now()
-        target.dispatchEvent(new KeyboardEvent('keydown', { key, code: `Digit${key}`, keyCode: 48 + Number(key), which: 48 + Number(key), bubbles: true }))
+        target.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key,
+            code: `Digit${key}`,
+            keyCode: 48 + Number(key),
+            which: 48 + Number(key),
+            bubbles: true,
+          }),
+        )
         // Two frames: classical staves are drawn in the frame after the tab update.
-        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))))
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0))),
+        )
         return performance.now() - start
       }, fret)
       samples.push(latency)
@@ -58,6 +73,8 @@ test.describe('perf: note entry latency', () => {
     samples.sort((a, b) => a - b)
     const median = samples[Math.floor(samples.length / 2)]
     const p90 = samples[Math.floor(samples.length * 0.9)]
-    console.log(`[perf] classical=${withClassical} sheetHeight=${sheetHeight} mountedMeasures=${measureCount} mountedRows=${rowCount} median=${median.toFixed(1)}ms p90=${p90.toFixed(1)}ms`)
+    console.log(
+      `[perf] classical=${withClassical} sheetHeight=${sheetHeight} mountedMeasures=${measureCount} mountedRows=${rowCount} median=${median.toFixed(1)}ms p90=${p90.toFixed(1)}ms`,
+    )
   })
 })

@@ -36,11 +36,18 @@ interface OptionalEffect {
 
 type OptionalNoteKey = 'bendObj' | 'trill' | 'graceObj' | 'artificialStyle'
 
-function noteEffect<K extends OptionalNoteKey>(key: K, create: (note: Note) => NonNullable<Note[K]>): OptionalEffect {
+function noteEffect<K extends OptionalNoteKey>(
+  key: K,
+  create: (note: Note) => NonNullable<Note[K]>,
+): OptionalEffect {
   return {
     get: (_beat, note) => note?.[key],
-    set: (_beat, note, _meta, value) => { if (note) note[key] = value as Note[K] },
-    remove: (_beat, note) => { if (note) delete note[key] },
+    set: (_beat, note, _meta, value) => {
+      if (note) note[key] = value as Note[K]
+    },
+    remove: (_beat, note) => {
+      if (note) delete note[key]
+    },
     create: (_beat, note) => (note ? create(note) : undefined),
   }
 }
@@ -54,51 +61,90 @@ const OPTIONAL_EFFECTS: Partial<Record<string, OptionalEffect>> = {
   ]),
   trill: noteEffect('trill', (note) => ({ fret: note.fret + 1, period: 4 })),
   grace: noteEffect('graceObj', () => ({
-    duration: 's', setOnBeat: 'before', dynamic: 'f', transition: 'none', fret: 0, string: 0, height: 0, dead: false,
+    duration: 's',
+    setOnBeat: 'before',
+    dynamic: 'f',
+    transition: 'none',
+    fret: 0,
+    string: 0,
+    height: 0,
+    dead: false,
   })),
   artificial: noteEffect('artificialStyle', () => 'N.H.'),
   stroke: {
     get: (beat) => beat.effects.stroke,
-    set: (beat, _note, _meta, value) => { beat.effects.stroke = value as Beat['effects']['stroke'] },
-    remove: (beat) => { delete beat.effects.stroke },
+    set: (beat, _note, _meta, value) => {
+      beat.effects.stroke = value as Beat['effects']['stroke']
+    },
+    remove: (beat) => {
+      delete beat.effects.stroke
+    },
     create: () => ({ strokeLength: 8, strokeType: 'down' }),
   },
   tremoloBar: {
     get: (beat) => beat.effects.tremoloBar,
-    set: (beat, _note, _meta, value) => { beat.effects.tremoloBar = value as Beat['effects']['tremoloBar'] },
-    remove: (beat) => { delete beat.effects.tremoloBar },
+    set: (beat, _note, _meta, value) => {
+      beat.effects.tremoloBar = value as Beat['effects']['tremoloBar']
+    },
+    remove: (beat) => {
+      delete beat.effects.tremoloBar
+    },
   },
   addText: {
     get: (beat) => beat.text,
-    set: (beat, _note, _meta, value) => { beat.text = value as string },
-    remove: (beat) => { delete beat.text },
+    set: (beat, _note, _meta, value) => {
+      beat.text = value as string
+    },
+    remove: (beat) => {
+      delete beat.text
+    },
     isOn: (beat) => beatHasText(beat),
   },
   addChord: {
     get: (beat) => beat.chord,
-    set: (beat, _note, _meta, value) => { beat.chord = value as Beat['chord'] },
-    remove: (beat) => { delete beat.chord },
+    set: (beat, _note, _meta, value) => {
+      beat.chord = value as Beat['chord']
+    },
+    remove: (beat) => {
+      delete beat.chord
+    },
   },
   addMarker: {
     get: (_beat, _note, meta) => meta.marker,
-    set: (_beat, _note, meta, value) => { meta.marker = value as MeasureMeta['marker'] },
-    remove: (_beat, _note, meta) => { delete meta.marker },
+    set: (_beat, _note, meta, value) => {
+      meta.marker = value as MeasureMeta['marker']
+    },
+    remove: (_beat, _note, meta) => {
+      delete meta.marker
+    },
   },
   repeatAlternative: {
     get: (_beat, _note, meta) => meta.repeatAlternative,
-    set: (_beat, _note, meta, value) => { meta.repeatAlternative = value as number },
-    remove: (_beat, _note, meta) => { delete meta.repeatAlternative },
+    set: (_beat, _note, meta, value) => {
+      meta.repeatAlternative = value as number
+    },
+    remove: (_beat, _note, meta) => {
+      delete meta.repeatAlternative
+    },
   },
   closeBar: {
     get: (_beat, _note, meta) => meta.repeatClose,
-    set: (_beat, _note, meta, value) => { meta.repeatClose = value as number },
-    remove: (_beat, _note, meta) => { delete meta.repeatClose },
+    set: (_beat, _note, meta, value) => {
+      meta.repeatClose = value as number
+    },
+    remove: (_beat, _note, meta) => {
+      delete meta.repeatClose
+    },
     create: () => 1,
   },
   bpmMeter: {
     get: (_beat, _note, meta) => meta.bpm,
-    set: (_beat, _note, meta, value) => { meta.bpm = value as number },
-    remove: (_beat, _note, meta) => { delete meta.bpm },
+    set: (_beat, _note, meta, value) => {
+      meta.bpm = value as number
+    },
+    remove: (_beat, _note, meta) => {
+      delete meta.bpm
+    },
   },
 }
 
@@ -108,7 +154,9 @@ function isNoteLevel(effectId: string): boolean {
 
 function copyState(value: unknown): MenuEffectState {
   // Song data is reactive; a JSON round trip gives a plain, detached copy.
-  return value != null && typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value as MenuEffectState
+  return value != null && typeof value === 'object'
+    ? JSON.parse(JSON.stringify(value))
+    : (value as MenuEffectState)
 }
 
 export function getMenuEffectVariable(
@@ -125,7 +173,9 @@ export function getMenuEffectVariable(
   const optional = OPTIONAL_EFFECTS[effectId]
   if (optional) {
     if (isNoteLevel(effectId) && note == null) return false
-    return optional.isOn ? optional.isOn(beat, note, measureMeta) : optional.get(beat, note, measureMeta) != null
+    return optional.isOn
+      ? optional.isOn(beat, note, measureMeta)
+      : optional.get(beat, note, measureMeta) != null
   }
 
   switch (effectId) {
@@ -302,14 +352,7 @@ export function handleMenuEffectGroupCollisionBeat(
 
       changedEffects.push({
         string,
-        effects: applyMenuEffectCollision(
-          beat,
-          note,
-          effectGroupIndex,
-          effectId,
-          isVariableSet,
-          measureMeta,
-        ),
+        effects: applyMenuEffectCollision(beat, note, effectGroupIndex, effectId, isVariableSet, measureMeta),
       })
     }
 

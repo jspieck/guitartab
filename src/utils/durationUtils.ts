@@ -9,38 +9,69 @@ import type { TabBeat, TabNoteData } from '../types/tab'
  */
 export const DURATION_BEATS: Record<string, number> = {
   // Notes
-  'w': 4, 'whole': 4,
-  'h': 2, 'half': 2,
-  'q': 1, 'quarter': 1,
-  'e': 0.5, 'eighth': 0.5,
-  's': 0.25, 'sixteenth': 0.25,
-  't': 0.125, 'thirty-second': 0.125,
-  'z': 0.0625, 'sixty-fourth': 0.0625,
+  w: 4,
+  whole: 4,
+  h: 2,
+  half: 2,
+  q: 1,
+  quarter: 1,
+  e: 0.5,
+  eighth: 0.5,
+  s: 0.25,
+  sixteenth: 0.25,
+  t: 0.125,
+  'thirty-second': 0.125,
+  z: 0.0625,
+  'sixty-fourth': 0.0625,
   // Rests (same values)
-  'wr': 4, 'hr': 2, 'qr': 1, 'er': 0.5, 'sr': 0.25, 'tr': 0.125, 'zr': 0.0625
+  wr: 4,
+  hr: 2,
+  qr: 1,
+  er: 0.5,
+  sr: 0.25,
+  tr: 0.125,
+  zr: 0.0625,
 }
 
 /**
  * Number of beams for each duration (for eighth notes and shorter)
  */
 export const BEAM_COUNTS: Record<string, number> = {
-  'eighth': 1, 'e': 1,
-  'sixteenth': 2, 's': 2,
-  'thirty-second': 3, 't': 3,
-  'sixty-fourth': 4, 'z': 4
+  eighth: 1,
+  e: 1,
+  sixteenth: 2,
+  s: 2,
+  'thirty-second': 3,
+  t: 3,
+  'sixty-fourth': 4,
+  z: 4,
 }
 
 /**
  * Rest symbols for music notation
  */
 export const REST_SYMBOLS: Record<string, string> = {
-  'w': '𝄻', 'wr': '𝄻', 'whole': '𝄻',           // Whole rest
-  'h': '𝄼', 'hr': '𝄼', 'half': '𝄼',             // Half rest
-  'q': '𝄽', 'qr': '𝄽', 'quarter': '𝄽',          // Quarter rest
-  'e': '𝄾', 'er': '𝄾', 'eighth': '𝄾',           // Eighth rest
-  's': '𝄿', 'sr': '𝄿', 'sixteenth': '𝄿',        // Sixteenth rest
-  't': '𝅀', 'tr': '𝅀', 'thirty-second': '𝅀',   // 32nd rest
-  'z': '𝅁', 'zr': '𝅁', 'sixty-fourth': '𝅁'     // 64th rest
+  w: '𝄻',
+  wr: '𝄻',
+  whole: '𝄻', // Whole rest
+  h: '𝄼',
+  hr: '𝄼',
+  half: '𝄼', // Half rest
+  q: '𝄽',
+  qr: '𝄽',
+  quarter: '𝄽', // Quarter rest
+  e: '𝄾',
+  er: '𝄾',
+  eighth: '𝄾', // Eighth rest
+  s: '𝄿',
+  sr: '𝄿',
+  sixteenth: '𝄿', // Sixteenth rest
+  t: '𝅀',
+  tr: '𝅀',
+  'thirty-second': '𝅀', // 32nd rest
+  z: '𝅁',
+  zr: '𝅁',
+  'sixty-fourth': '𝅁', // 64th rest
 }
 
 /**
@@ -93,7 +124,7 @@ export function beatHasNotes(beat: Pick<TabBeat, 'notes'> | null | undefined): b
   if (!beat.notes) return false
   if (!Array.isArray(beat.notes)) return false
   if (beat.notes.length === 0) return false
-  
+
   // Check each position in the notes array
   for (let i = 0; i < beat.notes.length; i++) {
     const note = beat.notes[i]
@@ -104,7 +135,7 @@ export function beatHasNotes(beat: Pick<TabBeat, 'notes'> | null | undefined): b
       return true
     }
   }
-  
+
   return false
 }
 
@@ -116,13 +147,13 @@ export function beatHasNotes(beat: Pick<TabBeat, 'notes'> | null | undefined): b
  */
 export function isRest(beat: Pick<TabBeat, 'duration' | 'notes'> | null | undefined): boolean {
   if (!beat) return false
-  
+
   // Explicit rest duration
   if (isRestDuration(beat.duration)) return true
-  
+
   // Beat with duration but no notes = rest
   if (beat.duration && !beatHasNotes(beat)) return true
-  
+
   return false
 }
 
@@ -132,7 +163,7 @@ export function isRest(beat: Pick<TabBeat, 'duration' | 'notes'> | null | undefi
 export function needsStem(beat: Pick<TabBeat, 'duration' | 'notes'> | null | undefined): boolean {
   if (!beat?.duration) return false
   if (!beatHasNotes(beat)) return false
-  
+
   const beamCount = getBeamCount(beat.duration)
   return beamCount > 0
 }
@@ -140,19 +171,21 @@ export function needsStem(beat: Pick<TabBeat, 'duration' | 'notes'> | null | und
 /**
  * Get string positions of notes in a beat (for stem positioning)
  */
-export function getNoteStringPositions(beat: Pick<TabBeat, 'notes'> | null | undefined): { highest: number; lowest: number } | null {
+export function getNoteStringPositions(
+  beat: Pick<TabBeat, 'notes'> | null | undefined,
+): { highest: number; lowest: number } | null {
   if (!beat?.notes) return null
-  
+
   let highest = -1
   let lowest = -1
-  
+
   beat.notes.forEach((note: TabNoteData | null, stringIndex: number) => {
     if (note !== null) {
       if (highest === -1 || stringIndex < highest) highest = stringIndex
       if (lowest === -1 || stringIndex > lowest) lowest = stringIndex
     }
   })
-  
+
   if (highest === -1) return null
   return { highest, lowest }
 }
