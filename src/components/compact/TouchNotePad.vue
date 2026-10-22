@@ -2,10 +2,10 @@
   <section id="touchNotePad" class="note-pad" aria-label="Note entry">
     <div class="note-pad__header">
       <span class="note-pad__position" aria-live="polite">{{ positionLabel }}</span>
-      <button type="button" class="note-pad__icon" aria-label="Undo" @click="revertHandler.revertState()">
+      <button type="button" class="note-pad__icon" aria-label="Undo" @click="undo()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>
       </button>
-      <button type="button" class="note-pad__icon" aria-label="Redo" @click="revertHandler.restoreState()">
+      <button type="button" class="note-pad__icon" aria-label="Redo" @click="redo()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h3" /></svg>
       </button>
       <button type="button" class="note-pad__done" @click="setCompactEditing(false)">Done</button>
@@ -69,11 +69,11 @@
 </template>
 
 <script setup lang="ts">
+import { selectionState } from '../../stores/selectionState'
 import { computed, onMounted, ref } from 'vue'
 import AppManager from '../../assets/js/appManager'
 import { audioEngine } from '../../assets/js/audioEngine'
-import { revertHandler } from '../../assets/js/revertHandler'
-import { tab } from '../../assets/js/tab'
+import { useUndoRedo } from '../../composables/useUndoRedo'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { applyNoteLengthSelection } from '../../services/menuActionCommands'
@@ -95,6 +95,7 @@ const HIGH_FRETS = Array.from({ length: 13 }, (_, index) => index + 12)
 
 const { reactiveSongData } = useSongData()
 const { currentSelection } = useTabSelection()
+const { undo, redo } = useUndoRedo()
 const highFrets = ref(false)
 
 const visibleFrets = computed(() => (highFrets.value ? HIGH_FRETS : LOW_FRETS))
@@ -130,7 +131,7 @@ const positionLabel = computed(() => {
 
 function placeFret(fret: number): void {
   if (!AppManager.hasExplicitNoteSelection() || Number.isNaN(fret)) return
-  const { trackId, blockId, voiceId, beatId, string } = tab.markedNoteObj
+  const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor
   AppManager.placeNote(trackId, blockId, voiceId, beatId, string, fret)
 }
 
@@ -153,7 +154,7 @@ function toggleDot(): void {
 onMounted(() => {
   // Start at the cursor (the first beat if nothing was picked yet) so the pad works at once.
   if (!AppManager.hasExplicitNoteSelection()) {
-    typedEventBus.emit('navigation.setClickedPos', { ...tab.markedNoteObj })
+    typedEventBus.emit('navigation.setClickedPos', { ...selectionState.cursor })
   }
 })
 </script>

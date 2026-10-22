@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
 import { tab } from '../src/assets/js/tab'
-import { clearTrackRenderLayout } from '../src/composables/useTabRenderLayout'
+import { clearTrackRenderLayout } from '../src/stores/tabRenderLayout'
 import { recomputeTrackLayoutFromSong } from '../src/services/editor/measureLayoutEngine'
 import { getAvailableRowWidth } from '../src/utils/tabSheetConstants'
 import { assertBeatPositionsMatchLayout, assertTabAndRenderLayoutMatch } from './helpers/layoutConvergence'
@@ -14,8 +13,8 @@ vi.mock('../src/assets/js/audioEngine', () =>
 vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -28,7 +27,6 @@ const AVAILABLE_WIDTH = 900
 
 describe('layout convergence', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     Song.initEmptySong()
     clearTrackRenderLayout(TRACK_ID, VOICE_ID)
   })

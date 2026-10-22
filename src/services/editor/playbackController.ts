@@ -1,7 +1,7 @@
+import { barLeftOffset } from '../../utils/measureBeatLayout'
 import Song from '../../assets/js/songData'
-import Settings from '../../assets/js/settingManager'
+import Settings from '../../stores/settingsState'
 import AppManager from '../../assets/js/appManager'
-import Helper from '../../assets/js/helper'
 import { audioEngine } from '../../assets/js/audioEngine'
 import { tab } from '../../assets/js/tab'
 import renderBridge from './renderBridge'
@@ -11,7 +11,7 @@ import {
   isPlaybackBarVisible,
   setPlaybackBarPosition,
   showPlaybackBar,
-} from '../../composables/usePlaybackBarState'
+} from '../../stores/playbackBarState'
 import { getPositionMarkerHeight } from './tabLayoutMetrics'
 import { resolveCurrentPlaybackPos, resolveNextPlaybackXPos } from './playbackPositionResolver'
 
@@ -102,7 +102,7 @@ export function movePlayBackBarToPosInBlock(
   }
 
   const pageId = blockLayout.pageId
-  const leftOffset = Helper.getLeftOffset(blockId)
+  const leftOffset = barLeftOffset(blockId)
   let xPos = renderBridge.getBlockX(trackId, voiceId, blockId) + leftOffset + 5
 
   const timeQuotient = Song.measureMeta[blockId].numerator / Song.measureMeta[blockId].denominator

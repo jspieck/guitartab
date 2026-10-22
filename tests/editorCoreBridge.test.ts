@@ -1,14 +1,8 @@
+import { selectionState } from '../src/stores/selectionState'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('vanilla-picker', () => ({
   default: class PickerMock {},
-}))
-
-vi.mock('../src/assets/js/helper', () => ({
-  default: {
-    groupMeasureBeats: vi.fn(),
-    getLeftOffset: vi.fn((blockId: number) => (blockId === 0 ? 53 : 10)),
-  },
 }))
 
 vi.mock('../src/assets/js/playbackEngine', () => ({
@@ -17,16 +11,10 @@ vi.mock('../src/assets/js/playbackEngine', () => ({
   },
 }))
 
-vi.mock('../src/assets/js/overlayHandler', () => ({
-  overlayHandler: {
-    startPosOverlay: null,
-    endPosOverlay: null,
-    copyHandler: vi.fn(),
-    pasteHandler: vi.fn(),
-    resetOverlays: vi.fn(),
-    initOverlay: vi.fn(),
-    selectionMove: vi.fn(),
-  },
+vi.mock('../src/services/editor/rangeSelection', () => ({
+  clearRange: vi.fn(),
+  startRange: vi.fn(),
+  extendRange: vi.fn(),
 }))
 
 vi.mock('../src/assets/js/tab', async () => {
@@ -45,8 +33,6 @@ vi.mock('../src/assets/js/tab', async () => {
   return {
     Tab: TabMock,
     tab: {
-      markedNoteObj: { trackId: 0, voiceId: 0, blockId: 0, beatId: 0, string: 0 },
-      hasExplicitSelection: false,
       blockToRow: [[[]]],
       finalBlockWidths: [[[]]],
       blocksPerRow: [[[]]],
@@ -80,13 +66,10 @@ import Song, {
   type SongDescription,
   type Track,
 } from '../src/assets/js/songData'
-import { resetPlaybackBarState, usePlaybackBarState } from '../src/composables/usePlaybackBarState'
-import {
-  registerSelectionSurface,
-  resetSelectionSurfaceState,
-} from '../src/composables/useSelectionSurfaceState'
+import { resetPlaybackBarState, usePlaybackBarState } from '../src/stores/playbackBarState'
+import { registerSelectionSurface, resetSelectionSurfaceState } from '../src/stores/selectionSurfaceState'
 import { tab } from '../src/assets/js/tab'
-import { clearTrackRenderLayout, useTabRenderLayout } from '../src/composables/useTabRenderLayout'
+import { clearTrackRenderLayout, useTabRenderLayout } from '../src/stores/tabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
 import { useTabSelectionBridge } from '../src/composables/useTabSelectionBridge'
 import editorCore from '../src/services/editor/editorCore'
@@ -136,7 +119,7 @@ let originalMeasureMeta: MeasureMetaInfo[]
 let originalSongDescription: SongDescription
 let originalCurrentTrackId: number
 let originalCurrentVoiceId: number
-let originalMarkedNoteObj: typeof tab.markedNoteObj
+let originalMarkedNoteObj: typeof selectionState.cursor
 let originalHasExplicitSelection: boolean
 
 beforeEach(() => {
@@ -151,8 +134,8 @@ beforeEach(() => {
   originalSongDescription = cloneValue(Song.songDescription)
   originalCurrentTrackId = Song.currentTrackId
   originalCurrentVoiceId = Song.currentVoiceId
-  originalMarkedNoteObj = cloneValue(tab.markedNoteObj)
-  originalHasExplicitSelection = tab.hasExplicitSelection
+  originalMarkedNoteObj = cloneValue(selectionState.cursor)
+  originalHasExplicitSelection = selectionState.hasExplicitSelection
 
   Song.measures = []
   Song.tracks = [createTrack()]
@@ -177,8 +160,8 @@ afterEach(() => {
   Song.songDescription = originalSongDescription
   Song.currentTrackId = originalCurrentTrackId
   Song.currentVoiceId = originalCurrentVoiceId
-  tab.markedNoteObj = originalMarkedNoteObj
-  tab.hasExplicitSelection = originalHasExplicitSelection
+  selectionState.cursor = originalMarkedNoteObj
+  selectionState.hasExplicitSelection = originalHasExplicitSelection
 
   useTabSelection().clearSelection()
   vi.restoreAllMocks()
@@ -239,7 +222,8 @@ describe('editorCore bridge', () => {
     expect(layout?.numRows).toBe(2)
     expect(reactiveLayout?.numRows).toBe(2)
     expect(layout?.blockLayouts[0]?.rowId).toBe(0)
-    expect(layout?.blockLayouts[0]?.beatPositions).toEqual([53])
+    // First bar: padding 10 + tempo mark 43 + 8 for a three-digit bpm
+    expect(layout?.blockLayouts[0]?.beatPositions).toEqual([61])
     expect(layout?.blockLayouts[1]?.rowId).toBe(1)
     expect(reactiveLayout?.blockLayouts[1]?.rowId).toBe(1)
     expect(tab.blockToRow[0][0][1]).toEqual({ rowId: 1, numInRow: 0 })
@@ -281,7 +265,6 @@ describe('useTabSelection', () => {
 
     const { currentSelection, selectedNote, setSelection } = useTabSelection()
     const unregisterBridge = useTabSelectionBridge(setSelection).registerNavigationSelectionBridge()
-    const emitSpy = vi.spyOn(typedEventBus, 'emit')
 
     typedEventBus.emit('navigation.setClickedPos', {
       trackId: 0,
@@ -298,15 +281,8 @@ describe('useTabSelection', () => {
       beatIndex: 0,
       stringIndex: 2,
     })
-    expect(tab.hasExplicitSelection).toBe(true)
-    expect(tab.markedNoteObj).toEqual({
-      trackId: 0,
-      voiceId: 0,
-      blockId: 0,
-      beatId: 0,
-      string: 2,
-    })
-    expect(emitSpy).toHaveBeenCalledWith('menu.clickedOnPos', {
+    expect(selectionState.hasExplicitSelection).toBe(true)
+    expect(selectionState.cursor).toEqual({
       trackId: 0,
       voiceId: 0,
       blockId: 0,

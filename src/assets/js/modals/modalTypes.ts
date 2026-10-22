@@ -1,32 +1,19 @@
 import { AddTrackModalHandler } from './addTrackModalHandler';
-import { ArtificialModalHandler } from './artificialModalHandler';
-import { BaseModalHandler } from './baseModalHandler';
+import { BaseModalHandler, definePlainModal } from './baseModalHandler';
+import {
+    ArtificialModalHandler, GraceModalHandler, MarkerModalHandler, RepeatAlternativeModalHandler,
+    RepetitionModalHandler, StrokeModalHandler, TempoModalHandler, TextModalHandler, TremoloPickingModalHandler,
+} from './effectModals';
 import { BendModalHandler } from './bendModalHandler';
-import { ChordModalHandler } from './chordModalHandler';
 import { CompressorModalHandler } from './compressorModalHandler';
 import { DeleteTrackModalHandler } from './deleteTrackModalHandler';
-import { DrumInfoModalHandler } from './drumInfoModalHandler';
 import { EqualizerModalHandler } from './equalizerModalHandler';
-import { GraceModalHandler } from './graceModalHandler';
-import { GuitarModalHandler } from './guitarModalHandler';
 import { InfoModalHandler } from './infoModalHandler';
 import { InstrumentSettingsModalHandler } from './instrumentSettingsModalHandler';
-import { MarkerModalHandler } from './markerModalHandler';
-import { MidiModalHandler } from './midiModalHandler';
-import { MixerModalHandler } from './mixerModalHandler';
-import { PianoModalHandler } from './pianoModalHandler';
-import { RepeatAlternativeModalHandler } from './repeatAlternativeModalHandler';
-import { RepetitionModalHandler } from './repetitionModalHandler';
-import { StrokeModalHandler } from './strokeModalHandler';
-import { TempoModalHandler } from './tempoModalHandler';
-import { TextModalHandler } from './textModalHandler';
 import { TimeMeterModalHandler } from './timeMeterModalHandler';
 import { TremoloBarModalHandler } from './tremoloBarModalHandler';
-import { TremoloPickingModalHandler } from './tremoloPickingModalHandler';
 import { TuningModalHandler } from './tuningModalHandler';
 import { AddChordModalHandler } from './addChordModalHandler';
-import { ChordManagerModalHandler } from './chordManagerModalHandler';
-import { CopyrightModalHandler } from './copyRightModalHandler';
 
 export interface ModalDefinition {
     id: string;
@@ -37,13 +24,13 @@ export interface ModalDefinition {
 export class MidiModal implements ModalDefinition {
     readonly id = 'midiModal';
     readonly name = 'MIDI';
-    readonly handlerClass = MidiModalHandler;
+    readonly handlerClass = definePlainModal('midiModal', 'MIDI');
 }
 
 export class PianoModal implements ModalDefinition {
     readonly id = 'pianoModal';
     readonly name = 'Piano';
-    readonly handlerClass = PianoModalHandler;
+    readonly handlerClass = definePlainModal('pianoModal', 'Piano');
 }
 
 export class RepetitionModal implements ModalDefinition {
@@ -85,7 +72,7 @@ export class DeleteTrackModal implements ModalDefinition {
 export class GuitarModal implements ModalDefinition {
     readonly id = 'guitarModal';
     readonly name = 'Guitar';
-    readonly handlerClass = GuitarModalHandler;
+    readonly handlerClass = definePlainModal('guitarModal', 'Guitar');
 }
 
 export class InfoModal implements ModalDefinition {
@@ -103,7 +90,7 @@ export class InstrumentSettingsModal implements ModalDefinition {
 export class MixerModal implements ModalDefinition {
     readonly id = 'mixerModal';
     readonly name = 'Drum Mixer';
-    readonly handlerClass = MixerModalHandler;
+    readonly handlerClass = definePlainModal('mixerModal', 'Drum Mixer');
 }
 
 export class AddTrackModal implements ModalDefinition {
@@ -169,7 +156,7 @@ export class ArtificialModal implements ModalDefinition {
 export class DrumInfoModal implements ModalDefinition {
     readonly id = 'drumInfoModal';
     readonly name = 'Drum Info';
-    readonly handlerClass = DrumInfoModalHandler;
+    readonly handlerClass = definePlainModal('drumInfoModal', 'Drum Info');
 }
 
 export class RepeatAlternativeModal implements ModalDefinition {
@@ -187,13 +174,13 @@ export class AddChordModal implements ModalDefinition {
 export class ChordManagerModal implements ModalDefinition {
     readonly id = 'chordManagerModal';
     readonly name = 'Chord Manager';
-    readonly handlerClass = ChordManagerModalHandler;
+    readonly handlerClass = definePlainModal<{ trackId: number }>('chordManagerModal', 'Chord Manager');
 }
 
 export class CopyrightModal implements ModalDefinition {
     readonly id = 'copyrightModal';
     readonly name = 'Copyright';
-    readonly handlerClass = CopyrightModalHandler;
+    readonly handlerClass = definePlainModal('copyrightModal', 'Copyright');
 }
 
 export const MODALS = {

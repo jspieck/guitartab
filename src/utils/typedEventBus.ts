@@ -38,14 +38,6 @@ export type AppEvents = {
   'song-saved': void
 
   // Menu events
-  'menu.clickedOnPos': TabPosition
-  'menu.activateEffectsForPos': TabPosition
-  'menu.activateEffectsForMarkedPos': void
-  'menu.activateEffectsForMarkedBeat': void
-  'menu.disableNoteEffectButtons': void
-  'menu.activateEffectsForBlock': void
-  'menu.activateEffectsForNote': TabNoteData
-  'menu.activateEffectsForBeat': TabBeat
   'menu.selectNoteLength': NoteLengthCode
   'menu.setEffectOnCollision': EffectCollisionData
 

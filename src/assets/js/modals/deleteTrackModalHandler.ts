@@ -1,12 +1,10 @@
+import { selectionState } from '../../../stores/selectionState';
 import { BaseModalHandler } from './baseModalHandler';
 import Song from '../songData';
-import { revertHandler } from '../revertHandler';
+import { undoHistory } from '../../../services/editor/editCommands';
 import { requestTrackDeleteRender } from '../../../services/editor/renderCommands';
-import { sequencerHandler } from '../sequencerHandler';
-import { tab } from '../tab';
-import AppManager from '../appManager';
-import fastdom from 'fastdom';
 import { notifySongDataChanged } from '../../../services/appEvents';
+import { switchTrack } from '../../../services/editor/trackLoading';
 
 export class DeleteTrackModalHandler extends BaseModalHandler {
     readonly modalType = 'DeleteTrackModal' as const;
@@ -40,9 +38,8 @@ export class DeleteTrackModalHandler extends BaseModalHandler {
         Song.playBackInstrument.splice(trackId, 1);
         
         // Update handlers and UI
-        revertHandler.adaptStackToTrackRemove(trackId);
+        undoHistory.adaptToTrackRemove(trackId);
         requestTrackDeleteRender(trackId);
-        sequencerHandler.drawBeat();
         
         this.updateMarkedNote(trackId);
         this.updateCurrentTrack(trackId);
@@ -50,14 +47,14 @@ export class DeleteTrackModalHandler extends BaseModalHandler {
     }
 
     private updateMarkedNote(trackId: number) {
-        if (tab.markedNoteObj.trackId >= trackId) {
-            tab.markedNoteObj.trackId = Math.max(0, tab.markedNoteObj.trackId - 1);
+        if (selectionState.cursor.trackId >= trackId) {
+            selectionState.cursor.trackId = Math.max(0, selectionState.cursor.trackId - 1);
         }
     }
 
     private updateCurrentTrack(trackId: number) {
         if (Song.currentTrackId === trackId) {
-            AppManager.changeTrack(Math.max(0, trackId - 1), 0, true, null);
+            switchTrack(Math.max(0, trackId - 1), 0, true, null);
         }
         if (Song.currentTrackId > trackId) {
             Song.currentTrackId -= 1;

@@ -1,4 +1,4 @@
-import Duration from '../assets/js/duration'
+import Duration from './duration'
 import type { Beat, MeasureMeta, Note, NoteLengthCode } from '../types/tab'
 import { beatHasText } from '../services/songMigrations'
 

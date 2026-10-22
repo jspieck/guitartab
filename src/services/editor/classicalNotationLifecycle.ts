@@ -27,7 +27,7 @@
  * `beatPositions`), never row-absolute.
  */
 
-import Settings from '../../assets/js/settingManager'
+import Settings from '../../stores/settingsState'
 import {
   clearClassicalLayoutMetrics,
   classicalNotationLayoutState,

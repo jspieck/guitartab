@@ -1,0 +1,196 @@
+import Song from '../../assets/js/songData'
+import audioEngine from '../../assets/js/audioEngine'
+import type { Chord } from '../../types/tab'
+import type { PlayBackInstrument, Track } from '../../assets/js/songData'
+import { cloneData, executeCommand, setValue, syncInto, trackScoped, type EditCommand } from './editCommands'
+import { requestChordDiagramsRender } from './renderCommands'
+import { clampTempo } from '../../utils/tempo'
+
+/**
+ * Song tempo. Pass `before` when the tempo was already changed live (the
+ * toolbar drag updates it on every mouse move and records once on release).
+ */
+export function setSongTempo(bpm: number, before?: number): EditCommand | null {
+  return setValue(
+    {
+      label: 'Tempo',
+      get: () => Song.bpm,
+      set: (value) => Song.setTempo(value),
+    },
+    clampTempo(bpm),
+    before,
+  )
+}
+
+/** Live update of a track's volume, without an undo entry (slider drag). */
+export function previewTrackVolume(trackId: number, volume: number): void {
+  const instrument = Song.playBackInstrument[trackId]
+  if (instrument) {
+    instrument.volume = volume
+  }
+  const bus = audioEngine.busses[trackId]
+  if (bus?.volume) {
+    bus.volume.gain.value = volume / 100.0
+  }
+}
+
+/** A track's mixer volume (0–127). */
+export function setTrackVolume(trackId: number, volume: number, before?: number): EditCommand | null {
+  return setValue(
+    {
+      label: 'Track volume',
+      trackId,
+      get: (currentTrackId) => Song.playBackInstrument[currentTrackId ?? trackId]?.volume ?? 60,
+      set: (value, currentTrackId) => previewTrackVolume(currentTrackId ?? trackId, value),
+    },
+    volume,
+    before,
+  )
+}
+
+function trackChords(trackId: number): Map<string, Chord> {
+  if (Song.chordsMap[trackId] == null) {
+    Song.chordsMap[trackId] = new Map()
+  }
+  return Song.chordsMap[trackId]
+}
+
+/** Removes a chord from the track's chord library (beats keep their chord names). */
+export function deleteLibraryChord(trackId: number, name: string): EditCommand | null {
+  const chord = Song.chordsMap[trackId]?.get(name)
+  if (chord == null) {
+    return null
+  }
+  const ref = { trackId }
+  const command = trackScoped<EditCommand>(
+    {
+      label: 'Delete chord',
+      apply: () => trackChords(ref.trackId).delete(name),
+      invert: () => trackChords(ref.trackId).set(name, chord),
+      afterChange: requestChordDiagramsRender,
+    },
+    ref,
+  )
+  executeCommand(command)
+  return command
+}
+
+/** Shows or hides a library chord's diagram above the tab. */
+export function toggleLibraryChordDisplay(trackId: number, name: string): EditCommand | null {
+  if (Song.chordsMap[trackId]?.get(name) == null) {
+    return null
+  }
+  const flip = (currentTrackId: number) => {
+    const chord = trackChords(currentTrackId).get(name)
+    if (chord) {
+      chord.display = !chord.display
+    }
+  }
+  const ref = { trackId }
+  const command = trackScoped<EditCommand>(
+    {
+      label: 'Chord diagram visibility',
+      apply: () => flip(ref.trackId),
+      invert: () => flip(ref.trackId),
+      afterChange: requestChordDiagramsRender,
+    },
+    ref,
+  )
+  executeCommand(command)
+  return command
+}
+
+interface TrackState {
+  track: Track
+  playback: PlayBackInstrument | undefined
+}
+
+function captureTrack(trackId: number): TrackState {
+  return { track: cloneData(Song.tracks[trackId]), playback: cloneData(Song.playBackInstrument[trackId]) }
+}
+
+function restoreTrack(trackId: number, state: TrackState): void {
+  syncInto(
+    Song.tracks[trackId] as unknown as Record<string, unknown>,
+    cloneData(state.track) as unknown as Record<string, unknown>,
+  )
+  const playback = Song.playBackInstrument[trackId]
+  if (playback && state.playback) {
+    syncInto(
+      playback as unknown as Record<string, unknown>,
+      cloneData(state.playback) as unknown as Record<string, unknown>,
+    )
+  }
+}
+
+/**
+ * Runs `mutate` on a track's settings (name, tuning, capo, instrument…) and
+ * records one undo step. `afterChange(trackId)` refreshes what depends on them.
+ */
+export function recordTrackEdit(
+  label: string,
+  trackId: number,
+  mutate: () => void,
+  afterChange?: (trackId: number) => void,
+): EditCommand | null {
+  const before = captureTrack(trackId)
+  mutate()
+  const after = captureTrack(trackId)
+  if (JSON.stringify(before) === JSON.stringify(after)) {
+    return null
+  }
+  const ref = { trackId }
+  const command = trackScoped<EditCommand>(
+    {
+      label,
+      apply: () => restoreTrack(ref.trackId, after),
+      invert: () => restoreTrack(ref.trackId, before),
+      afterChange: () => afterChange?.(ref.trackId),
+    },
+    ref,
+  )
+  executeCommand(command, { alreadyApplied: true })
+  return command
+}
+
+/** Runs `mutate` on the song description (title, artist, comments…) as one undo step. */
+export function recordSongInfoEdit(mutate: () => void): EditCommand | null {
+  const before = cloneData(Song.songDescription)
+  mutate()
+  const after = cloneData(Song.songDescription)
+  if (JSON.stringify(before) === JSON.stringify(after)) {
+    return null
+  }
+  const restore = (state: typeof before) =>
+    syncInto(
+      Song.songDescription as unknown as Record<string, unknown>,
+      cloneData(state) as unknown as Record<string, unknown>,
+    )
+  const command: EditCommand = {
+    label: 'Song info',
+    apply: () => restore(after),
+    invert: () => restore(before),
+  }
+  executeCommand(command, { alreadyApplied: true })
+  return command
+}
+
+/** Adds or replaces a chord in the track's chord library. */
+export function setLibraryChord(trackId: number, chord: Chord): EditCommand {
+  const before = Song.chordsMap[trackId]?.get(chord.name)
+  const ref = { trackId }
+  const command = trackScoped<EditCommand>(
+    {
+      label: 'Chord library',
+      apply: () => trackChords(ref.trackId).set(chord.name, cloneData(chord)),
+      invert: () => {
+        if (before) trackChords(ref.trackId).set(chord.name, cloneData(before))
+        else trackChords(ref.trackId).delete(chord.name)
+      },
+      afterChange: requestChordDiagramsRender,
+    },
+    ref,
+  )
+  executeCommand(command)
+  return command
+}

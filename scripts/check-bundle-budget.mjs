@@ -14,7 +14,6 @@ const BUDGETS_KB = {
   'modal-handlers-': 70,
   'audio-engine-': 250,
   'notation-': 1100,
-  'pdf-export-': 500,
   'importers-': 60,
   'first-run-': 4,
   'shortcuts-': 4,

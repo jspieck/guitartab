@@ -1,9 +1,9 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
-import AppManager from '../appManager';
-import { revertHandler } from '../revertHandler';
+import { recordBarEdit } from '../../../services/editor/editCommands';
 import { tab } from '../tab';
 import { MODALS } from "./modalTypes";
+import { fitBarsToTimeSignature } from '../../../services/editor/timeSignatureCommands';
 
 interface TimeMeterModalState extends ModalState {
     numerator: number;
@@ -86,50 +86,28 @@ export class TimeMeterModalHandler extends BaseModalHandler {
     }
 
     public handleSubmit(): boolean {
-        console.log('Handling submit', this.modalState);
-        const { blockId, trackId, voiceId, numerator, denominator } = this.modalState;
+        const { blockId, trackId, numerator, denominator } = this.modalState;
 
-        console.log('Handling submit', blockId, trackId, voiceId, numerator, denominator);
-        
-        const timeMeterPresentBefore = Song.measureMeta[blockId].timeMeterPresent;
-        Song.measureMeta[blockId].timeMeterPresent = true;
-
-        const numeratorBefore = Song.measureMeta[blockId].numerator;
-        const denominatorBefore = Song.measureMeta[blockId].denominator;
-
-        Song.measureMeta[blockId].numerator = numerator;
-        Song.measureMeta[blockId].denominator = denominator;
-
-        const notesBefore = AppManager.checkAndAdaptTimeMeter(blockId);
-        if (notesBefore == null) {
-            Song.measureMeta[blockId].numerator = numeratorBefore;
-            Song.measureMeta[blockId].denominator = denominatorBefore;
-            Song.measureMeta[blockId].timeMeterPresent = timeMeterPresentBefore;
-            return false;
+        // The new time signature holds until the next change; it reaches every track.
+        let nextChange = blockId + 1;
+        while (nextChange < Song.measureMeta.length && !Song.measureMeta[nextChange].timeMeterPresent) {
+            nextChange += 1;
         }
+        const blockIds = Array.from({ length: nextChange - blockId }, (_, index) => blockId + index);
 
-        // Set until the end of track/ next timeMeter
-        for (let bId = blockId + 1; bId < Song.measureMeta.length; bId += 1) {
-            if (Song.measureMeta[bId].timeMeterPresent) break;
-            Song.measureMeta[bId].numerator = numerator;
-            Song.measureMeta[bId].denominator = denominator;
-        }
-
-        revertHandler.addTimeMeter(
-            trackId,
-            blockId,
-            voiceId,
-            numeratorBefore,
-            numerator,
-            denominatorBefore,
-            denominator,
-            timeMeterPresentBefore,
-            true,
-            notesBefore
-        );
+        const command = recordBarEdit('Time signature', { trackId, blockIds, allTracks: true }, () => {
+            for (const bId of blockIds) {
+                Song.measureMeta[bId].numerator = numerator;
+                Song.measureMeta[bId].denominator = denominator;
+            }
+            Song.measureMeta[blockId].timeMeterPresent = true;
+            // null: refused (a tuplet would be cut); recordBarEdit rolls back.
+            return fitBarsToTimeSignature(blockId);
+        });
+        const applied = command != null || Song.measureMeta[blockId].numerator === numerator;
 
         tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-        return true;
+        return applied;
     }
 
     setupModalContent() {

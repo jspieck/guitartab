@@ -31,14 +31,9 @@ class GP5Writer {
       this.finishedFile = [];
     }
 
-    writeSong(promptDialog: boolean) {
-      GP5Writer.writeFile(this.buildSongBytes(), promptDialog);
-    }
-
     /** The current song as GP5 file bytes. */
     buildSongBytes(): Uint8Array {
       this.bytePosition = 0;
-      // finishedFile = new Uint8Array(100000); //TODO
       this.finishedFile.length = 0;
 
       this.writeStringByte(VERSION, 30);
@@ -91,27 +86,6 @@ class GP5Writer {
       }
     }
 
-    static writeFile(sampleBytes: BlobPart, promptDialog: boolean) {
-      const saveByteArray = () => {
-        const a = document.createElement('a');
-        document.body.appendChild(a);
-        a.style.display = 'none';
-        return (data: BlobPart[], name: string) => {
-          const blob = new Blob(data, { type: 'octet/stream' });
-          const url = window.URL.createObjectURL(blob);
-          a.href = url;
-          a.download = name;
-          a.click();
-          window.URL.revokeObjectURL(url);
-        };
-      };
-      if (promptDialog) {
-        saveByteArray()([sampleBytes], 'saveAs');
-      } else {
-        saveByteArray()([sampleBytes], 'guitarTab.gp5');
-      }
-    }
-
     writeInteger(size: number) {
       // 4bytes, first LSB left to MSB right
       this.writeByte(size & 255);
@@ -128,14 +102,6 @@ class GP5Writer {
     writeUnsignedByte(byte: number) {
       this.finishedFile[this.bytePosition] = byte & 255;
       this.bytePosition += 1;
-    }
-
-    static pack(bytes: number[]) {
-      const chars = [];
-      for (let i = 0, n = bytes.length; i < n; i += 2) {
-        chars.push(((bytes[i] & 0xff) << 8) | (bytes[i + 1] & 0xff));
-      }
-      return String.fromCharCode.apply(null, chars);
     }
 
     // Problem: chars greater >65636
@@ -167,7 +133,6 @@ class GP5Writer {
       const bytes = GP5Writer.unpack(str);
       this.writeByte(size === 0 || size > bytes.length ? bytes.length : size);
       this.writeString(bytes, size);
-      // console.log("SB: "+size+", "+bytes.length);
       this.skipBytesWrite(size - bytes.length);
     }
 
@@ -378,7 +343,6 @@ class GP5Writer {
     writeMeasure(trackId: number, blockId: number) {
       // we have no second voice, so write empty
       for (let voiceId = 0; voiceId < 2; voiceId += 1) {
-        // let numBeat = 8; //8 notes, eights
         const numBeats = Song.measures[trackId][blockId][voiceId].length;
         this.writeInteger(numBeats);
         for (let beatId = 0; beatId < numBeats; beatId += 1) {
@@ -409,7 +373,6 @@ class GP5Writer {
     }
 
     writeBeat(trackId: number, blockId: number, voiceId: number, beatId: number) {
-      // console.log(trackId+" "+blockId+" "+beatId);
       const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
       // write beat header
       let flags = 0;
@@ -485,14 +448,6 @@ class GP5Writer {
           }
         }
       }
-
-      /* let stringFlags = readUnsignedByte();
-        let notes = [];
-        for (let string = 6; string >= 0; string -= 1) {
-            if ((stringFlags & (1 << string)) != 0) {
-                notes[Song.tracks[trackId].numStrings + string - 7] = readNote();
-            }
-        } */
 
       this.skipBytesWrite(2);
     }
@@ -575,7 +530,6 @@ class GP5Writer {
         };
         this.writeByte(dynamicToCode[dynamic]);
       }
-      // let fretNumber = 2;
       if ((flags & 0x20) !== 0) {
         this.writeByte(note.fret);
       }

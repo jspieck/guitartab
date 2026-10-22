@@ -1,44 +1,20 @@
-import { onMounted, onBeforeUnmount, ref } from 'vue'
-import { revertHandler } from '../assets/js/revertHandler'
-import { typedEventBus } from '../utils/typedEventBus'
+import AppManager from '../assets/js/appManager'
+import { undoAvailability, undoHistory } from '../services/editor/editCommands'
 
-function syncUndoRedoState(canUndo: { value: boolean }, canRedo: { value: boolean }): void {
-  canUndo.value = revertHandler.canUndo()
-  canRedo.value = revertHandler.canRedo()
-}
-
+/** Undo/Redo for buttons: reactive availability and the actions. */
 export function useUndoRedo() {
-  const canUndo = ref(false)
-  const canRedo = ref(false)
-
-  function refreshUndoRedoState(): void {
-    syncUndoRedoState(canUndo, canRedo)
-  }
-
   function undo(): void {
-    revertHandler.revertState()
-    refreshUndoRedoState()
+    if (!AppManager.duringTrackCreation) undoHistory.undo()
   }
 
   function redo(): void {
-    revertHandler.restoreState()
-    refreshUndoRedoState()
+    if (!AppManager.duringTrackCreation) undoHistory.redo()
   }
 
-  onMounted(() => {
-    refreshUndoRedoState()
-    typedEventBus.on('song-data-changed', refreshUndoRedoState)
-  })
-
-  onBeforeUnmount(() => {
-    typedEventBus.off('song-data-changed', refreshUndoRedoState)
-  })
-
   return {
-    canUndo,
-    canRedo,
+    canUndo: undoAvailability.canUndo,
+    canRedo: undoAvailability.canRedo,
     undo,
     redo,
-    refreshUndoRedoState,
   }
 }

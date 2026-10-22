@@ -1,9 +1,6 @@
-import Settings from '../../assets/js/settingManager'
+import Settings from '../../stores/settingsState'
 import { songState } from '../../stores/songState'
-import {
-  bumpPlaybackTransportVersion,
-  playbackTransportState,
-} from '../../composables/playbackTransportState'
+import { bumpPlaybackTransportVersion, playbackTransportState } from '../../stores/playbackTransportState'
 
 export function publishPlaybackTransport(update: Partial<typeof playbackTransportState>): void {
   Object.assign(playbackTransportState, update)

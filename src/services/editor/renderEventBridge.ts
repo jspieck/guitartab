@@ -1,6 +1,6 @@
+import { selectionState } from '../../stores/selectionState'
 import playBackLogic from '../../assets/js/playbackEngine'
-import { tab } from '../../assets/js/tab'
-import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
+import { hasRegisteredSelectionSurface } from '../../stores/selectionSurfaceState'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { disablePageMode } from './pageModeController'
 import { scrollToSvgBlock } from './navigationController'
@@ -19,7 +19,7 @@ export function ensureRenderEventBridge(): void {
       return
     }
 
-    tab.markedNoteObj = {
+    selectionState.cursor = {
       trackId: pos.trackId,
       blockId: pos.blockId,
       voiceId: pos.voiceId,
@@ -27,7 +27,6 @@ export function ensureRenderEventBridge(): void {
       string: pos.string,
     }
     playBackLogic.setPlayPosition(pos.trackId, pos.blockId, pos.voiceId, pos.beatId)
-    typedEventBus.emit('menu.clickedOnPos', pos)
   })
 
   typedEventBus.on('navigation.scrollToBlock', (data) => {

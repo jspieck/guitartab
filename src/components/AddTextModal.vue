@@ -3,31 +3,22 @@
     <template #title>Add Text</template>
     <div class="modal-stack modal-stack-compact">
       <div class="modal-field modal-field-compact">
-        <label>Text</label>
-        <textarea 
-          v-model="handler.getModalState().text"
-          @input="(e: Event) => handler.updateText((e.target as HTMLTextAreaElement).value)"
-          placeholder="Enter your text here"
-        ></textarea>
+        <label for="beat-text">Text</label>
+        <textarea id="beat-text" v-model="handler.form.text" placeholder="Enter your text here"></textarea>
       </div>
       <div class="modal-submit-row">
-        <SubmitButton @submitInfo="handleSubmit" />
+        <SubmitButton @submitInfo="handler.apply()" />
       </div>
     </div>
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "./BaseModal.vue";
-import SubmitButton from "./SubmitButton.vue";
-import { MODALS } from "../assets/js/modals/modalTypes";
-import { TextModalHandler } from "../assets/js/modals/textModalHandler";
-import { modalManager } from "../assets/js/modals/modalManager";
+import BaseModal from './BaseModal.vue'
+import SubmitButton from './SubmitButton.vue'
+import { MODALS } from '../assets/js/modals/modalTypes'
+import { modalManager } from '../assets/js/modals/modalManager'
+import type { TextModalHandler } from '../assets/js/modals/effectModals'
 
-const handler = modalManager.getHandler(MODALS.TEXT.id) as TextModalHandler;
-
-const handleSubmit = () => {
-  handler.applyText();
-  handler.closeModal();
-};
+const handler = modalManager.getHandler<InstanceType<typeof TextModalHandler>>(MODALS.TEXT.id)
 </script>

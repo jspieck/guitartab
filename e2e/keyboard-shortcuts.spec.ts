@@ -5,10 +5,10 @@ import { waitForEditorShell } from './helpers'
 async function readFirstBeats(page: Page) {
   return page.evaluate(async () => {
     const { default: Song } = await import('/src/assets/js/songData.ts')
-    const { tab } = await import('/src/assets/js/tab.ts')
+    const { selectionState } = await import('/src/stores/selectionState.ts')
     const beats = Song.measures[0][0][0]
     return {
-      cursor: { beatId: tab.markedNoteObj.beatId, string: tab.markedNoteObj.string },
+      cursor: { beatId: selectionState.cursor.beatId, string: selectionState.cursor.string },
       beats: beats.map(
         (beat) => `${beat.duration}:${Array.from(beat.notes, (note) => note?.fret ?? '-').join(',')}`,
       ),
@@ -18,7 +18,7 @@ async function readFirstBeats(page: Page) {
 
 async function isPlaying(page: Page): Promise<boolean> {
   return page.evaluate(async () => {
-    const { playbackTransportState } = await import('/src/composables/playbackTransportState.ts')
+    const { playbackTransportState } = await import('/src/stores/playbackTransportState.ts')
     return playbackTransportState.isPlaying
   })
 }

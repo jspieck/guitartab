@@ -20,7 +20,6 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import AppManager from '../assets/js/appManager'
 import {
   flushAutosave,
   listDrafts,
@@ -28,6 +27,7 @@ import {
   type AutosaveSnapshot,
 } from '../services/songAutosave'
 import { closeDraftsPanel, draftsPanelState } from '../stores/draftsPanelState'
+import { showNotification } from '../stores/notificationState'
 
 const drafts = ref<AutosaveSnapshot[]>([])
 const loading = ref(false)
@@ -54,7 +54,7 @@ async function restore(draft: AutosaveSnapshot): Promise<void> {
   await flushAutosave().catch((error) => console.error('Autosave failed', error))
   if (!restoreAutosave(draft)) return
   closeDraftsPanel()
-  AppManager.showNotification(`Restored draft of "${draft.title}"`)
+  showNotification(`Restored draft of "${draft.title}"`)
 }
 
 // Mounted only while the panel is open (App renders it with v-if), so load on mount.

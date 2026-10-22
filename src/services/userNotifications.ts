@@ -1,4 +1,6 @@
-export type UserMessageKind = 'info' | 'error'
+import { showNotification, type NotificationKind } from '../stores/notificationState'
+
+export type UserMessageKind = NotificationKind
 
 export interface UserMessage {
   text: string
@@ -7,10 +9,7 @@ export interface UserMessage {
 
 /** Present a short, user-visible banner (not console-only). */
 export function showUserMessage(text: string, kind: UserMessageKind = 'info'): void {
-  // Lazy import avoids circular deps with AppManager ↔ audio/GP loaders.
-  void import('../assets/js/appManager').then(({ default: AppManager }) => {
-    AppManager.showNotification(text, kind)
-  })
+  showNotification(text, kind)
 }
 
 export function showUserError(text: string): void {

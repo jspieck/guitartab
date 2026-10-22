@@ -15,12 +15,6 @@ const IMPORTER_MODULES = [
 ]
 
 const MODULE_CHUNKS: Record<string, string[]> = {
-  'pdf-export': [
-    '/src/assets/js/pdfkit.js',
-    '/src/assets/js/blob-stream.js',
-    '/src/assets/js/svgToPdf.js',
-    '/src/assets/js/jspdf.debug.js',
-  ],
   importers: IMPORTER_MODULES,
   // First-visit check and the small test riff; the multi-track demo itself is lazy-loaded.
   'first-run': ['/src/data/demoSong.ts', '/src/stores/firstRunHintState.ts'],
@@ -35,11 +29,7 @@ function manualChunks(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, '/')
 
   if (normalizedId.includes('/node_modules/')) {
-    if (
-      normalizedId.includes('/vue/') ||
-      normalizedId.includes('/pinia/') ||
-      normalizedId.includes('/mitt/')
-    ) {
+    if (normalizedId.includes('/vue/') || normalizedId.includes('/mitt/')) {
       return 'framework'
     }
     if (normalizedId.includes('/vexflow/')) {
@@ -71,12 +61,8 @@ function manualChunks(id: string): string | undefined {
 
   if (
     normalizedId.includes('/src/assets/js/audioEngine.ts') ||
-    normalizedId.includes('/src/assets/js/chorus.ts') ||
-    normalizedId.includes('/src/assets/js/compositeAudioNode.ts') ||
-    normalizedId.includes('/src/assets/js/combFilter.ts') ||
-    normalizedId.includes('/src/assets/js/freeverb.ts') ||
-    normalizedId.includes('/src/assets/js/lowpassCombFilter.ts') ||
-    normalizedId.includes('/src/assets/js/midiReceiver.ts') ||
+    normalizedId.includes('/src/services/audio/') ||
+    normalizedId.includes('/src/services/midi/liveInput.ts') ||
     normalizedId.includes('/src/assets/js/playbackEngine.ts') ||
     normalizedId.includes('/src/assets/js/sf2parser.ts')
   ) {
@@ -149,7 +135,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,vue}'],
-      exclude: ['src/**/*.d.ts', 'src/assets/js/pdfkit.js', 'src/assets/js/jspdf.debug.js'],
+      exclude: ['src/**/*.d.ts'],
       reporter: ['text-summary', 'html'],
       reportsDirectory: 'coverage',
       // Floors a little under the measured coverage (2026-10-17); raise them as tests are added.

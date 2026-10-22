@@ -42,8 +42,8 @@ test.describe('demo song on the first visit', () => {
     // Every track renders.
     for (const trackId of [1, 2, 3]) {
       await page.evaluate(async (id) => {
-        const { default: AppManager } = await import('/src/assets/js/appManager.ts')
-        AppManager.changeTrack(id, 0, false, () => {})
+        const { switchTrack } = await import('/src/services/editor/trackLoading.ts')
+        switchTrack(id, 0)
       }, trackId)
       await expect(page.locator('.tab-row').first().locator('.note-text').first()).toBeVisible()
     }

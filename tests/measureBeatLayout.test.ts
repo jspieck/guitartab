@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
 import { recomputeTrackLayoutFromSong } from '../src/services/editor/measureLayoutEngine'
 import { getMeasureBeatWidth, getMeasureBeatX } from '../src/utils/measureBeatLayout'
-import { getBlockRenderLayout } from '../src/composables/useTabRenderLayout'
+import { getBlockRenderLayout } from '../src/stores/tabRenderLayout'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
 vi.mock('../src/assets/js/audioEngine', () =>
@@ -12,8 +11,8 @@ vi.mock('../src/assets/js/audioEngine', () =>
 vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -26,7 +25,6 @@ const AVAILABLE_WIDTH = 900
 
 describe('measureBeatLayout', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     Song.initEmptySong()
   })
 

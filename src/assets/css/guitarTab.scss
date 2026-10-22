@@ -385,7 +385,6 @@ body {
     cursor:pointer;
 }
 #notificationEmblem{
-    display:none;
     position: fixed;
     right: 100px;
     top: 29px;
@@ -425,6 +424,12 @@ body {
 }
 #notificationEmblem.notification-error{
     background: #d45e5e;
+}
+.notification-fade-enter-active, .notification-fade-leave-active{
+    transition: opacity 0.5s;
+}
+.notification-fade-enter-from, .notification-fade-leave-to{
+    opacity: 0;
 }
 #infoNotification{
     width: 15px;

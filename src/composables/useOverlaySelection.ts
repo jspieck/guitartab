@@ -1,8 +1,6 @@
 import { computed, type ComputedRef } from 'vue'
-import { storeToRefs } from 'pinia'
 import Song from '../assets/js/songData'
-import { overlayHandler } from '../assets/js/overlayHandler'
-import { useTabStore } from '../stores/tabStore'
+import { selectionState } from '../stores/selectionState'
 import type { RenderedTabRow } from '../types/tab'
 import {
   computeOverlayRectForRow,
@@ -21,14 +19,9 @@ interface UseOverlaySelectionOptions {
 }
 
 export function useOverlaySelection(options: UseOverlaySelectionOptions) {
-  const tabStore = useTabStore()
-  const { selectionVersion } = storeToRefs(tabStore)
-
   const rangeOverlayRect = computed<OverlaySelectionRect | null>(() => {
-    void selectionVersion.value
-
-    const start = overlayHandler.startPosOverlay
-    const end = overlayHandler.endPosOverlay
+    const start = selectionState.rangeStart
+    const end = selectionState.rangeEnd
     if (start == null || end == null) {
       return null
     }

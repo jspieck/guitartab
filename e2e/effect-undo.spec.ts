@@ -6,7 +6,7 @@ test('undoing the removal of beat text and a repeat sign brings their data back'
   const result = await page.evaluate(async () => {
     const { default: Song } = await import('/src/assets/js/songData.ts')
     const { processNotationSelect } = await import('/src/services/editor/notationCommands.ts')
-    const { revertHandler } = await import('/src/assets/js/revertHandler.ts')
+    const { undoHistory } = await import('/src/services/editor/editCommands.ts')
 
     const beat = Song.measures[0][1][0][0]
     beat.text = 'Keep me'
@@ -16,11 +16,11 @@ test('undoing the removal of beat text and a repeat sign brings their data back'
     processNotationSelect(0, 1, 0, 0, 'closeBar', null) // switch the repeat sign off
     const removed = { text: beat.text, repeatClose: Song.measureMeta[1].repeatClose }
 
-    revertHandler.revertState()
-    revertHandler.revertState()
+    undoHistory.undo()
+    undoHistory.undo()
     const restored = { text: Song.measures[0][1][0][0].text, repeatClose: Song.measureMeta[1].repeatClose }
 
-    revertHandler.restoreState()
+    undoHistory.redo()
     const redone = { text: Song.measures[0][1][0][0].text, repeatClose: Song.measureMeta[1].repeatClose }
     return { removed, restored, redone }
   })

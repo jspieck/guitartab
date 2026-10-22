@@ -84,11 +84,11 @@
 </template>
 
 <script setup lang="ts">
+import { selectionState } from '../../stores/selectionState'
 import { computed, ref } from 'vue'
 import playBackLogic from '../../assets/js/playbackEngine'
-import Settings from '../../assets/js/settingManager'
-import { tab } from '../../assets/js/tab'
-import { playbackTransportState } from '../../composables/playbackTransportState'
+import Settings from '../../stores/settingsState'
+import { playbackTransportState } from '../../stores/playbackTransportState'
 import { usePlaybackEngine } from '../../composables/usePlaybackEngine'
 import { useSongData } from '../../composables/useSongData'
 import { changeTrackWithLoading, focusEditorPosition } from '../../services/editorNavigation'
@@ -117,7 +117,7 @@ function stepBar(direction: -1 | 1): void {
     void (direction < 0 ? stepBackward() : stepForward())
     return
   }
-  const { trackId, voiceId, blockId, string } = tab.markedNoteObj
+  const { trackId, voiceId, blockId, string } = selectionState.cursor
   const bars = reactiveSongData.measures?.[trackId]?.length ?? 0
   const target = Math.min(Math.max(0, blockId + direction), Math.max(0, bars - 1))
   focusEditorPosition({ trackId, voiceId, blockId: target, beatId: 0, string }, { updatePlaybackPosition: false })

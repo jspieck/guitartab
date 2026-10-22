@@ -1,9 +1,8 @@
 import Song, { PlayBackInstrument, Beat, Note } from './songData';
-import Settings from './settingManager';
+import Settings from '../../stores/settingsState';
 import { modalManager } from './modals/modalManager';
-import { sequencerHandler } from './sequencerHandler';
-import Chorus from './chorus';
-import Freeverb from './freeverb';
+import { getMeterCanvas } from '../../stores/sequencerState';
+import { Chorus, Freeverb } from '../../services/audio/effects';
 import sf2Parser from './sf2parser';
 
 import { CompressorModalHandler } from './modals/compressorModalHandler';
@@ -170,10 +169,6 @@ class AudioEngine {
     return this.context.createBuffer(numChannels, sampleLength, sampleRate);
   }
 
-  // initSound() {
-  //   this.context = new AudioContext();
-  // }
-
   /** Drum pieces (MIDI notes) soloed in the Drum Mixer; when any are, only those play. */
   drumSolo: Set<number> = new Set();
 
@@ -240,38 +235,30 @@ class AudioEngine {
       this.busses[i].pan.disconnect();
       this.busses[i].volume.disconnect();
       this.busses[i].analyser.disconnect();
+      // also stops the chorus LFOs, which otherwise keep running for every rebuild
+      this.busses[i].chorus.dispose();
+      this.busses[i].convolver.dispose();
     }
     // now create new busses
     this.busses.length = 0;
-    // dataArray = [];
     // CREATE BUSSES FOR EACH TRACK
     const promiseBuffers: Promise<AudioBuffer>[] = [];
     const convolvers = [];
     for (let i = 0; i < channels.length; i += 1) {
       const busGain = this.context.createGain();
       busGain.gain.value = Song.playBackInstrument[i].volume / 100.0;
-      // busGain.connect(this.masterGain); COMMENT IN
       const panNode = this.context.createStereoPanner();
       panNode.pan.value = -1 + (channels[i].balance / 127) * 2;
       panNode.connect(busGain);
-      // busGain.connect(this.masterGain);
 
-      const chorus = new Chorus(this.context, {
-        dryGain: 1 - channels[i].chorus / 127,
-        wetGain: channels[i].chorus / 127,
-      });
-      if (this.context.state === 'running') {
-        chorus.ensureStarted();
-      }
+      const chorus = new Chorus(this.context, { wetGain: channels[i].chorus / 127 });
       busGain.connect(chorus.input);
-      // chorus.connect(this.masterGain);
 
       // convolution reverb - expensive
       let convolverGain = null;
       if (this.reverbActive) {
         const convolver = this.context.createConvolver();
         convolvers.push(convolver);
-        // convolver.buffer = await AudioEngine.getImpulseBuffer(this.context,
         promiseBuffers.push(AudioEngine.getImpulseBuffer(this.context,
           'audio/convolution.ogg'));
         convolverGain = this.context.createGain();
@@ -281,33 +268,14 @@ class AudioEngine {
         convolver.connect(convolverGain);
         convolverGain.connect(this.masterGain);
       }
-      // freeverb cheaper
-      const options = {
+      // freeverb is cheaper than the convolver
+      const freeverb = new Freeverb(this.context, {
         dampening: 3000,
         roomSize: 0.7,
-        dryGain: 1.0 - channels[i].reverb / 127,
         wetGain: channels[i].reverb / 127,
-      };
-      const freeverb = new Freeverb(this.context, options);
-      chorus.output.connect(freeverb.input);
-      // busGain.connect(freeverb);
-      freeverb.output.connect(this.masterGain);
-      /* phaser
-      var phaser = new tuna.Phaser({
-        rate: 1.2,                     //0.01 to 8 is a decent range, but higher values are possible
-        depth: 0.3,                    //0 to 1
-        feedback: 0.2,                 //0 to 1+
-        stereoPhase: 30,               //0 to 180
-        baseModulationFrequency: 700,  //500 to 1500
-        bypass: (channels[i].reverb == 0) ? 1 : 0
       });
-      busGain.connect(phaser);
-      var phaserGain = this.context.createGain();
-      phaserGain.gain.value = channels[i].phaser/127;
-      phaser.connect(phaserGain);
-      phaserGain.connect(this.masterGain);
-      bus.phaser = [phaser, phaserGain];
-      //EFFECT SECTION END */
+      chorus.output.connect(freeverb.input);
+      freeverb.output.connect(this.masterGain);
 
       /* CREATE ANALYSER */
       const analyser = this.context.createAnalyser();
@@ -342,10 +310,8 @@ class AudioEngine {
     limiter.release.value = 0.050; // 50ms release
     // user settings from the Compressor panel (defaults match the values above)
     modalManager.getHandler<CompressorModalHandler>('compressorModal').attach(limiter);
-    // this.masterGain
     this.masterGain = this.context.createGain();
     this.masterGain.gain.value = 1.0;
-    // this.masterGain.connect(limiter);
     // create equalizer
     this.equalizerHandler = modalManager.getHandler('equalizerModal') as EqualizerModalHandler;
     this.equalizerHandler.setAudioContext(this.context);
@@ -361,7 +327,6 @@ class AudioEngine {
     this.masterBufferLength = this.masterAnalyser.frequencyBinCount;
     this.masterDataArray = new Uint8Array(this.masterBufferLength);
 
-    // audioEngine.updateBusses(Song.playBackInstrument);
     // CREATE BUS FOR EACH DRUM COMPONENT
     let i = 0;
     for (const drumInfo of this.noteToDrum.values()) {
@@ -427,7 +392,7 @@ class AudioEngine {
       }
       if (this.dataArray != null) {
         for (let i = 0, n = Song.measures.length; i < n; i += 1) {
-          const canvasContext = sequencerHandler.getVolumeCanvasContext(i + 1);
+          const canvasContext = getMeterCanvas(i + 1);
           if (canvasContext != null) {
             this.drawVolumeOf(this.busses[i].analyser, this.dataArray, this.bufferLength,
               canvasContext, 90, 30, color, true);
@@ -435,7 +400,7 @@ class AudioEngine {
         }
       }
       if (this.masterDataArray != null) {
-        const canvasContext = sequencerHandler.getVolumeCanvasContext(0);
+        const canvasContext = getMeterCanvas(0);
         if (canvasContext != null) {
           this.drawVolumeOf(this.masterAnalyser, this.masterDataArray, this.masterBufferLength,
             canvasContext, 120, 30, color, true);
@@ -468,100 +433,12 @@ class AudioEngine {
     }
     const source = this.context.createBufferSource();
     const drumsBuffer = this.bufferList.drums;
-    /* if(this.noteToDrum[note][2] != null){
-            volume *= this.noteToDrum[note][2];
-        } */
     if (drumsBuffer[drumInfo[1]].buffer == null) {
       return null;
     }
     source.buffer = drumsBuffer[drumInfo[1]].buffer;
     const gainNode = this.playSource(trackId, voiceId, source, 0, volume, noteStart,
       2, 'drums', beat, null, 0, note - 35);
-    return gainNode;
-  }
-
-  playSound(
-    trackId: number,
-    voiceId: number,
-    volume: number,
-    string: number,
-    fretIn: number,
-    duration: number,
-    startpoint: number,
-    type: string,
-    beat: Beat,
-    noteEffects: Note,
-    nextNote: number,
-    note: number,
-  ): GainNode {
-    let fret = fretIn;
-    const source = this.context.createBufferSource();
-    // Effect samples load separately; until they have (or for instruments without them) the
-    // note plays as a normal one instead of stopping playback.
-    const slapSample = noteEffects.slap ? this.loadedSample('slap') : null;
-    const deadSample = noteEffects.dead ? this.loadedSample('dead') : null;
-    const palmMuteReady = noteEffects.palmMute && type === 'guitar' && this.loadedSample('palmMute') != null;
-    const harmonicSample = noteEffects.artificialStyle != null ? this.loadedSample('naturalHarmonic') : null;
-    if (!slapSample && !deadSample && !palmMuteReady && !harmonicSample) {
-      const bufferListLength = this.bufferList[type].length;
-      if (string >= bufferListLength) {
-        console.log(fret, Song.tracks[trackId].strings[string],
-          Song.tracks[trackId].strings[bufferListLength - 1]);
-        fret += Song.tracks[trackId].strings[string]
-          - Song.tracks[trackId].strings[bufferListLength - 1];
-        source.buffer = this.bufferList[type][bufferListLength - 1].buffer;
-      } else {
-        source.buffer = this.bufferList[type][string].buffer;
-      }
-    } else if (slapSample) {
-      // slap always not pitched
-      source.buffer = slapSample;
-    } else if (deadSample) {
-      source.buffer = deadSample;
-    } else if (palmMuteReady) {
-      const bufferListLength = this.bufferList.palmMute.length;
-      if (string >= bufferListLength) {
-        fret += Song.tracks[trackId].strings[string]
-          - Song.tracks[trackId].strings[bufferListLength - 1];
-        source.buffer = this.bufferList.palmMute[bufferListLength - 1].buffer;
-      } else {
-        source.buffer = this.bufferList.palmMute[string].buffer;
-      }
-    } else if (harmonicSample) {
-      source.buffer = harmonicSample;
-    }
-    /* if(this.bufferList[type][string].loopStart != null){
-            source.loop = true;
-            source.loopStart = this.bufferList[type][string].loopStart;
-            source.loopEnd = this.bufferList[type][string].loopEnd;
-        } */
-    const isRinging = Song.tracks[trackId].letItRing
-      || (noteEffects != null && noteEffects.letRing);
-    if (isRinging) {
-      if (this.sourcesPlaying[trackId] == null) {
-        this.sourcesPlaying[trackId] = [];
-      }
-      if (this.sourcesPlaying[trackId][string] != null) {
-        // smooth out fade
-        const gainN = this.sourcesPlaying[trackId][string][2];
-        gainN.gain.cancelScheduledValues(Math.max(0, startpoint - 0.2));
-        gainN.gain.setValueAtTime(gainN.gain.value, startpoint);
-        gainN.gain.exponentialRampToValueAtTime(0.0001, startpoint + 0.3);
-      }
-    }
-    const gainNode = this.playSource(
-      trackId, voiceId, source, fret, volume, startpoint, duration,
-      type, beat, noteEffects, nextNote, note,
-    );
-
-    // make quieter but not end aprubtly
-    // let startVolume = gainNode.gain.value;
-    // startVolume = Math.max(0.0001, startVolume); // Prevent too small values
-    // gainNode.gain.setValueAtTime(startVolume, startpoint+ duration*0.75);
-    // gainNode.gain.exponentialRampToValueAtTime(startVolume*0.5, startpoint + duration);
-    if (isRinging) {
-      this.sourcesPlaying[trackId][string] = [startpoint, source, gainNode];
-    }
     return gainNode;
   }
 
@@ -613,15 +490,8 @@ class AudioEngine {
       return null;
     }
     const source = this.context.createBufferSource();
-    // source.loop = true;
     const [noteInOctave, nearestId] = this.getNearest(type, note);
     source.buffer = this.bufferList[type][nearestId].buffer;
-
-    /* if(this.bufferList[type][nearestId].loopStart != null){
-      source.loop = true;
-      source.loopStart = this.bufferList[type][nearestId].loopStart;
-      source.loopEnd = this.bufferList[type][nearestId].loopEnd;
-    } */
 
     // play next note on same sound buffer as last
     let nextNoteOctave = -1;
@@ -635,17 +505,9 @@ class AudioEngine {
   }
 
   loadSF2() {
-    // TESTING OF SOUNDFONT
-    // sf2Parser.loadSoundFont('./GeneralMidi/Yamaha_XG_Soundset.sf2'); // CHEAPEST
-    // sf2Parser.loadSoundFont("./GeneralMidi/Turtle Beach Montego II Aureal GM.sf2");
-    // sf2Parser.loadSoundFont("./GeneralMidi/SGM-v2.01-NicePianosGuitarsBass-V1.2.sf2");
     // TODO this is the best one
     sf2Parser.loadSoundFont('./audio/Roland SC-55Edited.sf2'); // FAVORITE
-    // sf2Parser.loadSoundFont("./GeneralMidi/Timbres Of Heaven GM_GS_XG_SFX V 3.4 Final.sf2");
-    // sf2Parser.loadSoundFont("./GeneralMidi/FluidR3 GM2-2.sf2");
-    // sf2Parser.loadSoundFont("./GeneralMidi/Arachno SoundFont - Version 1.0.sf2");
     this.theSynth = sf2Parser.getSynth();
-    // sf2Parser.loadSoundFont("./GeneralMidi/YamahaXGSoundSet.sf2");
   }
 
   /** The first buffer of an effect sample set, or null while it isn't loaded. */
@@ -715,21 +577,7 @@ class AudioEngine {
       // slap always not pitched
       source.buffer = slapSample;
     } else if (noteEffects != null && noteEffects.dead && !noteEffects.slap) {
-      // source.buffer = this.bufferList["dead"][0].buffer;
       return null;
-      /* }else if(noteEffects.palmMute){
-      //TODO Palm Mute on SF2
-      if(instr != "guitar" && instr != "eguitar" && instr != "disteguitar" && instr != "mutedGuitar"
-          && instr != "nylonGuitar" && instr != "overdriveguitar")
-          return;
-      var this.bufferListLength = this.bufferList["palmMute"].length;
-      if(string >= this.bufferListLength){
-          fret += Song.tracks[trackId].strings[string]
-          - Song.tracks[trackId].strings[this.bufferListLength-1];
-          source.buffer = this.bufferList["palmMute"][this.bufferListLength-1].buffer;
-      }else{
-          source.buffer = this.bufferList["palmMute"][string].buffer;
-      } */
     } else if (harmonicSample) {
       source.buffer = harmonicSample;
     } else {
@@ -738,7 +586,6 @@ class AudioEngine {
         return null;
       }
       source.buffer = res.buffer;
-      // source.buffer = this.bufferList["guitar"][0].buffer;
       source.playbackRate.value = res.playBackRate;
       source.loop = res.loop;
       source.loopStart = res.loopStart;
@@ -750,7 +597,6 @@ class AudioEngine {
       return null;
     }
     const { volSustain } = res;
-    // var volRelease = res.volRelease;
     const volRelease = 0.015;
     const volEndTime = start + duration + volRelease;
 
@@ -767,9 +613,7 @@ class AudioEngine {
       currentVolume = attackVolume - (decayVolume - attackVolume)
         * Math.min(1, duration / (res.volDecay - res.volAttack));
     }
-    // console.log(currentVolume, decayVolume, attackVolume, duration, res.volDecay-res.volAttack);
     sf2Gain.gain.setValueAtTime(currentVolume, start + duration);
-    // sf2Gain.gain.linearRampToValueAtTime(0, volEndTime);
     sf2Gain.gain.exponentialRampToValueAtTime(0.000001, start + duration + volRelease);
     source.start(start);
     source.stop(start + duration + volRelease + 0.1);
@@ -815,19 +659,6 @@ class AudioEngine {
     });
     this.bindedDeleteSource = this.deleteSource.bind(this);
     source.addEventListener('ended', this.bindedDeleteSource);
-
-    /* if(instr != "drums" && !Song.tracks[trackId].letItRing
-    && (noteEffects == null || !noteEffects.letRing)){
-        sf2Gain.gain.setValueAtTime(sf2Gain.gain.value, start+duration);
-        sf2Gain.gain.exponentialRampToValueAtTime(0.000001, start +duration*1.1+0.03);
-        //console.log(start +" "+duration);
-        //sf2Gain.gain.setTargetAtTime(0, start +duration*1.3, 0.015);
-        source.start(start, 0, duration*1.1+1);
-    }else{
-        //play until the end of the sample
-        source.start(start);
-    } */
-    // console.log(duration+volRelease);
 
     return sf2Gain;
   }
@@ -937,8 +768,6 @@ class AudioEngine {
     if (instr !== 'drums' && !Song.tracks[trackId].letItRing && (noteEffects == null || !noteEffects.letRing)) {
       gainNode.gain.setValueAtTime(gainNode.gain.value, startpoint + duration);
       gainNode.gain.exponentialRampToValueAtTime(0.000001, startpoint + duration * 1.1 + 0.03);
-      // console.log(startpoint +" "+duration);
-      // gainNode.gain.setTargetAtTime(0, startpoint +duration*1.3, 0.015);
       source.start(startpoint, 0, duration * 1.1 + 1);
     } else {
       // play until the end of the sample
@@ -973,7 +802,6 @@ class AudioEngine {
   stopAllSources() {
     const { currentTime } = this.context;
     for (const item of this.playingInstrumentSet) {
-      // item.stop();
       item.gain.cancelScheduledValues(currentTime);
       item.gain.setValueAtTime(item.gain.value, currentTime);
       item.gain.exponentialRampToValueAtTime(0.000001, currentTime + 0.001);

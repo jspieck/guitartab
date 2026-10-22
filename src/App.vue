@@ -43,11 +43,15 @@
       </svg>
     </div>
 
-    <div id="notificationEmblem">
-      <img id="infoNotification" src="./assets/images/info.svg" alt="">
-      <label id="notificationLabel">Saved!</label>
-      <button type="button" id="notificationAction" hidden></button>
-    </div>
+    <Transition name="notification-fade">
+      <div v-if="notificationState.visible" id="notificationEmblem" :key="notificationState.id"
+        :class="{ 'notification-error': notificationState.kind === 'error' }" role="status">
+        <img id="infoNotification" src="./assets/images/info.svg" alt="">
+        <label id="notificationLabel">{{ notificationState.text }}</label>
+        <button v-if="notificationState.action" type="button" id="notificationAction"
+          @click="runNotificationAction">{{ notificationState.action.label }}</button>
+      </div>
+    </Transition>
 
     <div v-if="autosavePrompt" id="autosaveBanner" class="autosave-banner">
       <span>{{ autosavePrompt }}</span>
@@ -82,9 +86,8 @@ import Menu from './components/Menu.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './assets/js/guitarTab'
 import { useSongData } from './composables/useSongData'
-import { useEditorScopeState } from './composables/useEditorScopeState'
+import { useEditorScopeState } from './stores/editorScopeState'
 import { useTabViewport } from './composables/useTabViewport'
-import AppManager from './assets/js/appManager'
 import {
   dismissRecoverableDraft,
   getRecoverableDraft,
@@ -93,6 +96,7 @@ import {
   teardownAutosaveListeners,
 } from './services/songAutosave'
 import { draftsPanelState } from './stores/draftsPanelState'
+import { notificationState, runNotificationAction, showNotification } from './stores/notificationState'
 import { shortcutsHelpState } from './stores/shortcutsHelpState'
 import { firstRunHintState } from './stores/firstRunHintState'
 import { layoutModeState, sheetFitMode, watchViewportLayout } from './stores/layoutModeState'
@@ -156,7 +160,7 @@ function restoreAutosaveDraft(): void {
   const restored = restoreAutosave({ bytes: pendingAutosaveBytes.value })
   autosavePrompt.value = null
   pendingAutosaveBytes.value = null
-  if (restored) AppManager.showNotification('Restored autosaved draft')
+  if (restored) showNotification('Restored autosaved draft')
 }
 
 // Dismissing only hides the offer; the draft stays in "Recover drafts".
@@ -178,7 +182,7 @@ onMounted(() => {
       if (cloudSongId) await loadCloudSongById(cloudSongId)
     }).catch((error) => {
       const message = error instanceof Error ? error.message : 'Failed to load cloud song'
-      AppManager.showNotification(message)
+      showNotification(message)
     })
   }
 

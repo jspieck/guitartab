@@ -1,7 +1,7 @@
-import Helper from '../assets/js/helper'
-import Duration from '../assets/js/duration'
+import Song from '../assets/js/songData'
+import Duration from './duration'
 import { tab } from '../assets/js/tab'
-import { getBlockRenderLayout } from '../composables/useTabRenderLayout'
+import { getBlockRenderLayout } from '../stores/tabRenderLayout'
 import type { TabBeat } from '../types/tab'
 import { getDisplayWidth } from './tabLayout'
 
@@ -63,12 +63,30 @@ function getFallbackMeasureBeatX(
     for (let i = 0; i < beatIndex; i += 1) {
       x += Duration.getDurationWidth(measureData[i]) * minOffset
     }
-    return Helper.getLeftOffset(blockId) + x
+    return barLeftOffset(blockId) + x
   }
 
   let x = 0
   for (let i = 0; i < beatIndex; i += 1) {
     x += getDisplayWidth(measureData[i]?.duration)
   }
-  return Helper.getLeftOffset(blockId) + x
+  return barLeftOffset(blockId) + x
+}
+
+/** Padding at the start of every bar, before its first beat. */
+export const BAR_LEFT_PADDING = 10
+
+/** Where the first beat of a bar starts: after a repeat sign, tempo or time signature. */
+export function barLeftOffset(blockId: number): number {
+  const meta = Song.measureMeta[blockId]
+  let left = BAR_LEFT_PADDING
+  if (meta == null) return left
+  if (meta.repeatOpen) left += 20
+  if (blockId === 0 || meta.bpm != null) {
+    left += 43
+    if (`${meta.bpm}`.length > 2) left += 8
+  } else if (meta.timeMeterPresent) {
+    left += 10
+  }
+  return left
 }

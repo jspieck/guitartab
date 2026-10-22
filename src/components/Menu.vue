@@ -212,9 +212,9 @@
                                 src="../assets/images/statusBar/denom.svg" /></button>
                         <button id="bpmMeter" @click="notationSelect('bpmMeter')" data-tooltip="BPM" v-bind="menuButtonBindings('bpmMeter')"><img id="bpmMeterImg"
                                 src="../assets/images/statusBar/bpmMeter.svg" /></button>
-                        <button id="addMeasure" @click="tab.addBlock(false)" data-tooltip="Add Measure" class="checkBoxNote"><img id="addMeasureImg"
+                        <button id="addMeasure" @click="tab.addBlock()" data-tooltip="Add Measure" class="checkBoxNote"><img id="addMeasureImg"
                                 src="../assets/images/statusBar/addMeasure.svg" /></button>
-                        <button id="removeMeasure" @click="tab.removeBlock(false)" data-tooltip="Remove Measure" class="checkBoxNote"><img
+                        <button id="removeMeasure" @click="tab.removeBlock()" data-tooltip="Remove Measure" class="checkBoxNote"><img
                                 id="removeMeasureImg" src="../assets/images/statusBar/removeMeasure.svg" /></button>
                         <button id="openBar" @click="measureSelect('openBar')" data-tooltip="Add Open Bar" v-bind="menuButtonBindings('openBar')"><img id="openBarImg"
                                 src="../assets/images/statusBar/openBar.svg" /></button>
@@ -274,80 +274,54 @@
 <script setup lang="ts">
 import { modalManager } from '../assets/js/modals/modalManager';
 import { classicalNotation } from '../services/editor/classicalNotationAdapter';
-import Settings from '../assets/js/settingManager';
-import editorCore from '../services/editor/editorCore';
-import midiEngine from '../assets/js/midiReceiver';
+import Settings from '../stores/settingsState';
+import liveInput from '../services/midi/liveInput';
 import { typedEventBus } from '../utils/typedEventBus';
 import Song from '../assets/js/songData';
 import { tab } from '../assets/js/tab';
 import AppManager from '../assets/js/appManager';
 import { usePlaybackEngine } from '../composables/usePlaybackEngine';
-import { playbackTransportState } from '../composables/playbackTransportState';
-import { ensureMenuEventBridge } from '../services/menuEventBridge';
-import { overlayHandler } from '../assets/js/overlayHandler';
-import { onMounted, onBeforeUnmount, reactive, ref } from 'vue';
+import { playbackTransportState } from '../stores/playbackTransportState';
+import { computed, ref } from 'vue';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { gProReader } from '../assets/js/GProReader';
 import { confirmReplaceUnsavedSong } from '../services/songAutosave';
-import type { Note, Beat, TabPosition } from '../types/tab';
-import { noteLengthOf } from '../utils/durationUtils';
 import { clampTempo } from '../utils/tempo';
-import { useEditorScopeState } from '../composables/useEditorScopeState';
-import { setTempoState, useTempoState } from '../composables/useTempoState';
+import { setSongTempo } from '../services/editor/songSettingsCommands';
+import { useEditorScopeState } from '../stores/editorScopeState';
+import { useTempoState } from '../stores/tempoState';
 import { useMenuActions } from '../composables/useMenuActions';
-import {
-    DEFAULT_TUPLET_OPTIONS,
-    MENU_NOTE_EFFECT_BUTTON_IDS,
-    deriveMenuSelectionState,
-} from '../utils/menuUiState';
+import { useToolbarState } from '../composables/useToolbarState';
 import { useUndoRedo } from '../composables/useUndoRedo';
 import { toggleDraftsPanel } from '../stores/draftsPanelState';
 import { toggleShortcutsHelp } from '../stores/shortcutsHelpState';
 import PracticeControls from './PracticeControls.vue';
 import SaveFormatMenu from './SaveFormatMenu.vue';
+import { switchTrack } from '../services/editor/trackLoading';
 
 // File input ref for opening files
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const isPreparingRecording = ref(false);
 const selectedTuplet = ref('3');
 const selectedBarId = ref(1);
-const availableTuplets = ref([...DEFAULT_TUPLET_OPTIONS]);
-const pressedButtons = reactive<Record<string, boolean>>({
-    '8thNote': true,
-});
-const disabledButtons = reactive<Record<string, boolean>>({});
 const { currentTrackId, currentVoiceId } = useEditorScopeState();
 const { currentTempo } = useTempoState();
 const { togglePlay: togglePlayback, stop: stopPlayback, preload: preloadPlayback } = usePlaybackEngine();
 const { canUndo, canRedo, undo, redo } = useUndoRedo();
-const noteTiedTo = ref<{ blockId: number; beatId: number } | null>(null);
-const classicalNotationActive = ref(Settings.vexFlowIsActive);
+const toolbar = useToolbarState(selectedTuplet);
+const { availableTuplets, noteTiedTo } = toolbar;
+const classicalNotationActive = computed(() => Settings.vexFlowIsActive);
 
 async function toggleClassicalNotationView() {
   await classicalNotation.toggleClassicalVisibility();
-  classicalNotationActive.value = Settings.vexFlowIsActive;
-}
-
-function handleClassicalNotationChanged() {
-  classicalNotationActive.value = Settings.vexFlowIsActive;
-}
-
-function setFlagMap(target: Record<string, boolean>, activeIds: string[]) {
-    Object.keys(target).forEach((key) => {
-        delete target[key];
-    });
-
-    activeIds.forEach((id) => {
-        target[id] = true;
-    });
 }
 
 function isMenuButtonPressed(id: string) {
-    return pressedButtons[id] === true;
+    return toolbar.isPressed(id);
 }
 
 function isMenuButtonDisabled(id: string) {
-    return disabledButtons[id] === true;
+    return toolbar.isDisabled(id);
 }
 
 function menuButtonBindings(id: string, baseClasses: string | string[] = 'checkBoxNote') {
@@ -371,47 +345,6 @@ function voiceButtonClass(voiceId: number) {
     return ['voiceButton', { voiceSelected: currentVoiceId.value === voiceId }];
 }
 
-function checkForNoteToTie(
-    trackId: number,
-    blockId: number,
-    voiceId: number,
-    beatId: number,
-    string: number,
-) {
-    return editorCore.findPreviousNoteOnString(trackId, blockId, voiceId, beatId, string);
-}
-
-function syncMenuStateForPosition(position: TabPosition) {
-    const { trackId, blockId, voiceId, beatId, string } = position;
-    const beat = editorCore.getBeat(trackId, blockId, voiceId, beatId);
-    const measureMeta = editorCore.getMeasureMeta(blockId);
-    if (!beat || !measureMeta) {
-        return;
-    }
-
-    const note = editorCore.getNote(trackId, blockId, voiceId, beatId, string) ?? null;
-    noteTiedTo.value = note?.tied ? note.tiedTo : checkForNoteToTie(trackId, blockId, voiceId, beatId, string);
-
-    const derivedState = deriveMenuSelectionState(beat, note, measureMeta, {
-        canTie: note?.tied === true || noteTiedTo.value != null,
-        hasOverlaySelection: overlayHandler.isNoteSelected(),
-    });
-
-    setFlagMap(pressedButtons, derivedState.pressedButtonIds);
-    setFlagMap(disabledButtons, derivedState.disabledButtonIds);
-    availableTuplets.value = derivedState.availableTuplets;
-    selectedTuplet.value = derivedState.selectedTuplet;
-    AppManager.typeOfNote = noteLengthOf(beat.duration);
-}
-
-function syncMenuStateForMarkedPosition() {
-    if (tab.markedNoteObj == null) {
-        return;
-    }
-
-    syncMenuStateForPosition(tab.markedNoteObj);
-}
-
 const {
     playBackJump,
     selectNoteLength,
@@ -425,7 +358,6 @@ const {
     currentVoiceId,
     selectedTuplet,
     noteTiedTo,
-    syncMenuState: syncMenuStateForMarkedPosition,
 });
 
 function selectBar(id: number) {
@@ -437,9 +369,7 @@ function selectVoice(voiceId: number) {
         return;
     }
 
-    AppManager.changeTrack(Song.currentTrackId, voiceId, false, () => {
-        syncMenuStateForMarkedPosition();
-    });
+    switchTrack(Song.currentTrackId, voiceId, false, null);
 }
 
 // Open file dialog
@@ -466,72 +396,6 @@ function openCloudSongsModal() {
 function handleCreatePdf() {
     void import('../services/pdfExport').then(({ exportTabAsPdf }) => exportTabAsPdf())
 }
-
-const handleActivateEffectsForMarkedBeat = () => {
-    syncMenuStateForMarkedPosition();
-};
-
-const handleActivateEffectsForMarkedPos = () => {
-    syncMenuStateForMarkedPosition();
-};
-
-const handleActivateEffectsForBeat = (_beat: Beat) => {
-    syncMenuStateForMarkedPosition();
-};
-
-const handleDisableNoteEffectButtons = () => {
-    MENU_NOTE_EFFECT_BUTTON_IDS.forEach((id) => {
-        disabledButtons[id] = true;
-    });
-};
-
-const handleActivateEffectsForBlock = () => {
-    syncMenuStateForMarkedPosition();
-};
-
-const handleActivateEffectsForPos = (position: TabPosition) => {
-    syncMenuStateForPosition(position);
-};
-
-const handleActivateEffectsForNote = (_note: Note) => {
-    syncMenuStateForMarkedPosition();
-};
-
-const handleClickedOnPos = (position: TabPosition) => {
-    syncMenuStateForPosition(position);
-};
-
-const handleSongDataChanged = () => {
-    syncMenuStateForMarkedPosition();
-};
-
-onMounted(() => {
-    ensureMenuEventBridge();
-    typedEventBus.on('menu.activateEffectsForMarkedBeat', handleActivateEffectsForMarkedBeat);
-    typedEventBus.on('menu.activateEffectsForMarkedPos', handleActivateEffectsForMarkedPos);
-    typedEventBus.on('menu.activateEffectsForBeat', handleActivateEffectsForBeat);
-    typedEventBus.on('menu.disableNoteEffectButtons', handleDisableNoteEffectButtons);
-    typedEventBus.on('menu.activateEffectsForBlock', handleActivateEffectsForBlock);
-    typedEventBus.on('menu.activateEffectsForPos', handleActivateEffectsForPos);
-    typedEventBus.on('menu.activateEffectsForNote', handleActivateEffectsForNote);
-    typedEventBus.on('menu.clickedOnPos', handleClickedOnPos);
-    typedEventBus.on('song-data-changed', handleSongDataChanged);
-    typedEventBus.on('classical-notation-changed', handleClassicalNotationChanged);
-    syncMenuStateForMarkedPosition();
-})
-
-onBeforeUnmount(() => {
-    typedEventBus.off('menu.activateEffectsForMarkedBeat', handleActivateEffectsForMarkedBeat);
-    typedEventBus.off('menu.activateEffectsForMarkedPos', handleActivateEffectsForMarkedPos);
-    typedEventBus.off('menu.activateEffectsForBeat', handleActivateEffectsForBeat);
-    typedEventBus.off('menu.disableNoteEffectButtons', handleDisableNoteEffectButtons);
-    typedEventBus.off('menu.activateEffectsForBlock', handleActivateEffectsForBlock);
-    typedEventBus.off('menu.activateEffectsForPos', handleActivateEffectsForPos);
-    typedEventBus.off('menu.activateEffectsForNote', handleActivateEffectsForNote);
-    typedEventBus.off('menu.clickedOnPos', handleClickedOnPos);
-    typedEventBus.off('song-data-changed', handleSongDataChanged);
-    typedEventBus.off('classical-notation-changed', handleClassicalNotationChanged);
-});
 
 let tempoMoveTmp: (event: MouseEvent) => void = () => { };
 let removeListenersTmp: () => void = () => { };
@@ -561,12 +425,13 @@ function removeEventListenersTempo() {
     document.body.classList.remove('disableMouseEffects');
     document.removeEventListener('mousemove', tempoMoveTmp);
     document.removeEventListener('mouseup', removeListenersTmp);
+    // One undo step per drag; this also marks the song as changed for autosave.
+    setSongTempo(Song.bpm, oldBpm);
 }
 
 function tempoMeterMouseMove(event: MouseEvent) {
     const mouseYnew = event.pageY;
-    Song.bpm = clampTempo(oldBpm + initYPos - mouseYnew);
-    setTempoState(Song.bpm);
+    Song.setTempo(clampTempo(oldBpm + initYPos - mouseYnew));
 }
 
 function changeTempoFunc(e: MouseEvent) {
@@ -582,12 +447,12 @@ function changeTempoFunc(e: MouseEvent) {
 }
 
 function recordButtonPressed() {
-    if (midiEngine.isRecording) {
+    if (liveInput.isRecording) {
         isPreparingRecording.value = false;
-        midiEngine.stopRecording();
+        liveInput.stopRecording();
     } else {
         isPreparingRecording.value = true;
-        midiEngine.recordMidi();
+        liveInput.recordMidi();
     }
 }
 </script>

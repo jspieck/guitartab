@@ -1,5 +1,5 @@
 import { BaseModalHandler } from './baseModalHandler';
-import Settings from '../settingManager';
+import Settings from '../../../stores/settingsState';
 import { ref } from 'vue';
 
 export interface EqBand {
@@ -69,10 +69,6 @@ export class EqualizerModalHandler extends BaseModalHandler {
 
     constructor() {
         super('equalizerModal', 'Equalizer');
-    }
-
-    public getEqualizer(): BiquadFilterNode[] {
-        return this.equalizerNodes;
     }
 
     /**

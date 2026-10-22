@@ -5,11 +5,7 @@
       <div class="modal-field">
         <label for="tremolo-picking-length">Note length</label>
         <div class="select">
-          <select
-            id="tremolo-picking-length"
-            :value="handler.getModalState().tremoloPickingLength"
-            @change="(e: Event) => handler.updateTremoloPickingLength((e.target as HTMLSelectElement).value)"
-          >
+          <select id="tremolo-picking-length" v-model="handler.form.length">
             <option value="e">Eighth</option>
             <option value="s">Sixteenth</option>
             <option value="t">Thirty-second</option>
@@ -18,7 +14,7 @@
         </div>
       </div>
       <div class="modal-submit-row">
-        <SubmitButton @submitInfo="handleSubmit" />
+        <SubmitButton @submitInfo="handler.apply()" />
       </div>
     </div>
   </BaseModal>
@@ -28,13 +24,8 @@
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
 import { MODALS } from '../assets/js/modals/modalTypes'
-import { TremoloPickingModalHandler } from '../assets/js/modals/tremoloPickingModalHandler'
 import { modalManager } from '../assets/js/modals/modalManager'
+import type { TremoloPickingModalHandler } from '../assets/js/modals/effectModals'
 
-const handler = modalManager.getHandler(MODALS.TREMOLO_PICKING.id) as TremoloPickingModalHandler
-
-function handleSubmit() {
-  handler.applyTremoloPicking()
-  handler.closeModal()
-}
+const handler = modalManager.getHandler<InstanceType<typeof TremoloPickingModalHandler>>(MODALS.TREMOLO_PICKING.id)
 </script>

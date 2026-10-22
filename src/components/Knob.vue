@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
     id: string;
@@ -56,6 +56,10 @@ function getCircumference(): number {
 const dashValue = computed(() => getCircumference());
 
 const currentAngle = ref(startAngle.value);
+// Follow the value when it changes from outside (track switch, undo, a loaded song).
+watch(startAngle, (angle) => {
+    currentAngle.value = angle;
+});
 
 const strokeDashOffset = computed(() => {
     if (props.midKnob) {

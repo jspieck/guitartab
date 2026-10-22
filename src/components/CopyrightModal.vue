@@ -16,7 +16,7 @@
               <th>Instruments</th>
             </tr>
           </thead>
-          <tbody id="midiDeviceListBody">
+          <tbody>
             <tr>
               <td>Sampled from AmpleSound Guitar VSTs</td>
               <td>http://www.amplesound.net/en/index.asp</td>

@@ -6,8 +6,8 @@
         <div class="modal-field">
           <label for="strokeDirectionSelection">Direction</label>
           <div class="select">
-            <select id="strokeDirectionSelection">
-              <option value="up" selected>Upstroke</option>
+            <select id="strokeDirectionSelection" v-model="handler.form.strokeType">
+              <option value="up">Upstroke</option>
               <option value="down">Downstroke</option>
             </select>
             <div class="select__arrow"></div>
@@ -16,20 +16,20 @@
         <div class="modal-field">
           <label for="strokeLengthSelection">Length</label>
           <div class="select">
-            <select id="strokeLengthSelection">
-              <option value="4">Quarter</option>
-              <option value="8" selected>Eighth</option>
-              <option value="16">Sixteenth</option>
-              <option value="32">32nd</option>
-              <option value="64">64th</option>
-              <option value="128">128th</option>
+            <select id="strokeLengthSelection" v-model.number="handler.form.strokeLength">
+              <option :value="4">Quarter</option>
+              <option :value="8">Eighth</option>
+              <option :value="16">Sixteenth</option>
+              <option :value="32">32nd</option>
+              <option :value="64">64th</option>
+              <option :value="128">128th</option>
             </select>
             <div class="select__arrow"></div>
           </div>
         </div>
       </div>
       <div class="modal-submit-row">
-        <SubmitButton button-id="strokeSelectButton" />
+        <SubmitButton button-id="strokeSelectButton" @submitInfo="handler.apply()" />
       </div>
     </div>
   </BaseModal>
@@ -39,4 +39,8 @@
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
 import { MODALS } from '../assets/js/modals/modalTypes'
+import { modalManager } from '../assets/js/modals/modalManager'
+import type { StrokeModalHandler } from '../assets/js/modals/effectModals'
+
+const handler = modalManager.getHandler<InstanceType<typeof StrokeModalHandler>>(MODALS.STROKE.id)
 </script>

@@ -1,6 +1,6 @@
 import Song from '../../assets/js/songData'
-import Settings from '../../assets/js/settingManager'
-import { getTrackRenderLayout } from '../../composables/useTabRenderLayout'
+import Settings from '../../stores/settingsState'
+import { getTrackRenderLayout } from '../../stores/tabRenderLayout'
 import { TAB_SHEET } from '../../utils/tabSheetConstants'
 import type { RenderedTabRow } from '../../types/tab'
 

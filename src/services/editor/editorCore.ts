@@ -1,5 +1,5 @@
+import { selectionState } from '../../stores/selectionState'
 import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
-import { typedEventBus } from '../../utils/typedEventBus'
 import playBackLogic from '../../assets/js/playbackEngine'
 import Song, {
   type Beat as SongBeat,
@@ -10,7 +10,7 @@ import Song, {
   type Track,
 } from '../../assets/js/songData'
 import { tab, Tab } from '../../assets/js/tab'
-import { hasRegisteredSelectionSurface } from '../../composables/useSelectionSurfaceState'
+import { hasRegisteredSelectionSurface } from '../../stores/selectionSurfaceState'
 import { songState } from '../../stores/songState'
 import { DURATION_NAMES } from '../../utils/musicUtils'
 import type {
@@ -107,15 +107,6 @@ function syncSelectionEffects(selection: TabSelectionData | null): void {
     return
   }
 
-  const payload = {
-    trackId: selection.trackId,
-    blockId: selection.blockId,
-    voiceId: selection.voiceId,
-    beatId: selection.beatIndex,
-    string: selection.stringIndex,
-  }
-
-  typedEventBus.emit('menu.clickedOnPos', payload)
   playBackLogic.setPlayPosition(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex)
 }
 
@@ -235,13 +226,13 @@ const editorCore = {
 
   syncSelection(selection: TabSelectionData | null): void {
     if (!selection) {
-      tab.hasExplicitSelection = false
+      selectionState.hasExplicitSelection = false
       return
     }
 
     const { trackId, voiceId, blockId, beatIndex, stringIndex } = selection
-    tab.markedNoteObj = { trackId, voiceId, blockId, beatId: beatIndex, string: stringIndex }
-    tab.hasExplicitSelection = true
+    selectionState.cursor = { trackId, voiceId, blockId, beatId: beatIndex, string: stringIndex }
+    selectionState.hasExplicitSelection = true
   },
 
   syncSelectionEffects(selection: TabSelectionData | null): void {
@@ -290,7 +281,7 @@ const editorCore = {
     numStrings = getTrackStringCount(trackId),
   ): void {
     ensureBeatAtPosition(trackId, blockId, voiceId, beatIndex, numStrings)
-    tab.markedNoteObj = {
+    selectionState.cursor = {
       trackId,
       voiceId,
       blockId,

@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
-import Settings from '../src/assets/js/settingManager'
+import Settings from '../src/stores/settingsState'
 import { tab } from '../src/assets/js/tab'
-import { clearTrackRenderLayout, getBlockRenderLayout } from '../src/composables/useTabRenderLayout'
+import { clearTrackRenderLayout, getBlockRenderLayout } from '../src/stores/tabRenderLayout'
 import { computeTrackLayout } from '../src/services/editor/measureLayoutEngine'
 import { getMeasureBeatX } from '../src/utils/measureBeatLayout'
 import { getBeatPositionInRow } from '../src/utils/beatPositionInRow'
@@ -16,8 +15,8 @@ vi.mock('../src/assets/js/audioEngine', () =>
 vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -51,7 +50,6 @@ function layoutOptions(availableWidth: number, rowHeight = 120) {
 
 describe('layout fixtures', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     Song.initEmptySong()
     Settings.vexFlowIsActive = false
     clearTrackRenderLayout(TRACK_ID, VOICE_ID)

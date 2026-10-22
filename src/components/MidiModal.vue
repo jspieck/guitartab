@@ -2,8 +2,9 @@
   <BaseModal :modal-id="MODALS.MIDI.id">
     <template #title>Midi</template>
     <div class="modal-stack midi-modal">
+      <p class="modal-body-text">Click a device to play and enter notes with it; click again to disconnect.</p>
       <div class="modal-surface-block midi-table-wrap">
-        <table id="midiDeviceList" class="midi-table">
+        <table class="midi-table">
           <thead>
             <tr>
               <th>Device name</th>
@@ -11,7 +12,17 @@
               <th>Status</th>
             </tr>
           </thead>
-          <tbody id="midiDeviceListBody"></tbody>
+          <tbody>
+            <tr v-for="device in midiState.devices" :key="device.id" :class="{ selectedRow: device.connected }"
+              @click="toggleMidiDevice(device.id)">
+              <td>{{ device.name }}</td>
+              <td>{{ device.manufacturer }}</td>
+              <td>{{ device.connected ? 'connected' : device.state }}</td>
+            </tr>
+            <tr v-if="midiState.devices.length === 0">
+              <td colspan="3">{{ emptyText }}</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -19,8 +30,23 @@
 </template>
 
 <script setup lang="ts">
-import BaseModal from "./BaseModal.vue";
-import { MODALS } from "../assets/js/modals/modalTypes";
+import { computed, watch } from 'vue'
+import BaseModal from './BaseModal.vue'
+import { MODALS } from '../assets/js/modals/modalTypes'
+import { useModalOpen } from '../composables/useModalOpen'
+import { midiState, refreshMidiDevices, toggleMidiDevice } from '../services/midi/devices'
+
+const isOpen = useModalOpen(MODALS.MIDI.id)
+
+// Ask for MIDI access only when the dialog is opened.
+watch(isOpen, (open) => {
+  if (open) void refreshMidiDevices()
+})
+
+const emptyText = computed(() => {
+  if (!midiState.supported) return 'MIDI is not supported in this browser.'
+  return midiState.error || 'No MIDI device available.'
+})
 </script>
 
 <style scoped>

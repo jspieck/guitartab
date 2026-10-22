@@ -1,5 +1,5 @@
 import fastdom from 'fastdom';
-import { setTempoState } from '../../composables/useTempoState';
+import { setTempoState } from '../../stores/tempoState';
 import { songState } from '../../stores/songState';
 import type { BeatDuration } from '../../types/tab';
 import { isRestDuration } from '../../utils/durationUtils';
@@ -216,16 +216,6 @@ interface BeatRef {
   beatId: number,
 }
 
-/**
- * One voice of one bar as it was before a time-signature change trimmed it:
- * the beats that were cut off and how many beats the voice had.
- */
-interface VoiceSnapshot {
-  blockId: number,
-  beatCount: number,
-  beats: { beatId: number, beat: Beat }[],
-}
-
 /** A string position on a beat. */
 interface NoteRef extends BeatRef {
   string: number,
@@ -418,19 +408,6 @@ const songMethods = {
     };
   },
 
-  defaultGrace(): Grace {
-    return {
-      duration: 'e',
-      setOnBeat: 'before',
-      dynamic: 'mf',
-      transition: '',
-      fret: 0,
-      string: 0,
-      height: 0,
-      dead: false,
-    };
-  },
-
   defaultMeasure(): Beat {
     return {
       duration: 'er',
@@ -530,7 +507,7 @@ const Song = new Proxy(songState, {
 
 export { Song };
 export type {
-  BeatRef, NoteRef, VoiceSnapshot, Beat, Note, PlayBackInstrument, SongDescription, Track, Interval,
+  BeatRef, NoteRef, Beat, Note, PlayBackInstrument, SongDescription, Track, Interval,
   MeasureMetaInfo, Bend, TremoloBar, Chord, Marker, Stroke, Grace, BeatEffects,
 };
 export default Song;

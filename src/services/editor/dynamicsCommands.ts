@@ -1,6 +1,6 @@
 import Song from '../../assets/js/songData'
-import { revertHandler } from '../../assets/js/revertHandler'
-import { menuHandler } from '../../assets/js/menuHandler'
+import { recordBarEdit } from './editCommands'
+import { clearEffectGroup, setEffect } from './effectToggles'
 import { requestOverBarRender } from './renderCommands'
 import { findMenuEffectGroup, getDynamicValue } from '../menuMutationRouting'
 import { MENU_EFFECT_GROUPS } from '../../utils/menuUiState'
@@ -32,27 +32,28 @@ export function processDynamicSelect(
     }
   }
 
-  for (const { trackId, blockId, voiceId, beatId, string } of arr.notes) {
-    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
-    const note = beat.notes[string]
-    beat.dynamic = dynamic
+  const apply = () => {
+    for (const { trackId, blockId, voiceId, beatId, string } of arr.notes) {
+      const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
+      const note = beat.notes[string]
+      beat.dynamic = dynamic
 
-    if (effectGroup != null) {
-      menuHandler.deactivateEffects(beat, note, effectGroup)
-
-      if (isVariableSet == null || isVariableSet === false) {
-        menuHandler.setEffectVariable(beat, note, id, true)
-      } else {
-        menuHandler.setEffectVariable(beat, note, id, false)
+      if (effectGroup != null) {
+        clearEffectGroup(beat, note, effectGroup)
+        setEffect(beat, note, id, !isVariableSet)
       }
-    }
-
-    if (isRevert == null) {
-      revertHandler.addDynamic(trackId, blockId, voiceId, beatId, string, id)
     }
   }
 
   const { trackId, voiceId } = arr.notes[0]
+  if (isRevert === true) {
+    apply()
+  } else {
+    // One undo step for the whole selection (it was one per note).
+    const blockIds = [...arr.blocks, ...arr.notes.map((note) => note.blockId)]
+    recordBarEdit('Dynamics', { trackId, blockIds }, apply)
+  }
+
   for (const blockId of arr.blocks) {
     requestOverBarRender(trackId, blockId, voiceId)
   }

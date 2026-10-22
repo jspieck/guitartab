@@ -9,8 +9,8 @@ vi.mock('../src/assets/js/audioEngine', () =>
 vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -21,7 +21,7 @@ const { getBlockRenderLayout } = vi.hoisted(() => ({
   getBlockRenderLayout: vi.fn(),
 }))
 
-vi.mock('../src/composables/useTabRenderLayout', () => ({
+vi.mock('../src/stores/tabRenderLayout', () => ({
   getBlockRenderLayout: (...args: unknown[]) => getBlockRenderLayout(...args),
   getTrackRenderLayout: () => null,
 }))

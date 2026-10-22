@@ -2,7 +2,7 @@ import { expect } from 'vitest'
 import Song from '../../src/assets/js/songData'
 import { tab } from '../../src/assets/js/tab'
 import renderBridge from '../../src/services/editor/renderBridge'
-import { getTrackRenderLayout } from '../../src/composables/useTabRenderLayout'
+import { getTrackRenderLayout } from '../../src/stores/tabRenderLayout'
 import { getBeatPositionInRow } from '../../src/utils/beatPositionInRow'
 
 export function assertTabAndRenderLayoutMatch(trackId: number, voiceId: number): void {

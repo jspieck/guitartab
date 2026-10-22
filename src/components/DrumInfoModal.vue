@@ -20,10 +20,10 @@
 </template>
 
 <script setup lang="ts">
+import { selectionState } from '../stores/selectionState';
 import BaseModal from "./BaseModal.vue";
 import audioEngine from "../assets/js/audioEngine";
 import AppManager from "../assets/js/appManager";
-import { tab } from "../assets/js/tab";
 import { MODALS } from "../assets/js/modals/modalTypes";
 
 const GROUPS: { name: string, test: RegExp }[] = [
@@ -41,7 +41,7 @@ const groups = GROUPS.map((group, index) => ({
 
 function placeNote(midiNote: number) {
   // Read the cursor now, not when the modal was mounted.
-  const { trackId, blockId, voiceId, beatId, string } = tab.markedNoteObj;
+  const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor;
   AppManager.placeNote(trackId, blockId, voiceId, beatId, string, midiNote);
 }
 </script>

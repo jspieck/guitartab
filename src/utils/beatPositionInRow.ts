@@ -1,4 +1,4 @@
-import { getBlockRenderLayout, getTrackRenderLayout } from '../composables/useTabRenderLayout'
+import { getBlockRenderLayout, getTrackRenderLayout } from '../stores/tabRenderLayout'
 import type { BeatLocation } from '../types/tab'
 
 function normalizeBeatLocation(

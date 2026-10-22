@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import Settings from '../src/assets/js/settingManager'
-import { playbackTransportState, playbackTransportVersion } from '../src/composables/playbackTransportState'
+import Settings from '../src/stores/settingsState'
+import { playbackTransportState, playbackTransportVersion } from '../src/stores/playbackTransportState'
 import { publishPlaybackStopped, publishPlaybackPosition } from '../src/services/editor/playbackEngineBridge'
 
 describe('playbackEngineBridge', () => {

@@ -1,5 +1,5 @@
 import { gProReader } from '../assets/js/GProReader'
-import { revertHandler } from '../assets/js/revertHandler'
+import { undoHistory } from './editor/editCommands'
 import Song from '../assets/js/songData'
 import { compressGtContent, serializeSongContent } from '../utils/gtSerialization'
 import { typedEventBus } from '../utils/typedEventBus'
@@ -295,7 +295,7 @@ export function restoreAutosave(snapshot: Pick<AutosaveSnapshot, 'bytes'>): bool
     return false
   }
   dependencies().cleanMarker.set(cleanAt)
-  revertHandler.clearHistory()
+  undoHistory.clear()
   // A restored draft is not saved anywhere yet: keep it dirty, but do not
   // snapshot the identical content again.
   baseline = null

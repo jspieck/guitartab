@@ -1,14 +1,14 @@
+import { selectionState } from '../../stores/selectionState'
 import fastdom from 'fastdom'
-import Duration from '../../assets/js/duration'
+import Duration from '../../utils/duration'
 import AppManager from '../../assets/js/appManager'
 import Song from '../../assets/js/songData'
-import { revertHandler } from '../../assets/js/revertHandler'
+import { recordBarEdit } from './editCommands'
 import { tab, Tab } from '../../assets/js/tab'
 import { classicalNotation } from './classicalNotationAdapter'
 import type { Beat } from '../../types/tab'
 import { requestDurationRender } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
-import { showUserError } from '../userNotifications'
 import { noteLengthOf } from '../../utils/durationUtils'
 
 export function toggleBeatDotModifier(
@@ -61,18 +61,15 @@ export function handleTupletSpecialSelect(
   blockId: number,
   voiceId: number,
   beatId: number,
-  string: number,
   tupleSel: number,
-  duringRestoration: boolean,
-): void {
-  const tupletSet = tab.setTuplet(trackId, blockId, voiceId, beatId, tupleSel)
-  if (tupletSet) {
-    requestDurationRender(trackId, blockId, voiceId)
-    tab.drawTrack(trackId, voiceId, true, null)
-    if (duringRestoration === false) {
-      revertHandler.addNoteLengthSpecialSelect(trackId, blockId, voiceId, beatId, string, tupleSel, 'tuplet')
-    }
+): boolean {
+  // setTuplet returns false when refused and nothing on success.
+  if (tab.setTuplet(trackId, blockId, voiceId, beatId, tupleSel) === false) {
+    return false
   }
+  requestDurationRender(trackId, blockId, voiceId)
+  tab.drawTrack(trackId, voiceId, true, null)
+  return true
 }
 
 export function finalizeSpecialDurationChange(
@@ -82,15 +79,8 @@ export function finalizeSpecialDurationChange(
   voiceId: number,
   beatId: number,
   string: number,
-  tupleSel: number,
-  id: string,
   previousDuration: number,
-  duringRestoration: boolean,
 ): void {
-  if (duringRestoration === false) {
-    revertHandler.addNoteLengthSpecialSelect(trackId, blockId, voiceId, beatId, string, tupleSel, id)
-  }
-
   const newDuration = Duration.getDurationOfNote(beat, true)
   if (previousDuration !== newDuration) {
     const rescaleNecessary = tab.changeBeatDuration(
@@ -144,7 +134,7 @@ export function setNotesTied(
         selectedNote.tied = shouldBeTied
         selectedNote.tiedTo = noteTiedToCopy
         if (shouldBeTied === false) {
-          Tab.deleteNote(trackId, blockId, voiceId, beatId, string, false)
+          Tab.deleteNote(trackId, blockId, voiceId, beatId, string)
           return
         }
         selectedNote.fret = fret
@@ -205,7 +195,6 @@ export function processSpecialSelect(
   string: number,
   tupleSel: number,
   id: string,
-  duringRestoration: boolean,
   noteTiedTo: { blockId: number; beatId: number } | null,
 ): void {
   fastdom.mutate(() => {
@@ -213,49 +202,39 @@ export function processSpecialSelect(
     if (beat == null) {
       return
     }
-    const previousDuration = Duration.getDurationOfNote(beat, true)
-    if (id === 'tuplet') {
-      handleTupletSpecialSelect(trackId, blockId, voiceId, beatId, string, tupleSel, duringRestoration)
-      return
+    const blockIds = [blockId]
+    for (let tiedBlock = noteTiedTo?.blockId ?? blockId; tiedBlock < blockId; tiedBlock += 1) {
+      blockIds.push(tiedBlock)
     }
+    recordBarEdit(SPECIAL_LABELS[id] ?? 'Note length', { trackId, blockIds }, () => {
+      const previousDuration = Duration.getDurationOfNote(beat, true)
+      if (id === 'tuplet') {
+        return handleTupletSpecialSelect(trackId, blockId, voiceId, beatId, tupleSel)
+      }
 
-    if (id === 'tied' && noteTiedTo != null) {
-      processTiedButtonPress(trackId, blockId, voiceId, beatId, string, noteTiedTo, noteTiedTo)
-      revertHandler.addTied(trackId, blockId, voiceId, beatId, string, noteTiedTo)
-      return
-    }
+      if (id === 'tied' && noteTiedTo != null) {
+        processTiedButtonPress(trackId, blockId, voiceId, beatId, string, noteTiedTo, noteTiedTo)
+        return true
+      }
 
-    if (id !== 'dotted' && id !== 'doubleDotted') {
-      return
-    }
+      if (id !== 'dotted' && id !== 'doubleDotted') {
+        return false
+      }
 
-    const didToggleDotModifier = toggleBeatDotModifier(
-      beat,
-      trackId,
-      blockId,
-      voiceId,
-      beatId,
-      string,
-      previousDuration,
-      id,
-    )
-    if (!didToggleDotModifier) {
-      return
-    }
-
-    finalizeSpecialDurationChange(
-      beat,
-      trackId,
-      blockId,
-      voiceId,
-      beatId,
-      string,
-      tupleSel,
-      id,
-      previousDuration,
-      duringRestoration,
-    )
+      if (!toggleBeatDotModifier(beat, trackId, blockId, voiceId, beatId, string, previousDuration, id)) {
+        return false
+      }
+      finalizeSpecialDurationChange(beat, trackId, blockId, voiceId, beatId, string, previousDuration)
+      return true
+    })
   })
+}
+
+const SPECIAL_LABELS: Record<string, string> = {
+  tuplet: 'Tuplet',
+  tied: 'Tie',
+  dotted: 'Dot',
+  doubleDotted: 'Double dot',
 }
 
 export function noteLengthSpecialSelect(
@@ -266,11 +245,7 @@ export function noteLengthSpecialSelect(
   if (AppManager.duringTrackCreation) {
     return false
   }
-  if (tab.markedNoteObj == null) {
-    showUserError('Select a note first.')
-    return false
-  }
-  const { trackId, blockId, voiceId, beatId, string } = tab.markedNoteObj
-  processSpecialSelect(trackId, blockId, voiceId, beatId, string, selectedTuplet, id, false, noteTiedTo)
+  const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor
+  processSpecialSelect(trackId, blockId, voiceId, beatId, string, selectedTuplet, id, noteTiedTo)
   return true
 }

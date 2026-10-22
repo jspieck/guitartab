@@ -26,8 +26,8 @@ vi.mock('../src/assets/js/audioEngine', () => {
   })
   return { audioEngine: engine, default: engine }
 })
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -40,7 +40,7 @@ let playback: PlaybackModule['default']
 let Song: SongModule['default']
 let audioEngine: { playMetronomeNote: ReturnType<typeof vi.fn> }
 let practice: typeof import('../src/stores/practiceState')
-let tempo: typeof import('../src/composables/useTempoState')
+let tempo: typeof import('../src/stores/tempoState')
 const scheduled: {
   track: number
   voice: number
@@ -57,7 +57,7 @@ beforeAll(async () => {
   Song = (await import('../src/assets/js/songData')).default
   audioEngine = (await import('../src/assets/js/audioEngine')).audioEngine as never
   practice = await import('../src/stores/practiceState')
-  tempo = await import('../src/composables/useTempoState')
+  tempo = await import('../src/stores/tempoState')
 })
 
 beforeEach(() => {

@@ -6,7 +6,7 @@ import {
   getBlockRenderLayout,
   setTrackRenderLayout,
   type RenderBlockLayout,
-} from '../src/composables/useTabRenderLayout'
+} from '../src/stores/tabRenderLayout'
 
 function block(xOffset: number, beatPositions = [10, 40]): RenderBlockLayout {
   return { xOffset, rowId: 0, numInRow: 0, width: 200, minOffset: 30, pageId: 0, beatPositions }

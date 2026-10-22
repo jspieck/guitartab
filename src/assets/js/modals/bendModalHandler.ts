@@ -1,17 +1,13 @@
 import { BaseModalHandler } from './baseModalHandler';
-import type { MenuEffectState } from '../../../services/menuEffectMutations';
-import { Note, Beat, Bend } from '../songData';
+import { Note, Beat } from '../songData';
 import {
   connectPoints,
   drawPoint,
 } from '../../../utils/svgPrimitives';
-import Helper from '../helper';
 import fastdom from 'fastdom';
-import menuHandler from '../menuHandler';
-import { revertHandler } from '../revertHandler';
-import { typedEventBus } from '../../../utils/typedEventBus';
+import { toggleNoteEffect } from '../../../services/editor/effectToggles';
+import { recordBarEdit } from '../../../services/editor/editCommands';
 import { Song } from '../songData';
-import { tab } from '../tab';
 import { MODALS } from './modalTypes';
 import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
@@ -164,13 +160,12 @@ export class BendModalHandler extends BaseModalHandler {
             if (!this.currentNotes) return;
 
             const bendObjs = this.createBendObjects();
-            const notesBefore = menuHandler.handleEffectGroupCollision(
-                this.currentNotes.notes,
-                'bend',
-                this.isVariableSet
-            );
-
-            this.applyBendToNotes(bendObjs, notesBefore);
+            const { notes, blocks } = this.currentNotes;
+            const blockIds = [...blocks, ...notes.map((no) => no.blockId)];
+            recordBarEdit('Bend', { trackId: notes[0].trackId, blockIds }, () => {
+                toggleNoteEffect(notes, 'bend', this.isVariableSet);
+                this.applyBendToNotes(bendObjs);
+            });
             requestBlocksRender(
                 this.currentNotes.notes[0].trackId,
                 this.currentNotes.blocks,
@@ -223,7 +218,7 @@ export class BendModalHandler extends BaseModalHandler {
 
     private setupBendEditor() {
         const layer = this.getPointsTarget();
-        Helper.removeAllChildren(layer);
+        layer?.replaceChildren();
         this.editorProps.bendPointsArr = [];
         this.editorProps.pointsOnLine = new Array(this.editorProps.HORIZONTAL_STEPS + 1).fill(null);
     }
@@ -316,36 +311,14 @@ export class BendModalHandler extends BaseModalHandler {
         return bendObjs;
     }
 
-    private applyBendToNotes(
-        bendObjs: { bendPosition: number, bendValue: number, vibrato: number }[],
-        notesBefore: { [noteKey: string]: { [effect: string]: MenuEffectState } },
-    ) {
+    private applyBendToNotes(bendObjs: { bendPosition: number, bendValue: number, vibrato: number }[]) {
         if (!this.currentNotes) return;
 
-        for (const no of this.currentNotes.notes) {
-            const { trackId, blockId, voiceId, beatId, string } = no;
+        for (const { trackId, blockId, voiceId, beatId, string } of this.currentNotes.notes) {
             const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string];
-
-            if (!note) {
-                console.error('Note is null');
-                continue;
+            if (note) {
+                note.bendObj = bendObjs.map((point) => ({ ...point }));
             }
-
-            const noteStr = `${trackId}_${blockId}_${voiceId}_${beatId}_${string}`;
-            // The group collision above already switched the bend on, so take the
-            // state from before it.
-            const bendBefore = notesBefore[noteStr]?.bend as Bend | undefined;
-            if (bendBefore == null
-                && tab.markedNoteObj.blockId === blockId && tab.markedNoteObj.beatId === beatId) {
-                typedEventBus.emit("menu.activateEffectsForNote", note);
-            }
-
-            note.bendObj = bendObjs;
-            revertHandler.addBend(
-                trackId, blockId, voiceId, beatId, string,
-                bendBefore, note.bendObj,
-                notesBefore[noteStr] ?? {},
-            );
         }
     }
 }

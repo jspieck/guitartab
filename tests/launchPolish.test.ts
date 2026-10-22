@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { buildChordThumbnailMarkers } from '../src/services/editor/chordThumbnailLayout'
 import { buildJpegPdf } from '../src/services/pdfExport'
 import { composeTabExportSvg, computeExportBounds } from '../src/services/tabExportSvg'
@@ -45,17 +45,22 @@ describe('chordThumbnailLayout', () => {
 })
 
 describe('userNotifications', () => {
-  beforeEach(() => {
-    vi.resetModules()
-  })
-
-  it('routes errors through AppManager.showNotification', async () => {
-    const { default: AppManager } = await import('../src/assets/js/appManager')
+  it('shows errors in the banner', async () => {
+    const { notificationState } = await import('../src/stores/notificationState')
     const { showUserError } = await import('../src/services/userNotifications')
     showUserError('boom')
-    await vi.waitFor(() => {
-      expect(AppManager.showNotification).toHaveBeenCalledWith('boom', 'error')
-    })
+    expect(notificationState).toMatchObject({ text: 'boom', kind: 'error', visible: true })
+  })
+
+  it('runs the banner action once and closes the banner', async () => {
+    const { notificationState, runNotificationAction, showNotification } =
+      await import('../src/stores/notificationState')
+    const run = vi.fn()
+    showNotification('Removed bar 3', 'info', { label: 'Undo', run })
+    runNotificationAction()
+    runNotificationAction()
+    expect(run).toHaveBeenCalledTimes(1)
+    expect(notificationState.visible).toBe(false)
   })
 })
 
@@ -68,13 +73,10 @@ describe('pdfExport', () => {
   })
 
   it('reports missing tab SVG via error banner', async () => {
-    const { default: AppManager } = await import('../src/assets/js/appManager')
-    vi.mocked(AppManager.showNotification).mockClear()
+    const { notificationState } = await import('../src/stores/notificationState')
     const { exportTabAsPdf } = await import('../src/services/pdfExport')
     await exportTabAsPdf()
-    await vi.waitFor(() => {
-      expect(AppManager.showNotification).toHaveBeenCalledWith('No tab view found to export.', 'error')
-    })
+    expect(notificationState).toMatchObject({ text: 'No tab view found to export.', kind: 'error' })
   })
 })
 

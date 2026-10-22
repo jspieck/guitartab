@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
 import type { TabBeat, TabNoteData } from '../src/types/tab'
 import { recomputeTrackLayoutFromSong } from '../src/services/editor/measureLayoutEngine'
@@ -14,8 +13,8 @@ vi.mock('../src/assets/js/audioEngine', () =>
 vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -81,7 +80,6 @@ function insideLane(y: number, lane: LaneBox | undefined): boolean {
 
 describe('buildTabEffects', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     Song.initEmptySong()
     recomputeTrackLayoutFromSong(TRACK_ID, VOICE_ID, 900)
   })

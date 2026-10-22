@@ -1,20 +1,5 @@
+import { selectionState } from '../src/stores/selectionState'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-
-vi.mock('../src/assets/js/sequencerHandler', () => ({
-  sequencerHandler: {
-    redrawSequencerMain: vi.fn(),
-    registerEditModeActiveRef: vi.fn(),
-    registerSequencerSetIndicatorCallback: vi.fn(),
-    registerSequencerRedrawCallback: vi.fn(),
-    registerFaderContext: vi.fn(),
-    unregisterFaderContext: vi.fn(),
-    toggleEditMode: vi.fn(),
-  },
-  SequencerHandler: {
-    removeOverlay: vi.fn(),
-    removeMarker: vi.fn(),
-  },
-}))
 
 vi.mock('../src/services/editor/classicalNotationAdapter', () => ({
   classicalNotation: {
@@ -27,19 +12,16 @@ vi.mock('../src/services/menuMutationRouting', () => ({
   getDynamicValue: () => 'mf',
 }))
 
-vi.mock('../src/assets/js/menuHandler', () => ({
-  menuHandler: {
-    deactivateEffects: vi.fn(),
-    setEffectVariable: vi.fn(),
-    showAvailableTupletSizes: vi.fn(),
-  },
+vi.mock('../src/services/editor/effectToggles', () => ({
+  clearEffectGroup: vi.fn(),
+  setEffect: vi.fn(),
 }))
 
-import { createPinia, setActivePinia } from 'pinia'
 import Song from '../src/assets/js/songData'
 import { tab } from '../src/assets/js/tab'
-import { revertHandler } from '../src/assets/js/revertHandler'
-import { overlayHandler } from '../src/assets/js/overlayHandler'
+import { undoHistory } from '../src/services/editor/editCommands'
+import { clearRange, startRange, extendRange } from '../src/services/editor/rangeSelection'
+import { clipboardBeats, copyRange, pasteRange } from '../src/services/editor/clipboard'
 import { changeNoteDuration } from '../src/services/editor/durationCommands'
 import { processDynamicSelect } from '../src/services/editor/dynamicsCommands'
 import { initPlayBackParameters, movePlayBackBarToBeat } from '../src/services/editor/playbackController'
@@ -47,8 +29,8 @@ import {
   registerPlaybackBarElement,
   resetPlaybackBarState,
   usePlaybackBarState,
-} from '../src/composables/usePlaybackBarState'
-import { clearTrackRenderLayout } from '../src/composables/useTabRenderLayout'
+} from '../src/stores/playbackBarState'
+import { clearTrackRenderLayout } from '../src/stores/tabRenderLayout'
 import { assertTabAndRenderLayoutMatch } from './helpers/layoutConvergence'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
@@ -58,8 +40,8 @@ vi.mock('../src/assets/js/audioEngine', () =>
 vi.mock('../src/assets/js/playbackEngine', () =>
   import('./helpers/legacyMocks').then((m) => m.playbackModule),
 )
-vi.mock('../src/assets/js/midiReceiver', () =>
-  import('./helpers/legacyMocks').then((m) => m.midiReceiverModule),
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
 vi.mock('../src/assets/js/modals/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
@@ -68,26 +50,38 @@ vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').the
 
 const tabDurationHost = {
   isNotePlaceable: vi.fn(() => true),
-  changeBeatDuration: vi.fn(),
+  // Stands in for Tab.changeBeatDuration: writes the new length into the beat.
+  changeBeatDuration: vi.fn(
+    (
+      trackId: number,
+      blockId: number,
+      voiceId: number,
+      beatId: number,
+      _s: number,
+      _n: number,
+      _p: number,
+      length: string,
+    ) => {
+      Song.measures[trackId][blockId][voiceId][beatId].duration = length as never
+    },
+  ),
   trackRerenderNecessary: vi.fn(() => false),
   drawTrack: vi.fn(),
 }
 
 describe('integration mutations', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
     Song.initEmptySong()
     clearTrackRenderLayout(0, 0)
     tab.assignBlocksToRows(0, 0)
-    tab.markedNoteObj = { trackId: 0, voiceId: 0, blockId: 0, beatId: 0, string: 0 }
-    revertHandler.revertStack = []
-    revertHandler.revertStackIndex = -1
+    selectionState.cursor = { trackId: 0, voiceId: 0, blockId: 0, beatId: 0, string: 0 }
+    undoHistory.clear()
     vi.clearAllMocks()
   })
 
   afterEach(() => {
     resetPlaybackBarState()
-    overlayHandler.resetOverlays()
+    clearRange()
   })
 
   describe('duration change', () => {
@@ -99,7 +93,9 @@ describe('integration mutations', () => {
 
       expect(applied).toBe(true)
       expect(tabDurationHost.changeBeatDuration).toHaveBeenCalled()
-      expect(revertHandler.revertStackIndex).toBe(0)
+      expect(undoHistory.canUndo()).toBe(true)
+      undoHistory.undo()
+      expect(Song.measures[0][0][0][0].duration).toBe('e')
     })
   })
 
@@ -128,6 +124,8 @@ describe('integration mutations', () => {
 
   describe('undo / redo stack', () => {
     it('pops the revert stack when undo is invoked', () => {
+      // An edit that changes nothing records nothing, so start from another dynamic.
+      Song.measures[0][0][0][0].dynamic = 'p'
       processDynamicSelect(
         {
           notes: [
@@ -145,36 +143,89 @@ describe('integration mutations', () => {
         null,
       )
 
-      expect(revertHandler.revertStackIndex).toBe(0)
+      expect(undoHistory.canUndo()).toBe(true)
 
-      revertHandler.revertState()
+      undoHistory.undo()
 
-      expect(revertHandler.revertStackIndex).toBe(-1)
+      expect(undoHistory.canUndo()).toBe(false)
     })
   })
 
   describe('overlay copy / paste', () => {
     it('copies selected beats into the overlay clipboard', () => {
-      overlayHandler.initOverlay(0, 0, 0, 0)
-      overlayHandler.setEndOverlay(0, 0, 0, 1)
-      overlayHandler.copyHandler()
+      startRange(0, 0, 0, 0)
+      extendRange(0, 0, 0, 1)
+      copyRange()
 
-      expect(overlayHandler.copyObject.array).toHaveLength(2)
-      expect(overlayHandler.copyObject.array[0]).toBe(Song.measures[0][0][0][0])
-      expect(overlayHandler.copyObject.array[1]).toBe(Song.measures[0][0][0][1])
+      expect(clipboardBeats()).toHaveLength(2)
+      expect(clipboardBeats()[0]).toEqual(Song.measures[0][0][0][0])
+      expect(clipboardBeats()[1]).toEqual(Song.measures[0][0][0][1])
+      // A snapshot: editing the source afterwards does not change the clipboard.
+      Song.measures[0][0][0][0].duration = 'w'
+      expect(clipboardBeats()[0].duration).not.toBe('w')
     })
 
     it('pastes copied beats into the selected range', () => {
       const sourceDuration = Song.measures[0][0][0][0].duration
-      overlayHandler.initOverlay(0, 0, 0, 0)
-      overlayHandler.setEndOverlay(0, 0, 0, 0)
-      overlayHandler.copyHandler()
+      startRange(0, 0, 0, 0)
+      extendRange(0, 0, 0, 0)
+      copyRange()
 
-      overlayHandler.initOverlay(0, 1, 0, 0)
-      overlayHandler.setEndOverlay(0, 1, 0, 0)
-      overlayHandler.pasteHandler()
+      startRange(0, 1, 0, 0)
+      extendRange(0, 1, 0, 0)
+      pasteRange()
 
       expect(Song.measures[0][1][0][0].duration).toBe(sourceDuration)
+    })
+
+    it('a paste is one undo step', () => {
+      Song.measures[0][0][0][0].notes[2] = { ...Song.defaultNote(), fret: 9 }
+      Song.measures[0][0][0][0].duration = 'q'
+      const targetBefore = JSON.stringify(Song.measures[0][1])
+      startRange(0, 0, 0, 0)
+      extendRange(0, 0, 0, 0)
+      copyRange()
+      startRange(0, 1, 0, 0)
+      extendRange(0, 1, 0, 0)
+      pasteRange()
+      expect(Song.measures[0][1][0][0].notes[2]?.fret).toBe(9)
+
+      undoHistory.undo()
+      expect(JSON.stringify(Song.measures[0][1])).toBe(targetBefore)
+      expect(undoHistory.canUndo()).toBe(false)
+    })
+
+    it('copies a range that was dragged backwards', () => {
+      startRange(0, 0, 0, 1)
+      extendRange(0, 0, 0, 0)
+      copyRange()
+      expect(clipboardBeats()).toHaveLength(2)
+    })
+
+    it('splits a pasted beat over the bar line with a tie', () => {
+      const beat = (duration: string, fret?: number) => ({
+        ...Song.defaultMeasure(),
+        duration: duration as never,
+        notes: fret == null ? [] : [{ ...Song.defaultNote(), fret }],
+      })
+      Song.measures[0][0][0] = [beat('w', 5)]
+      Song.measures[0][1][0] = [beat('hr'), beat('hr')]
+      Song.measures[0][2][0] = [beat('hr'), beat('hr')]
+      startRange(0, 0, 0, 0)
+      extendRange(0, 0, 0, 0)
+      copyRange()
+
+      // From the second half of bar 1 to the end of bar 2.
+      startRange(0, 1, 0, 1)
+      extendRange(0, 2, 0, 1)
+      pasteRange()
+
+      const summary = (blockId: number) =>
+        Song.measures[0][blockId][0].map(
+          (b) => `${b.duration}${b.notes[0]?.tied ? '~' : ''}${b.notes[0]?.fret ?? ''}`,
+        )
+      expect(summary(1)).toEqual(['hr', 'h5'])
+      expect(summary(2)).toEqual(['h~5', 'hr'])
     })
   })
 

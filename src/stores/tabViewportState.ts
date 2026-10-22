@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import Settings from '../assets/js/settingManager'
+import Settings from './settingsState'
 import { tab } from '../assets/js/tab'
 import { setScrollTop, TAB_SHEET } from '../utils/tabSheetConstants'
 

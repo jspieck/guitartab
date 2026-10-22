@@ -36,7 +36,7 @@ test.describe('playback navigation', () => {
     while (Date.now() - started < 30_000) {
       await page.waitForTimeout(150)
       const sample = await page.evaluate(async () => {
-        const { default: Settings } = await import('/src/assets/js/settingManager.ts')
+        const { default: Settings } = await import('/src/stores/settingsState.ts')
         if (!Settings.songPlaying) return null
         const { default: playBackLogic } = await import('/src/assets/js/playbackEngine.ts')
         const { tab } = await import('/src/assets/js/tab.ts')
@@ -113,12 +113,12 @@ test.describe('playback navigation', () => {
     await page.locator('#play').click()
     await page.waitForTimeout(500)
     const state = await page.evaluate(async () => {
-      const { tab } = await import('/src/assets/js/tab.ts')
+      const { selectionState } = await import('/src/stores/selectionState.ts')
       const main = document.querySelector('#mainContent')!.getBoundingClientRect()
       const marker = document.querySelector('.selection-indicator rect')?.getBoundingClientRect()
       return {
-        blockId: tab.markedNoteObj.blockId,
-        string: tab.markedNoteObj.string,
+        blockId: selectionState.cursor.blockId,
+        string: selectionState.cursor.string,
         visible: marker != null && marker.top >= main.top && marker.bottom <= main.bottom,
       }
     })

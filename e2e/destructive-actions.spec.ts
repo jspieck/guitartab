@@ -64,8 +64,8 @@ test.describe('destructive actions', () => {
   test('other notifications have no action button', async ({ page }) => {
     await waitForEditorShell(page)
     await page.evaluate(async () => {
-      const { default: AppManager } = await import('/src/assets/js/appManager.ts')
-      AppManager.showNotification('Saved!')
+      const { showNotification } = await import('/src/stores/notificationState.ts')
+      showNotification('Saved!')
     })
     await expect(page.locator('#notificationLabel')).toHaveText('Saved!')
     await expect(page.locator('#notificationAction')).toBeHidden()

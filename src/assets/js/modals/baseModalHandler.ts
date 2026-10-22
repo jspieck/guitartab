@@ -1,3 +1,4 @@
+import { shallowRef } from 'vue';
 import { modalManager } from './modalManager';
 
 export interface ModalState {
@@ -73,4 +74,28 @@ export abstract class BaseModalHandler {
     get modalName() {
         return this.modalState.modalName;
     }
-} 
+}
+
+/**
+ * A dialog whose Vue component does all the work. `params` (reactive) holds
+ * what it was last opened with, e.g. `{ trackId }` for the chord manager.
+ */
+export class PlainModalHandler<TParams = undefined> extends BaseModalHandler {
+    readonly params = shallowRef<TParams | undefined>(undefined);
+
+    openModal(params?: TParams) {
+        this.params.value = params;
+        this.showModal();
+    }
+
+    protected setupModalContent(): void {}
+}
+
+/** A handler class (constructed without arguments, as `modalTypes` expects) for a plain dialog. */
+export function definePlainModal<TParams = undefined>(id: string, name: string) {
+    return class extends PlainModalHandler<TParams> {
+        constructor() {
+            super(id, name);
+        }
+    };
+}

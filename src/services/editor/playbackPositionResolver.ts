@@ -1,4 +1,4 @@
-import Duration from '../../assets/js/duration'
+import Duration from '../../utils/duration'
 import Song from '../../assets/js/songData'
 import { tab } from '../../assets/js/tab'
 import type { BeatLocation, PlaybackBeatTransition, PlaybackInterpolationInput } from '../../types/playback'

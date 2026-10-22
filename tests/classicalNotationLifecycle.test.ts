@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Settings from '../src/assets/js/settingManager'
+import Settings from '../src/stores/settingsState'
 import {
   activateClassicalNotation,
   deactivateClassicalNotation,

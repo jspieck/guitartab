@@ -1,6 +1,6 @@
 /**
  * Build a single export SVG of the live Vue tab surface, including classical
- * notation row SVGs when active. Pure DOM composition — no pdfkit.
+ * notation row SVGs when active. Pure DOM composition.
  */
 
 export interface ComposedTabExport {

@@ -1,6 +1,7 @@
+import { BAR_LEFT_PADDING } from '../../utils/measureBeatLayout';
+import { instrumentIconSrc } from './instrumentData';
 import Song, { Beat } from './songData';
-import { sequencerHandler } from './sequencerHandler';
-import { TAB_SHEET, getAvailableRowWidth } from '../../utils/tabSheetConstants';
+import { getAvailableRowWidth } from '../../utils/tabSheetConstants';
 import { recomputeTrackLayoutFromSong } from '../../services/editor/measureLayoutEngine';
 import { changeNoteDuration as changeNoteDurationCommand } from '../../services/editor/durationCommands';
 import {
@@ -16,19 +17,19 @@ import {
   createNewTrack as createNewTrackCommand,
   initEmptyTab as initEmptyTabCommand,
 } from '../../services/editor/measureStructureCommands';
-import { revertHandler } from './revertHandler';
-import AppManager from './appManager';
-import Duration from './duration';
-import Helper from './helper';
-import Settings from './settingManager';
+import { recordBarEdit } from '../../services/editor/editCommands';
+import Duration from '../../utils/duration';
+import Settings, { EPSILON } from '../../stores/settingsState';
 import { classicalNotation } from '../../services/editor/classicalNotationAdapter';
-import { overlayHandler } from './overlayHandler';
 import { invalidateTrackLayout } from '../../services/editor/layoutInvalidation';
 import { typedEventBus } from '../../utils/typedEventBus';
-import { menuHandler } from './menuHandler';
-import { changeBeatDurationViaReplacer } from './durationReplacerAdapter';
+import { changeBeatDurationViaReplacer } from '../../services/editor/durationReplacerAdapter';
 import type { BeatDuration } from '../../types/tab';
 import { isRestDuration, noteLengthOf, restOf } from '../../utils/durationUtils';
+import { selectionState } from '../../stores/selectionState';
+import { showNotification } from '../../stores/notificationState';
+import { fillTimeSignatures } from '../../services/editor/trackLoading';
+import { noteInputState } from '../../stores/noteInputState';
 
 class Tab {
   currentZoom: number;
@@ -39,8 +40,6 @@ class Tab {
 
   ZOOM_MIN: number;
 
-  isDinA4: boolean;
-
   tupletIdCounter: number;
 
   tupletHelperCounter: number;
@@ -49,17 +48,9 @@ class Tab {
 
   measureOffset: number[][][];
 
-  markedNoteObj: {trackId: number, voiceId: number, blockId: number,
-    beatId: number, string: number};
-  
-  // Flag to track if user has explicitly clicked to select a note position
-  hasExplicitSelection: boolean;
-
   tupletManager: {originalDuration: BeatDuration | ''}[];
 
   blocksPerRow: {start: number, end: number}[][][];
-
-  heightOfBlock: number[][][];
 
   allWidths: {minWidth: number, minOffset: number, num16ths: number}[];
 
@@ -75,22 +66,12 @@ class Tab {
     this.ZOOM_MAX = 1.5;
     this.ZOOM_MIN = 0.5;
     this.measureOffset = [];
-    this.markedNoteObj = {
-      trackId: 0,
-      voiceId: 0,
-      blockId: 0,
-      beatId: 0,
-      string: 0,
-    };
-    this.hasExplicitSelection = false;
-    this.isDinA4 = false;
     this.tupletManager = [];
     this.tupletIdCounter = 0;
     this.tupletHelperCounter = 0;
     this.tupletId = 0;
     this.drawTrackCall = null;
     this.blocksPerRow = [];
-    this.heightOfBlock = [];
     this.allWidths = [];
     this.blockToRow = [];
     this.finalBlockWidths = [];
@@ -103,19 +84,19 @@ class Tab {
     } else {
       this.currentZoom = Math.max(this.currentZoom - this.ZOOM_STEP, this.ZOOM_MIN);
     }
-    AppManager.showNotification(`${Math.round(this.currentZoom * 100)}%`);
+    showNotification(`${Math.round(this.currentZoom * 100)}%`);
     if (beginZoom !== this.currentZoom) {
       Settings.currentZoom = this.currentZoom;
       typedEventBus.emit('ui.zoomChanged', this.currentZoom);
     }
   }
 
-  addBlock(duringRestoration: boolean) {
-    addBlockCommand(this, duringRestoration);
+  addBlock() {
+    addBlockCommand(this);
   }
 
-  removeBlock(duringRestoration: boolean) {
-    removeBlockCommand(this, duringRestoration);
+  removeBlock() {
+    removeBlockCommand(this);
   }
 
   addMeasureSlot(trackId: number, blockId: number, voiceId: number) {
@@ -141,52 +122,27 @@ class Tab {
     initEmptyTabCommand();
   }
 
-  toggleDinA4Layout() {
-    const completeTabDom = document.getElementById('completeTab');
-    if (!this.isDinA4) {
-      completeTabDom?.classList.add('dinA4Size');
-      this.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    } else {
-      completeTabDom?.classList.remove('dinA4Size');
-      this.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
-    }
-    this.isDinA4 = !this.isDinA4;
-  }
-
+  /** Sets a fret; records an undo step unless `withoutUndo` (song building, tests). */
   drawNote(
     trackId: number, blockId: number, voiceId: number, beatId: number,
-    string: number, fretNumber: number, calledDuringRestore: boolean,
+    string: number, fretNumber: number, withoutUndo = false,
   ) {
-    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
-    let oldFret = -1;
-    let redrawSequencer = false;
-    // console.trace("drawNote");
-    if (beat.notes[string] == null) {
-      beat.notes[string] = Song.defaultNote();
-      redrawSequencer = Song.isBeatEmpty(trackId, blockId);
-    } else {
-      oldFret = beat.notes[string]!.fret;
-    }
-    beat.notes[string]!.fret = fretNumber;
-    // TODO same object???
-    if (beat.effects == null) {
-      beat.effects = Song.defaultMeasureEffects();
-    }
-    // eslint-disable-next-line prefer-destructuring
-    beat.duration = noteLengthOf(beat.duration);
+    const setFret = () => {
+      const beat = Song.getBeat({ trackId, blockId, voiceId, beatId });
+      if (beat.notes[string] == null) {
+        beat.notes[string] = Song.defaultNote();
+      }
+      beat.notes[string]!.fret = fretNumber;
+      if (beat.effects == null) {
+        beat.effects = Song.defaultMeasureEffects();
+      }
+      beat.duration = noteLengthOf(beat.duration);
 
-    // only draw when current track is visible
-    if (trackId === Song.currentTrackId && voiceId === Song.currentVoiceId) {
-      typedEventBus.emit('menu.activateEffectsForMarkedPos');
-    }
-    if (redrawSequencer) {
-      sequencerHandler.redrawSequencerMain();
-    }
-    if (!calledDuringRestore && this.markedNoteObj != null) {
-      revertHandler.addFretNumber(
-        this.markedNoteObj.trackId, this.markedNoteObj.blockId, this.markedNoteObj.voiceId,
-        this.markedNoteObj.beatId, this.markedNoteObj.string, oldFret, fretNumber,
-      );
+    };
+    if (withoutUndo) {
+      setFret();
+    } else {
+      recordBarEdit('Note', { trackId, blockIds: [blockId] }, setFret);
     }
   }
 
@@ -228,7 +184,7 @@ class Tab {
         if (reachedSpace < diff
           || (currentDiff > 0 && currentDiff < 1)
           || ((currentDiff - Math.floor(currentDiff)) === 0.25 && currentDiff < 3.25)) {
-          AppManager.showNotification('Not enough space in the bar.', 'error');
+          showNotification('Not enough space in the bar.', 'error');
           return false;
         }
       } else {
@@ -236,10 +192,6 @@ class Tab {
         // new duration is longer than previous duration
         // check if so many rests can be deleted that note length is reached
         const diff = newDuration - previousDuration;
-        // if (previousDuration < Duration.getDurationOfType('s')
-        // && newDuration >= Duration.getDurationOfType('s')) {
-        //   rescaleNecessary = true;
-        // }
 
         let reachedSpace = 0;
         for (let p = beatId + 1; p < blockObj.length; p += 1) {
@@ -261,7 +213,7 @@ class Tab {
         if (reachedSpace < diff
           || (currentDiff > 0 && currentDiff < 1)
           || ((currentDiff - Math.floor(currentDiff)) === 0.25 && currentDiff < 3.25)) {
-          AppManager.showNotification('Not enough space in the bar.', 'error');
+          showNotification('Not enough space in the bar.', 'error');
           return false;
         }
       }
@@ -282,7 +234,7 @@ class Tab {
       const currentDuration = Duration.getDurationOfNote(beat, true);
 
       if (beat.dotted || beat.doubleDotted || currentDuration <= 1) {
-        AppManager.showNotification('Tuplets of dotted notes or 128ths are not possible yet.', 'error');
+        showNotification('Tuplets of dotted notes or 128ths are not possible yet.', 'error');
         return false;
       }
       // set note to new length
@@ -361,123 +313,11 @@ class Tab {
         }
       }
       this.tupletManager[nextBeat.tupletId] = { originalDuration: '' };
-      this.markedNoteObj.beatId = beatId;
+      selectionState.cursor.beatId = beatId;
     }
-    menuHandler.setNoteLengthForMark(trackId, blockId, voiceId, beatId, this.markedNoteObj.string);
+    // New notes take the length of the beat the cursor lands on.
+    noteInputState.noteLength = noteLengthOf(Song.getBeat({ trackId, blockId, voiceId, beatId }).duration);
     return true;
-  }
-
-  deleteRestAndFillNote(
-    trackId: number, blockId: number, voiceId: number, startBeatId: number, diff: number,
-  ) {
-    const blockObj = Song.measures[trackId][blockId][voiceId];
-    // Delete all found rest notes and move notes after the deleted rests to new position
-    let reachedSpace = 0;
-    let beatId = 0;
-    let currentDiff = 0;
-    
-    for (beatId = startBeatId + 1; beatId < blockObj.length; beatId += 1) {
-      const beat = blockObj[beatId];
-      
-      // Check if it is a rest (no notes)
-      let isRest = true;
-      if (beat.notes) {
-        for (let n of beat.notes) {
-          if (n) { isRest = false; break; }
-        }
-      }
-
-      // MOVE NOTES RIGHT
-      if (isRest) {
-        if (beat.tuplet != null) {
-          // only delete if completely empty
-          const tupRe = Tab.tupletOnlyRests(beatId, Song.measures[trackId][blockId][voiceId]);
-          if (!tupRe.onlyRests) {
-            beatId = tupRe.lastIndex;
-            // eslint-disable-next-line no-continue
-            continue;
-          }
-          reachedSpace += Duration.getDurationOfType(
-            this.tupletManager[Song.measures[trackId][blockId][
-              voiceId][beatId].tupletId].originalDuration,
-          );
-          for (let x = beatId; x < tupRe.lastIndex + 1; x += 1) {
-            blockObj.splice(beatId, 1);
-          }
-          beatId -= 1;
-        } else {
-          reachedSpace += Duration.getDurationOfNote(beat, false);
-          blockObj.splice(beatId, 1);
-          beatId -= 1;
-        }
-        if (reachedSpace >= diff) {
-          currentDiff = reachedSpace - diff;
-          if ((currentDiff > 0 && currentDiff < 1)) {
-            // continue;
-          } else if (
-            (currentDiff - Math.floor(currentDiff)) === 0.25
-            && currentDiff < 3.25
-          ) {
-            // continue;
-          } else {
-            beatId += 1;
-            break;
-          }
-        }
-      }
-    }
-    // Object is placeable (checked in isPlaceable), now place notes
-    // insert new rest that not too much gets deleted
-    // (e.g. quarter rest deleted, but only eighth needed)
-    // remove digits after comma
-    if ((currentDiff - Math.floor(currentDiff)) === 0.25) {
-      // add a dotted 64th and double dotted 64th
-      blockObj.splice(beatId, 0, {
-        ...Song.defaultMeasure(),
-        ...{
-          duration: 'zr',
-          dotted: true,
-          notes: [],
-        },
-      });
-      beatId += 1;
-      blockObj.splice(beatId, 0, {
-        ...Song.defaultMeasure(),
-        ...{
-          duration: 'zr',
-          doubleDotted: true,
-          notes: [],
-        },
-      });
-      beatId += 1;
-      currentDiff -= 3.25;
-    } else if ((currentDiff - Math.floor(currentDiff)) === 0.5) {
-      // add a dotted 64th and double dotted 64th
-      blockObj.splice(beatId, 0, {
-        ...Song.defaultMeasure(),
-        ...{
-          duration: 'zr',
-          dotted: true,
-          notes: [],
-        },
-      });
-      beatId += 1;
-      currentDiff -= 1.5;
-    } else if ((currentDiff - Math.floor(currentDiff)) === 0.75) {
-      // add a double dotted 64th
-      blockObj.splice(beatId, 0, {
-        ...Song.defaultMeasure(),
-        ...{
-          duration: 'zr',
-          doubleDotted: true,
-          notes: [],
-        },
-      });
-      beatId += 1;
-      currentDiff -= 1.75;
-    }
-
-    Tab.fillAvailableSpaceWithRests(trackId, blockId, voiceId, beatId, currentDiff);
   }
 
   static deleteRestForTuplet(
@@ -573,11 +413,8 @@ class Tab {
       if (currentDiff <= 0) break;
       console.log(`DIFF: ${currentDiff}`);
       // fill with greatest 2potence and fill the rest with eighths
-      const nearest2Potence = Helper.getGreatestNotelengthToFit(currentDiff);
+      const nearest2Potence = Duration.greatestNoteValueIn(currentDiff);
       // if note smaller 16th the block gets bigger and we have to rescale
-      // if (nearest2Potence < Duration.getDurationOfType('s')) {
-      //   rescaleNecessary = true;
-      // }
       currentDiff -= nearest2Potence;
 
       blockObj.splice(p + l, 0, {
@@ -649,7 +486,7 @@ class Tab {
         trackId, blockId, voiceId, beatId, numStrings, noteLength,
       );
       if (!result.success) {
-        AppManager.showNotification('Not enough space in the bar.', 'error');
+        showNotification('Not enough space in the bar.', 'error');
         return false;
       }
       return result.rescaleNeeded;
@@ -750,7 +587,7 @@ class Tab {
 
       for (let l = 0, n = diff; l < n; l += 1) {
         if (diff <= 0) break;
-        const nearest2Potence = Helper.getGreatestNotelengthToFit(diff);
+        const nearest2Potence = Duration.greatestNoteValueIn(diff);
         if (nearest2Potence <= Duration.getDurationOfType('s')) {
           rescaleNecessary = true;
         }
@@ -782,11 +619,11 @@ class Tab {
         }
       }
       if (reachedSpace >= diff) {
-        blockObj[beatId].duration = AppManager.typeOfNote;
+        blockObj[beatId].duration = noteInputState.noteLength;
         Tab.deleteRestForTuplet(trackId, blockId, voiceId, beatId, diff);
         rescaleNecessary = true;
       } else {
-        AppManager.showNotification('Not enough space in the bar.', 'error');
+        showNotification('Not enough space in the bar.', 'error');
       }
     }
     // set to rest if no note is set
@@ -833,18 +670,15 @@ class Tab {
       this.createMeasures(trackId, j);
       this.fillMeasures(trackId, j);
     }
-    AppManager.setTimeMeterToAllTracks();
+    fillTimeSignatures();
 
     // Set default marking
     if (trackId === Song.currentTrackId) {
       this.drawTrack(trackId, Song.currentVoiceId, false, null);
 
       const img = document.getElementById('trackSignImg') as HTMLImageElement;
-      img.src = Helper.getIconSrc(Song.playBackInstrument[trackId].instrument);
-      // visualInstruments.createGuitar(Song.tracks[trackId].strings.length, 25);
+      img.src = instrumentIconSrc(Song.playBackInstrument[trackId].instrument);
     }
-    // draw suitable sequencer
-    sequencerHandler.drawBeat();
   }
 
   fillMeasures(trackId: number, voiceId: number) {
@@ -883,9 +717,8 @@ class Tab {
     let durationLength = durationLengthIn;
     for (let l = 0, n = durationLength; l < n; l += 1) {
       if (durationLength <= 0) break;
-      // console.log("DIFF: "+durationLength);
       // fill with greatest 2potence and fill the rest with eighths
-      const nearest2Potence = Helper.getGreatestNotelengthToFit(durationLength);
+      const nearest2Potence = Duration.greatestNoteValueIn(durationLength);
       durationLength -= nearest2Potence;
       Song.setBeat(trackId, blockId, voiceId, startBeatId + l, restOf(Duration.typeToString(nearest2Potence)));
     }
@@ -913,22 +746,6 @@ class Tab {
     invalidateTrackLayout(this, trackId, voiceId, callback);
   }
 
-  initRowArrays(trackId: number, voiceId: number) {
-    if (this.finalBlockWidths[trackId] == null) {
-      this.finalBlockWidths[trackId] = [];
-    }
-    if (this.blocksPerRow[trackId] == null) {
-      this.blocksPerRow[trackId] = [];
-    }
-    if (this.blockToRow[trackId] == null) {
-      this.blockToRow[trackId] = [];
-    }
-    if (this.heightOfBlock[trackId] == null) {
-      this.heightOfBlock[trackId] = [];
-    }
-    this.heightOfBlock[trackId][voiceId] = [];
-  }
-
   trackRerenderNecessary(trackId: number, blockId: number, voiceId: number): boolean {
     if (Settings.vexFlowIsActive) {
       classicalNotation.convertBlockToNotation(trackId, blockId, voiceId);
@@ -937,7 +754,7 @@ class Tab {
       return true;
     }
     let completeRerenderNecessary = Math.abs(this.allWidths[blockId].minWidth
-      - Tab.computeWidthOfBlock(trackId, blockId, voiceId).minWidth) > Settings.EPSILON;
+      - Tab.computeWidthOfBlock(trackId, blockId, voiceId).minWidth) > EPSILON;
     if (completeRerenderNecessary) {
       const { rowId } = this.blockToRow[trackId][voiceId][blockId];
       const oldMapping = this.blocksPerRow[trackId][voiceId][rowId];
@@ -956,7 +773,7 @@ class Tab {
    * @return {[int,int,int]}         [width of measure, offset, padding]
   */
   static computeWidthOfBlock(trackId: number, blockId: number, voiceId: number) {
-    let padding = Helper.OFFSET_LEFT() * 2;
+    let padding = BAR_LEFT_PADDING * 2;
     if (Song.measureMeta[blockId].repeatOpen) {
       padding += 20;
     }
@@ -1007,10 +824,6 @@ class Tab {
           }
         }
       }
-      /* if(Settings.vexFlowIsActive && beatIn16ths == 1){
-          minOffsetPerNote = Math.max(minOffsetPerNote, vexFlowOffset[beatId]- 5);
-          //-5 for assumed right side :)
-      } */
     }
     if (Settings.vexFlowIsActive) {
       const vexFlowOffset = classicalNotation.calculateLargestBeatWidth(trackId, blockId, voiceId);
@@ -1030,36 +843,11 @@ class Tab {
 
   static deleteNote(
     trackId: number, blockId: number, voiceId: number,
-    beatId: number, string: number, calledDuringRestore: boolean,
+    beatId: number, string: number, withoutUndo = false,
   ) {
-    deleteNoteCommand(trackId, blockId, voiceId, beatId, string, calledDuringRestore);
+    deleteNoteCommand(trackId, blockId, voiceId, beatId, string, withoutUndo);
   }
 
-  // hierarchy - 1: Marker, 2: Beat Text, 3: Repeat Alternative, 4: Chord, 5: Rest of effects
-  computeHeightOfBlock(trackId: number, blockId: number, voiceId: number): number {
-    let maxHeight = this.applyBeatAndNoteEffects(trackId, blockId, voiceId)
-      * Settings.OVERBAR_ROW_HEIGHT;
-    maxHeight += Settings.OVERBAR_ROW_HEIGHT;
-    if (Song.measureMeta[blockId].repeatAlternative != null) {
-      maxHeight += Settings.OVERBAR_ROW_HEIGHT;
-    }
-    if (Song.measureMeta[blockId].marker != null) {
-      maxHeight += Settings.OVERBAR_ROW_HEIGHT;
-    }
-    this.heightOfBlock[trackId][voiceId][blockId] = maxHeight;
-    return maxHeight;
-  }
-
-  applyBeatAndNoteEffects(trackId: number, blockId: number, voiceId: number) {
-    let rowOverBarHeight = 0;
-    if (this.blockToRow != null && this.blockToRow[trackId] != null
-      && this.blockToRow[trackId][voiceId] != null) {
-      rowOverBarHeight = Helper.getNumberOfOverbarRows(
-        trackId, voiceId, this.blockToRow[trackId][voiceId][blockId].rowId,
-      ).numberOfOverbarRows;
-    }
-    return rowOverBarHeight;
-  }
 }
 
 const tab = new Tab();

@@ -11,10 +11,9 @@ const lintTargets = [
   'src/services/**/*.ts',
   'src/types/**/*.ts',
   'src/utils/**/*.ts',
-  'src/assets/js/revertHandler.ts',
   'src/assets/js/modals/bendModalHandler.ts',
   'src/assets/js/modals/tremoloBarModalHandler.ts',
-  'src/assets/js/modals/chordModalHandler.ts',
+  'src/assets/js/modals/effectModals.ts',
   'tests/**/*.ts',
   'e2e/**/*.ts',
   'scripts/**/*.mjs',
@@ -34,12 +33,11 @@ export default [
       'src/vue-shims.d.ts',
       // The legacy core (src/assets/js) is not linted yet, except the handlers listed in lintTargets.
       'src/assets/js/**',
-      '!src/assets/js/revertHandler.ts',
       '!src/assets/js/modals/',
       'src/assets/js/modals/**',
       '!src/assets/js/modals/bendModalHandler.ts',
       '!src/assets/js/modals/tremoloBarModalHandler.ts',
-      '!src/assets/js/modals/chordModalHandler.ts',
+      '!src/assets/js/modals/effectModals.ts',
     ],
   },
   js.configs.recommended,
@@ -79,6 +77,25 @@ export default [
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
           ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
+  {
+    // Layering: the lower layers must not import the Vue layer. Shared state belongs
+    // in src/stores (tests/layering.test.ts checks the legacy core, which isn't linted).
+    files: ['src/services/**/*.ts', 'src/stores/**/*.ts', 'src/utils/**/*.ts', 'src/types/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/components/**', '**/composables/**', '*.vue'],
+              allowTypeImports: true,
+              message: 'services/, stores/, utils/ and types/ must not import components or composables.',
+            },
+          ],
         },
       ],
     },

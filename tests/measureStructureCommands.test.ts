@@ -3,28 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('../src/assets/js/appManager', () => ({
   default: {
     duringTrackCreation: false,
-    setTracks: vi.fn(),
-    showNotification: vi.fn(),
   },
 }))
 
-vi.mock('../src/assets/js/sequencerHandler', () => ({
-  sequencerHandler: {
-    redrawSequencerMain: vi.fn(),
-  },
+vi.mock('../src/services/editor/trackLoading', () => ({
+  initTrackPlayback: vi.fn(),
 }))
 
-vi.mock('../src/assets/js/revertHandler', () => ({
-  revertHandler: {
-    addBlock: vi.fn(),
-    removeBlock: vi.fn(),
-    peekUndo: vi.fn(),
-    revertState: vi.fn(),
-  },
+vi.mock('../src/stores/notificationState', () => ({
+  showNotification: vi.fn(),
 }))
 
 vi.mock('../src/services/editor/renderCommands', () => ({
   requestDurationRender: vi.fn(),
+  requestBlocksRender: vi.fn(),
 }))
 
 vi.mock('fastdom', () => ({
@@ -35,7 +27,10 @@ vi.mock('fastdom', () => ({
 
 import Song from '../src/assets/js/songData'
 import AppManager from '../src/assets/js/appManager'
-import { revertHandler } from '../src/assets/js/revertHandler'
+import { showNotification } from '../src/stores/notificationState'
+import { initTrackPlayback } from '../src/services/editor/trackLoading'
+import { undoHistory } from '../src/services/editor/editCommands'
+import { selectionState } from '../src/stores/selectionState'
 import {
   addBlock,
   addMeasureSlot,
@@ -48,13 +43,6 @@ import {
 function createHost() {
   return {
     measureOffset: [] as number[][][],
-    markedNoteObj: null as null | {
-      trackId: number
-      voiceId: number
-      blockId: number
-      beatId: number
-      string: number
-    },
     fillMeasure: vi.fn(),
     drawTrack: vi.fn(),
   }
@@ -63,6 +51,7 @@ function createHost() {
 describe('measureStructureCommands', () => {
   beforeEach(() => {
     Song.initEmptySong()
+    undoHistory.clear()
     AppManager.duringTrackCreation = false
     vi.clearAllMocks()
   })
@@ -80,70 +69,58 @@ describe('measureStructureCommands', () => {
     expect(host.measureOffset[0][Song.numMeasures - 1][0]).toBe(20)
   })
 
-  it('addBlock appends a measure and records undo', () => {
+  it('addBlock appends a measure, undo removes it again', () => {
     const host = createHost()
     const before = Song.numMeasures
-    addBlock(host, false)
+    addBlock(host)
     expect(Song.numMeasures).toBe(before + 1)
     expect(host.fillMeasure).toHaveBeenCalled()
     expect(host.drawTrack).toHaveBeenCalled()
-    expect(revertHandler.addBlock).toHaveBeenCalled()
+
+    undoHistory.undo()
+    expect(Song.numMeasures).toBe(before)
+    expect(Song.measures[0]).toHaveLength(before)
+    undoHistory.redo()
+    expect(Song.numMeasures).toBe(before + 1)
   })
 
-  it('addBlock skips undo while restoring', () => {
+  it('removeBlock pops the last measure; undo brings its notes back', () => {
     const host = createHost()
-    addBlock(host, true)
-    expect(revertHandler.addBlock).not.toHaveBeenCalled()
-  })
+    const lastBar = Song.numMeasures - 1
+    Song.measures[0][lastBar][0][0].text = 'last'
+    selectionState.cursor = { trackId: 0, voiceId: 0, blockId: lastBar, beatId: 3, string: 0 }
 
-  it('removeBlock pops the last measure and records undo', () => {
-    const host = createHost()
-    addBlock(host, true)
-    host.markedNoteObj = {
-      trackId: 0,
-      voiceId: 0,
-      blockId: Song.numMeasures - 1,
-      beatId: 3,
-      string: 0,
-    }
-    const before = Song.numMeasures
+    removeBlock(host)
 
-    removeBlock(host, false)
+    expect(Song.numMeasures).toBe(lastBar)
+    expect(selectionState.cursor.blockId).toBe(lastBar - 1)
+    expect(selectionState.cursor.beatId).toBe(0)
 
-    expect(Song.numMeasures).toBe(before - 1)
-    expect(host.markedNoteObj.blockId).toBe(Song.numMeasures - 1)
-    expect(host.markedNoteObj.beatId).toBe(0)
-    expect(revertHandler.removeBlock).toHaveBeenCalled()
+    undoHistory.undo()
+    expect(Song.numMeasures).toBe(lastBar + 1)
+    expect(Song.measures[0][lastBar][0][0].text).toBe('last')
+    expect(Song.measureMeta).toHaveLength(lastBar + 1)
   })
 
   it('removeBlock offers an Undo that only reverts while the removal is the last edit', () => {
-    const removal = { type: 'RemoveBlock', info: {} }
-    vi.mocked(revertHandler.peekUndo).mockReturnValue(removal)
     const host = createHost()
-    addBlock(host, true)
     const before = Song.numMeasures
 
-    removeBlock(host, false)
+    removeBlock(host)
 
-    const [text, kind, action] = vi.mocked(AppManager.showNotification).mock.calls.at(-1)!
+    const [text, kind, action] = vi.mocked(showNotification).mock.calls.at(-1)!
     expect(text).toBe(`Removed bar ${before}`)
     expect(kind).toBe('info')
     expect(action?.label).toBe('Undo')
 
-    vi.mocked(revertHandler.peekUndo).mockReturnValue({ type: 'NotePlacement', info: {} })
+    addBlock(host) // a later edit: the banner must not undo it
     action!.run()
-    expect(revertHandler.revertState).not.toHaveBeenCalled()
+    expect(Song.numMeasures).toBe(before)
 
-    vi.mocked(revertHandler.peekUndo).mockReturnValue(removal)
+    undoHistory.undo() // undo the added bar; now the removal is the last edit again
     action!.run()
-    expect(revertHandler.revertState).toHaveBeenCalledTimes(1)
-  })
-
-  it('removeBlock does not offer Undo while restoring', () => {
-    const host = createHost()
-    addBlock(host, true)
-    removeBlock(host, true)
-    expect(AppManager.showNotification).not.toHaveBeenCalled()
+    expect(Song.numMeasures).toBe(before)
+    expect(undoHistory.canUndo()).toBe(false)
   })
 
   it('createNewTrack seeds measures and offsets for a track', () => {
@@ -157,7 +134,7 @@ describe('measureStructureCommands', () => {
     expect(Song.tracks[1].name).toBe('Guitar')
     expect(Song.measures[1]).toHaveLength(Song.numMeasures)
     expect(host.measureOffset[1][0][0]).toBe(20)
-    expect(AppManager.setTracks).toHaveBeenCalledWith(1)
+    expect(initTrackPlayback).toHaveBeenCalledWith(1)
   })
 
   it('initEmptyTab clears measure helpers and fills rests', () => {

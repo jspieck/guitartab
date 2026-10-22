@@ -4,33 +4,21 @@
     <div class="modal-stack">
       <div class="modal-field">
         <label for="repetition-count">Number of repetitions</label>
-        <input
-          id="repetition-count"
-          type="number"
-          v-model="handler.getModalState().numRepetitions"
-          @input="(e: Event) => handler.updateRepetitions(Number((e.target as HTMLInputElement).value))"
-          min="1"
-          :placeholder="handler.getModalState().numRepetitions.toString()"
-        />
+        <input id="repetition-count" v-model.number="handler.form.count" type="number" min="1" />
       </div>
       <div class="modal-submit-row">
-        <SubmitButton @submitInfo="handleSubmit" />
+        <SubmitButton @submitInfo="handler.apply()" />
       </div>
     </div>
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import BaseModal from "./BaseModal.vue";
-import SubmitButton from "./SubmitButton.vue";
-import { MODALS } from "../assets/js/modals/modalTypes";
-import { RepetitionModalHandler } from "../assets/js/modals/repetitionModalHandler";
-import { modalManager } from "../assets/js/modals/modalManager";
+import BaseModal from './BaseModal.vue'
+import SubmitButton from './SubmitButton.vue'
+import { MODALS } from '../assets/js/modals/modalTypes'
+import { modalManager } from '../assets/js/modals/modalManager'
+import type { RepetitionModalHandler } from '../assets/js/modals/effectModals'
 
-const handler = modalManager.getHandler(MODALS.REPETITION.id) as RepetitionModalHandler;
-
-const handleSubmit = () => {
-  handler.applyRepetitions();
-  handler.closeModal();
-};
+const handler = modalManager.getHandler<InstanceType<typeof RepetitionModalHandler>>(MODALS.REPETITION.id)
 </script>

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { processDynamicSelect } from '../src/services/editor/dynamicsCommands'
 
-const addDynamic = vi.fn()
+const recordBarEdit = vi.fn((_label: string, _scope: unknown, mutate: () => void) => mutate())
 const deactivateEffects = vi.fn()
 const setEffectVariable = vi.fn()
 const requestOverBarRender = vi.fn()
@@ -27,10 +27,8 @@ vi.mock('../src/assets/js/songData', async () => {
   }
 })
 
-vi.mock('../src/assets/js/revertHandler', () => ({
-  revertHandler: {
-    addDynamic: (...args: unknown[]) => addDynamic(...args),
-  },
+vi.mock('../src/services/editor/editCommands', () => ({
+  recordBarEdit: (label: string, scope: unknown, mutate: () => void) => recordBarEdit(label, scope, mutate),
 }))
 
 vi.mock('../src/services/menuMutationRouting', () => ({
@@ -38,11 +36,9 @@ vi.mock('../src/services/menuMutationRouting', () => ({
   getDynamicValue: () => 'p',
 }))
 
-vi.mock('../src/assets/js/menuHandler', () => ({
-  menuHandler: {
-    deactivateEffects: (...args: unknown[]) => deactivateEffects(...args),
-    setEffectVariable: (...args: unknown[]) => setEffectVariable(...args),
-  },
+vi.mock('../src/services/editor/effectToggles', () => ({
+  clearEffectGroup: (...args: unknown[]) => deactivateEffects(...args),
+  setEffect: (...args: unknown[]) => setEffectVariable(...args),
 }))
 
 vi.mock('../src/services/editor/renderCommands', () => ({
@@ -73,6 +69,7 @@ describe('dynamicsCommands', () => {
     )
 
     expect(setEffectVariable).toHaveBeenCalled()
+    expect(recordBarEdit).toHaveBeenCalledTimes(1)
     expect(requestOverBarRender).toHaveBeenCalledWith(0, 0, 0)
   })
 })

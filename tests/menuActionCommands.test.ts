@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { noteInputState } from '../src/stores/noteInputState'
+import { selectionState } from '../src/stores/selectionState'
 import { applyNoteLengthSelection } from '../src/services/menuActionCommands'
 
 const changeNoteDuration = vi.fn()
@@ -13,15 +15,11 @@ const markedNoteObj = {
 vi.mock('../src/assets/js/appManager', () => ({
   default: {
     duringTrackCreation: false,
-    typeOfNote: 'e',
   },
 }))
 
 vi.mock('../src/assets/js/tab', () => ({
   tab: {
-    get markedNoteObj() {
-      return markedNoteObj
-    },
     changeNoteDuration: (...args: unknown[]) => changeNoteDuration(...args),
   },
 }))
@@ -34,38 +32,25 @@ vi.mock('../src/utils/typedEventBus', () => ({
 
 describe('menuActionCommands', () => {
   beforeEach(() => {
+    selectionState.cursor = { ...markedNoteObj }
     changeNoteDuration.mockReset()
     changeNoteDuration.mockReturnValue(true)
   })
 
-  it('applies a note-length change and requests menu resync', async () => {
-    const { typedEventBus } = await import('../src/utils/typedEventBus')
-    const AppManager = (await import('../src/assets/js/appManager')).default
-
+  it('applies a note-length change', () => {
     const applied = applyNoteLengthSelection('q')
 
     expect(applied).toBe(true)
     expect(changeNoteDuration).toHaveBeenCalledWith(0, 1, 0, 2, 3, 'q', false)
-    expect(AppManager.typeOfNote).toBe('q')
-    expect(typedEventBus.emit).toHaveBeenCalledWith('menu.activateEffectsForMarkedPos')
+    expect(noteInputState.noteLength).toBe('q')
   })
 
-  it('returns false when no marked note is available', async () => {
-    const original = { ...markedNoteObj }
-    Object.assign(markedNoteObj, {
-      trackId: -1,
-      blockId: -1,
-      voiceId: -1,
-      beatId: -1,
-      string: -1,
-    })
-
+  it('does nothing while a track is being created', async () => {
     const AppManager = (await import('../src/assets/js/appManager')).default
     AppManager.duringTrackCreation = true
 
     expect(applyNoteLengthSelection('e')).toBe(false)
 
     AppManager.duringTrackCreation = false
-    Object.assign(markedNoteObj, original)
   })
 })

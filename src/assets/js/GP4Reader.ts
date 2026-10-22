@@ -6,7 +6,6 @@ import Song, {
 import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
 import type { BeatDuration } from '../../types/tab';
 import { restOf } from '../../utils/durationUtils';
-import AppManager from './appManager';
 
 class Gp4Reader {
   static read() {
@@ -34,7 +33,6 @@ class Gp4Reader {
     for (let t = 0; t < numTracks; t += 1) {
       Song.chordsMap.push(new Map());
     }
-    // console.log("TRACKS: "+numTracks);
     Song.numMeasures = numMeasures;
     Song.measureMeta.length = 0;
     for (let i = 0; i < numMeasures; i += 1) {
@@ -63,7 +61,6 @@ class Gp4Reader {
     for (let i = 0; i < comments; i += 1) {
       Song.songDescription.comments[i] = gProReader.readStringByteSizeOfInteger();
     }
-    AppManager.setTrackInfo();
   }
 
   static readMeasureHeaders(numMeasures: number) {

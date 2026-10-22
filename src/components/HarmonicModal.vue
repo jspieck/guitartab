@@ -5,7 +5,7 @@
       <div class="modal-field">
         <label for="harmonicSelection">Type</label>
         <div class="select">
-          <select id="harmonicSelection">
+          <select id="harmonicSelection" v-model="handler.form.style">
             <option value="N.H.">Natural harmonic (N.H.)</option>
             <option value="A.H.">Artificial harmonic (A.H.)</option>
             <option value="T.H.">Tapped harmonic (T.H.)</option>
@@ -16,7 +16,7 @@
         </div>
       </div>
       <div class="modal-submit-row">
-        <SubmitButton button-id="harmonicSelectButton" />
+        <SubmitButton button-id="harmonicSelectButton" @submitInfo="handler.apply()" />
       </div>
     </div>
   </BaseModal>
@@ -26,4 +26,8 @@
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
 import { MODALS } from '../assets/js/modals/modalTypes'
+import { modalManager } from '../assets/js/modals/modalManager'
+import type { ArtificialModalHandler } from '../assets/js/modals/effectModals'
+
+const handler = modalManager.getHandler<InstanceType<typeof ArtificialModalHandler>>(MODALS.ARTIFICIAL.id)
 </script>

@@ -1,11 +1,10 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { MODALS } from './modalTypes';
 import { Song } from '../songData';
-import {
-    createChordDiagramElement,
-    refreshChordDiagramsWithBlockFallback,
-    requestChordDiagramRefresh,
-} from '../../../services/editor/chordDiagramAdapter';
+import { requestChordDiagramRefresh } from '../../../services/editor/chordDiagramAdapter';
+import { editTransaction, recordBarEdit } from '../../../services/editor/editCommands';
+import { setLibraryChord } from '../../../services/editor/songSettingsCommands';
+import type { Chord } from '../songData';
 import { reactive } from 'vue';
 
 interface AddChordModalState extends ModalState {
@@ -100,7 +99,8 @@ export class AddChordModalHandler extends BaseModalHandler {
             },
             chordProperties: {
                 name: '',
-                capo: 0,
+                // Base fret as in Guitar Pro and the diagram renderer: 1 = no barre.
+                capo: 1,
                 currentNotes: [0, 0, 0, 0, 0, 0],
                 fingers: Array(6).fill(null)
             }
@@ -139,23 +139,24 @@ export class AddChordModalHandler extends BaseModalHandler {
         }
     }
 
-    public updateChordNote(stringIndex: number, fret: number): void {
-        this.modalState.chordProperties.currentNotes[stringIndex] = fret;
-    }
-
     public updateChordPreset(): void {
         const chord = allChords[this.modalState.chordModalData.chordRoot]?.[this.modalState.chordModalData.chordType];
         if (!chord) return;
 
         this.modalState.chordProperties.name = `${this.modalState.chordModalData.chordRoot}${this.modalState.chordModalData.chordType}`;
-        this.modalState.chordProperties.capo = chord.capo;
+        // Presets give the barre fret (0 = open chord); the form holds the base fret (barre + 1).
+        this.modalState.chordProperties.capo = chord.capo + 1;
         this.modalState.chordProperties.currentNotes = [...chord.notes];
         this.modalState.chordProperties.fingers = [...chord.fingers];
     }
 
+    /** The beat the toolbar opened the dialog for; null when opened from the chord manager. */
+    private targetBeat: { trackId: number; blockId: number; voiceId: number; beatId: number } | null = null;
+
+    private targetTrackId = 0;
+
     public saveChord(): void {
-        console.log("Saving chord: ", this.modalState);
-        const chordObj = {
+        const chordObj: Chord = {
             capo: this.modalState.chordProperties.capo,
             name: this.modalState.chordProperties.name,
             chordRoot: this.modalState.chordModalData.chordRoot,
@@ -168,12 +169,16 @@ export class AddChordModalHandler extends BaseModalHandler {
             display: true
         };
 
-        const trackId = Song.currentTrackId;
-        if (Song.chordsMap[trackId] == null) {
-            Song.chordsMap[trackId] = new Map();
-        }
-
-        Song.chordsMap[trackId].set(chordObj.name, chordObj);
+        const target = this.targetBeat;
+        // One undo step: the chord on the beat (if any) and in the track's chord library.
+        editTransaction('Chord', () => {
+            setLibraryChord(this.targetTrackId, chordObj);
+            if (target != null) {
+                recordBarEdit('Chord', { trackId: target.trackId, blockIds: [target.blockId] }, () => {
+                    Song.getBeat(target).chord = { ...chordObj, fingers: [...chordObj.fingers] };
+                });
+            }
+        });
         requestChordDiagramRefresh();
         this.closeModal();
     }
@@ -199,24 +204,46 @@ export class AddChordModalHandler extends BaseModalHandler {
         return this.modalState.chordModalData.chordRoot;
     }
 
-    public setChordRoot(root: string): void {
-        this.modalState.chordModalData.chordRoot = root;
-    }
-
     public getChordType(): string {
         return this.modalState.chordModalData.chordType;
-    }
-
-    public setChordType(type: string): void {
-        this.modalState.chordModalData.chordType = type;
     }
 
     public getModalState(): AddChordModalState {
         return this.modalState as AddChordModalState;
     }
 
-    public openModal(): void {
+    /**
+     * From the toolbar: `{ trackId, blockId, voiceId, beatId }` puts the chord on that beat.
+     * From the chord manager: `{ trackId, existingChord? }` edits the library only.
+     */
+    public openModal(params?: {
+        trackId: number;
+        blockId?: number;
+        voiceId?: number;
+        beatId?: number;
+        existingChord?: Chord;
+    }): void {
+        this.targetTrackId = params?.trackId ?? Song.currentTrackId;
+        const { blockId, voiceId, beatId } = params ?? {};
+        this.targetBeat = blockId != null && voiceId != null && beatId != null
+            ? { trackId: this.targetTrackId, blockId, voiceId, beatId }
+            : null;
+        if (params?.existingChord) {
+            this.loadChord(params.existingChord);
+        }
         this.showModal();
+    }
+
+    /** Fills the form from a stored chord (inverse of `computeFretsFromNotesAndCapo`). */
+    private loadChord(chord: Chord): void {
+        const { chordModalData, chordProperties } = this.modalState;
+        chordModalData.chordRoot = chord.chordRoot ?? chordModalData.chordRoot;
+        chordModalData.chordType = chord.chordType ?? chordModalData.chordType;
+        chordProperties.name = chord.name;
+        chordProperties.capo = chord.capo;
+        chordProperties.currentNotes = [...chord.frets].reverse()
+            .map((fret) => (fret >= 0 ? fret - (chord.capo - 1) : fret));
+        chordProperties.fingers = [...(chord.fingers ?? [])];
     }
 
     public setupModalContent(): void {}

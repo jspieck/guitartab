@@ -1,11 +1,11 @@
 import { computed } from 'vue'
-import Settings from '../assets/js/settingManager'
+import Settings from '../stores/settingsState'
 import { songState } from '../stores/songState'
 import {
   playbackTransportState,
   playbackTransportVersion,
   type PlaybackTransportState,
-} from './playbackTransportState'
+} from '../stores/playbackTransportState'
 
 export interface PlaybackPosition {
   blockId: number

@@ -1,7 +1,7 @@
-import AppManager from '../assets/js/appManager'
 import playBackLogic from '../assets/js/playbackEngine'
 import { typedEventBus, type TabPosition } from '../utils/typedEventBus'
 import { setLoadingWheelVisible } from '../utils/editorUi'
+import { switchTrack } from './editor/trackLoading'
 
 export interface EditorNavigationTarget {
   trackId: number
@@ -54,7 +54,7 @@ export function changeTrackWithLoading(
   window.setTimeout(() => {
     try {
       options.onBeforeChange?.()
-      AppManager.changeTrack(trackId, voiceId, false, () => {
+      switchTrack(trackId, voiceId, false, () => {
         callback(() => {
           setLoadingWheelVisible(false)
         })

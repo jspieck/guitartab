@@ -1,4 +1,4 @@
-import Settings from '../../assets/js/settingManager'
+import Settings from '../../stores/settingsState'
 import { notifySongDataChanged } from '../appEvents'
 import Song from '../../assets/js/songData'
 import { typedEventBus } from '../../utils/typedEventBus'

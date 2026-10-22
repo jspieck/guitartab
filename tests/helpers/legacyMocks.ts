@@ -10,11 +10,15 @@ import { vi } from 'vitest'
  * Everything else runs against the real modules.
  */
 
+const audioEngineStub = {
+  getCurrentTime: () => 0,
+  setEffectGain: () => {},
+  busses: [] as { volume?: { gain: { value: number } } }[],
+}
+
 export const audioEngineModule = {
-  audioEngine: {
-    getCurrentTime: () => 0,
-    setEffectGain: () => {},
-  },
+  audioEngine: audioEngineStub,
+  default: audioEngineStub,
 }
 
 export const playbackModule = {
@@ -27,10 +31,10 @@ export const playbackModule = {
   },
 }
 
-export const midiReceiverModule = {
+export const liveInputModule = {
   default: {
     isRecording: false,
-    midiToNote: vi.fn(),
+    writeRecordedNotes: vi.fn(),
   },
 }
 
@@ -40,14 +44,13 @@ export const modalManagerModule = {
     toggleModal: vi.fn(),
     getHandler: vi.fn(),
     isAnyModalOpen: vi.fn(() => false),
+    displayModal: vi.fn(),
+    closeModal: vi.fn(),
   },
 }
 
 export const appManagerModule = {
   default: {
     duringTrackCreation: false,
-    typeOfNote: 'e',
-    changeTrack: vi.fn(),
-    checkAndAdaptTimeMeter: vi.fn(),
   },
 }

@@ -29,49 +29,6 @@ const midiReader = {
     throw new ImportError(`Invalid MIDI file: ${str}.`, 'mid');
   },
 
-  appendText(e: HTMLElement, text: string) {
-    e.appendChild(document.createTextNode(text));
-  },
-
-  dumpFileInfo(e: HTMLElement) {
-    // Performs a simple dump of the MIDI file
-    if (!e) {
-      return;
-    }
-    e.innerHTML = `File type: ${this.midiFile.format}<br>Number of tracks: ${this.midiFile.numTracks}<br>Ticks per beat: ${this.midiFile.ticksPerBeat}<br>`;
-    for (let i = 0; i < this.midiFile.numTracks; i += 1) {
-      const track = this.midiFile.tracks[i];
-      this.appendText(e, `Track #${i}: `);
-      if (track.trackName) {
-        this.appendText(e, `'${track.trackName}' `);
-      }
-      this.appendText(e, `${track.events.length} events`);
-      e.appendChild(document.createElement('br'));
-
-      let str = '';
-      for (let j = 0; j < track.events.length; j += 1) {
-        const ev = track.events[j];
-        str += `(${ev.delta}')`;
-        if (ev.type === 'MIDI') {
-          const n = (ev.midiEventType << 4) + ev.midiChannel;
-          str += `[${n.toString(16)} ${ev.parameter1.toString(16)}`;
-          if (ev.parameter2 != null) {
-            str += ` ${ev.parameter2.toString(16)}`;
-          }
-          str += '] ';
-        } else if (ev.type === 'meta') {
-          str += `[meta ${ev.metaType.toString(16)} ${ev.metaData.length}bytes]`;
-        } else {
-          // must be sysex
-          str += `[sysex: ${ev.metaData.length}bytes]`;
-        }
-      }
-      this.appendText(e, str);
-      e.appendChild(document.createElement('br'));
-      e.appendChild(document.createElement('br'));
-    }
-  },
-
   decodeVariableLengthValue(data: DataView, trackOffset: number) {
     let i;
     let idx = trackOffset;
@@ -283,7 +240,6 @@ const midiReader = {
         return -1;
       }
     }
-    // {this.error('error'); return -1;}
     return idx;
   },
 
@@ -293,7 +249,6 @@ const midiReader = {
     this.midiFile = {
       format: 0, numTracks: 0, ticksPerBeat: 0, tracks: [],
     }; // clear the midi file object if it's already allocated
-    //  alert( 'File is ' + buffer.byteLength + ' bytes long.');
     //   char           ID[4];  // File header 'MThd'
     if (
       data.getUint8(idx) !== 0x4d

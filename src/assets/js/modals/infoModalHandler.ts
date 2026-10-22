@@ -1,6 +1,6 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Song, SongDescription } from '../songData';
-import { notifySongDataChanged } from '../../../services/appEvents';
+import { recordSongInfoEdit } from '../../../services/editor/songSettingsCommands';
 import { MODALS } from './modalTypes';
 
 interface SongDescriptionModal extends SongDescription {
@@ -44,28 +44,18 @@ export class InfoModalHandler extends BaseModalHandler {
     }
 
     submitInfo(formData: SongDescriptionModal) {
-        // Update song description with form data
-        Object.keys(formData).forEach((key) => {
-            if (key !== 'bound' && formData[key as keyof SongDescription] != null) {
-                if (key === 'comments') {
-                    Song.songDescription.comments[0] = formData.comments[0];
-                } else {
-                    (Song.songDescription[key as keyof SongDescription] as any) = formData[key as keyof SongDescription];
+        // The title and author above the tab are bound to the song; this is one undo step.
+        recordSongInfoEdit(() => {
+            Object.keys(formData).forEach((key) => {
+                if (key !== 'bound' && formData[key as keyof SongDescription] != null) {
+                    if (key === 'comments') {
+                        Song.songDescription.comments[0] = formData.comments[0];
+                    } else {
+                        (Song.songDescription[key as keyof SongDescription] as any) = formData[key as keyof SongDescription];
+                    }
                 }
-            }
+            });
         });
-
-        const tabTitle = document.getElementById('tabTitle');
-        if (tabTitle) {
-            tabTitle.textContent = Song.songDescription.title;
-        }
-
-        const tabAuthor = document.getElementById('tabAuthor');
-        if (tabAuthor) {
-            tabAuthor.textContent = Song.songDescription.author;
-        }
-
-        notifySongDataChanged();
 
         this.closeModal();
     }

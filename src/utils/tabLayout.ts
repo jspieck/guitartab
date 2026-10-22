@@ -5,7 +5,7 @@
 import { stringLine } from './tabStrings'
 import type { RenderedMeasureData, RenderedTabRow, RendererSelectionPosition, TabBeat } from '../types/tab'
 import { getDurationBeats } from './durationUtils'
-import { getBlockRenderLayout } from '../composables/useTabRenderLayout'
+import { getBlockRenderLayout } from '../stores/tabRenderLayout'
 import { getBeatPositionInRow } from './beatPositionInRow'
 import { getMeasureBeatWidth } from './measureBeatLayout'
 

@@ -1,10 +1,9 @@
 import { BaseModalHandler } from './baseModalHandler';
 import { Track, Song } from '../songData';
 import { tab } from '../tab';
-import AppManager from '../appManager';
 import { instrumentGroups, instrumentList } from '../instrumentData';
-import { sequencerHandler } from '../sequencerHandler';
 import { notifySongDataChanged } from '../../../services/appEvents';
+import { initTrackPlayback } from '../../../services/editor/trackLoading';
 
 interface InstrumentGroup {
     title: string;
@@ -56,7 +55,6 @@ export class AddTrackModalHandler extends BaseModalHandler {
         tab.createNewTrack(numTracks, instrObj);
         tab.createMeasures(numTracks, 0);
         tab.fillMeasures(numTracks, 0);
-        sequencerHandler.drawBeat();
         notifySongDataChanged();
     }
 
@@ -117,8 +115,7 @@ export class AddTrackModalHandler extends BaseModalHandler {
             mute: false,
         };
 
-        AppManager.setTracks(trackNumber);
-        sequencerHandler.drawBeat();
+        initTrackPlayback(trackNumber);
         tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
         notifySongDataChanged();
     }

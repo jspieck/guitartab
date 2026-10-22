@@ -1,6 +1,5 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
-import Helper from '../helper';
 import { MODALS } from './modalTypes';
 
 interface TuningModalState extends ModalState {
@@ -64,7 +63,7 @@ export class TuningModalHandler extends BaseModalHandler {
 
     public constructTuningArea(trackId: number, hasStringNumberChanged: boolean, numStrings: number) {
         const tuningArea = document.getElementById('tuningAreaModal')!;
-        Helper.removeAllChildren(tuningArea);
+        tuningArea?.replaceChildren();
         
         // Highest string first, as in the tab; the data index stays lowest-first.
         for (let i = numStrings - 1; i >= 0; i--) {

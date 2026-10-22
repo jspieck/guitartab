@@ -1,5 +1,6 @@
-import Helper from '../../assets/js/helper'
-import Duration from '../../assets/js/duration'
+import { barLeftOffset } from '../../utils/measureBeatLayout'
+import { groupMeasureBeats } from './beatGrouping'
+import Duration from '../../utils/duration'
 import Song from '../../assets/js/songData'
 import { Tab, tab } from '../../assets/js/tab'
 import { TAB_CONSTANTS } from '../../utils/tabLayout'
@@ -10,7 +11,7 @@ import renderBridge, {
   type RenderBlockLayout,
   type RenderTrackLayoutState,
 } from './renderBridge'
-import { getTrackRenderLayout } from '../../composables/useTabRenderLayout'
+import { getTrackRenderLayout } from '../../stores/tabRenderLayout'
 import {
   classicalNotationLayoutState,
   getClassicalRowGeometry,
@@ -76,7 +77,7 @@ function getBeatRenderPositions(
   beats: TabBeat[],
   minOffset: number,
 ): number[] {
-  const leftOffset = Helper.getLeftOffset(blockId)
+  const leftOffset = barLeftOffset(blockId)
   const safeMinOffset = Number.isFinite(minOffset) && minOffset > 0 ? minOffset : TAB_CONSTANTS.BEAT_WIDTH
   const moveHelper = Song.measureMoveHelper?.[trackId]?.[blockId]?.[voiceId]
 
@@ -134,7 +135,7 @@ function syncTabLayoutArrays(
 
 function computeBlockWidth(trackId: number, blockId: number, voiceId: number): BlockWidthInfo {
   try {
-    Helper.groupMeasureBeats(trackId, blockId, voiceId)
+    groupMeasureBeats(trackId, blockId, voiceId)
     return Tab.computeWidthOfBlock(trackId, blockId, voiceId)
   } catch {
     console.warn(`Failed to compute width for measure ${blockId}, using default.`)

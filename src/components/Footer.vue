@@ -18,18 +18,20 @@
             @click="toggleDarkMode()" @keydown.enter.prevent="toggleDarkMode()"><span class="footerLabel">Theme</span>{{ isDarkMode ? 'Dark' : 'Light' }}</div>
         <div id="midiLabel" class="footerBlock" role="button" tabindex="0" title="MIDI input settings"
             @click="modalManager.toggleByModal(MODALS.MIDI, {})" @keydown.enter.prevent="modalManager.toggleByModal(MODALS.MIDI, {})">MIDI
-            <span id="isMidiActive" aria-hidden="true"></span>
+            <span id="isMidiActive" :class="{ activated: midiConnected }" aria-hidden="true"></span>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { midiState } from '../services/midi/devices';
 import { computed, ref, watch } from 'vue';
 import { modalManager } from '../assets/js/modals/modalManager';
-import Settings from '../assets/js/settingManager';
-import { sequencerHandler } from '../assets/js/sequencerHandler';
+import Settings from '../stores/settingsState';
 import { MODALS } from '../assets/js/modals/modalTypes';
 import { useSongData } from '../composables/useSongData';
+
+const midiConnected = computed(() => midiState.devices.some((device) => device.connected));
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -44,7 +46,6 @@ const currentTrack = computed(() => reactiveSongData.tracks?.[currentTrackId.val
 const tuningText = computed(() => formatTuning(currentTrack.value?.strings ?? []));
 
 watch(isDarkMode, (darkModeEnabled) => {
-    sequencerHandler.drawBeat();
     document.body.setAttribute('id', darkModeEnabled ? 'darkMode' : 'lightMode');
 }, { immediate: true });
 

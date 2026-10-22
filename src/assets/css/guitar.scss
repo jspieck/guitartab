@@ -114,3 +114,17 @@
     border-radius: 10px;
     display:none;
 }
+.guitarNoteMarker.visible{
+    display: block;
+    margin-top: -4px;
+}
+.guitar-neck .capo{
+    position: absolute;
+    top: 0;
+    width: 8px;
+    height: 100%;
+    margin-right: -4px;
+    background: #2a2a2a;
+    border-radius: 3px;
+    z-index: 2;
+}

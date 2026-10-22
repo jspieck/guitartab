@@ -870,3 +870,8 @@ export {
   numToInstr,
   instrumentAudio,
 };
+
+/** Icon of an instrument, or '' for an unknown one. */
+export function instrumentIconSrc(instrument: string | undefined): string {
+  return (instrument != null && instrumentList[instrument]?.[0]) || '';
+}

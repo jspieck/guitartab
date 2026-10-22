@@ -1,6 +1,6 @@
-import Helper from '../../assets/js/helper'
+import { beatXInBar } from './beatGrouping'
 import { getBeatPositionInRow } from '../../utils/beatPositionInRow'
-import { registerPlaybackBarElement } from '../../composables/usePlaybackBarState'
+import { registerPlaybackBarElement } from '../../stores/playbackBarState'
 import {
   clearTrackRenderLayout,
   createRenderTrackLayoutState,
@@ -11,7 +11,7 @@ import {
   type RenderBlockLayout,
   type RenderRowLayout,
   type RenderTrackLayoutState,
-} from '../../composables/useTabRenderLayout'
+} from '../../stores/tabRenderLayout'
 import { tab } from '../../assets/js/tab'
 import { getAvailableRowWidth } from '../../utils/tabSheetConstants'
 
@@ -113,8 +113,8 @@ const renderBridge = {
       return layoutPosition
     }
 
-    // Fallback: Helper.getBeatPosX is block-local; add measure origin for row X.
-    return Helper.getBeatPosX(trackId, blockId, voiceId, beatId) + this.getBlockX(trackId, voiceId, blockId)
+    // Fallback: beatXInBar is bar-local; add measure origin for row X.
+    return beatXInBar(trackId, blockId, voiceId, beatId) + this.getBlockX(trackId, voiceId, blockId)
   },
 
   setPlaybackBarObject(object: SVGGElement | null) {

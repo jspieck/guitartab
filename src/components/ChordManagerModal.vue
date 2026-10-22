@@ -62,7 +62,7 @@
               type="button"
               class="chord-action-button"
               :title="chord.display ? 'Hide chord' : 'Show chord'"
-              @click="toggleChordVisibility(chord)"
+              @click="toggleChordVisibility(name)"
             >
               <svg v-if="chord.display" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="1.8" />
@@ -84,25 +84,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
 import ChordThumbnail from './ChordThumbnail.vue'
 import { MODALS } from '../assets/js/modals/modalTypes'
 import { modalManager } from '../assets/js/modals/modalManager'
-import { ChordManagerModalHandler } from '../assets/js/modals/chordManagerModalHandler'
+import type { PlainModalHandler } from '../assets/js/modals/baseModalHandler'
 import { Song } from '../assets/js/songData'
 import { notifySongDataChanged } from '../services/appEvents'
 import { typedEventBus } from '../utils/typedEventBus'
+import { deleteLibraryChord, toggleLibraryChordDisplay } from '../services/editor/songSettingsCommands'
 import type { Chord } from '../types/tab'
 
-const handler = modalManager.getHandler(MODALS.CHORD_MANAGER.id) as ChordManagerModalHandler
+const handler = modalManager.getHandler<PlainModalHandler<{ trackId: number }>>(MODALS.CHORD_MANAGER.id)
+const managedTrackId = () => handler.params.value?.trackId ?? 0
+// Opening the manager (for this or another track) shows that track's chords.
+watch(handler.params, () => reloadChords())
 const chords = ref<Map<string, Chord>>(new Map())
 
 const chordEntries = computed(() => [...chords.value.entries()].sort(([left], [right]) => left.localeCompare(right)))
 
 function reloadChords() {
-  const trackId = handler.getTrackId()
+  const trackId = managedTrackId()
   const trackChords = Song.chordsMap[trackId]
   chords.value = trackChords ? new Map(trackChords) : new Map()
 }
@@ -113,27 +117,26 @@ function notifyChordChange() {
 
 function editChord(name: string, chord: Chord) {
   modalManager.toggleByModal(MODALS.ADD_CHORD, {
-    trackId: handler.getTrackId(),
+    trackId: managedTrackId(),
     existingChord: { ...chord, name },
   })
 }
 
 async function deleteChord(name: string) {
   if (await confirm(`Delete chord ${name}?`)) {
-    Song.chordsMap[handler.getTrackId()]?.delete(name)
+    deleteLibraryChord(managedTrackId(), name)
     reloadChords()
-    notifyChordChange()
   }
 }
 
-function toggleChordVisibility(chord: Chord) {
-  chord.display = !chord.display
-  notifyChordChange()
+function toggleChordVisibility(name: string) {
+  toggleLibraryChordDisplay(managedTrackId(), name)
+  reloadChords()
 }
 
 function addNewChord() {
   modalManager.toggleByModal(MODALS.ADD_CHORD, {
-    trackId: handler.getTrackId(),
+    trackId: managedTrackId(),
   })
 }
 

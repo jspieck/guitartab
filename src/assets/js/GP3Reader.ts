@@ -1,9 +1,7 @@
 import { Gp4Reader } from './GP4Reader';
 import { Gp5Reader } from './GP5Reader';
 import { gProReader } from './GProReader';
-import Song, {
-  Note, Chord, BeatEffects, Stroke, Bend, Grace, TremoloBar, Track,
-} from './songData';
+import Song, { Note, Chord, BeatEffects, Stroke, Bend, Grace, TremoloBar } from './songData';
 import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
 import type { BeatDuration } from '../../types/tab';
 import { restOf } from '../../utils/durationUtils';
@@ -60,7 +58,6 @@ class Gp3Reader {
     for (let j = 0; j < numTracks; j += 1) {
       Song.measures[j] = [];
     }
-    // console.log(Song.measures);
     for (let i = 0; i < numMeasures; i += 1) {
       for (let j = 0; j < numTracks; j += 1) {
         Gp3Reader.readMeasure(j, i);
@@ -122,9 +119,7 @@ class Gp3Reader {
     const notes = [];
     for (let string = 6; string >= 0; string -= 1) {
       if ((stringFlags & (1 << string)) !== 0) {
-        // var note = readNoteGP3();
         notes[Song.tracks[trackId].numStrings + string - 7] = Gp3Reader.readNote();
-        // notes[string] = note;
       }
     }
     let durString: BeatDuration = Gp5Reader.durationToString(durationObj.value); // s, e, q, w, h

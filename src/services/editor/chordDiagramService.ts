@@ -3,7 +3,7 @@ import { tab } from '../../assets/js/tab'
 import { notifySongDataChanged } from '../appEvents'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { getNumChordDiagramRows } from './tabLayoutMetrics'
-import { getTrackRenderLayout } from '../../composables/useTabRenderLayout'
+import { getTrackRenderLayout } from '../../stores/tabRenderLayout'
 
 let cachedNumChordDiagramRows = -1
 

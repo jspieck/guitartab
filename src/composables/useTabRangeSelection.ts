@@ -1,5 +1,5 @@
 import { ref, unref, type Ref } from 'vue'
-import { overlayHandler } from '../assets/js/overlayHandler'
+import { applyRangeAsLoop, clearRange, startRange, extendRange } from '../services/editor/rangeSelection'
 import type { RenderedTabRow, TabSelectionData } from '../types/tab'
 import { resolveTabPointerPosition, TAB_CONSTANTS } from '../utils/tabLayout'
 import { usePlaybackEngine } from './usePlaybackEngine'
@@ -62,12 +62,7 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
     const deltaY = Math.abs(event.clientY - pointerStartClientY)
     if (!isDraggingRange.value && (deltaX > DRAG_THRESHOLD_PX || deltaY > DRAG_THRESHOLD_PX)) {
       isDraggingRange.value = true
-      overlayHandler.initOverlay(
-        options.trackId,
-        pointerStart.blockId,
-        options.voiceId,
-        pointerStart.beatIndex,
-      )
+      startRange(options.trackId, pointerStart.blockId, options.voiceId, pointerStart.beatIndex)
     }
 
     if (!isDraggingRange.value) {
@@ -79,7 +74,7 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
       return
     }
 
-    overlayHandler.selectionMove(event, options.trackId, current.blockId, options.voiceId, current.beatIndex)
+    extendRange(options.trackId, current.blockId, options.voiceId, current.beatIndex)
   }
 
   function handleWindowMouseUp(event: MouseEvent): void {
@@ -90,16 +85,10 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
     if (isDraggingRange.value) {
       const current = resolvePointer(event)
       if (current) {
-        overlayHandler.selectionMove(
-          event,
-          options.trackId,
-          current.blockId,
-          options.voiceId,
-          current.beatIndex,
-        )
+        extendRange(options.trackId, current.blockId, options.voiceId, current.beatIndex)
       }
       // The selected range is also the playback loop (as when dragging in the sequencer).
-      overlayHandler.setLoopingInterval()
+      applyRangeAsLoop()
     } else if (pointerStart) {
       options.onSingleSelect({
         trackId: options.trackId,
@@ -148,7 +137,7 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
   }
 
   function clearRangeSelection(): void {
-    overlayHandler.resetOverlays()
+    clearRange()
   }
 
   return {

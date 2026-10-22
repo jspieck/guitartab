@@ -1,16 +1,14 @@
 import LZString from 'lz-string';
-import Duration from './duration';
+import Duration from '../../utils/duration';
 import Song from './songData';
 import { audioEngine } from './audioEngine';
-import { sequencerHandler } from './sequencerHandler';
-import AppManager from './appManager';
 import { Tab } from './tab';
 import { Gp5Reader } from './GP5Reader';
 import { Gp4Reader } from './GP4Reader';
 import { Gp3Reader } from './GP3Reader';
 import midiReader from './MidiReader';
 import { notifySongDataChanged } from '../../services/appEvents';
-import { revertHandler } from './revertHandler';
+import { undoHistory } from '../../services/editor/editCommands';
 import { markSongSaved } from '../../services/songAutosave';
 import { setLoadingWheelVisible } from '../../utils/editorUi';
 import { showUserError } from '../../services/userNotifications';
@@ -22,6 +20,7 @@ import { serializeSongContent } from '../../utils/gtSerialization';
 import { applyImportedSong, buildSongFromMidi } from '../../services/midiImport';
 import { extractGpifXml } from '../../services/gpContainers';
 import { applyGpifSong, parseGpif, type GpifSong } from '../../services/gpifImport';
+import { loadSongIntoEditor, resetEditorState } from '../../services/editor/trackLoading';
 
 class GProReader {
   readerBuffer: Uint8Array | null;
@@ -33,8 +32,6 @@ class GProReader {
 
   version: string;
 
-  versionIndex: number;
-
   versions: string[];
 
   numToStrokeLength: number[];
@@ -43,7 +40,6 @@ class GProReader {
     this.readerBuffer = null;
     this.bytePosition = 0;
     this.version = '';
-    this.versionIndex = -1;
     this.versions = ['FICHIER GUITAR PRO v5.00', 'FICHIER GUITAR PRO v5.10'];
     this.numToStrokeLength = [0, 128, 64, 32, 16, 8, 4];
   }
@@ -78,15 +74,13 @@ class GProReader {
       Song.numMeasures = Song.measureMeta.length;
       Song.tracks = JSON.parse(arr[3]);
       GProReader.writeNoteInfoToBeat();
-      AppManager.createGuitarTab(0);
+      loadSongIntoEditor(0);
       Song.playBackInstrument = JSON.parse(arr[4]);
-      sequencerHandler.drawBeat();
       GProReader.applyDrumMap(JSON.parse(arr[5]));
       if (fromFile) {
-        revertHandler.clearHistory();
+        undoHistory.clear();
         markSongSaved();
       }
-      // menuHandler.applyStyleMode();
     }
   }
 
@@ -203,10 +197,10 @@ class GProReader {
 
   /** Steps every newly loaded song needs: rests in empty voices, ties, tracks, audio, a clean undo history. */
   private static finishLoading() {
-    AppManager.resetVariables();
+    resetEditorState();
     GProReader.writeNoteInfoToBeat();
-    AppManager.createGuitarTab(0);
-    revertHandler.clearHistory();
+    loadSongIntoEditor(0);
+    undoHistory.clear();
     markSongSaved();
     notifySongDataChanged();
   }
@@ -232,15 +226,6 @@ class GProReader {
       console.error('Import failed', error);
       showUserError(error instanceof ImportError ? `Could not open the file: ${error.message}` : 'Could not open the file.');
     }
-  }
-
-  static toArrayBuffer(buf: number[]) {
-    const ab = new ArrayBuffer(buf.length);
-    const view = new Uint8Array(ab);
-    for (let i = 0; i < buf.length; i += 1) {
-      view[i] = buf[i];
-    }
-    return ab;
   }
 
   readInt() {
@@ -472,7 +457,6 @@ class GProReader {
                 }
                 if (foundFret != null) {
                   for (let bId = blockId; bId <= j; bId += 1) {
-                    // console.log(bId, blockId, beatId, foundFret, i, j);
                     const startBeatId = bId === blockId ? beatId + 1 : 0;
                     const endBeatId = bId === j ? l : Song.measures[i][bId][k].length - 1;
                     for (let beId = startBeatId; beId <= endBeatId; beId += 1) {

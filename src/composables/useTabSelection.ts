@@ -1,7 +1,8 @@
+import { copyRange, pasteRange } from '../services/editor/clipboard'
 import { ref, computed } from 'vue'
 import { type SelectionChangeData } from '../utils/typedEventBus'
-import { hasRegisteredSelectionSurface } from './useSelectionSurfaceState'
-import { overlayHandler } from '../assets/js/overlayHandler'
+import { hasRegisteredSelectionSurface } from '../stores/selectionSurfaceState'
+import { selectionState } from '../stores/selectionState'
 import editorCore from '../services/editor/editorCore'
 import { NAME_TO_CODE, DURATION_NAMES } from '../utils/musicUtils'
 import type { SelectedNoteState, TabClipboardData, TabSelectionData } from '../types/tab'
@@ -50,12 +51,12 @@ export function useTabSelection() {
   }
 
   function hasRangeSelection(): boolean {
-    return overlayHandler.startPosOverlay != null && overlayHandler.endPosOverlay != null
+    return selectionState.rangeStart != null && selectionState.rangeEnd != null
   }
 
   function copySelection() {
     if (hasRangeSelection()) {
-      overlayHandler.copyHandler()
+      copyRange()
       return
     }
 
@@ -72,7 +73,7 @@ export function useTabSelection() {
 
   function pasteSelection(): TabClipboardData | null {
     if (hasRangeSelection()) {
-      overlayHandler.pasteHandler()
+      pasteRange()
       return clipboard.value
     }
 

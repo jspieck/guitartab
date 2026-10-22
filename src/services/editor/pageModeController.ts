@@ -1,5 +1,5 @@
 import Song from '../../assets/js/songData'
-import Settings from '../../assets/js/settingManager'
+import Settings from '../../stores/settingsState'
 import { tab } from '../../assets/js/tab'
 import {
   applyViewportPageMode,

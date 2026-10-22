@@ -2,14 +2,12 @@ import { gProReader } from './GProReader';
 import Song, {
   TremoloBar, Bend, Chord, Track, Note, BeatEffects, Stroke, Grace,
 } from './songData';
-import AppManager from './appManager';
 import { IMPORT_LIMITS, ImportError } from '../../services/importErrors';
 import type { BeatDuration, NoteLengthCode } from '../../types/tab';
 import { restOf } from '../../utils/durationUtils';
 
 class Gp5Reader {
   static read() {
-    // var t0 = performance.now();
     Song.chordsMap = [];
     const version = Gp5Reader.readVersion();
     console.log(`Version ${version}`);
@@ -59,7 +57,6 @@ class Gp5Reader {
 
     // CORRECT BIS HIER ?
     Gp5Reader.readMeasures(numMeasures, numTracks, versionIndex);
-    // console.log("GP5 Loadtime: " + (performance.now()-t0)+"ms");
   }
 
   static isSupportedVersion(version: string) {
@@ -92,13 +89,11 @@ class Gp5Reader {
       Song.songDescription.comments[i] = gProReader.readStringByteSizeOfInteger();
     }
     console.log(Song.songDescription);
-    AppManager.setTrackInfo();
   }
 
   static readLyrics() {
     const from = gProReader.readInt();
     const lyr = gProReader.readStringInteger();
-    // console.log(from + " " +lyr);
     for (let i = 0; i < 4; i += 1) {
       gProReader.readInt();
       gProReader.readStringInteger();
@@ -234,7 +229,6 @@ class Gp5Reader {
     }
     const numStrings = stringCount;
     const letItRing = false;
-    // console.log(track);
     gProReader.readInt();
     const channel = Gp5Reader.readChannel();
     gProReader.readInt();
@@ -277,7 +271,6 @@ class Gp5Reader {
     for (let j = 0; j < tracks; j += 1) {
       Song.measures[j] = [];
     }
-    // console.log(measures);
     for (let i = 0; i < numMeasures; i += 1) {
       for (let j = 0; j < tracks; j += 1) {
         Gp5Reader.readMeasure(j, i, versionIndex);
@@ -369,7 +362,6 @@ class Gp5Reader {
 
     gProReader.skipBytes(1);
     const read = gProReader.readByte();
-    // if (read == 8 || read == 10 || read == 24 ) {
     if ((read & 0x08) !== 0) {
       gProReader.skipBytes(1);
     }

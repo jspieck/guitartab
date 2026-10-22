@@ -1,12 +1,8 @@
-export interface RevertStackEntry {
-  type: string
-  info: unknown
-}
-
-export class RevertStack {
+/** A bounded undo/redo stack. `index` points at the entry the next undo reverts. */
+export class RevertStack<T> {
   readonly maxSize: number
 
-  private entries: RevertStackEntry[] = []
+  private entries: T[] = []
 
   private index = -1
 
@@ -30,16 +26,17 @@ export class RevertStack {
     return this.index < this.entries.length - 1
   }
 
-  peek(): RevertStackEntry | null {
+  peek(): T | null {
     if (this.index < 0 || this.index >= this.entries.length) {
       return null
     }
     return this.entries[this.index]
   }
 
-  push(type: string, info: unknown): void {
-    this.entries.splice(this.index + 1, this.entries.length - this.index - 1)
-    this.entries.push({ type, info })
+  /** Adds an entry and drops everything that could have been redone. */
+  push(entry: T): void {
+    this.entries.splice(this.index + 1)
+    this.entries.push(entry)
     this.index = this.entries.length - 1
 
     while (this.entries.length > this.maxSize) {
@@ -48,7 +45,7 @@ export class RevertStack {
     }
   }
 
-  stepBack(): RevertStackEntry | null {
+  stepBack(): T | null {
     if (!this.canUndo) {
       return null
     }
@@ -57,7 +54,7 @@ export class RevertStack {
     return entry
   }
 
-  stepForward(): RevertStackEntry | null {
+  stepForward(): T | null {
     if (!this.canRedo) {
       return null
     }
@@ -70,12 +67,15 @@ export class RevertStack {
     this.index = -1
   }
 
-  adjustIndex(delta: number): void {
-    this.index += delta
-  }
-
-  /** Used by revertHandler when tracks are deleted. */
-  getMutableEntries(): RevertStackEntry[] {
-    return this.entries
+  /** Removes the entries `predicate` matches, keeping the undo position on the same entry. */
+  removeWhere(predicate: (entry: T) => boolean): void {
+    for (let i = this.entries.length - 1; i >= 0; i -= 1) {
+      if (predicate(this.entries[i])) {
+        this.entries.splice(i, 1)
+        if (this.index >= i) {
+          this.index -= 1
+        }
+      }
+    }
   }
 }

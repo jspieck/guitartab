@@ -1,11 +1,10 @@
 import { notifySongDataChanged } from '../appEvents'
-import Settings from '../../assets/js/settingManager'
+import Settings from '../../stores/settingsState'
 import Song from '../../assets/js/songData'
 import type { BeatDuration } from '../../types/tab'
-import Duration from '../../assets/js/duration'
-import { overlayHandler } from '../../assets/js/overlayHandler'
-import { menuHandler } from '../../assets/js/menuHandler'
-import { revertHandler } from '../../assets/js/revertHandler'
+import Duration from '../../utils/duration'
+import { startRange } from './rangeSelection'
+import { recordBarEdit } from './editCommands'
 import { classicalNotation } from './classicalNotationAdapter'
 
 export interface TabDurationHost {
@@ -40,7 +39,7 @@ export function changeNoteDuration(
   beatId: number,
   string: number,
   noteLength: BeatDuration,
-  duringRevert: boolean,
+  withoutUndo = false,
 ): boolean {
   const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
   const previousDuration = Duration.getDurationOfNote(beat, true)
@@ -55,20 +54,24 @@ export function changeNoteDuration(
     return false
   }
 
-  const measureBefore = JSON.parse(JSON.stringify(Song.measures[trackId][blockId][voiceId]))
-  overlayHandler.initOverlay(trackId, blockId, voiceId, beatId)
+  startRange(trackId, blockId, voiceId, beatId)
 
-  tabInstance.changeBeatDuration(
-    trackId,
-    blockId,
-    voiceId,
-    beatId,
-    string,
-    newDuration,
-    previousDuration,
-    noteLength,
-  )
-  menuHandler.showAvailableTupletSizes(newDuration)
+  const change = () =>
+    tabInstance.changeBeatDuration(
+      trackId,
+      blockId,
+      voiceId,
+      beatId,
+      string,
+      newDuration,
+      previousDuration,
+      noteLength,
+    )
+  if (withoutUndo) {
+    change()
+  } else {
+    recordBarEdit('Note length', { trackId, blockIds: [blockId] }, change)
+  }
 
   if (tabInstance.trackRerenderNecessary(trackId, blockId, voiceId)) {
     tabInstance.drawTrack(trackId, voiceId, true, null)
@@ -78,11 +81,6 @@ export function changeNoteDuration(
     if (Settings.vexFlowIsActive) {
       classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId)
     }
-  }
-
-  if (duringRevert === false) {
-    const measureAfter = JSON.parse(JSON.stringify(Song.measures[trackId][blockId][voiceId]))
-    revertHandler.addNoteLengthChange(trackId, blockId, voiceId, measureBefore, measureAfter)
   }
 
   return true

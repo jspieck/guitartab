@@ -2,8 +2,6 @@
  * Lazy Vue-tab export: compose tab + classical into one SVG, then
  * - download vector SVG
  * - rasterize that composite to a multi-page JPEG PDF
- *
- * Keeps pdfkit out of the main bundle.
  */
 import { showUserError, showUserMessage } from './userNotifications'
 import { composeTabExportSvg, downloadSvgMarkup } from './tabExportSvg'

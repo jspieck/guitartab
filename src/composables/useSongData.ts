@@ -5,7 +5,7 @@ import { ensureSongDataEventBridge } from '../services/songDataEventBridge'
 import { ensureRenderEventBridge } from '../services/editor/renderEventBridge'
 import { bumpSongDataVersion, songDataVersion, songState } from '../stores/songState'
 import { typedEventBus } from '../utils/typedEventBus'
-import { editorScopeState, syncEditorScope } from './useEditorScopeState'
+import { editorScopeState, syncEditorScope } from '../stores/editorScopeState'
 import { getMeasuresForTrackVoice } from './songDataState'
 
 editorCore.ensureSongInitialized()

@@ -1,13 +1,12 @@
-import Vex, { IRenderContext, Flow } from 'vexflow';
+import { selectionState } from '../../stores/selectionState';
+import Vex, { IRenderContext } from 'vexflow';
 import { toRaw } from 'vue';
 import { Song, Beat, Note } from './songData';
-import Settings from './settingManager';
+import Settings from '../../stores/settingsState';
 import playBackLogic from './playbackEngine';
 import { tab } from './tab';
-import Helper from './helper';
 import renderBridge from '../../services/editor/renderBridge';
 import { scrollToSvgBlock } from '../../services/editor/navigationController';
-import { TAB_SHEET } from '../../utils/tabSheetConstants';
 import AppManager from './appManager';
 import {
   CLASSICAL_STAFF_LINES_HEIGHT,
@@ -32,9 +31,6 @@ const NOTE_HEAD_EXTENT = 8;
 type RowNote = { note: Vex.Flow.StaveNote, tied: boolean[], strings: number[] };
 
 class ClassicalNotation {
-  vexFlowHeight: number;
-
-  vexFlowStandardWidth: number;
 
   allNotes: { note: Vex.Flow.StaveNote, tied: boolean[], strings: number[], measure: Beat }[][];
 
@@ -51,20 +47,9 @@ class ClassicalNotation {
   /** Track/voice/tuning the cached conversions belong to. */
   conversionScope: string;
 
-  currentVexDenominator: number;
-
-  currentVexNumerator: number;
-
   noteArray: string[];
 
-  locked: boolean;
-
-  formatter: Vex.Flow.Formatter | null;
-
-
   constructor() {
-    this.vexFlowHeight = 140;
-    this.vexFlowStandardWidth = 250;
 
     this.allNotes = [];
     this.allVoices = [];
@@ -72,15 +57,8 @@ class ClassicalNotation {
     this.blockFingerprints = [];
     this.blockBeatWidths = [];
     this.conversionScope = '';
-    this.currentVexDenominator = -1;
-    this.currentVexNumerator = -1;
 
     this.noteArray = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-
-    this.locked = true;
-
-
-    this.formatter = null;
 
   }
 
@@ -97,7 +75,7 @@ class ClassicalNotation {
       );
     } else {
       scrollToSvgBlock(Song.currentTrackId, Song.currentVoiceId,
-        tab.markedNoteObj.blockId);
+        selectionState.cursor.blockId);
     }
   }
 
@@ -221,7 +199,7 @@ class ClassicalNotation {
   drawVexFlowRow(
     trackId: number, voiceId: number, rowId: number, vexFlowArea: HTMLElement,
   ) {
-    Helper.removeAllChildren(vexFlowArea);
+    vexFlowArea?.replaceChildren();
 
     const rowBlocks = this.getRowBlockRange(trackId, voiceId, rowId);
     if (!rowBlocks || this.allVoices.length === 0) {
@@ -372,16 +350,6 @@ class ClassicalNotation {
     return `${note}/${octave}`;
   }
 
-  static valueToBendtext(val: number): string {
-    const value = Math.abs(val);
-    if (value === 25) return '1/4';
-    if (value === 50) return '1/2';
-    if (value === 75) return '3/4';
-    if (value >= 100) return 'Full';
-    console.log('Bend error!');
-    return '';
-  }
-
   static generateStave(
     xPos: number, yPos: number, width: number, blockId: number,
   ): Vex.Flow.Stave {
@@ -393,23 +361,6 @@ class ClassicalNotation {
       stave.setEndBarType(Vex.Flow.Barline.type.REPEAT_END);
     }
 
-    /* if(Song.measureMeta[blockId].timeMeterPresent){
-      stave.addTimeSignature(Song.measureMeta[blockId].numerator
-        +"/"+Song.measureMeta[blockId].denominator);
-    } */
-    // stave.setMeasure(blockId);        --forced reflow because of line number!
-
-    /* Markers on the stave add little here.
-    if(Song.measureMeta[blockId].marker != null)
-      stave.setText(Song.measureMeta[blockId].marker.text,
-        Vex.Flow.Modifier.Position.ABOVE); */
-
-    // stave.addKeySignature('A');
-    // stave.setTempo(tempo, tempo_y);
-    //
-    /* stave.setText('Right Text', Vex.Flow.Modifier.Position.RIGHT);
-        stave.setText('Above Text', Vex.Flow.Modifier.Position.ABOVE);
-        stave.setText('Below Text', Vex.Flow.Modifier.Position.BELOW); */
     return stave;
   }
 
@@ -480,39 +431,6 @@ class ClassicalNotation {
           staveNote.addModifier(new Vex.Flow.Accidental('#'), u);
         }
         if (realNotes[u] != null) {
-        /* Do we really want to display these?
-          if(realNotes[u].vibrato){
-            //newVibrato().setVibratoWidth(60)   .setHarsh(true)
-            note.addModifier(u, new Vex.Flow.Vibrato());
-          }
-          if(realNotes[u].bendObj != null){
-              if(realNotes[u].bendObj.length == 0){
-                  //gpx-Format
-                  continue;
-              }
-              //BENDS
-              var bendPhrase = [];
-              var lastValue = parseInt(realNotes[u].bendObj[0].bendValue);
-              for(var o = 1; o < realNotes[u].bendObj.length; o++){
-                  var diff = parseInt(realNotes[u].bendObj[o].bendValue) - lastValue;
-                  if(diff > 0){
-                      bendPhrase.push({type:Vex.Flow.Bend.UP, text:valueToBendtext(diff)});
-                  }else if(diff == 0){
-
-                  }else{
-                      bendPhrase.push({type:Vex.Flow.Bend.DOWN, text:valueToBendtext(diff)});
-                  }
-                  lastValue = realNotes[u].bendObj[o].bendValue;
-              }
-              //new Vex.Flow.Bend('', false));    //'Full', '1/2'
-              note.addModifier(u, new Vex.Flow.Bend(null, null, bendPhrase));
-          }
-
-          //a- is bar over // a@a, a@u is fermate above, below,
-          if(realNotes[u].accentuated || realNotes[u].heavyAccentuated)
-              note.addArticulation(0, new Vex.Flow.Articulation('a>').setPosition(3));
-          if(realNotes[u].stacatto)
-              note.addArticulation(0, new Vex.Flow.Articulation('a.').setPosition(3)); */
           // handle grace
           const grace = realNotes[u].graceObj;
           if (grace != null) {
@@ -525,34 +443,19 @@ class ClassicalNotation {
             }
 
             const graceHeight = Song.tracks[trackId].strings[strings[u]] + grace.fret;
-            // console.log("Grace Height "+graceHeight);
             const graceNote = new Vex.Flow.GraceNote({
               keys: [this.heightToVexFlow(graceHeight)],
               duration: graceDuration,
             });
-            // console.log(graceNote);
             staveNote.addModifier(new Vex.Flow.GraceNoteGroup([graceNote]), u);
           }
-          /* if(realNotes[u].trill){
-            note.addModifier(u, new Vex.Flow.Ornament('tr'));
-          } */
         }
       }
       if (bar[i].dotted) {
-        // staveNote.addDotToAll();
         staveNote.addDotToAll();
       } else if (bar[i].doubleDotted) {
-        // staveNote.addDotToAll().addDotToAll();
         staveNote.addDotToAll().addDotToAll();
-        // Vex.Flow.Dot.buildAndAttach([staveNote], { all: true });
       }
-
-      /* if(bar[i].effects !== null && bar[i].effects.strokeType !== null){
-        if(bar[i].effects.strokeType == "down")
-          note.addStroke(0, new Vex.Flow.Stroke(1));
-        else if(bar[i].effects.strokeType == "up")
-          note.addStroke(0, new Vex.Flow.Stroke(2));
-      } */
 
       this.allNotes[blockId].push({
         note: staveNote, tied: ties, strings, measure: bar[i],
@@ -564,36 +467,6 @@ class ClassicalNotation {
       trackId, blockId, voiceId, this.allVoices[blockId],
     );
     setClassicalBeatWidth(blockId, this.blockBeatWidths[blockId]);
-  }
-
-  static generateVexFlowTuple(
-    trackId: number, blockId: number, voiceId: number, notes: Vex.Flow.StaveNote[],
-  ) {
-    const bar = Song.measures[trackId][blockId][voiceId];
-    const tuplets = [];
-    for (let i = 0; i < bar.length; i += 1) {
-      if (bar[i].tuplet != null) {
-        const tupletNotes = [];
-        const startTupletId = bar[i].tupletId;
-        const startTuplet = bar[i].tuplet;
-        let j;
-        for (j = i; j < bar.length; j += 1) {
-          if (bar[j].tuplet != null && startTupletId === bar[j].tupletId) {
-            tupletNotes.push(notes[j]);
-          } else {
-            break;
-          }
-        }
-        i = j - 1;
-
-        // Special case: dotted single tuplet - also handled in vexflowDuration
-        if (tupletNotes.length !== 1) {
-          const tupleConfig = { num_notes: startTuplet!, ratioed: false };
-          tuplets.push(new Vex.Flow.Tuplet(tupletNotes, tupleConfig));
-        }
-      }
-    }
-    return tuplets;
   }
 
   static getNoteWidth(note: Vex.Flow.StaveNote) {

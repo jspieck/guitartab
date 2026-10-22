@@ -63,7 +63,6 @@
 import { onMounted, ref } from 'vue'
 import BaseModal from './BaseModal.vue'
 import Song from '../assets/js/songData'
-import AppManager from '../assets/js/appManager'
 import { modalManager } from '../assets/js/modals/modalManager'
 import { serializeSongToGtBytes } from '../utils/gtSerialization'
 import { loadCloudSongById } from '../services/cloudSongLoader'
@@ -76,6 +75,7 @@ import {
   uploadCloudSong,
   type CloudSongSummary,
 } from '../services/cloudSongApi'
+import { showNotification } from '../stores/notificationState'
 
 const songs = ref<CloudSongSummary[]>([])
 const loading = ref(false)
@@ -129,7 +129,7 @@ async function saveCurrentToCloud() {
     })
     setShareUrl(saved.id)
     statusMessage.value = `Saved "${saved.title}" to cloud.`
-    AppManager.showNotification('Saved to cloud!')
+    showNotification('Saved to cloud!')
     await refreshSongs()
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : 'Failed to save to cloud'
@@ -160,7 +160,7 @@ async function copyShareUrl() {
   }
   try {
     await navigator.clipboard.writeText(shareUrl.value)
-    AppManager.showNotification('Share link copied!')
+    showNotification('Share link copied!')
   } catch {
     statusMessage.value = 'Could not copy link — select and copy manually.'
   }

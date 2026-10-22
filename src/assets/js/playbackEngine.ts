@@ -1,9 +1,10 @@
+import { selectionState } from '../../stores/selectionState';
 import workerFunction from './audioIntervalWorker';
-import Settings from './settingManager';
+import Settings, { EPSILON } from '../../stores/settingsState';
 import Song, { Note, Beat, Interval } from './songData';
 import { audioEngine } from './audioEngine';
-import midiEngine from './midiReceiver';
-import Duration from './duration';
+import liveInput from '../../services/midi/liveInput';
+import Duration from '../../utils/duration';
 import * as playbackController from '../../services/editor/playbackController';
 import * as navigationController from '../../services/editor/navigationController';
 import {
@@ -13,10 +14,9 @@ import {
 } from '../../services/editor/playbackEngineBridge';
 import { tab } from './tab';
 import { typedEventBus } from '../../utils/typedEventBus';
-import { visualInstruments } from './visualInstruments';
-import Helper from './helper';
-import { overlayHandler } from './overlayHandler';
-import { sequencerHandler } from './sequencerHandler';
+import { clearPlaybackNotes, showPlaybackBeat } from '../../stores/soundingNotesState';
+import { currentLoopInterval } from '../../services/editor/rangeSelection';
+import { setSequencerIndicator } from '../../stores/sequencerState';
 import {
   didCrossLoopBoundary,
   getEffectiveBlockLengthForLoop,
@@ -44,6 +44,19 @@ function wps(bpm: number): number {
 
 /** Lead time before the first count-in click / first note, so nothing is scheduled in the past. */
 const START_LEAD_SECONDS = 0.05;
+
+/** Fret of the next beat's note on `string` (for slides), or null when there is none. */
+function nextFretOnString(
+  trackId: number, blockId: number, voiceId: number, beatId: number, string: number,
+): number | null {
+  const lastBeat = Song.measures[trackId][blockId][voiceId].length - 1;
+  let next = { trackId, blockId, voiceId, beatId: beatId + 1 };
+  if (beatId >= lastBeat) {
+    if (blockId + 1 >= Song.measures[trackId].length) return null;
+    next = { trackId, blockId: blockId + 1, voiceId, beatId: 0 };
+  }
+  return Song.findBeat(next)?.notes?.[string]?.fret ?? null;
+}
 
 class PlayBackLogic {
   lookahead: number;
@@ -75,8 +88,6 @@ class PlayBackLogic {
 
   timerWorker: Worker;
 
-
-
   lastMeasuredTime: number;
 
   alwaysIncreasingBlockNumber: number;
@@ -94,7 +105,6 @@ class PlayBackLogic {
   loopPreScheduled: number[][];
 
   nextMidiNoteFetching: number;
-
 
   /** Last metronome click scheduled, as `sequenceIndex * 64 + beat`. */
   lastClickKey: number;
@@ -147,7 +157,6 @@ class PlayBackLogic {
       ),
     ));
 
-
     this.lastMeasuredTime = 0;
     // number of blocks that was played
     this.alwaysIncreasingBlockNumber = 0;
@@ -186,7 +195,7 @@ class PlayBackLogic {
     if (Settings.songPlaying) {
       return this.getBlockFromSequence(this.alwaysIncreasingBlockNumber);
     }
-    return tab.markedNoteObj.blockId;
+    return selectionState.cursor.blockId;
   }
 
   /** Where `beatIdTo` starts inside its bar, in duration units. */
@@ -248,7 +257,6 @@ class PlayBackLogic {
   }
 
   initTimerWorker() {
-    // this.timerWorker = new Worker('./js/audioIntervalWorker');
     this.timerWorker.onmessage = (e) => {
       if (e.data === 'tick') {
         this.scheduler();
@@ -265,7 +273,7 @@ class PlayBackLogic {
     // Stop all audio playback immediately
     audioEngine.stopAllSources();
     playbackController.hidePlayBackBars();
-    visualInstruments.unmarkVisualInstruments();
+    clearPlaybackNotes();
     this.setPlayPosition(Song.currentTrackId, 0, Song.currentVoiceId, 0);
     publishPlaybackUiStopped();
   }
@@ -399,7 +407,6 @@ class PlayBackLogic {
       const { strokeLength, strokeType } = beatEffects.stroke;
       // strokeLength is 128 for 1/128 and 8 for eighth
       const laterStart = 1 / strokeLength / (2 * 6); // divided through the number of frets
-      // var laterStart = Duration.getDurationOfType(strokeLength)/64;
       const secFactor = 1;// 0.8;
       // Strings are stored lowest first: a down strum reaches string 0 first, an up strum last.
       const order = strokeType === 'down' ? string : numStrings - 1 - string;
@@ -407,7 +414,7 @@ class PlayBackLogic {
       duration -= (laterStart * spw(Song.bpm)) * order * secFactor;
     }
 
-    const nextFret = Helper.findNextNote(trackId, blockId, voiceId, beatId, string);
+    const nextFret = nextFretOnString(trackId, blockId, voiceId, beatId, string);
     const instr = Song.playBackInstrument[trackId].instrument;
     const { fret } = note;
     if (instr === 'guitar' || instr === 'eguitar' || instr === 'disteguitar'
@@ -456,7 +463,7 @@ class PlayBackLogic {
   }
 
   scheduleMetronomeClicks(currentTime: number) {
-    const loopInterval = overlayHandler.getLoopingInterval();
+    const loopInterval = currentLoopInterval();
     const horizon = this.scheduleHorizon();
     let barStart = this.globalIncreasingTime - this.absoluteTimeToSynchronize;
 
@@ -477,7 +484,7 @@ class PlayBackLogic {
       const beats = getBarBeatPositions(meta.numerator, meta.denominator, length);
       for (let beat = 0; beat < beats.length; beat += 1) {
         const key = sequenceIndex * 64 + beat;
-        if (key <= this.lastClickKey || beats[beat] < skipped - Settings.EPSILON) {
+        if (key <= this.lastClickKey || beats[beat] < skipped - EPSILON) {
           continue;
         }
         const tickTime = barStart + beats[beat] - skipped;
@@ -485,17 +492,13 @@ class PlayBackLogic {
           return;
         }
         this.lastClickKey = key;
-        if (tickTime >= this.globalIncreasingTime - Settings.EPSILON) {
+        if (tickTime >= this.globalIncreasingTime - EPSILON) {
           const when = currentTime + (tickTime - this.globalIncreasingTime) * spw(bpm);
           audioEngine.playMetronomeNote(when, beat === 0);
         }
       }
       barStart += length - skipped;
     }
-  }
-
-  getAbsoluteTime() {
-    return this.absoluteTimeToSynchronize;
   }
 
   getCurrentTime(): {blockId: number, positionInBlock: number} {
@@ -529,8 +532,8 @@ class PlayBackLogic {
     let accumulateTime = 0;
     const n = Song.measures[trackId][startBlock][voiceId].length;
     for (let beatId = 0; beatId < n; beatId += 1) {
-      if (accumulateTime / 64 >= startRatio - Settings.EPSILON) {
-        if (startBlock === endBlock && accumulateTime / 64 >= endRatio - Settings.EPSILON) {
+      if (accumulateTime / 64 >= startRatio - EPSILON) {
+        if (startBlock === endBlock && accumulateTime / 64 >= endRatio - EPSILON) {
           return null;
         }
         return {
@@ -567,9 +570,9 @@ class PlayBackLogic {
     let accumulateTime = 0;
     const n = Song.measures[trackId][startBlock][voiceId].length;
     for (let beatId = 0; beatId < n; beatId += 1) {
-      if (accumulateTime / 64 >= startRatio - Settings.EPSILON) {
+      if (accumulateTime / 64 >= startRatio - EPSILON) {
         if (loopingInterval != null && loopingInterval.endBlock === startBlock
-          && accumulateTime / 64 >= loopingInterval.endRatio - Settings.EPSILON) {
+          && accumulateTime / 64 >= loopingInterval.endRatio - EPSILON) {
           break;
         } else {
           return {
@@ -588,8 +591,8 @@ class PlayBackLogic {
       let noteFound = false;
       const n2 = Song.measures[trackId][startBlock][voiceId].length;
       for (let beatId = 0; beatId < n2; beatId += 1) {
-        if (accumulateTime / 64 >= loopingInterval.startRatio - Settings.EPSILON
-          && accumulateTime / 64 < loopingInterval.endRatio - Settings.EPSILON) {
+        if (accumulateTime / 64 >= loopingInterval.startRatio - EPSILON
+          && accumulateTime / 64 < loopingInterval.endRatio - EPSILON) {
           noteFound = true;
           break;
         }
@@ -626,7 +629,7 @@ class PlayBackLogic {
 
     let lengthOfBlock = Song.measureMeta[currentBlock].numerator
       / Song.measureMeta[currentBlock].denominator;
-    const loopInterval = overlayHandler.getLoopingInterval();
+    const loopInterval = currentLoopInterval();
     lengthOfBlock = getEffectiveBlockLengthForLoop(currentBlock, loopInterval, lengthOfBlock);
     if (lengthOfBlock - this.absoluteTimeToSynchronize < distanceToNextNoteInCurrentBlock) {
       distanceToNextNoteInNextBlock = distanceToNextNoteInCurrentBlock
@@ -650,7 +653,7 @@ class PlayBackLogic {
     // COMPUTE time of note after nextNote
     let nextNotePoint = nextNoteObj.time + durationOfNextNote / 64;
     // correction, because tuplets compute with small error, to get it to the full beat
-    if (Math.abs(nextNotePoint - Math.round(nextNotePoint)) < Settings.EPSILON) {
+    if (Math.abs(nextNotePoint - Math.round(nextNotePoint)) < EPSILON) {
       nextNotePoint = Math.round(nextNotePoint);
     }
     const durTime = (durationOfNextNote / 64) * spw(bpmInBlock);
@@ -676,7 +679,6 @@ class PlayBackLogic {
       if (loopInterval != null && nextBlock === loopInterval.startBlock) {
         const followingNote = this.findNextBeat(trackId, voiceId, loopInterval.startBlock,
           loopInterval.startRatio, loopInterval.endBlock, loopInterval.endRatio, sequenceIndex);
-        // console.log(followingNote);
         if (followingNote != null && this.nextNoteTime[trackId][voiceId] != null) {
           nextBlock = followingNote.blockId;
           nextBeat = followingNote.beatId;
@@ -690,16 +692,11 @@ class PlayBackLogic {
           this.precomputeNextBlocks(sequenceIndex, 10);
         }
       }
-      // console.log("NEXT BLOCK ", nextBlock, nextBeat, trackId, voiceId);
     }
     // If note is already scheduled, do not schedule it again
-    // if(this.loopPreScheduled[trackId][voiceId] != null){
-    //    this.loopPreScheduled[trackId][voiceId] = null;
-    // }else{
     PlayBackLogic.playChord(
       trackId, blockId, voiceId, beatId, durTime, whenWillTheNextNoteBePlayed, beat,
     );
-    // }
 
     // SAVE NOTE FOR DRAWING
     if (Song.currentTrackId === trackId && Song.currentVoiceId === voiceId) {
@@ -749,17 +746,15 @@ class PlayBackLogic {
         const startBlock = this.getBlockFromSequence(this.alwaysIncreasingBlockNumber);
         this.nextNoteTime[trackId][voiceId] = this.findNextBeatGeneral(trackId, voiceId, startBlock,
           this.absoluteTimeToSynchronize, loopInterval, this.alwaysIncreasingBlockNumber);
-        // console.log("REPEAT", this.nextNoteTime[trackId][voiceId], this.playingBlockSequence);
       }
     }
   }
 
   precomputeNextBlocks(currentSequencePosition: number, numberToPrecompute: number) {
     /** Precomputes the next @numberToPrecompute blocks and repeat alternatives to be played */
-    // console.log(currentSequencePosition, numberToPrecompute);
     let currentBlock = this.getBlockFromSequence(currentSequencePosition);
     this.playingIteration = this.getPlayingIteration(currentSequencePosition);
-    const loopingInterval = overlayHandler.getLoopingInterval();
+    const loopingInterval = currentLoopInterval();
 
     for (let i = 0; i < numberToPrecompute; i += 1) {
       const resolved = resolveNextBlockAfterCurrent(
@@ -791,14 +786,13 @@ class PlayBackLogic {
     if (currentBlockBpm != null && Song.bpm !== currentBlockBpm) {
       Song.setTempo(currentBlockBpm);
     }
-    const loopInterval = overlayHandler.getLoopingInterval();
+    const loopInterval = currentLoopInterval();
     const extraTime = (currentTime - this.lastMeasuredTime) * wps(Song.bpm);
 
     // increase blockNumberOnBlockChange
     let lengthOfBlock = Song.measureMeta[currentBlock].numerator
       / Song.measureMeta[currentBlock].denominator;
     lengthOfBlock = getEffectiveBlockLengthForLoop(currentBlock, loopInterval, lengthOfBlock);
-    // console.log('AIB', this.absoluteTimeToSynchronize, extraTime, lengthOfBlock);
     if (this.absoluteTimeToSynchronize + extraTime >= lengthOfBlock) {
       this.alwaysIncreasingBlockNumber += 1;
       // a part of the time scheme has the old block info (bpm), the rest the new one
@@ -864,13 +858,13 @@ class PlayBackLogic {
     }
 
     // metronome (always while recording MIDI, otherwise when enabled)
-    if (practiceState.metronome || midiEngine.isRecording) {
+    if (practiceState.metronome || liveInput.isRecording) {
       this.scheduleMetronomeClicks(currentTime);
     }
-    if (midiEngine.isRecording) {
+    if (liveInput.isRecording) {
       if (this.nextMidiNoteFetching < this.globalIncreasingTime) {
         this.nextMidiNoteFetching += this.noteFetchingQuantization;
-        midiEngine.midiToNote();
+        liveInput.writeRecordedNotes();
       }
     }
     this.lastMeasuredTime = currentTime;
@@ -879,7 +873,6 @@ class PlayBackLogic {
   setStartInformationPerVoice(blockId: number, completeDuration: number) {
     this.absoluteTimeToSynchronize = completeDuration / 64;
     this.globalIncreasingTime = this.absoluteTimeToSynchronize;
-    // console.log(this.absoluteTimeToSynchronize, completeDuration, timeQuotient);
 
     for (let trackId = 0, n = Song.measures.length; trackId < n; trackId += 1) {
       // we assume the same block sizes
@@ -962,8 +955,8 @@ class PlayBackLogic {
     }
     this.startTimesOfBlocks[blockId + 1] = lastBlockStart; // makes coding easier later
 
-    if (midiEngine.isRecording) {
-      midiEngine.recordMidi();
+    if (liveInput.isRecording) {
+      liveInput.recordMidi();
     }
 
     this.timerWorker.postMessage('start');
@@ -972,7 +965,7 @@ class PlayBackLogic {
     playbackController.initPlayBackParameters();
     playbackController.movePlayBackBarToPosInBlock(Song.currentTrackId, this.playPosition.block,
       Song.currentVoiceId, this.playPosition.positionInBlock, 0);
-    publishPlaybackUiStarted(midiEngine.isRecording);
+    publishPlaybackUiStarted(liveInput.isRecording);
     publishPlaybackPosition(
       this.playPosition.block,
       0,
@@ -1019,10 +1012,9 @@ class PlayBackLogic {
           blockId,
           voiceId: Song.currentVoiceId,
           beatId,
-          string: tab.markedNoteObj.string,
+          string: selectionState.cursor.string,
         });
       }
-      // waveSurfer.stop();
     } else {
       this.startPlayback();
     }
@@ -1069,7 +1061,7 @@ class PlayBackLogic {
       nextTime = this.notesInQueue[0].nextTime;
       this.notesInQueue.splice(0, 1); // remove note from queue
     }
-    sequencerHandler.setIndicator(Song.currentTrackId, this.currentBlockPP);
+    setSequencerIndicator(Song.currentTrackId, this.currentBlockPP);
 
     // only draw on note change
     if (currentNote != null) {
@@ -1078,7 +1070,8 @@ class PlayBackLogic {
         this.currentBeatPP,
         this.playPosition.positionInBlock,
       );
-      visualInstruments.updatePianoAndGuitar(currentNote);
+      const track = Song.tracks[Song.currentTrackId];
+      showPlaybackBeat(currentNote, track.strings, track.capo);
 
       // change row if necessary - guard against uninitialized data
       if (!tab.blockToRow?.[Song.currentTrackId]?.[voiceId]?.[this.currentBlockPP]) {
@@ -1094,20 +1087,11 @@ class PlayBackLogic {
             this.currentBlockPP,
           );
         }
-        // scrollToBlock(this.currentBlockPP);
         this.lastRow = currentRow;
         this.wasTrackChanged = false;
       }
       const transformTime = (nextTime - audioEngine.getCurrentTime()) * 1000;
 
-      /* trick if next beat is not in horizontal increasing distance set beat new
-      var rowId = tab.blockToRow[Song.currentTrackId][
-        Song.currentVoiceId][this.currentBlockPP].rowId;
-      var isNewRow = this.currentBeatPP == 0
-        && tab.blocksPerRow[Song.currentTrackId][Song.currentVoiceId][rowId].start
-        == this.currentBlockPP;
-      var isRepeatJump = this.currentBeatPP == 0 && (this.lastBlockPP + 1 != this.currentBlockPP);
-      if(isNewRow || isRepeatJump){ */
       if (playbackController.hasBeenJumped()) {
         // Dirty quick fix: do not add the new row jump twice
         if (this.playBackMoveQueue.length === 0
@@ -1142,7 +1126,6 @@ class PlayBackLogic {
   movePlayBackBar() {
     /** Moves marker indicating current position in tab based on the playBackMoveQueue */
     const playBackbarMovement = this.playBackMoveQueue.shift();
-    // console.log(playBackbarMovement);
     if (playBackbarMovement != null) {
       const p = playBackbarMovement.params;
       if (playBackbarMovement.type === 'ToBeat') { // FOR SETTING INIT POS

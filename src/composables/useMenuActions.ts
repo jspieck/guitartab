@@ -1,16 +1,16 @@
 import type { Ref } from 'vue'
-import { revertHandler } from '../assets/js/revertHandler'
 import { modalManager } from '../assets/js/modals/modalManager'
 import Song from '../assets/js/songData'
-import Settings from '../assets/js/settingManager'
+import Settings from '../stores/settingsState'
 import AppManager from '../assets/js/appManager'
 import { classicalNotation } from '../services/editor/classicalNotationAdapter'
-import { overlayHandler } from '../assets/js/overlayHandler'
-import { menuHandler } from '../assets/js/menuHandler'
+import { notesInRange } from '../services/editor/rangeSelection'
+import { isEffectSet, toggleNoteEffect } from '../services/editor/effectToggles'
 import { applyNoteLengthSelection } from '../services/menuActionCommands'
 import type { NoteLengthCode } from '../types/tab'
 import { resolveNoteEffectModalRequest, type NoteEffectSelection } from '../services/menuMutationRouting'
 import { requestBlockRender } from '../services/editor/renderCommands'
+import { recordBarEdit } from '../services/editor/editCommands'
 import { processDynamicSelect } from '../services/editor/dynamicsCommands'
 import {
   measureSelect as runMeasureSelect,
@@ -23,12 +23,11 @@ interface UseMenuActionsOptions {
   currentTrackId: Ref<number>
   currentVoiceId: Ref<number>
   selectedTuplet: Ref<string>
-  noteTiedTo: Ref<{ blockId: number; beatId: number } | null>
-  syncMenuState: () => void
+  noteTiedTo: Readonly<Ref<{ blockId: number; beatId: number } | null>>
 }
 
 export function useMenuActions(options: UseMenuActionsOptions) {
-  const { currentTrackId, currentVoiceId, selectedTuplet, noteTiedTo, syncMenuState } = options
+  const { currentTrackId, currentVoiceId, selectedTuplet, noteTiedTo } = options
 
   const playbackEngine = usePlaybackEngine()
 
@@ -45,25 +44,21 @@ export function useMenuActions(options: UseMenuActionsOptions) {
 
   function selectNoteLength(noteLength: NoteLengthCode) {
     applyNoteLengthSelection(noteLength)
-    syncMenuState()
   }
 
   function dynamicSelect(id: string) {
     if (AppManager.duringTrackCreation) {
       return
     }
-    const arr = overlayHandler.getNotesInInterval(null)
+    const arr = notesInRange()
     processDynamicSelect(arr!, id, false)
-    syncMenuState()
   }
 
   function notationSelect(id: string) {
-    if (runNotationSelect(id)) {
-      syncMenuState()
-    }
+    runNotationSelect(id)
   }
 
-  function processEffectSelect(arr: NoteEffectSelection, id: string, isRevert: boolean) {
+  function processEffectSelect(arr: NoteEffectSelection, id: string) {
     let isVariableSet = true
     for (const no of arr.notes) {
       const beat = Song.getBeat({
@@ -73,48 +68,43 @@ export function useMenuActions(options: UseMenuActionsOptions) {
         beatId: no.beatId,
       })
       const note = beat.notes[no.string]
-      isVariableSet = menuHandler.getEffectVariable(beat, note, id)
+      isVariableSet = isEffectSet(beat, note, id)
     }
 
-    const modalRequest = resolveNoteEffectModalRequest(id, isVariableSet, isRevert, arr)
+    const modalRequest = resolveNoteEffectModalRequest(id, isVariableSet, false, arr)
     if (modalRequest != null) {
       modalManager.toggleByModal(modalRequest.modal, modalRequest.params)
       return
     }
 
-    const changes = menuHandler.handleEffectGroupCollision(arr.notes, id, isVariableSet)
-    if (isRevert === false) {
-      revertHandler.addNoteEffectSelect(arr, id, changes)
-    }
+    const trackId = arr.notes[0]?.trackId ?? currentTrackId.value
+    const blockIds = [...arr.blocks, ...arr.notes.map((note) => note.blockId)]
+    recordBarEdit(effectLabel(id), { trackId, blockIds }, () => {
+      toggleNoteEffect(arr.notes, id, isVariableSet)
+    })
     if (id === 'grace') {
       classicalNotation.computeVexFlowDataStructures(currentTrackId.value, currentVoiceId.value)
     }
     for (const blockId of arr.blocks) {
       requestBlockRender(currentTrackId.value, blockId, currentVoiceId.value)
     }
-
-    syncMenuState()
   }
 
   function noteEffectSelect(id: string): void {
     if (AppManager.duringTrackCreation) {
       return
     }
-    const arr = overlayHandler.getNotesInInterval(null)
-    processEffectSelect(arr!, id, false)
+    const arr = notesInRange()
+    processEffectSelect(arr!, id)
   }
 
   function noteLengthSpecialSelect(id: string) {
     const tupleSel = parseInt(selectedTuplet.value, 10)
-    if (runNoteLengthSpecialSelect(id, tupleSel, noteTiedTo.value)) {
-      syncMenuState()
-    }
+    runNoteLengthSpecialSelect(id, tupleSel, noteTiedTo.value)
   }
 
   function measureSelect(id: string) {
-    if (runMeasureSelect(id)) {
-      syncMenuState()
-    }
+    runMeasureSelect(id)
   }
 
   return {
@@ -126,4 +116,10 @@ export function useMenuActions(options: UseMenuActionsOptions) {
     noteLengthSpecialSelect,
     measureSelect,
   }
+}
+
+/** "palmMute" -> "Palm mute", for the undo label. */
+function effectLabel(id: string): string {
+  const words = id.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }

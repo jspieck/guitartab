@@ -1,10 +1,8 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Song } from '../songData';
-import { revertHandler } from '../revertHandler';
+import { recordTrackEdit } from '../../../services/editor/songSettingsCommands';
 import { tab } from '../tab';
 import Picker from 'vanilla-picker';
-import Settings from '../settingManager';
-import AppManager from '../appManager';
 import { notifySongDataChanged } from '../../../services/appEvents';
 import { modalManager } from './modalManager';
 import { TuningModalHandler } from './tuningModalHandler';
@@ -195,53 +193,34 @@ export class InstrumentSettingsModalHandler extends BaseModalHandler {
 
     private handleSettingsSubmit() {
         const { trackId, instrumentSettingData } = this.modalState;
-        const trackBefore = JSON.parse(JSON.stringify(Song.tracks[trackId]));
-        const numStringsBefore = Song.tracks[trackId].numStrings;
-        const track = Song.tracks[trackId];
-
-        // Update track data
-        track.name = instrumentSettingData.name;
-        track.color = instrumentSettingData.color;
-        track.numStrings = instrumentSettingData.numStrings;
-        track.capo = instrumentSettingData.capo;
-        track.letItRing = (document.getElementById('ringCheckbox') as HTMLInputElement).checked;
-
-        // Update strings
-        track.strings.length = 0;
-        for (let i = 0; i < track.numStrings; i++) {
+        const ringChecked = (document.getElementById('ringCheckbox') as HTMLInputElement).checked;
+        const tuning: number[] = [];
+        for (let i = 0; i < instrumentSettingData.numStrings; i++) {
             const selectEl = document.getElementById(`tuningSelect${i}`) as HTMLInputElement | null;
             if (selectEl) {
-                track.strings[i] = parseInt(selectEl.value, 10);
+                tuning[i] = parseInt(selectEl.value, 10);
             }
         }
 
-        // Update UI
-        if (Settings.sequencerTrackColor) {
-            const { red, green, blue } = track.color;
-            const labelImage = document.getElementById(`labelImg${trackId}`);
-            if (labelImage instanceof HTMLElement) {
-                labelImage.style.borderLeft = `3px solid rgb(${red}, ${green}, ${blue})`;
-            }
-        }
-        const instrumentLabel = document.getElementById(`instrumentLabel${trackId}`);
-        if (instrumentLabel) {
-            instrumentLabel.textContent = track.name;
-        }
-        
-        // Handle state changes
-        revertHandler.addInstrumentSettings(trackId, trackBefore, track);
-
-        if (numStringsBefore !== track.numStrings) {
-            tab.redrawCompleteTrack(trackId);
-        }
-        
-        AppManager.setCapo(instrumentSettingData.capo);
-        if (trackId === Song.currentTrackId) {
-            tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, () => {
-                AppManager.setTrackInstrument(trackId);
-            });
-        }
-
-        notifySongDataChanged();
+        recordTrackEdit('Track settings', trackId, () => {
+            const track = Song.tracks[trackId];
+            track.name = instrumentSettingData.name;
+            track.color = { ...instrumentSettingData.color };
+            track.numStrings = instrumentSettingData.numStrings;
+            track.capo = instrumentSettingData.capo;
+            track.letItRing = ringChecked;
+            track.strings.length = 0;
+            tuning.forEach((value, i) => { track.strings[i] = value; });
+        }, refreshTrackSettings);
     }
+}
+
+/** Re-layout after a track-settings change, its undo and its redo. */
+function refreshTrackSettings(trackId: number): void {
+    // Labels and colours in the sequencer are reactive; the tab needs a new layout.
+    tab.redrawCompleteTrack(trackId);
+    if (trackId === Song.currentTrackId) {
+        tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null);
+    }
+    notifySongDataChanged();
 }

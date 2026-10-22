@@ -1,20 +1,15 @@
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import Settings from '../assets/js/settingManager'
+import { computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import Settings from '../stores/settingsState'
 import { classicalNotation } from '../services/editor/classicalNotationAdapter'
 import { typedEventBus } from '../utils/typedEventBus'
 
 export function useClassicalNotation(trackId: number, voiceId: number) {
-  const isActive = ref(Settings.vexFlowIsActive)
+  const isActive = computed(() => Settings.vexFlowIsActive)
   let redrawQueued = false
   let redrawInProgress = false
 
-  function syncActiveState(): void {
-    isActive.value = Settings.vexFlowIsActive
-  }
-
   async function toggleClassicalNotation(): Promise<void> {
     await classicalNotation.toggleClassicalVisibility()
-    syncActiveState()
   }
 
   function redrawRows(): void {
@@ -62,7 +57,6 @@ export function useClassicalNotation(trackId: number, voiceId: number) {
   }
 
   function handleClassicalNotationChanged(): void {
-    syncActiveState()
     void scheduleRedrawRows()
   }
 
@@ -73,7 +67,6 @@ export function useClassicalNotation(trackId: number, voiceId: number) {
   })
 
   onMounted(() => {
-    syncActiveState()
     typedEventBus.on('classical-notation-changed', handleClassicalNotationChanged)
     if (Settings.vexFlowIsActive) {
       void classicalNotation.ensurePrepared(trackId, voiceId).then(() => scheduleRedrawRows())

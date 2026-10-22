@@ -11,7 +11,7 @@ vi.mock('../src/assets/js/tab', () => ({
   tab: tabMock,
 }))
 
-import Settings from '../src/assets/js/settingManager'
+import Settings from '../src/stores/settingsState'
 import {
   applyViewportPageMode,
   registerMainContentElement,

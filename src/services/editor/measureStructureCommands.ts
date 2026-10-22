@@ -1,20 +1,15 @@
 import fastdom from 'fastdom'
+import { selectionState } from '../../stores/selectionState'
 import Song, { type Beat, type MeasureMetaInfo } from '../../assets/js/songData'
 import AppManager from '../../assets/js/appManager'
-import { sequencerHandler } from '../../assets/js/sequencerHandler'
-import { revertHandler } from '../../assets/js/revertHandler'
+import { cloneData, executeCommand, undoHistory } from './editCommands'
 import { requestDurationRender } from './renderCommands'
+import { showNotification } from '../../stores/notificationState'
+import { initTrackPlayback } from './trackLoading'
 
 /** Host surface for measure-structure mutations (usually the Tab singleton). */
 export interface MeasureStructureHost {
   measureOffset: number[][][]
-  markedNoteObj: {
-    trackId: number
-    voiceId: number
-    blockId: number
-    beatId: number
-    string: number
-  } | null
   fillMeasure: (trackId: number, blockId: number, voiceId: number) => void
   drawTrack: (trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null) => void
 }
@@ -53,10 +48,7 @@ export function createMeasures(
   }
 }
 
-export function addBlock(host: MeasureStructureHost, duringRestoration: boolean): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
+function appendBar(host: MeasureStructureHost): void {
   const blockId = Song.numMeasures
   for (let trackId = 0; trackId < Song.tracks.length; trackId += 1) {
     for (let voiceId = 0; voiceId < Song.numVoices; voiceId += 1) {
@@ -69,48 +61,91 @@ export function addBlock(host: MeasureStructureHost, duringRestoration: boolean)
   Song.measureMeta[blockId].numerator = Song.measureMeta[blockId - 1].numerator
   Song.measureMeta[blockId].denominator = Song.measureMeta[blockId - 1].denominator
   Song.numMeasures += 1
-  host.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null)
-  sequencerHandler.redrawSequencerMain()
-  if (duringRestoration === false) {
-    revertHandler.addBlock()
+}
+
+interface RemovedBar {
+  /** The bar's voices, per track. */
+  tracks: Beat[][][]
+  meta: MeasureMetaInfo
+}
+
+function removeLastBar(): RemovedBar {
+  Song.numMeasures -= 1
+  if (selectionState.cursor.blockId >= Song.numMeasures) {
+    selectionState.cursor.blockId = Song.numMeasures - 1
+    selectionState.cursor.beatId = 0
+  }
+  const tracks = Song.measures.map((bars) => bars.splice(-1)[0])
+  const meta = Song.measureMeta.splice(-1)[0] as MeasureMetaInfo
+  return { tracks, meta }
+}
+
+function restoreLastBar(bar: RemovedBar): void {
+  bar.tracks.forEach((voices, trackId) => Song.measures[trackId]?.push(cloneData(voices)))
+  Song.measureMeta.push(cloneData(bar.meta))
+  Song.numMeasures += 1
+}
+
+function barStructureChanged(host: MeasureStructureHost): () => void {
+  return () => {
+    host.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null)
   }
 }
 
-export function removeBlock(host: MeasureStructureHost, duringRestoration: boolean): void {
+/** Appends an empty bar to every track. */
+export function addBlock(host: MeasureStructureHost): void {
+  if (AppManager.duringTrackCreation) {
+    return
+  }
+  let removed: RemovedBar | null = null
+  executeCommand({
+    label: 'Add bar',
+    apply: () => appendBar(host),
+    invert: () => {
+      removed = removeLastBar()
+    },
+    afterChange: barStructureChanged(host),
+    adaptToTrackRemove(trackId) {
+      removed?.tracks.splice(trackId, 1)
+      return true
+    },
+  })
+}
+
+/** Removes the last bar on every track. */
+export function removeBlock(host: MeasureStructureHost): void {
   if (AppManager.duringTrackCreation) {
     return
   }
   fastdom.mutate(() => {
     if (Song.numMeasures <= 1) return
-    const blocksBefore: Beat[][][] = []
-    Song.numMeasures -= 1
-    if (host.markedNoteObj != null) {
-      if (host.markedNoteObj.blockId === Song.numMeasures) {
-        host.markedNoteObj.blockId -= 1
-        host.markedNoteObj.beatId = 0
-      }
-    }
-    for (let i = 0; i < Song.measures.length; i += 1) {
-      blocksBefore.push(Song.measures[i].splice(-1)[0])
-    }
-    const measureMetaBefore = Song.measureMeta.splice(-1)[0] as MeasureMetaInfo
-    host.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null)
-    sequencerHandler.redrawSequencerMain()
-    if (duringRestoration === false) {
-      revertHandler.removeBlock(blocksBefore, measureMetaBefore)
-      offerUndoOfRemovedBar(Song.numMeasures + 1)
-    }
+    let removed: RemovedBar | null = null
+    executeCommand({
+      label: 'Remove bar',
+      apply: () => {
+        removed = removeLastBar()
+      },
+      invert: () => {
+        if (removed) restoreLastBar(removed)
+      },
+      afterChange: barStructureChanged(host),
+      adaptToTrackRemove(trackId) {
+        removed?.tracks.splice(trackId, 1)
+        return true
+      },
+    })
+    offerUndoOfRemovedBar(Song.numMeasures + 1)
   })
 }
 
 // Removing a bar deletes its notes on every track, so offer the undo right where the user looks
 // instead of asking first. The button only undoes while the removal is still the last edit.
 function offerUndoOfRemovedBar(barNumber: number): void {
-  const removal = revertHandler.peekUndo()
-  AppManager.showNotification(`Removed bar ${barNumber}`, 'info', {
+  const removal = undoHistory.peek()
+  showNotification(`Removed bar ${barNumber}`, 'info', {
     label: 'Undo',
     run: () => {
-      if (revertHandler.peekUndo() === removal) revertHandler.revertState()
+      if (undoHistory.peek() === removal) undoHistory.undo()
     },
   })
 }
@@ -157,7 +192,7 @@ export function createNewTrack(
     }
   }
   createMeasures(host, trackId, 0)
-  AppManager.setTracks(trackId)
+  initTrackPlayback(trackId)
 }
 
 export function initEmptyTab(): void {

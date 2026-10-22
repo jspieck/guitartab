@@ -181,24 +181,6 @@ const parser = {
     }
     return this.sample[index];
   },
-  getSamples() {
-    return this.sample;
-  },
-  getPresets() {
-    return this.presetHeader;
-  },
-  getInstruments() {
-    return this.instrument;
-  },
-  getInstrumentZone() {
-    return this.instrumentZone;
-  },
-  getInstrumentZoneModulator() {
-    return this.instrumentZoneModulator;
-  },
-  getInstrumentZoneGenerator() {
-    return this.instrumentZoneGenerator;
-  },
 
   parse(inp) {
     this.input = inp;
@@ -1287,10 +1269,6 @@ const synth = {
 
   /** @type {HTMLTableElement} */
   table: null,
-
-  getBankSet() {
-    return this.bankSet;
-  },
 
   ProgramNames: [
     'Acoustic Piano',

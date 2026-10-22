@@ -1,13 +1,11 @@
 import { BaseModalHandler, ModalState } from './baseModalHandler';
 import { Note, Beat, TremoloBar } from '../songData';
-import { typedEventBus } from '../../../utils/typedEventBus';
-import { revertHandler } from '../revertHandler';
+import { recordBarEdit } from '../../../services/editor/editCommands';
 import {
   connectPoints,
   drawPoint,
 } from '../../../utils/svgPrimitives';
-import Helper from '../helper';
-import menuHandler from '../menuHandler';
+import { toggleBeatEffect } from '../../../services/editor/effectToggles';
 import { MODALS } from './modalTypes';
 import { requestBlocksRender } from '../../../services/editor/renderCommands';
 
@@ -100,7 +98,7 @@ export class TremoloBarModalHandler extends BaseModalHandler {
             return;
         }
         // Clear interactive points only — Vue owns the grid/frame/labels.
-        Helper.removeAllChildren(layer);
+        layer?.replaceChildren();
         this.modalState.tremoloPointsArr = [];
 
         const width = this.modalState.tremoloEditorClientWidth - 2 * this.padding;
@@ -187,29 +185,14 @@ export class TremoloBarModalHandler extends BaseModalHandler {
 
     public applyTremoloChanges() {
         const { beats, blocks } = this.modalState;
-        const beatsBefore = menuHandler.handleEffectGroupCollisionBeat(beats, 'tremoloBar', this.modalState.isVariableSet);
-        for (const be of beats) {
-            const beat = be.beat;
-            const beatStr = `${be.trackId}_${be.blockId}_${be.voiceId}_${be.beatId}`;
-            const tremoloBarBefore = beat.effects.tremoloBar;
-            
-            const tremoloBarObj: TremoloBar = this.createTremoloBarFromPoints();
-            beat.effects.tremoloBar = tremoloBarObj;
-
-            if (tremoloBarBefore == null) {
-                typedEventBus.emit("menu.activateEffectsForBeat", beat);
+        const blockIds = [...blocks, ...beats.map((be: { blockId: number }) => be.blockId)];
+        recordBarEdit('Tremolo bar', { trackId: beats[0].trackId, blockIds }, () => {
+            toggleBeatEffect(beats, 'tremoloBar', this.modalState.isVariableSet);
+            for (const be of beats) {
+                const tremoloBarObj: TremoloBar = this.createTremoloBarFromPoints();
+                be.beat.effects.tremoloBar = tremoloBarObj;
             }
-
-            revertHandler.addTremoloBar(
-                be.trackId,
-                be.blockId,
-                be.voiceId,
-                be.beatId,
-                tremoloBarBefore,
-                beat.effects.tremoloBar,
-                beatsBefore[beatStr],
-            );
-        }
+        });
 
         requestBlocksRender(beats[0].trackId, blocks, beats[0].voiceId);
         this.closeModal();

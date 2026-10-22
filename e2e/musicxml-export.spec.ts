@@ -13,7 +13,7 @@ async function checkExport(page: Page) {
   return page.evaluate(async () => {
     const { songAsMusicXml } = await import('/src/services/songExport.ts')
     const { default: Song } = await import('/src/assets/js/songData.ts')
-    const { default: Duration } = await import('/src/assets/js/duration.ts')
+    const { default: Duration } = await import('/src/utils/duration.ts')
     const xml = songAsMusicXml()
     const doc = new DOMParser().parseFromString(xml, 'application/xml')
     if (doc.getElementsByTagName('parsererror').length > 0) return { error: 'not well-formed' }
@@ -30,7 +30,7 @@ async function checkExport(page: Page) {
         problems.push(`part ${trackId}: ${measures.length} measures`)
       measures.forEach((measure, blockId) => {
         // Bar length in quarters, from the editor's own duration math (64 = whole note).
-        const barQuarters = Duration.getDurationOfBlock(blockId) / 16
+        const barQuarters = Duration.getDurationOfBar(Song.measureMeta[blockId]) / 16
         const totals = new Map<string, number>()
         for (const note of measure.querySelectorAll(':scope > note')) {
           if (note.querySelector('grace')) continue

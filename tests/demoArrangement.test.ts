@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import Duration from '../src/assets/js/duration'
+import Duration from '../src/utils/duration'
 import { buildDemoArrangement } from '../src/data/demoArrangement'
 
 const song = buildDemoArrangement()
