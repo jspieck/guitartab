@@ -197,7 +197,7 @@ defineExpose({
 
 .cloud-status-message {
   margin: 8px 0 0;
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
 }
 
@@ -225,7 +225,7 @@ defineExpose({
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--modal-divider);
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .cloud-song-meta {
@@ -236,7 +236,7 @@ defineExpose({
 
 .cloud-song-updated {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .cloud-song-buttons {
@@ -247,6 +247,6 @@ defineExpose({
 
 .cloud-list-empty {
   margin: 8px 0 0;
-  color: #666;
+  color: var(--color-text-muted);
 }
 </style>

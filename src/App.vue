@@ -3,7 +3,7 @@
     <svg width="0" height="0">
       <defs>
         <filter x="-0.02" y="0" width="1.04" height="1.1" id="solid">
-          <feFlood flood-color="#d4e5f4" />
+          <feFlood style="flood-color: var(--tab-hover)" />
           <feComposite in="SourceGraphic" operator="atop" />
         </filter>
       </defs>
@@ -35,7 +35,7 @@
       <svg version="1.1" id="loader-1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
         x="0px" y="0px" width="50px" height="50px" viewBox="0 0 50 50"
         xml:space="preserve">
-        <path fill="#274bb3"
+        <path style="fill: var(--color-accent)"
           d="M25.251,6.461c-10.318,0-18.683,8.365-18.683,18.683h4.068c0-8.071,6.543-14.615,14.615-14.615V6.461z">
           <animateTransform attributeType="xml" attributeName="transform" type="rotate" from="0 25 25" to="360 25 25"
             dur="0.6s" repeatCount="indefinite" />
@@ -46,7 +46,7 @@
     <Transition name="notification-fade">
       <div v-if="notificationState.visible" id="notificationEmblem" :key="notificationState.id"
         :class="{ 'notification-error': notificationState.kind === 'error' }" role="status">
-        <img id="infoNotification" src="./assets/images/info.svg" alt="">
+        <AppIcon id="infoNotification" name="info" :size="16" />
         <label id="notificationLabel">{{ notificationState.text }}</label>
         <button v-if="notificationState.action" type="button" id="notificationAction"
           @click="runNotificationAction">{{ notificationState.action.label }}</button>
@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Menu from './components/Menu.vue'
+import AppIcon from './components/AppIcon.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
 import { startUp } from './services/startup'
 import { useSongData } from './composables/useSongData'

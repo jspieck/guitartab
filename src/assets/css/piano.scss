@@ -1,6 +1,6 @@
 .piano {
     position:relative;
-    background: #161616;
+    background: var(--gray-900);
     text-align: center;
     -moz-user-select: -moz-none;
     -ms-user-select: none;
@@ -21,14 +21,14 @@
             box-sizing: border-box;
             display: inline-block;
             position: relative;
-            border: #f8f1e5 1px solid;
+            border: var(--gray-100) 1px solid;
             height: 100%;
             width: 1.786%;
 
             .key {
-                -moz-box-shadow: #575757 0px 3px 3px -1px;
-                -webkit-box-shadow: #575757 0px 1px 2px -1px;
-                box-shadow: #575757 0px 1px 2px -1px;
+                -moz-box-shadow: var(--gray-600) 0px 3px 3px -1px;
+                -webkit-box-shadow: var(--gray-600) 0px 1px 2px -1px;
+                box-shadow: var(--gray-600) 0px 1px 2px -1px;
                 -moz-border-radius: 1px;
                 -webkit-border-radius: 1px;
                 border-radius: 1px;
@@ -41,29 +41,29 @@
                 -webkit-transition-duration: 0.2s;
                 transition-duration: 0.2s;
                 cursor: pointer;
-                background: #faf5ed;
+                background: var(--gray-50);
                 height: 100%;
 
                 &:active{
                     -moz-box-shadow: gray 0px 1px 3px -1px;
                     -webkit-box-shadow: gray 0px 1px 3px -1px;
                     box-shadow: gray 0px 1px 3px -1px;
-                    background: #d7cfc3;
+                    background: var(--gray-300);
                 }
                 &.activeKey{
                     -moz-box-shadow: gray 0px 1px 3px -1px;
                     -webkit-box-shadow: gray 0px 1px 3px -1px;
                     box-shadow: gray 0px 1px 3px -1px;
-                    background: #424a70;
-                    background: #ffb241;
+                    background: var(--indigo-700);
+                    background: var(--amber-400);
                 }
             }
             .upper-key.activeKey{
                 -moz-box-shadow: gray 0px 1px 3px -1px;
                 -webkit-box-shadow: gray 0px 1px 3px -1px;
-                box-shadow: #2b2b47 0px 1px 3px -1px;
-                background: #485074;
-                background: #ff9800;
+                box-shadow: var(--gray-750) 0px 1px 3px -1px;
+                background: var(--indigo-700);
+                background: var(--amber-500);
             }
             .upper-key {
                 -moz-border-radius: 3px;
@@ -77,11 +77,11 @@
                 -o-transition-duration: 0.1s;
                 -webkit-transition-duration: 0.1s;
                 transition-duration: 0.1s;
-                -moz-box-shadow: black 0px 3px 3px 0px;
-                -webkit-box-shadow: black 0px 3px 3px 0px;
-                box-shadow: black 0px 3px 3px 0px;
+                -moz-box-shadow: var(--gray-1000) 0px 3px 3px 0px;
+                -webkit-box-shadow: var(--gray-1000) 0px 3px 3px 0px;
+                box-shadow: var(--gray-1000) 0px 3px 3px 0px;
                 cursor: pointer;
-                background: #262626;
+                background: var(--gray-800);
                 display: block;
                 position: absolute;
                 top: 0;

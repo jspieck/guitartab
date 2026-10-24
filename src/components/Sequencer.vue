@@ -3,14 +3,18 @@
         <div id="sequencerWrapper" :class="{ minimized: sequencerMinimized }">
             <div id="sequencerSideBar">
                 <div class="labelDiv headerDiv">
-                    <img id="sequencerToggle" class="labelImg sequencerHeaderImg"
-                        src="../assets/images/sequencerToggle.svg" @click="toggleSequencerWrapperMinimize" />
+                    <button id="sequencerToggle" type="button" class="labelImg sequencerHeaderImg seq-icon-button"
+                        aria-label="Collapse or expand the sequencer" @click="toggleSequencerWrapperMinimize">
+                        <AppIcon :name="sequencerMinimized ? 'chevron-up' : 'chevron-down'" />
+                    </button>
                     <div class="label unselectable">Sequencer</div>
-                    <div id="sequencerEdit" @click="toggleSequencerEditMode" :style="{ background: editModeActive ? 'transparent' : 'rgba(103, 103, 103, 0.22)' }">
-                        <img id="sequencerEditImg" src="../assets/images/cogWheel.svg" alt="Edit Sequencer">
+                    <div id="sequencerEdit" @click="toggleSequencerEditMode" :style="{ background: editModeActive ? 'transparent' : 'var(--seq-edit-off)' }">
+                        <AppIcon id="sequencerEditImg" name="settings" />
                     </div>
-                    <img id="sequencerAddInstrument" data-tooltip="Add Instrument"
-                        src="../assets/images/addInstrument.svg" @click="openAddTrack" />
+                    <button id="sequencerAddInstrument" type="button" class="seq-icon-button" data-tooltip="Add Instrument"
+                        aria-label="Add instrument" @click="openAddTrack">
+                        <AppIcon name="add" />
+                    </button>
                     <div id="sequencerPanInstrument" v-if="!editModeActive">Pan</div>
                     <div id="sequencerRevInstrument" v-if="!editModeActive">Rev</div>
                     <div id="sequencerChoInstrument" v-if="!editModeActive">Cho</div>
@@ -57,10 +61,10 @@
                             :model-value="reactiveSongData.playBackInstrument[trackId]?.chorus ?? 0" :min="0" :max="127"
                             :default-value="0" :format="formatAmount" :aria-label="`${instrumentLabelName[trackId]} chorus`"
                             @update:model-value="chorusKnobRotate($event, trackId)" />
-                        <img :id="`instrumentChange_${trackId}`" v-if="!editModeActive" class="instrumentChange"
-                            :src="getChangeButtonImage" @click="openInstrumentSettings(trackId)" />
-                        <img :id="`instrumentListDelete_${trackId}`" v-if="!editModeActive" class="instrumentListDelete"
-                            :src="getTrashButtonImage" @click="deleteTrack(trackId)" />
+                        <button :id="`instrumentChange_${trackId}`" v-if="!editModeActive" type="button" class="instrumentChange seq-icon-button"
+                            aria-label="Track settings" @click="openInstrumentSettings(trackId)"><AppIcon name="edit" /></button>
+                        <button :id="`instrumentListDelete_${trackId}`" v-if="!editModeActive" type="button" class="instrumentListDelete seq-icon-button"
+                            aria-label="Delete track" @click="deleteTrack(trackId)"><AppIcon name="trash" /></button>
                     </div>
                 </div>
             </div>
@@ -130,8 +134,7 @@ import { MODALS } from "../services/dialogs/modalTypes";
 import { registerMeterCanvas, sequencerState, setSequencerRange } from '../stores/sequencerState';
 import { useSongData } from '../composables/useSongData';
 import { changeTrackWithLoading, focusEditorPosition } from '../services/editorNavigation';
-import changeButtonImage from '../assets/images/change.svg';
-import trashButtonImage from '../assets/images/trashCan.svg';
+import AppIcon from './AppIcon.vue';
 
 const { reactiveSongData, syncSongData, songDataVersion } = useSongData();
 
@@ -268,10 +271,6 @@ const beatStyle = (trackId: number, index: number) => {
         ? ''
         : { background: colorPalette[trackId % colorPalette.length] };
 };
-
-const getChangeButtonImage = changeButtonImage;
-
-const getTrashButtonImage = trashButtonImage;
 
 const settingsIconSrc = publicUrl('instrumentIcons/myMasterDesign.svg');
 

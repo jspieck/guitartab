@@ -71,7 +71,7 @@
           id="playBackBarGroup0"
           :style="playbackBarStyle"
         >
-          <rect x="0" y="-5" width="2" :height="getPlaybackBarHeight(playbackBarState.y) + 5" fill="rgba(49, 156, 217, 0.6)" />
+          <rect x="0" y="-5" width="2" :height="getPlaybackBarHeight(playbackBarState.y) + 5" style="fill: var(--tab-playhead)" />
         </g>
       </g>
     </svg>

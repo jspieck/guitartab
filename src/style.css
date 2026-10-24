@@ -1,4 +1,3 @@
-/* ===== Tab Color Variables (Light Mode Defaults) ===== */
 .autosave-banner {
   position: fixed;
   /* Below the toolbar, so no editor controls are covered. */
@@ -13,56 +12,25 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  background: #1f2937;
-  color: #f9fafb;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 20%, transparent);
 }
 
 .autosave-banner__action {
   border: 0;
   border-radius: 6px;
   padding: 6px 10px;
-  background: #2563eb;
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
   cursor: pointer;
 }
 
 .autosave-banner__action--muted {
-  background: #4b5563;
+  background: var(--color-inverse-raised);
 }
 
-:root {
-  /* Tab sheet background */
-  --tab-bg: #ffffff;
-  --tab-shadow: 0 22px 56px rgba(15, 23, 42, 0.12);
-
-  /* Primary text/strokes (notes, repeat signs, labels) */
-  --tab-primary: #111827;
-  /* Secondary text (author, block numbers, grace notes) */
-  --tab-secondary: #475569;
-  /* Tertiary (effects, bends, ties, vibrato, trills, tremolo) */
-  --tab-tertiary: #1f2937;
-  /* Muted elements (durations, chord grid, separators) */
-  --tab-muted: #4b5563;
-  /* Subtle (let ring, ghost notes) */
-  --tab-subtle: #64748b;
-  /* Very light (ghost notes) */
-  --tab-ghost: #94a3b8;
-
-  /* String lines */
-  --tab-string: #667281;
-  /* Measure separator lines */
-  --tab-separator: #1f2937;
-
-  /* Chord diagram dots & finger numbers */
-  --tab-chord-dot: #1f2937;
-  --tab-chord-finger: #ffffff;
-  /* Muted string indicator */
-  --tab-muted-string: #f00;
-
-  /* Slide color (blue accent) */
-  --tab-slide: #2d6bb2;
-}
+/* The tab sheet colours (--tab-*) are in assets/css/tokens.css. */
 
 /* Icon sprite referenced with <use>; kept in the DOM but out of view. */
 .svg-icon-source {

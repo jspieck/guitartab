@@ -233,13 +233,13 @@ watch(selected, () => handler.redraw());
     fill: transparent;
 }
 .eq-handle-dot {
-    fill: color-mix(in srgb, var(--band-color) 30%, #12151b);
+    fill: color-mix(in srgb, var(--band-color) 30%, var(--gray-900));
     stroke: var(--band-color);
     stroke-width: 2;
     transition: r 0.12s ease;
 }
 .eq-handle text {
-    fill: #fff;
+    fill: var(--gray-0);
     font-size: 10px;
     font-weight: 700;
     pointer-events: none;
@@ -251,7 +251,7 @@ watch(selected, () => handler.redraw());
 }
 .eq-handle-selected text,
 .eq-handle:hover text {
-    fill: #12151b;
+    fill: var(--gray-900);
 }
 .eq-handle-off {
     opacity: 0.35;
@@ -266,7 +266,7 @@ watch(selected, () => handler.redraw());
     gap: 6px;
     padding: 3px 8px;
     border-radius: 6px;
-    background: rgba(13, 16, 21, 0.85);
+    background: color-mix(in srgb, var(--gray-950) 85%, transparent);
     border: 1px solid var(--ap-border);
     color: var(--ap-text);
     font-size: 11px;
@@ -315,7 +315,7 @@ watch(selected, () => handler.redraw());
     flex: 0 0 18px;
     border-radius: 50%;
     background: var(--band-color);
-    color: #12151b;
+    color: var(--gray-900);
     font-size: 10px;
     font-weight: 700;
 }

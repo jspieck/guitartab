@@ -68,7 +68,7 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: center;
   padding: 96px 16px 16px;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--color-backdrop);
 }
 
 .shortcuts-help {
@@ -77,9 +77,9 @@ onBeforeUnmount(() => {
   overflow: auto;
   padding: 16px 20px 20px;
   border-radius: 10px;
-  background: #1f2937;
-  color: #f9fafb;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--color-shadow) 25%, transparent);
   outline: none;
   line-height: 1.4;
 }
@@ -107,7 +107,7 @@ onBeforeUnmount(() => {
 
 .shortcuts-help__intro {
   margin: 6px 0 14px;
-  color: #d1d5db;
+  color: var(--color-inverse-muted);
   font-size: 13px;
 }
 
@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 
 .shortcuts-help__group-title {
   margin: 10px 0 4px;
-  color: #9ca3af;
+  color: var(--color-inverse-faint);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
   gap: 12px;
   align-items: baseline;
   padding: 5px 0;
-  border-top: 1px solid #374151;
+  border-top: 1px solid var(--color-inverse-border);
 }
 
 .shortcuts-help__keys {
@@ -152,17 +152,17 @@ onBeforeUnmount(() => {
 }
 
 .shortcuts-help__or {
-  color: #9ca3af;
+  color: var(--color-inverse-faint);
   font-size: 12px;
 }
 
 .shortcuts-help kbd {
   min-width: 14px;
   padding: 1px 6px;
-  border: 1px solid #4b5563;
+  border: 1px solid var(--color-inverse-border);
   border-bottom-width: 2px;
   border-radius: 4px;
-  background: #111827;
+  background: var(--color-inverse-sunken);
   font: 12px/18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   text-align: center;
   white-space: nowrap;

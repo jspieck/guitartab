@@ -71,13 +71,14 @@
         </div>
       </div>
     </div>
-    <img id="effectEye" class="visibleEye" src="../assets/images/eyeInverted.svg" />
+    <AppIcon id="effectEye" class="visibleEye" name="eye" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import Knob from './Knob.vue'
+import AppIcon from './AppIcon.vue'
 import { audioGraph } from '../services/audio/audioGraph'
 import editorCore from '../services/editor/editorCore'
 

@@ -140,7 +140,7 @@ function onKeyDown(event: KeyboardEvent) {
     transform: translateX(-50%);
     border-radius: 2px;
     background: var(--ap-inset);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 1px 2px color-mix(in srgb, var(--gray-1000) 60%, transparent);
 }
 
 .vf-unity {
@@ -157,9 +157,9 @@ function onKeyDown(event: KeyboardEvent) {
     right: 1px;
     height: 22px;
     border-radius: 4px;
-    background: linear-gradient(to bottom, #4a5262 0%, #353c49 45%, #2a303b 55%, #3b4250 100%);
-    border: 1px solid #555e6e;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(to bottom, var(--gray-600) 0%, var(--gray-700) 45%, var(--gray-750) 55%, var(--gray-650) 100%);
+    border: 1px solid var(--gray-550);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--gray-1000) 50%, transparent);
     cursor: grab;
 }
 .vf-cap::after {

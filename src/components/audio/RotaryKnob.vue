@@ -204,7 +204,7 @@ function reset() {
     user-select: none;
 }
 .rk-label {
-    color: var(--ap-muted, #8a93a3);
+    color: var(--ap-muted, var(--gray-450));
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -223,7 +223,7 @@ function reset() {
 }
 .rk-track {
     fill: none;
-    stroke: var(--ap-knob-track, #2b313c);
+    stroke: var(--ap-knob-track, var(--gray-750));
     stroke-width: 3.5;
     stroke-linecap: round;
 }
@@ -234,13 +234,13 @@ function reset() {
     stroke-linecap: round;
 }
 .rk-body {
-    fill: var(--ap-knob-body, #262c37);
-    stroke: var(--ap-knob-edge, #3c4452);
+    fill: var(--ap-knob-body, var(--gray-750));
+    stroke: var(--ap-knob-edge, var(--gray-650));
     stroke-width: 1;
-    filter: drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, 0.45));
+    filter: drop-shadow(0 1.5px 1.5px color-mix(in srgb, var(--gray-1000) 45%, transparent));
 }
 .rk-pointer {
-    stroke: var(--ap-knob-pointer, var(--ap-text, #e7eaf0));
+    stroke: var(--ap-knob-pointer, var(--ap-text, var(--gray-150)));
     stroke-width: 2.2;
     stroke-linecap: round;
 }
@@ -249,7 +249,7 @@ function reset() {
     stroke: var(--rk-color);
 }
 .rk-readout {
-    color: var(--ap-text, #e7eaf0);
+    color: var(--ap-text, var(--gray-150));
     font-size: 11px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;

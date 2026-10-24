@@ -71,10 +71,16 @@ function findClassicalSvgs(view: HTMLElement): {
   return results
 }
 
+// Editing aids drawn into the tab SVG that don't belong in an export (they are also coloured with
+// CSS variables, which a standalone SVG can't resolve).
+const INTERACTION_LAYERS =
+  '#playBackBarGroup0, .range-selection-overlay, .selection-indicator, .string-click-area'
+
 function cloneSvgContents(source: SVGSVGElement, targetGroup: SVGGElement): void {
   Array.from(source.childNodes).forEach((child) => {
     targetGroup.appendChild(child.cloneNode(true))
   })
+  targetGroup.querySelectorAll(INTERACTION_LAYERS).forEach((node) => node.remove())
 }
 
 /**

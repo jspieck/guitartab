@@ -43,9 +43,9 @@ function showShortcuts(): void {
   width: min(340px, calc(100vw - 32px));
   padding: 12px 14px;
   border-radius: 8px;
-  background: #1f2937;
-  color: #f9fafb;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 20%, transparent);
   font-size: 13px;
 }
 
@@ -90,17 +90,17 @@ function showShortcuts(): void {
   border: 0;
   padding: 0;
   background: transparent;
-  color: #93c5fd;
+  color: var(--color-inverse-accent);
   font: inherit;
   cursor: pointer;
 }
 
 .first-run-hint kbd {
   padding: 0 5px;
-  border: 1px solid #4b5563;
+  border: 1px solid var(--color-inverse-border);
   border-radius: 4px;
-  background: #111827;
-  color: #f9fafb;
+  background: var(--color-inverse-sunken);
+  color: var(--color-inverse-text);
   font: 12px/17px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 </style>

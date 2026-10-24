@@ -40,21 +40,18 @@ const markers = computed(() => buildChordThumbnailMarkers(props.chord))
     <rect
       :width="width"
       :height="height"
-      stroke="#111"
+      style="stroke: var(--tab-primary); fill: var(--tab-bg)"
       stroke-width="1"
-      fill="white"
     />
     <path
       :d="`M-0.5 0H${width + 0.5}`"
-      stroke="rgb(0, 0, 0)"
+      style="stroke: var(--tab-primary); fill: none"
       stroke-width="3"
-      fill="none"
     />
     <path
       v-for="(y, i) in fretLines"
       :key="`fret-${i}`"
       :d="`M0 ${y}H${width}`"
-      stroke="rgb(180, 180, 180)"
       stroke-width="1"
       fill="none"
       class="gridLine"
@@ -63,7 +60,6 @@ const markers = computed(() => buildChordThumbnailMarkers(props.chord))
       v-for="(x, i) in stringXs"
       :key="`string-${i}`"
       :d="`M${x} 1.5V${height - 0.5}`"
-      stroke="rgb(60, 60, 60)"
       stroke-width="1"
       fill="none"
       class="strongGridLine"
@@ -80,9 +76,7 @@ const markers = computed(() => buildChordThumbnailMarkers(props.chord))
       y="5"
       :width="width + 6"
       height="5"
-      fill="#000"
-      stroke="#000"
-      stroke-width="0"
+      style="fill: var(--tab-primary); stroke: none"
       rx="3"
       ry="3"
     />
@@ -99,9 +93,8 @@ const markers = computed(() => buildChordThumbnailMarkers(props.chord))
       <path
         v-if="marker.kind === 'cross'"
         :d="`M${marker.x - 3} -13L${marker.x + 3} -5M${marker.x + 3} -13L${marker.x - 3} -5`"
-        stroke="#333"
+        style="stroke: var(--tab-primary); fill: none"
         stroke-width="1"
-        fill="none"
         class="chordCross"
       />
       <circle
@@ -109,23 +102,21 @@ const markers = computed(() => buildChordThumbnailMarkers(props.chord))
         :cx="marker.x"
         cy="-9"
         r="4"
-        stroke="#333333"
+        style="stroke: var(--tab-primary); fill: var(--tab-bg)"
         stroke-width="1"
-        fill="white"
       />
       <g v-else>
         <circle
           :cx="marker.x"
           :cy="marker.y"
           r="4"
-          stroke="none"
-          fill="black"
+          style="fill: var(--tab-chord-dot); stroke: none"
         />
         <text
           v-if="marker.finger"
           :x="marker.x - 3"
           :y="marker.y + 4"
-          fill="#fff"
+          style="fill: var(--tab-chord-finger)"
           font-family="Source Sans Pro"
           font-size="10px"
         >{{ marker.finger }}</text>

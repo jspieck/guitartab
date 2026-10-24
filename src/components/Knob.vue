@@ -2,11 +2,11 @@
     <div class="knob-root">
         <svg :id="id" :data-id="dataId" class="knobRing" @mousedown="knobRotateFunc"
             :data-angle="startAngle">
-            <circle :cx="cx" :cy="cy" :r="radiusInner" :stroke="strokeInner" stroke-width="1" :fill="fillInner"></circle>
+            <circle :cx="cx" :cy="cy" :r="radiusInner" stroke="transparent" stroke-width="1" style="fill: var(--gray-700)"></circle>
             <rect :x="cx - 1" :y="pointerY" :width="pointerWidth" :height="pointerHeight" stroke="none"
-                :fill="pointerFill" :id="`${id}Pointer`" :rx="1" :ry="1"
+                style="fill: var(--gray-0)" :id="`${id}Pointer`" :rx="1" :ry="1"
                 :transform="`rotate(${startAngle - 90}, ${cx}, ${cy})`"></rect>
-            <circle :cx="cx" :cy="cy" :r="radiusOuter" :stroke="strokeOuter" stroke-width="2" fill="transparent"
+            <circle :cx="cx" :cy="cy" :r="radiusOuter" style="stroke: var(--blue-600)" stroke-width="2" fill="transparent"
                 :id="`outerRing${id}`" :stroke-dasharray="`${dashValue} ${dashValue}`"
                 :stroke-dashoffset="strokeDashOffset"></circle>
         </svg>
@@ -30,10 +30,6 @@ const cx = 11;
 const cy = 11;
 const radiusInner = 10;
 const radiusOuter = 12;
-const strokeInner = 'transparent';
-const strokeOuter = '#226aa9';
-const fillInner = '#3e3e3e';
-const pointerFill = '#ffffff';
 const pointerWidth = 2;
 const pointerHeight = 3;
 

@@ -171,14 +171,14 @@ onUnmounted(() => {
 
 .chord-manager-caption {
   margin: 0;
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.45;
 }
 
 .chord-empty-state {
   padding: 18px 14px;
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
   font-size: 14px;
   line-height: 1.5;
   text-align: center;
@@ -209,7 +209,7 @@ onUnmounted(() => {
   font-size: 14px;
   font-weight: 600;
   text-align: center;
-  color: var(--modal-text-strong);
+  color: var(--color-text);
 }
 
 .chord-diagram {
@@ -231,10 +231,10 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid #9aa8bc;
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
-  background: #eef1f6;
-  color: #475569;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
@@ -245,14 +245,14 @@ onUnmounted(() => {
 }
 
 .chord-action-button:hover {
-  background: #e2e8f0;
-  color: #111827;
-  border-color: #7a8799;
+  background: var(--color-active);
+  color: var(--color-text);
+  border-color: var(--color-text-faint);
 }
 
 .chord-action-button-danger:hover {
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.35);
-  background: rgba(220, 38, 38, 0.08);
+  color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 </style>

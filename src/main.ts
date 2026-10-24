@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import './assets/css/tokens.css'
 import './assets/css/guitarTab.scss'
 import './style.css'
 import './assets/css/compact.css'

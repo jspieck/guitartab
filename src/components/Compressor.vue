@@ -241,7 +241,7 @@ useAnimationLoop(isOpen, () => {
     stroke-linejoin: round;
 }
 .comp-live-dot {
-    fill: #fff;
+    fill: var(--gray-0);
     stroke: var(--ap-amber);
     stroke-width: 2;
 }
@@ -299,7 +299,7 @@ useAnimationLoop(isOpen, () => {
     right: 0;
     bottom: 0;
     border-radius: 2px;
-    background: linear-gradient(to top, #3fbf7f 0%, #3fbf7f 60%, #f2b84b 82%, #f06c6c 100%);
+    background: linear-gradient(to top, var(--green-400) 0%, var(--green-400) 60%, var(--amber-400) 82%, var(--red-400) 100%);
     background-size: 100% 150px;
     background-position: bottom;
 }

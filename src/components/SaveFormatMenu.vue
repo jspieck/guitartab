@@ -10,7 +10,7 @@
       :aria-expanded="open"
       @click="toggle"
     >
-      <img id="downloadIDGP" src="../assets/images/saveOwn.svg" alt="" />
+      <AppIcon id="downloadIDGP" name="save" />
     </button>
     <!-- The toolbar clips its overflow, so the menu is rendered at the end of <body>. -->
     <Teleport to="body">
@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import type { ExportFormat } from '../services/songExport'
+import AppIcon from './AppIcon.vue'
 
 const options: { format: ExportFormat, label: string, hint: string }[] = [
   { format: 'gt', label: 'GuitarTab (.gt)', hint: 'Everything, opens here again' },
@@ -106,9 +107,9 @@ onBeforeUnmount(() => {
   width: 260px;
   padding: 4px;
   border-radius: 6px;
-  background: #1f2937;
-  color: #f9fafb;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 20%, transparent);
 }
 
 .save-menu__item {
@@ -129,12 +130,12 @@ onBeforeUnmount(() => {
 
 .save-menu__item:hover,
 .save-menu__item:focus-visible {
-  background: #374151;
+  background: var(--color-inverse-border);
   outline: none;
 }
 
 .save-menu__hint {
-  color: #d1d5db;
+  color: var(--color-inverse-muted);
   font-size: 11px;
 }
 </style>

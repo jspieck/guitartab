@@ -1,890 +1,161 @@
-# GuitarTabVue Architecture
+# GuitarTab architecture
 
-
+How the editor is put together as of October 2026, after the core port (HANDOVER 3.28–3.34) moved the last of the old `src/assets/js` code into typed modules. This file describes the current code; how it got here is in `HANDOVER.md`, the working plan in `../IMPROVEMENTS_AUDIT.md`, and the short version for day-to-day work in `CLAUDE.md`.
 
 ## Overview
 
+GuitarTab is a browser editor and player for guitar tablature: Vue 3, TypeScript and Vite, Web Audio for sound, VexFlow 4 for standard notation. It opens Guitar Pro 3–8, MIDI and its own `.gt` files and writes `.gt`, GP5, GPX, MusicXML, PDF and SVG.
+
+There is no framework beyond Vue: no Pinia, no router. Application state is plain `reactive` modules in `src/stores/`, the logic lives in `src/services/`, and Vue components render and forward user input.
+
+## Folders and layers
+
+```
+src/
+  main.ts, App.vue    app shell: mounts Vue, lays out the regions, starts the editor
+  components/         Vue: toolbar (Menu.vue), tab renderer (tab/), dialogs (*Modal.vue),
+                      studio panels (Mixer, Equalizer, Compressor, audio/), phone UI (compact/)
+  composables/        functions used in component setup (layout, selection, viewport, toolbar state)
+  services/           the application logic, no Vue components
+    editor/           editing commands, undo, layout engine, selection, keyboard, note entry
+    playback/         song cursor, scheduler, playhead
+    audio/            audio graph, sample player, SoundFont, drums, metronome, meters
+    dialogs/          dialog handlers and the dialog registry (modalManager)
+    notation/         classical notation (VexFlow), lazy
+    import/, *Import.ts, *Export.ts   file formats
+    midi/             MIDI input devices, live input, placing pitches on strings
+  stores/             reactive state modules (song, selection, settings, layout, practice...)
+  utils/              pure helpers (durations, tab geometry, lanes, event bus, shortcuts table)
+  types/              the song model and renderer types
+  data/               instrument tables, the demo songs
+```
+
+Imports go downwards: `components` → `composables` → `services` → `stores`/`utils`/`types`/`data`. The lower layers (`services`, `stores`, `utils`, `types`, `data`) must not import components or composables; ESLint (`no-restricted-imports` in `eslint.config.mjs`) and `tests/layering.test.ts` enforce it, and the test also checks that `src/assets/js` stays gone. Module-level reactive state belongs in `stores/`, not in `composables/`.
+
+Inside `services/` the layering is not strict. The editor, playback, audio, dialog handlers and importers call each other in both directions (playback reads the stores and the layout, edits restart playback, dialog handlers run edit commands, editor code opens dialogs). That is why they share one bundle chunk (see [Bundle](#bundle)).
+
+## Startup
+
+1. `main.ts` loads the global styles (`assets/css/guitarTab.scss`, `style.css`, `assets/css/compact.css`) and mounts `App.vue`. `style.css` defines CSS variables the tab renderer needs; without it the sheet and string lines are invisible.
+2. `App.vue` renders the toolbar (`Menu.vue`) and the tab (`GuitarTabView.vue`) right away and loads the rest lazily with `defineAsyncComponent`: effects bar, sequencer, footer, dialogs (`ModalsContainer.vue`), drafts panel, help overlays and the phone UI. Cloud songs (`?song=<id>`) and the phone sheet fitting are dynamic imports too.
+3. On mount it calls `startUp()` (`services/startup.ts`): document listeners (shortcuts in the capture phase, Ctrl + wheel zoom, unlocking audio on the first gesture), `playback.init()`, an empty song, the audio buses, then the first song. A first visit loads the four-track demo (`data/demoArrangement.ts`, its own lazy chunk); e2e tests ask for the small riff in `data/demoSong.ts`. The SoundFont loads in the background.
+4. `songAutosave.ts` offers the newest unsaved snapshot for recovery.
+5. Readiness is published as `<html data-editor-ready>` and `data-soundfont-ready` (`utils/startupReadiness.ts`); the e2e helpers wait for them.
+
+## The song model
+
+`types/song.ts` defines the model. A song is `measures[track][block][voice][beat]`: a *block* is a bar, and each entry is a `Beat` with its duration, effects and a sparse `notes` array indexed by string. Bar-level data (time signature, repeats, voltas, markers, tempo changes) is in `measureMeta[block]`. Tracks, tuning, chord libraries (`chordsMap`), mixer channels (`allChannels`) and per-track playback settings (`playBackInstrument`) sit next to it. Optional features are optional fields (`beat.text`, `beat.chord`, `effects.stroke`, …).
+
+- `stores/songState.ts` holds that data as one `reactive` object; it is the single source of truth.
+- `stores/song.ts` exports `Song`, a `Proxy` over `songState` that adds accessors (`findBeat`, `getBeat`, `getNote`, …) and default objects. Reads and writes go straight to `songState`, so `Song.measures[...] = ...` is reactive. Prefer the accessors over indexing by hand, and `toRaw` for bulk reads.
+- **String order:** string index 0 is the *lowest* string (pitch = tuning + fret), drawn on the bottom tab line. `stringLine()` in `utils/tabStrings.ts` converts a string index to a screen line. The exception is chord `frets[]`, stored highest string first.
+- Durations are in ticks (whole note = 64), `utils/duration.ts`. Tuplet group ids and fill counters are `stores/tupletState.ts`.
+- `.gt` files and autosave drafts from older versions are upgraded on load by `services/songMigrations.ts`; changing a field means adding a migration step there.
+
+## Rendering the tab
+
+```
+GuitarTabView.vue
+  └ useGuitarTabLayout ── editorCore.buildModernTabRows ── measureLayoutEngine
+        │                                                    ├ writes stores/tabLayoutState (blockToRow, blocksPerRow, measureOffset...)
+        │                                                    └ caches per block in stores/tabRenderLayout
+        └ useVisibleTabRows → TabRow.vue (mounted rows only)
+              └ TabMeasure / TabNote / TabDurations / TabEffects / TabMeasureInfo / ChordDiagram
+          ClassicalNotationLayer.vue → ClassicalRowSurface.vue (one VexFlow staff per visible row)
+```
+
+- `services/editor/measureLayoutEngine.ts` is the only row-breaking and bar-width pipeline (`computeBarWidth`, `relayoutTrack`, `barWidthChangesRows`). The plain arrays it writes to `tabLayoutState` are what playback, scrolling and navigation read. `redrawTrack` (`layoutInvalidation.ts`) lays a track out again.
+- Vertical layout is per row: `utils/tabRowLanes.ts` stacks annotation lanes (effects, text, chords, dynamics) above and below the strings, in row-local coordinates with `y = 0` at the top string. Horizontal beat positions come from `utils/beatPositionInRow.ts`, `utils/measureBeatLayout.ts` and `services/editor/beatGrouping.ts`.
+- The layout is computed inside a `computed` that writes reactive state; reads during that write use `toRaw`, otherwise Vue reports "Maximum recursive updates".
+- Only rows near the viewport are mounted (`useVisibleTabRows`, `stores/tabVirtualizationState.ts`). Anything that needs the whole tab in the DOM (PDF/SVG export, printing) wraps the work in `withAllRowsRendered()`.
+- Re-rendering after an edit is event-driven: commands emit `render.block`, `render.blocks`, `render.all`, `render.durations`, … and `useTabRenderInvalidation` invalidates the affected rows.
+- **Classical notation** (`services/notation/`) is loaded only when switched on. `classicalNotationAdapter.ts` loads it; `classicalNotationLifecycle.ts` documents the activation order; `vexflowNotes.ts` converts beats to VexFlow notes (pure) and `classicalNotation.ts` draws. The staves are laid out from metrics computed from the notation data (`stores/classicalNotationLayoutState.ts`, whose `active` means "metrics are ready"), never from drawn output, so tab and staff rows line up. The installed `@types/vexflow` describe VexFlow 1.2; check new calls against `node_modules/vexflow/build/types`.
+- **Layouts** (`stores/layoutModeState.ts`): under 900 px the phone layout (`components/compact/`: `CompactBar`, `TouchNotePad`), from 900 px the desktop chrome with the sheet fitted to the window, from 1200 px the fixed desktop sheet. In the phone layout the desktop chrome stays mounted but hidden, because some code still finds elements by id. Sheet fitting and pinch zoom: `services/compactLayout.ts`. `?layout=compact|desktop` forces one.
+
+## Editing
+
+**Selection.** The edit cursor (one string of one beat) and the two ends of the range selection are `stores/selectionState.ts`. `services/editor/rangeSelection.ts` drives the range (`startRange`, `extendRange`, `clearRange`, `notesInRange`) and also owns the playback loop, since the selected range is the loop. Clicking in the tab or the sequencer moves the cursor through `navigation.setClickedPos`.
+
+**Commands and undo.** Every undoable change is an `EditCommand` on the single history in `services/editor/editCommands.ts` (`undoHistory`, a bounded `revertStack.ts`; reactive `undoAvailability` for the buttons). Most edits go through `recordBarEdit(label, scope, mutate)`: it snapshots the affected bars before and after `mutate` and records one step, so no edit needs a hand-written inverse. It restores bars in place (references to beats and notes stay valid), rolls back when `mutate` returns `false` or throws, and nests: low-level mutators (`setFret`, `deleteNote`, `changeNoteDuration`) record themselves, and a caller that wraps several in `recordBarEdit`/`editTransaction` gets one step. The other command families:
+
+| Area | Module |
+|---|---|
+| frets, notes | `noteCommands.ts`, note entry at the cursor in `noteEntry.ts` |
+| note lengths, tuplets | `durationEditing.ts`, `durationCommands.ts`, `durationModifierCommands.ts` |
+| rests, tuplet numbering, track refresh | `barFilling.ts` |
+| bars added/removed | `measureStructureCommands.ts` |
+| time signatures | `timeSignatureCommands.ts` |
+| effects on beats, notes and bars | `effectToggles.ts`, `notationCommands.ts`, `dynamicsCommands.ts`, `services/menuEffectMutations.ts` |
+| song tempo, track volume, chord library, track settings | `songSettingsCommands.ts` (`recordTrackEdit`), `recordSongInfoEdit` |
+| copy and paste | `clipboard.ts` (copies are snapshots) |
+| zoom | `zoom.ts` (`Settings.currentZoom` is the only zoom value) |
+
+Every command re-renders, refreshes the toolbar and emits `song-data-changed`, which triggers autosave. Some changes deliberately have no undo: mute, solo, pan, effect knobs, master volume, the studio panels.
+
+**Keyboard.** All shortcuts are one table, `utils/keyboardShortcuts.ts` (`SHORTCUTS`), dispatched by `handleKeyDown` in `services/editor/keyboardDispatch.ts`. The Help sheet is generated from the same table.
+
+**Toolbar.** `Menu.vue` reads its pressed and disabled buttons from a `computed` (`composables/useToolbarState.ts`) over the cursor, the range and the song, so nothing has to tell it to refresh. Its actions go through `composables/useMenuActions.ts` and `services/menuActionCommands.ts`.
+
+**Dialogs.** Dialog logic lives in `services/dialogs/`, separate from the `.vue` files, because the registry (`modalTypes.ts`, `modalManager.ts`) builds every handler at startup and services open dialogs through it. Simple edit dialogs are a config for the generic `EditModalHandler` (`effectModals.ts`: `defaults`/`read`/`scope`/`write`); the Vue dialog binds `handler.form` and calls `handler.apply()`, which records one undo step, re-renders and closes. Bend, tremolo bar, time signature, chords, tuning and track settings have their own handlers; dialogs whose component does everything use `definePlainModal(id, name)`. `modalManager` shows, drags and stacks the dialog windows directly in the DOM (by element id, with interact.js). The equalizer and compressor handlers control audio nodes: `audioGraph.createBusses()` hands them the master EQ and limiter.
+
+## Playback and audio
+
+```
+playback (services/playback/index.ts)        togglePlayback, start/stop, jumpToBeat, setPlayPosition...
+  ├ songCursor.ts    pure: bars in playing order (repeats, voltas, loop), the next beat of each voice
+  ├ scheduler.ts     ticked every 25 ms by timerWorker.ts; schedules beats 0.4 s ahead on the AudioContext clock;
+  │                  metronome, count-in, speed trainer, jumps
+  ├ notePlayback.ts  how a beat sounds: mute/solo, ties, strums, grace and ghost notes
+  ├ playhead.ts      animation loop: playhead position, scrolling, the piano/guitar views
+  └ startPosition.ts where Play starts
+audio (services/audio/)
+  ├ audioGraph.ts    the one AudioContext; track and drum buses, master EQ and limiter
+  ├ samplePlayer.ts  playFret/playPitch: SoundFont notes with their effects (bends, slides, vibrato...)
+  ├ soundFont/       RIFF/SF2 parser, banks, loader (25 MB file, parsed on the main thread)
+  ├ effects.ts       per-bus chorus and Freeverb
+  └ drumKit.ts, metronome.ts, meters.ts
+```
 
+The song clock counts whole notes; `spw()`/`wps()` in `playback/tempo.ts` convert to seconds and apply the practice speed (`stores/practiceState.ts`). Practice features (speed, metronome, count-in, speed trainer, loop) are the transport in `PracticeControls.vue` over `practiceState` and the scheduler. `stores/soundingNotesState.ts` holds the notes the piano and guitar dialogs show as pressed: those playback has reached plus live notes.
 
-GuitarTabVue is a Vue 3, Vite, and TypeScript application for editing and playing guitar tab. The current codebase is a hybrid architecture:
+MIDI input: `services/midi/devices.ts` lists and connects devices (access is requested when the MIDI dialog opens); `liveInput.ts` sounds live notes and writes recorded ones (one undo step per flush), placing pitches on strings with `noteArranger.ts`.
 
+## Import and export
 
+- **Import** has one entry point, `importSongBytes(fileName, bytes)` in `services/songImport.ts`, which picks the parser by file ending, throws a typed `ImportError` (`importErrors.ts`) and puts the previous song back when a file can't be read. `openSongFile` (the toolbar's file input), `loadGtBytes` (autosave, cloud) and `loadBuiltSong` (demo) build on it.
+  - GP3/4/5: `services/import/guitarPro/` (`parseGuitarPro` → `applyGuitarProSong`; parser classes over a `ByteReader`, GP4/GP3 reuse the GP5/GP4 parts).
+  - GP6/7/8: `gpContainers.ts` unpacks the ZIP/BCFZ/BCFS container, `gpifImport.ts` reads the GPIF XML (`parseGpif` → `applyGpifSong`).
+  - MIDI: `import/midiFile.ts` reads the file, `midiImport.ts` builds a song.
+  - Parsers produce plain data first and apply it afterwards, so they run in node tests.
+- **Export** is the lazy `songExport` chunk: `.gt` (`utils/gtSerialization.ts`, LZ-compressed text), GP5 (`gp5Export.ts`), GPX (`gpifExport.ts` + `gpxWriter.ts`), MusicXML 4.0 (`musicXmlExport.ts`), PDF and SVG of the rendered sheet (`pdfExport.ts`, `tabExportSvg.ts`).
+- **Persistence:** `songAutosave.ts` keeps up to 10 snapshots in IndexedDB while there are unsaved changes ("dirty" compares song content with the last clean point), offers recovery on startup and guards against closing with unsaved changes. Cloud songs (`cloudSongApi.ts`, `cloudSongLoader.ts`, `CloudSongsModal.vue`) are optional and need a server that is not in this repository.
 
-- A modern Vue renderer and composition layer lives under `src/components`, `src/composables`, `src/utils`, and `src/types`.
+## Events and settings
 
-- A large legacy music, notation, playback, and mutation core still lives under `src/assets/js`.
+- `utils/typedEventBus.ts` is the only event bus, typed by the `AppEvents` map: `render.*` (invalidate rows), `song-data-changed`, `song-loaded`, `selection.*`, `playback.*`, `classical-notation-changed`, `modal.*` and a few `navigation.*`/`ui.*` events. New state that components only display should be a store plus a `computed`, not an event.
+- Settings are `stores/settingsState.ts` (imported as `Settings`): reactive, each key persisted to `localStorage`. `EPSILON` and `OVERBAR_ROW_HEIGHT` are constants exported there.
+- Banners: `showNotification(text, kind, action?)` in `stores/notificationState.ts`, shown by `App.vue`; `showUserError` (`services/userNotifications.ts`) wraps it.
 
-- The active tab editor depends on both layers at the same time. Vue owns UI composition and all tab rendering; the legacy modules `Song` and `tab` still own mutation, width calculation, and playback timing.
+## Bundle
 
+Chunks are assigned by `manualChunks` in `vite.config.ts`, and `scripts/check-bundle-budget.mjs` (`npm run build:check`) enforces a size budget per chunk and fails if two chunks import each other.
 
+- At startup: the entry (`App.vue` and the shell, 16 KB budget), `framework` (Vue, plus the Vite/Vue helper modules), `vendor`, `ui-vendor`, `serialization` (lz-string), `shortcuts`, `toolbar` (`Menu.vue`, 32 KB), `tab-renderer`, and `editor-core` (280 KB): stores, utils, the editor, playback and audio, the dialog handlers, the importers and the riff.
+- Lazy: `ModalsContainer` and the dialogs, `studio-panels`, `studio-ui`, the phone UI, `classicalNotation` + `notation` (VexFlow, 1 MB), `songExport`, `pdfExport`, `demoArrangement`, `cloudSongLoader`, `compactLayout`.
 
-That hybrid model explains most of the current maintenance cost: rendering, editing logic, playback state, and global events are split across modern reactive code and legacy imperative modules.
+`editor-core` is one chunk because its modules import each other. When two chunks import each other, the browser runs one before the other has initialized, and the production build fails at startup with "Cannot access 'x' before initialization" while the dev server works (HANDOVER 3.34). To make part of it lazy again, remove the imports back into it first: e.g. build dialog handlers on first use, or make `importSongBytes` async and `import()` the parsers.
 
+## Tests
 
+- **Unit** (Vitest, `tests/`, runs in node): pure modules directly; DOM tests opt in per file (`happy-dom`, or `jsdom` for XML). Characterization snapshots pin behaviour that was ported: playback (`playbackCharacterization.test.ts`), the audio graph on a fake AudioContext (`audioEngine.test.ts`), GP3/4/5 import from byte-built files (`guitarProImport.test.ts`), the `Song` facade, note entry and classical conversion. Coverage floors per folder are in `vite.config.ts`.
+- **E2E** (Playwright, `e2e/`, desktop Chromium and a Pixel 7 profile) runs against the Vite dev server and drives the app through its own modules (`await import('/src/stores/song.ts')` inside `page.evaluate`). It covers editing, undo, shortcuts, playback and navigation, practice, import fixtures and fuzzing, GP5/GT/MusicXML roundtrips, the phone layout, and screenshot baselines for classical notation and the sheet (per OS: `win32` locally, `linux` from CI).
+- **CI** (`.github/workflows/ci.yml`): unit tests with coverage, typecheck, lint, `build:check`, Playwright on Linux with a generated stand-in SoundFont.
 
-## Runtime Layers
+## Known weak spots
 
-
-
-### 1. Application Shell
-
-
-
-Main entry points:
-
-
-
-- `src/main.ts`
-
-- `src/App.vue`
-
-
-
-Responsibilities:
-
-
-
-- bootstraps Vue and Pinia
-
-- loads global styles, including the CSS variable layer in `src/style.css`
-
-- mounts the top-level app shell
-
-- lazy-loads heavier shell regions such as the effects bar, sequencer, footer, and modal container
-
-
-
-Important note:
-
-
-
-- `src/style.css` is a functional dependency of the modern tab renderer, not only a cosmetic stylesheet. If it is removed from `src/main.ts`, the tab sheet background and string lines lose their CSS variable values and become effectively invisible.
-
-
-
-### 2. Modern Tab Renderer
-
-
-
-Primary files:
-
-
-
-- `src/components/tab/GuitarTabView.vue`
-
-- `src/components/tab/TabRow.vue`
-
-- `src/components/tab/TabMeasure.vue`
-
-- `src/components/tab/TabMeasureInfo.vue`
-
-- `src/components/tab/TabNote.vue`
-
-- `src/components/tab/TabDurations.vue`
-
-- `src/components/tab/TabEffects.vue`
-
-
-
-Responsibilities:
-
-
-
-- computes row and measure layout for the SVG tab sheet
-
-- renders strings, separators, notes, durations, effects, markers, repeats, and metadata
-
-- translates editor selection into visible UI state
-
-- coordinates context-menu actions and note mutation commands
-
-
-
-Current reality:
-
-
-
-- this layer is now partially typed and significantly cleaner than before
-
-- it still depends on legacy width calculation, block mapping, and mutation helpers
-
-- some larger manager components in the same folder still carry `any`-heavy logic and broad responsibilities
-
-Composables (`useSongData`, `useTabSelection`, `useTrack`, `typedEventBus`, `types/tab.ts`) provide Vue-friendly access to song data, selection, and shared renderer types above the editor services layer.
-
-
-
-### 3. Editor Services Layer (`src/services/editor/`)
-
-Primary files:
-
-- `src/services/editor/editorCore.ts` — Vue-facing adapter over `songState`, layout, selection, and mutations
-- `src/services/editor/renderBridge.ts` — layout queries (`getPositionInRow`, block/row geometry) backed by `useTabRenderLayout`
-- `src/services/editor/measureLayoutEngine.ts` — single row-breaking and width pipeline
-- `src/services/editor/playbackController.ts`, `playbackEngineBridge.ts`, `playbackPositionResolver.ts`
-- `src/services/editor/noteCommands.ts`, `durationCommands.ts`, `renderCommands.ts`, …
-
-`playbackLoopController.ts` lives at `src/services/playbackLoopController.ts` (pure loop/transport math, no DOM).
-
-The old `services/legacy/` folder name and `legacy*` export prefixes were removed; these modules are the normal editor boundary, not a temporary shim.
-
-### 4. Domain and Mutation Core (`src/assets/js/`)
-
-
-
-Primary files and modules:
-
-
-
-- `src/assets/js/songData.ts`
-
-- `src/assets/js/tab.ts`
-
-- `src/services/editor/playbackController.ts`
-
-- `src/services/editor/navigationController.ts`
-
-- `src/services/editor/renderEventBridge.ts`
-
-- `src/assets/js/menuHandler.ts`
-
-- `src/assets/js/vexflowClassical.ts`
-
-- `src/assets/js/playBackLogicNew.ts`
-
-- `src/assets/js/audioEngine.ts`
-
-
-
-Responsibilities:
-
-
-
-- canonical song, measure, beat, and note data structures
-
-- note and duration mutation logic
-
-- measure width computation and renderer mapping data
-
-- playback timing, MIDI and audio behavior
-
-- classical notation rendering via VexFlow
-
-
-
-Architectural characteristic:
-
-
-
-- this layer is still the effective source of truth for the musical model and many editor commands
-
-- it is highly stateful and optimized around global mutation rather than explicit data flow
-
-
-
-### 5. UI Control Surfaces
-
-
-
-Primary files:
-
-
-
-- `src/components/Menu.vue`
-
-- `src/components/ModalsContainer.vue`
-
-- `src/components/NoteContextMenu.vue`
-
-- several modal components under `src/components`
-
-
-
-Responsibilities:
-
-
-
-- toolbar and menu actions
-
-- modal orchestration
-
-- note effect toggles and duration actions
-
-- bridge between user actions and legacy mutation commands
-
-
-
-This area is cleaner than before, but it still contains legacy integration points and event-driven coupling.
-
-
-
-### 6. Playback and Audio
-
-
-
-Primary files:
-
-
-
-- `src/composables/usePlayback.ts`
-
-- `src/components/Sequencer.vue`
-
-- `src/components/Mixer.vue`
-
-- `src/assets/js/audioEngine.ts`
-
-- `src/assets/js/midiReceiver.ts`
-
-- `src/assets/audio/*`
-
-
-
-Responsibilities:
-
-
-
-- transport state
-
-- sequencer and mixer UI
-
-- audio graph setup and playback behavior
-
-- SoundFont-driven sample playback
-
-
-
-This subsystem is functionally rich but still tightly coupled to the legacy core and large asset footprint.
-
-
-
-## Data Flow
-
-
-
-The main runtime flow today looks like this:
-
-
-
-1. Vue bootstraps the app and global styles in `src/main.ts`.
-
-2. `src/App.vue` mounts the shell and async-loads secondary panels.
-
-3. `src/components/tab/GuitarTabView.vue` reads reactive bridge data from `useSongData` and `useTabSelection`.
-
-4. The renderer computes row and measure layout through `editorCore.ts` and `useTabRenderLayout.ts`, but still uses legacy helpers from `tab.ts` and `songData.ts` for width, block mapping, and mutations.
-
-5. Render invalidation flows through typed events (`renderCommands.ts` → `useTabRenderInvalidation.ts`); playback bar and scroll use `playbackController.ts` and `navigationController.ts`.
-
-6. UI actions emit through `typedEventBus`, call composables, or directly trigger legacy mutation helpers.
-
-7. Playback, notation, and modal flows still cross the Vue and legacy boundary frequently.
-
-
-
-The important architectural takeaway is that the codebase does not yet have a single clean application state boundary. Vue is the UI framework, but the legacy modules still own much of the real business state.
-
-
-
-## Build and Tooling
-
-
-
-Primary files:
-
-
-
-- `vite.config.ts`
-
-- `package.json`
-
-- `tests/durationReplacer.test.ts`
-
-- `eslint.config.mjs`
-
-
-
-Current state:
-
-
-
-- Vite handles application build and manual chunk splitting
-
-- Vitest is configured with focused coverage around bridge, layout, menu, and render-command seams
-
-- ESLint exists with a flat config focused on Vue, TypeScript, and maintainability rules rather than template formatting churn
-
-- lint coverage includes `src/components/Menu.vue`, `src/services/**/*.ts`, composables, tab renderer files, and shared utils
-
-- maintainability warnings for function complexity and overly long functions are active so refactors can be driven by lint instead of formatter rules
-
-- the lint command currently surfaces remaining debt as warnings, which is intentional for incremental cleanup
-
-
-
-Manual chunk groups currently isolate:
-
-
-
-- framework libraries
-
-- notation and VexFlow code
-
-- UI vendor libraries
-
-- serialization helpers
-
-- PDF export helpers
-
-- audio engine code
-
-- modal handlers
-
-- tab renderer files
-
-- studio UI components
-
-
-
-## Current Strengths
-
-
-
-- The white-mode renderer problem was fixed at the root by restoring the missing stylesheet import instead of only repainting symptoms.
-
-- The modern tab renderer now has a shared type layer and better-defined payloads across several core components.
-
-- **`svgDrawer.ts` deleted (~3,100 lines).** The legacy DOM tab renderer is gone. Vue (`GuitarTabView.vue` and children) is the sole tab renderer.
-
-- Playback bar movement, scroll-to-block, page-mode toggle, and navigation event wiring now live in focused legacy service modules instead of a monolithic drawer class.
-
-- SVG primitive helpers for modals live in `src/utils/svgPrimitives.ts`.
-
-- Chord diagram DOM construction for legacy modal surfaces lives in `src/services/editor/chordDiagramSvg.ts`.
-
-- Full render invalidation (`render.block`, `render.blocks`, `render.overBar`, `render.durations`, `render.chordDiagrams`, `render.deleteTrack`) is handled exclusively by `useTabRenderInvalidation.ts`.
-
-- Modern playback-bar and selection presentation use Vue-owned state seams (`usePlaybackBarState`, `useSelectionSurfaceState`).
-
-- `src/components/tab/GuitarTabView.vue` is smaller and more focused after extracting layout/data assembly into `src/composables/useGuitarTabLayout.ts` and edit command handling into `src/composables/useTabEditorCommands.ts`.
-
-- Modern selection and render invalidation now use component-scoped compatibility bridges in `src/composables/useTabSelectionBridge.ts` and `src/composables/useTabRenderInvalidation.ts` instead of living as module-scope listeners inside state composables or the view.
-
-- `src/components/tab/TabRow.vue` now reuses shared layout/hit-test helpers from `src/utils/tabLayout.ts`, and the new `tests/tabLayout.test.ts` covers short-note hit testing and scaled-SVG coordinate translation.
-
-- current track and voice selection now flow through explicit reactive ownership in `src/composables/useEditorScopeState.ts` instead of the `ui.trackChanged` and `ui.voiceChanged` broadcast events
-
-- `src/components/tab/TabEffects.vue` is now a thin renderer over the typed effect builder in `src/utils/tabEffects.ts`, which is independently testable
-
-- `src/components/Menu.vue` now listens on typed menu events through `src/services/menuEventBridge.ts`, and key UI state such as tempo display, tuplet selection, and record-button state are Vue-owned instead of queried from the DOM
-
-- `src/components/Menu.vue` now derives pressed and disabled toolbar state from selected beat and note data, and resynchronizes from the bridged song-data update flow after edits
-
-- `src/composables/useTempoState.ts` gives the BPM display an explicit reactive owner so the sidebar tempo and rendered measure tempo stay aligned
-
-- `src/composables/useSongData.ts` now consumes a typed song-data bridge through `src/services/songDataEventBridge.ts` and applies snapshots through focused helpers in `src/composables/songDataState.ts`
-
-- first render-command adapters now exist in `src/services/editor/renderCommands.ts`, and metadata, effect, chord, and track-delete flows no longer call `svgDrawer.rerenderBlock` directly for invalidation
-
-- Core renderer entity types in `src/types/tab.ts` now alias the canonical `songData.ts` model instead of duplicating parallel interfaces.
-
-- Inline browser-global handlers and stale jQuery-era glue were reduced.
-
-- Vuex is gone and Pinia is the active store path.
-
-- Bundle structure is better after chunking and async component loading.
-
-- Lint infrastructure now exists and can guide incremental cleanup rather than forcing a risky all-at-once rewrite.
-
-- pure menu effect mutations now live in `src/services/menuEffectMutations.ts`, shared by `menuHandler.ts`, `menuHelper.ts`, and tests
-
-- high-complexity toolbar action handlers now live in `src/composables/useMenuActions.ts`, leaving `Menu.vue` focused on reactive UI state and event wiring
-
-- legacy `menuHandler.ts` DOM toggles for pressed/disabled toolbar buttons were replaced with typed menu resync events consumed by Vue
-
-- `tab.ts` and `overlayHandler.ts` now request menu resync through the event bridge instead of calling DOM-oriented menu helpers directly
-
-- keyboard note-length shortcuts now route through `src/services/menuActionCommands.ts` instead of legacy DOM-oriented `menuHandler.noteLengthSelect`
-
-- chord diagram and track-delete invalidation now route through `src/services/editor/chordDiagramAdapter.ts` and typed render commands (`render.chordDiagrams`, `render.deleteTrack`)
-
-- `Menu.vue` menu-state reads now go through `src/services/editor/editorCore.ts` instead of direct `songData.ts` access for beat, note, and tie-eligibility queries
-
-
-
-## Status Snapshot
-
-
-
-### Done
-
-
-
-- root-cause visual fixes for white mode, tab sheet background, and string-line visibility
-
-- typed legacy adapter seams for the modern renderer, track management, playback bar ownership, and layout ownership
-
-- lazy-loaded classical notation entry through the adapter boundary
-
-- modern beaming rules and focused renderer regressions for first-note visibility and beam grouping
-
-- `GuitarTabView.vue` split into a layout composable and an editor-command composable
-
-- component-scoped modern bridges for selection navigation and render invalidation
-
-- shared `tabLayout.ts` ownership for row hit testing and selection geometry, backed by dedicated tests
-
-- explicit reactive ownership for current track and current voice through `useEditorScopeState.ts`
-
-- `TabEffects.vue` decomposition through the pure `tabEffects.ts` builder and dedicated tests
-
-- `Menu.vue` migration onto typed menu-event listeners with a legacy bridge kept at the boundary
-
-- reactive BPM ownership through `useTempoState.ts`, fixing the stale sidebar tempo source-of-truth problem
-
-- `Menu.vue` pressed and disabled state derivation now lives in Vue-owned helper logic instead of local DOM class toggles
-
-- typed song-data bridging through `src/services/songDataEventBridge.ts` and snapshot application helpers in `src/composables/songDataState.ts`
-
-- render-command extraction through `src/services/editor/renderCommands.ts` for block, multi-block, over-bar, duration, chord-diagram, and track-delete invalidation
-
-- modal rerender migration for metadata, note/beat effects, chord flows, and track deletion
-
-- expanded focused tests for `tabEffects`, menu state derivation, song-data bridging, render-command emission, menu effect mutations, menu action commands, and tie-eligibility queries
-
-- expanded lint coverage and maintainability rules for Menu and service-layer code
-
-- pure menu effect mutations through `src/services/menuEffectMutations.ts`
-
-- toolbar action extraction through `src/composables/useMenuActions.ts`
-
-- legacy menu DOM ownership reduction in `menuHandler.ts`, `tab.ts`, and `overlayHandler.ts`
-
-- keyboard note-length routing through `src/services/menuActionCommands.ts`
-
-- chord diagram adapter boundary through `src/services/editor/chordDiagramAdapter.ts`
-
-- complete removal of `src/assets/js/svgDrawer.ts` (~3,100 lines) and migration to `playbackController`, `navigationController`, `renderEventBridge`, and `svgPrimitives`
-
-### In Progress
-
-- the domain adapter layer is established but incomplete; `tab` is still the effective mutable core for layout-derived arrays and many mutations, while song data now lives in `songState` behind the legacy `Song` facade
-
-- broadcast-event reduction is complete: production code uses `typedEventBus` only; legacy mitt relays are gone (`eventBus.ts` is a deprecated re-export)
-
-- `useMenuActions.ts` still owns substantial mutation orchestration and remains a lint hotspot for function length
-
-- end-to-end editor behavior coverage is better around command seams, but full editing-flow integration tests are still narrow
-
-### Pending Next
-
-Post-svgDrawer Steps 1–9 below are **done**. For the compact “what’s left” plan and the **next big 5**, see [IMPROVEMENTS.md](./IMPROVEMENTS.md) (testing/CI, classical/layout hardening, single event bus, god-module splits, Vue/launch polish).
-
-
-
-## Main Architectural Problems
-
-
-
-### 1. Mutable Global Core
-
-
-
-`Song`, `tab`, and related modules still behave like mutable application singletons. That makes testing hard, increases hidden coupling, and forces Vue components to know too much about low-level editor internals.
-
-
-
-### 2. Blurred Responsibility Boundaries
-
-Some large tab components and composables still mix layout calculation, mutation orchestration, selection handling, event bridging, and legacy compatibility work in one place.
-
-The legacy `tab.ts` class still combines width computation, note mutation, row assignment, and invalidation triggers.
-
-
-
-### 3. Single Renderer, Dual Layout Sources
-
-The app now has one tab renderer (Vue SVG), but layout data is still computed in two places: modern `editorCore.buildModernTabRows()` for display and legacy `tab.assignBlocksToRows()` for width/row breaking used by playback and overlays. These must converge.
-
-
-
-### 4. Event Bus Overuse
-
-`typedEventBus` is now the sole event bus. Remaining work is reducing broadcast-style coordination where direct state ownership or explicit commands would be clearer.
-
-
-
-### 5. Incomplete Domain Typing
-
-
-
-The modernization pass improved the core renderer files, but many manager and helper surfaces still rely on `any` or weak structural assumptions.
-
-
-
-The remaining type-hierarchy problem is narrower now, but still visible:
-
-
-
-- renderer-facing Vue files should consume `src/types/tab.ts` rather than importing `Note`, `Measure`, or `Track` types directly from `src/assets/js/songData.ts`
-
-- legacy boundary modules such as `src/services/editor/editorCore.ts` and `src/services/editor/trackAdapter.ts` are the correct place to keep direct `songData.ts` imports
-
-- the next cleanup targets are `src/composables/useMenuActions.ts`, `src/components/Sequencer.vue`, and `src/components/EffectsBar.vue` where legacy runtime access and UI-facing types are still mixed together
-
-
-
-### 6. Legacy Module Concentration
-
-
-
-`src/assets/js` is still both a compatibility layer and a live business-logic layer. That folder is too broad in responsibility and too central to safely evolve the codebase without a clearer boundary.
-
-
-
-## Status-Tracked Refactor Plan
-
-
-
-### 1. Domain Adapter Layer [in progress]
-
-
-
-What is done:
-
-
-
-- `src/services/editor/editorCore.ts` and `src/services/editor/trackAdapter.ts` already provide typed seams for major parts of the modern tab path.
-
-- modern layout, playback bar, and selection presentation now flow through Vue-facing composables instead of raw DOM ownership in the view layer.
-
-- tie-eligibility and menu-state reads in `Menu.vue` now use adapter queries instead of direct `Song` traversal.
-
-
-
-What remains:
-
-
-
-- consolidate more note mutation, navigation, and render query logic behind explicit adapter APIs
-
-- continue moving remaining direct singleton assumptions out of Vue components and UI controllers
-
-
-
-### 2. Classical Notation Isolation [partially done]
-
-
-
-What is done:
-
-
-
-- classical notation loading already moved behind the adapter boundary and no longer has to be imported directly by the modern tab surface
-
-
-
-What remains:
-
-
-
-- keep isolating notation-only behavior so tab editing does not carry notation concerns by default
-
-
-
-### 3. `GuitarTabView.vue` Decomposition [mostly done]
-
-
-
-What is done:
-
-
-
-- row and page layout logic now lives in `src/composables/useGuitarTabLayout.ts`
-
-- note edit and context-menu command handling now lives in `src/composables/useTabEditorCommands.ts`
-
-- legacy event compatibility for selection navigation and render invalidation now lives in dedicated bridge composables instead of the view and state modules
-
-
-
-What remains:
-
-
-
-- keep the component focused on template wiring and lifecycle registration only
-
-
-
-### 4. Typed Query and Geometry Ownership [in progress]
-
-
-
-What is done:
-
-
-
-- `src/utils/tabLayout.ts` now owns beat hit testing, SVG coordinate translation, and shared selection render-point calculation
-
-- `src/components/tab/TabRow.vue` now consumes those helpers instead of duplicating the same math locally
-
-
-
-What remains:
-
-
-
-- extend the same query-first pattern to other interaction-heavy surfaces that still carry local geometry logic
-
-
-
-### 5. Broadcast Event Reduction [mostly done]
-
-
-
-What is done:
-
-
-
-- selection navigation is no longer registered as a module-scope listener inside `useTabSelection.ts`
-
-- modern render invalidation is no longer wired directly inside `GuitarTabView.vue`
-
-- current track and voice ownership no longer depend on `ui.trackChanged` and `ui.voiceChanged`
-
-- `Menu.vue` now subscribes through the typed menu bus while a boundary bridge keeps legacy emitters working
-
-- song-data changes now have a typed bridge path, and `Menu.vue` and `useSongData.ts` consume that bridged event instead of depending on raw legacy listeners in the modern layer
-
-- typed render-command seams now cover block, multi-block, over-bar, duration, chord-diagram, and track-delete invalidation
-
-- modal rerender migration is complete for the metadata, effect, chord, and track-delete clusters
-
-- keyboard note-length shortcuts now use the shared menu action command path
-
-
-
-What remains:
-
-
-
-- remove compatibility relays once the remaining legacy emitters stop targeting the old menu event bus
-
-
-
-### 6. Test Expansion [in progress]
-
-
-
-What is done:
-
-
-
-- focused tests now exist for bridge behavior, beaming rules, shared tab layout geometry, menu state derivation, tab effects, render-command emission, menu effect mutations, menu action commands, and tie-eligibility adapter queries
-
-
-
-What remains:
-
-
-
-- add editor behavior tests for duration changes, context-menu effect actions, and broader note-edit flows
-
-- expand coverage around row breaking and fallback width behavior
-
-
-
-### 7. High-Value Remaining Cleanup [in progress]
-
-
-
-Priority order for the next large implementation blocks:
-
-
-
-1. split `useMenuActions.ts` into smaller typed command modules
-
-2. migrate remaining Vue controllers off direct `songData.ts` reads where adapter queries already exist
-
-3. broaden editor behavior tests for duration and effect flows
-
-4. attack the next warning-heavy manager surfaces after the menu command path is thinner
-
-The svgDrawer removal is complete. All tab rendering and invalidation now flow through Vue and typed events.
-
-
-
-## Recommended Refactor Roadmap
-
-
-
-### Phase 1: Stabilize the Bridge [done]
-
-
-
-- shared renderer-facing types are in place for the main modern tab path
-
-- modern layout, playback bar, and selection presentation already have Vue-owned seams
-
-- secondary UI controllers now route menu sync and render invalidation through typed bridges instead of DOM mutation
-
-
-
-### Phase 2: Extract Commands and Queries [in progress]
-
-
-
-- command extraction is active in `useTabEditorCommands.ts`, `useMenuActions.ts`, and `menuActionCommands.ts`
-
-- shared query ownership is active in `tabLayout.ts`, `menuUiState.ts`, and `editorCore.ts`
-
-- render invalidation is active through `renderCommands.ts`, `useTabRenderInvalidation.ts`, and `renderEventBridge.ts` (navigation and page-mode events only; no DOM redraw listener)
-
-
-
-### Phase 3: Decouple Heavy Features [partially done]
-
-
-
-- notation loading is already more isolated
-
-- the next step is continuing to split notation, audio, and export-only concerns away from the default editing path
-
-
-
-### Phase 4: Raise Quality Gates [in progress]
-
-
-
-- focused regression tests are growing with each seam extraction (157+ unit tests, 2 Playwright smoke tests)
-
-- lint now actively reports long and complex functions in the refactor target areas
-
-- the next step is expanding integration coverage before tightening lint or type strictness further
-
-
-
-## Practical Conclusion
-
-
-
-This project does not need a full rewrite. The highest-value path is an incremental one:
-
-
-
-- keep the modern Vue renderer
-
-- keep using TypeScript to wrap legacy structures
-
-- progressively move business logic out of `src/assets/js`
-
-- reduce direct singleton access
-
-- lazy-load heavy notation features
-
-
-
-That approach improves maintainability without throwing away the working editor and playback logic that already exists.
-
-
-
-The planned cleanup block from the previous architecture pass is now complete, including full removal of `svgDrawer.ts`. What remains is consolidating the mutable legacy core (`Song`, `tab`) and unifying layout ownership.
-
-
-
-## Next Big Steps (Post-svgDrawer)
-
-
-
-With the legacy DOM renderer gone, the highest-value work shifts from “stop drawing twice” to “own state once.” Recommended order:
-
-
-
-### Step 1: Unify Layout Ownership [done]
-
-**Problem:** Row breaking and block widths were computed in `tab.assignBlocksToRows()` for legacy consumers, while the Vue renderer rebuilt rows independently via `editorCore.buildModernTabRows()`.
-
-**Solution:** `src/services/editor/measureLayoutEngine.ts` is now the single layout pipeline. Both `buildModernTabRows()` and `tab.assignBlocksToRows()` delegate to it. The engine applies row breaking with stretched measure widths, writes `useTabRenderLayout` state, and syncs `tab.blocksPerRow`, `tab.finalBlockWidths`, `tab.blockToRow`, and `tab.measureOffset`.
-
-### Step 2: Extract `tab.ts` Mutation Commands [done]
-
-**Solution:** Note deletion/addition lives in `src/services/editor/noteCommands.ts`. Duration changes live in `src/services/editor/durationCommands.ts`. `tab.ts` delegates to these modules and keeps a thin facade for backward-compatible `Tab.*` static calls.
-
-### Step 3: Vue Overlay Layer for Range Selection [done]
-
-**Problem:** `overlayHandler.ts` still tracked loop/selection intervals logically, but the visual blue range overlay was tied to deleted legacy DOM. Sequencer and copy/paste relied on overlay state without visual feedback.
-
-**Solution:** `src/utils/overlaySelectionLayout.ts` computes per-row overlay geometry from `overlayHandler` start/end positions and `renderBridge` layout queries (same math as the old `drawOverlayRow`). `src/composables/useOverlaySelection.ts` reacts to `tabStore.selectionVersion`; `TabRow.vue` renders the semi-transparent blue range rect. `overlayHandler.redrawOverlays()` now only invalidates Vue selection rendering instead of mutating DOM.
-
-### Step 4: Replace `Song` Singleton with Reactive Store [done]
-
-**Problem:** `Song` was a mutable global object. Vue synced via full JSON snapshots on every `song-data-changed` event.
-
-**Solution:** `src/stores/songState.ts` holds the canonical reactive song data. `Song` is now a Proxy facade over `songState` (legacy imports keep working). `src/stores/songStore.ts` exposes Pinia getters/actions. `useSongData` reads `songState` directly — no clone-on-sync. `editorCore` and `tabStore` read/write through `songState`.
-
-### Step 5: Playback Composable [done]
-
-**Problem:** `playBackLogicNew.ts` owned transport timing, but Vue had no reactive playhead state and Menu/Sequencer imported the legacy singleton directly.
-
-**Solution:** `playbackTransportState` + `usePlaybackEngine` expose reactive transport (`isPlaying`, block/beat position). `playbackEngineBridge.ts` publishes from legacy hooks in `playBackLogicNew.ts`. `Menu.vue` and `useMenuActions` call `usePlaybackEngine()` for play/stop/step.
-
-### Step 5b: Tab Drag Range Selection [done]
-
-**Problem:** Range overlay worked from the Sequencer but not from the tab surface; copy/paste in the Vue editor only handled a single beat.
-
-**Solution:** `useTabRangeSelection` + `resolveTabPointerPosition()` wire drag-to-select on `TabRow` string areas. `useTabSelection` delegates copy/paste to `overlayHandler` when a range is active. Ctrl+C/V works when the tab SVG is focused.
-
-### Dead Code Cleanup Session [done — pass 1]
-
-Removed legacy DOM overlay/triangle code from `overlayHandler`, dead `noteDrawn` field and DOM teardown, no-op playback block marking (`lastMarkedBlock`/`updateMarkedBlock`), `lastBlock`/`lastFader` playback highlighting, duplicate note scheduling in `playNote`, ~50 lines of commented `svgDrawer` render path in `tab.drawTrackMain`, duplicate `usePlayback` state (now re-exports `usePlaybackEngine`), unused `applySongSnapshotToState`, `Helper.deleteDOMObject`, unused `.currentMarkedBlock` CSS, and the stale `dist-refactor-check/` build folder. `tab.drawTrackMain` now only re-syncs layout and emits `song-data-changed`.
-
-**Remaining (pass 2):** audit modal handlers for direct `Song` imports (low priority).
-
-### Step 6: Decouple VexFlow / Classical Notation [done]
-
-**Problem:** `vexflowClassical.ts` shared layout queries and triggered full-track redraws on toggle.
-
-**Solution:**
-- `classicalNotationLayoutState.ts` — reactive layout slice (stave Y, row margin, beat widths) published by VexFlow when active
-- `classicalNotationAdapter.ts` — lazy-loads VexFlow only when classical mode is on; layout queries read from the state store (no VexFlow import on the tab path)
-- `ClassicalNotationLayer.vue` + `useClassicalNotation` — Vue HTML overlay renders `#vexFlowRow{N}` containers; redraws via `classical-notation-changed` event instead of `tab.drawTrackMain`
-- Toggle no longer disables the menu button or forces a legacy full-track redraw; it re-syncs block layout and emits Vue invalidation events
-- `overlaySelectionLayout` and `playbackController` read stave offsets from the layout store
-
-### Step 7: Shrink `useMenuActions` and Finish Adapter Migration [done]
-
-**Problem:** Menu toolbar orchestrated many legacy mutations through one ~590-line composable; `Sequencer.vue` and `EffectsBar.vue` read `songData.ts` directly.
-
-**Solution:**
-- Extracted `notationCommands.ts`, `dynamicsCommands.ts`, and `durationModifierCommands.ts` under `services/editor/`
-- `useMenuActions.ts` reduced to ~145 lines — wires playback, note effects, and delegates to command modules
-- Extended `editorCore` with playback-instrument helpers (`getPlayBackInstrument`, `setPlayBackInstrumentEffect`, `togglePlayBackInstrumentFlag`, `isBeatEmpty`, `setTrackName`, `canDeleteTrack`)
-- `Sequencer.vue` and `EffectsBar.vue` no longer import `Song` directly
-
-### Step 8: Quality Gates [done]
-
-- **Layout convergence:** `tests/layoutConvergence.test.ts` asserts `tab.blockToRow`, `blocksPerRow`, and `finalBlockWidths` stay aligned with `useTabRenderLayout` after `assignBlocksToRows` and measure mutations
-- **Integration mutations:** `tests/integrationMutations.test.ts` covers duration commands, dynamic toggles, undo stack pop, overlay copy/paste, and reactive playback bar positioning
-- **Unit helpers:** `playbackPositionResolver.test.ts`, `tabEditorCommandHelpers.test.ts`, `dynamicsCommands.test.ts`
-- **Complexity reduction:** extracted `tabEditorCommandHelpers.ts` and `playbackPositionResolver.ts` to bring `useTabEditorCommands` and `playbackController` under eslint complexity limits
-
-**Total:** 157+ unit tests and 2 Playwright smoke tests (`npm test`, `npm run test:e2e`)
-
-
-
-### Step 9: Beat coordinates, loop transport, cloud save, naming cleanup [done]
-
-- **Beat positions:** `src/utils/beatPositionInRow.ts` + `renderBridge.getPositionInRow()` — single layout-backed coordinate API; `layoutConvergence.test.ts` includes beat-level assertions
-- **Playback loop:** `src/services/playbackLoopController.ts`, `playbackLoopState`, loop boundary sync for the Vue playback bar
-- **Cloud save UI:** `CloudSongsModal.vue`, Menu ☁ button, `?song=<id>` deep links, `cloudSongApi.ts` / `cloudSongLoader.ts`
-- **Bundle CI:** `npm run build:check` enforces a production bundle budget
-- **Naming:** `services/legacy/` → `services/editor/`, dropped `legacy*` export prefixes; removed unused duplicate `utils/settingsManager.ts` (app uses `assets/js/settingManager.ts` only)
-
-### Suggested Phase Mapping
-
-| Phase | Focus | Outcome |
-|-------|-------|---------|
-| A–C | Steps 1–9 | Done — see status above |
-| D | [IMPROVEMENTS.md](./IMPROVEMENTS.md) next big 5 | CI/tests, classical hardening, typed bus only, thinner legacy cores, launch polish |
-
-
+- `Song` is still a global mutable object that any service can write, and several services are singletons created on import (`audioGraph`, `modalManager`, `playback`). Tests mock them per file.
+- The dialog windows are managed outside Vue: `modalManager` finds elements by id, toggles classes and attaches interact.js. This is also why the desktop chrome stays mounted in the phone layout.
+- The startup modules form one cyclic cluster (`editor-core`), so none of the dialog handlers or importers can be lazy-loaded without untangling imports first.
+- Render invalidation still goes through `render.*` events rather than reactive dependencies.
+- Some leftovers from the migration remain thin wrappers: `renderBridge.ts`, `playbackEngineBridge.ts` and `durationReplacerAdapter.ts` adapt between older and newer interfaces.
+- 26 lint warnings (complexity, function length, `any`), mostly in ported code: the GP5 writer, `durationEditing`, `barFilling`, `computeBarWidth`, `manualChunks`.

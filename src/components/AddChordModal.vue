@@ -10,15 +10,15 @@
         <div class="chord-diagram-surface modal-surface-block">
           <svg id="chordDisplay" ref="chordDisplayRef" @click="handleChordClick">
             <rect :x="handler.paddingLeft" :y="handler.paddingRight" :width="handler.width" :height="handler.height"
-              stroke="#000" stroke-width="1" fill="none" />
+              stroke-width="1" />
             <path :d="`M${handler.paddingLeft} ${handler.paddingRight}V${handler.height + handler.paddingRight}`"
-              stroke="rgb(0, 0, 0)" stroke-width="3" fill="none" />
+              style="stroke: var(--tab-primary); fill: none" stroke-width="3" />
             <path v-for="i in handler.horizontalSteps" :key="`fret-${i}`"
               :d="`M${(handler.width / handler.horizontalSteps) * i + handler.paddingLeft} ${handler.paddingRight}L${(handler.width / handler.horizontalSteps) * i + handler.paddingLeft} ${handler.height + handler.paddingRight}`"
-              stroke="rgb(180, 180, 180)" stroke-width="1" fill="none" class="gridLine" />
+              stroke-width="1" fill="none" class="gridLine" />
             <path v-for="i in handler.numStrings" :key="`string-${i}`"
               :d="`M${handler.paddingLeft} ${handler.getStringY(i - 1)}L${handler.width + handler.paddingLeft} ${handler.getStringY(i - 1)}`"
-              stroke="rgb(60, 60, 60)" stroke-width="1" fill="none" class="strongGridLine" pointer-events="none" />
+              stroke-width="1" fill="none" class="strongGridLine" pointer-events="none" />
             <text v-for="(note, i) in stringNotes" :key="`label-${i}`" :x="0"
               :y="handler.getStringY(handler.numStrings - i - 1) + 3" font-family="Source Sans Pro" font-size="12px">{{ note
               }}</text>
@@ -26,28 +26,28 @@
             <template v-for="(note, index) in handler.getModalState().chordProperties.currentNotes" :key="`note-${index}`">
               <path v-if="note === -1"
                 :d="`M13 ${handler.getStringY(handler.numStrings - index - 1) - 3}L19 ${handler.getStringY(handler.numStrings - index - 1) + 3}M13 ${handler.getStringY(handler.numStrings - index - 1) + 3}L19 ${handler.getStringY(handler.numStrings - index - 1) - 3}`"
-                stroke="#333" stroke-width="1" fill="none" class="chordCross" />
+                style="stroke: var(--tab-primary); fill: none" stroke-width="1" class="chordCross" />
 
               <g v-else-if="note !== 0">
                 <circle :cx="handler.getFretX(note)" :cy="handler.getStringY(handler.numStrings - index - 1)" r="9"
-                  fill="#123e74" stroke="none" />
+                  style="fill: var(--editor-point); stroke: none" />
                 <text v-if="handler.getModalState().chordProperties.fingers[index]" :x="handler.getFretX(note) - 3"
-                  :y="handler.getStringY(handler.numStrings - index - 1) + 4" fill="#fff" font-family="Source Sans Pro"
+                  :y="handler.getStringY(handler.numStrings - index - 1) + 4" style="fill: var(--editor-on-point)" font-family="Source Sans Pro"
                   font-size="13px">
                   {{ handler.getModalState().chordProperties.fingers[index] }}
                 </text>
               </g>
 
-              <circle v-else cx="16" :cy="handler.getStringY(handler.numStrings - index - 1)" r="4" stroke="#333333"
-                stroke-width="1" fill="white" />
+              <circle v-else cx="16" :cy="handler.getStringY(handler.numStrings - index - 1)" r="4" style="stroke: var(--tab-primary); fill: var(--editor-bg)"
+                stroke-width="1" />
             </template>
 
             <template v-if="handler.getModalState().chordProperties.capo > 1">
               <text x="46" y="12" font-family="Source Sans Pro" font-size="12px">
                 {{ handler.getModalState().chordProperties.capo - 1 }}
               </text>
-              <rect x="46" y="15" width="7" :height="handler.height + 2 * handler.stringPadding - 10" fill="#000"
-                stroke="#000" stroke-width="0" rx="4" ry="4" />
+              <rect x="46" y="15" width="7" :height="handler.height + 2 * handler.stringPadding - 10"
+                style="fill: var(--tab-primary); stroke: none" rx="4" ry="4" />
             </template>
           </svg>
         </div>
@@ -133,7 +133,7 @@ const saveChord = () => {
 }
 
 .chord-diagram-caption {
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
   font-weight: 500;
 }
@@ -164,7 +164,7 @@ const saveChord = () => {
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 5px solid #333;
+  border-top: 5px solid var(--color-text-muted);
   pointer-events: none;
 }
 

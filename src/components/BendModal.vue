@@ -15,8 +15,6 @@
               :y="paddingTop"
               :width="gridWidth"
               :height="gridHeight"
-              fill="none"
-              stroke="black"
               stroke-width="1"
             />
             <text
@@ -30,7 +28,6 @@
               v-for="line in verticalLines"
               :key="line.key"
               :d="line.d"
-              :stroke="line.stroke"
               stroke-width="1"
               fill="none"
               :class="line.className"
@@ -39,7 +36,6 @@
               v-for="line in horizontalLines"
               :key="line.key"
               :d="line.d"
-              :stroke="line.stroke"
               stroke-width="1"
               fill="none"
               :stroke-dasharray="line.dash"
@@ -105,7 +101,6 @@ const verticalLines = computed(() => {
     lines.push({
       key: `v-${i}`,
       d: `M${xPos} ${paddingTop}L${xPos} ${gridHeight + paddingTop}`,
-      stroke: strong ? '#4a4a4a' : '#d6d6d6',
       className: strong ? 'strongGridLine' : 'gridLine',
     })
   }
@@ -120,7 +115,6 @@ const horizontalLines = computed(() => {
     lines.push({
       key: `h-${i}`,
       d: `M${paddingLeft} ${yPos}L${gridWidth + paddingLeft} ${yPos}`,
-      stroke: strong ? '#4a4a4a' : '#d6d6d6',
       dash: strong ? undefined : '5, 5',
       className: strong ? 'strongGridLine' : 'gridLine',
     })

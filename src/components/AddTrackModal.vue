@@ -91,9 +91,9 @@ const selectInstrument = (choice: string) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0.9rem;
-  background: linear-gradient(180deg, var(--modal-card-bg) 0%, var(--modal-card-subtle) 100%);
-  color: var(--modal-text-strong);
-  border: 1px solid var(--modal-card-border);
+  background: linear-gradient(180deg, var(--color-field) 0%, var(--color-surface-sunken) 100%);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   cursor: pointer;
   font-size: 0.84rem;
@@ -103,13 +103,13 @@ const selectInstrument = (choice: string) => {
 }
 
 .group-header:hover {
-  background: linear-gradient(180deg, var(--modal-card-hover) 0%, var(--modal-card-bg) 100%);
+  background: linear-gradient(180deg, var(--color-hover) 0%, var(--color-field) 100%);
   transform: translateY(-1px);
 }
 
 .group-header.active {
-  border-color: var(--modal-accent);
-  background: linear-gradient(180deg, var(--modal-card-hover) 0%, var(--modal-card-subtle) 100%);
+  border-color: var(--color-accent);
+  background: linear-gradient(180deg, var(--color-hover) 0%, var(--color-surface-sunken) 100%);
 }
 
 .group-title {
@@ -142,9 +142,9 @@ const selectInstrument = (choice: string) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid var(--modal-card-border);
-  background: linear-gradient(180deg, var(--modal-card-bg) 0%, var(--modal-card-subtle) 100%);
-  color: var(--modal-text-strong);
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-field) 0%, var(--color-surface-sunken) 100%);
+  color: var(--color-text);
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
@@ -153,8 +153,8 @@ const selectInstrument = (choice: string) => {
 
 .instrument-choice:hover {
   transform: translateY(-1px);
-  border-color: var(--modal-accent);
-  background: linear-gradient(180deg, var(--modal-card-hover) 0%, var(--modal-card-bg) 100%);
+  border-color: var(--color-accent);
+  background: linear-gradient(180deg, var(--color-hover) 0%, var(--color-field) 100%);
 }
 
 .instrument-icon {
@@ -162,7 +162,7 @@ const selectInstrument = (choice: string) => {
   height: 28px;
   padding: 0.35rem;
   border-radius: 10px;
-  background: var(--modal-card-hover);
+  background: var(--color-hover);
   object-fit: contain;
 }
 

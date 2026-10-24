@@ -1,0 +1,313 @@
+/*
+ * Design tokens: the only place colours are written as literals (tests/designTokens.test.ts).
+ *
+ * Two layers:
+ * - Primitive ramps (--gray-*, --blue-*, …): fixed values, never themed. Use them only to define
+ *   semantic tokens, or for colours that mean the same thing in both themes (meter levels).
+ * - Semantic tokens (--color-*, --tab-*): what components use. Light values on :root, dark values
+ *   under #darkMode (Footer.vue sets body#darkMode from Settings.darkMode).
+ *
+ * Transparent variants are written with color-mix, e.g.
+ * color-mix(in srgb, var(--color-shadow) 20%, transparent).
+ */
+
+:root {
+  /* Neutral ramp: slightly cool greys, 0 = white, 1000 = black. */
+  --gray-0: #ffffff;
+  --gray-25: #fafbfc;
+  --gray-50: #f6f7f9;
+  --gray-100: #eff1f4;
+  --gray-150: #e7eaee;
+  --gray-200: #e0e3e8;
+  --gray-250: #d6dae0;
+  --gray-300: #c9ced6;
+  --gray-350: #b6bcc5;
+  --gray-400: #9ba2ad;
+  --gray-450: #858d99;
+  --gray-500: #6e7683;
+  --gray-550: #5d6573;
+  --gray-600: #4b5361;
+  --gray-650: #3e4552;
+  --gray-700: #343a45;
+  --gray-750: #2b3039;
+  --gray-800: #23272e;
+  --gray-850: #1c1f25;
+  --gray-900: #15171b;
+  --gray-950: #0d0e11;
+  --gray-1000: #000000;
+
+  /* Blue: the accent. */
+  --blue-50: #eef4ff;
+  --blue-100: #dbe6fd;
+  --blue-200: #bfd3fb;
+  --blue-300: #93b4f6;
+  --blue-400: #5b93f5;
+  --blue-500: #2f6fe8;
+  --blue-600: #2558c8;
+  --blue-700: #1e449c;
+  --blue-800: #1b3366;
+  --blue-900: #142240;
+
+  /* Red: danger, recording, muted strings. */
+  --red-50: #fdeeee;
+  --red-100: #fad4d4;
+  --red-200: #f5b0b0;
+  --red-300: #ef8a8a;
+  --red-400: #ec5f6c;
+  --red-500: #dc2f2f;
+  --red-600: #b62424;
+  --red-700: #8a1c1c;
+  --red-900: #2a1010;
+
+  /* Green: success, meter level, playing. */
+  --green-100: #d3efd6;
+  --green-300: #86d39a;
+  --green-400: #4fc98f;
+  --green-500: #2fb36c;
+  --green-600: #23885a;
+  --green-800: #1d4a3b;
+
+  /* Amber: warnings, meter headroom. */
+  --amber-50: #faf5ec;
+  --amber-100: #f6e6c6;
+  --amber-300: #efc77d;
+  --amber-400: #f2b84b;
+  --amber-500: #f29a12;
+  --amber-700: #8a5a14;
+  --amber-900: #2f220c;
+
+  /* Teal. */
+  --teal-300: #7fd9dc;
+  --teal-400: #43c9b0;
+  --teal-600: #2f8790;
+  --teal-800: #235f67;
+
+  /* Wood, strings and ivory of the virtual guitar and piano (same in both themes). */
+  --wood-50: #faf5ed;
+  --wood-100: #f8f1e5;
+  --wood-200: #f4cfb2;
+  --wood-300: #eacda3;
+  --wood-400: #e6b980;
+  --wood-500: #dfa579;
+  --wood-800: #392010;
+  --wood-900: #322209;
+  --string-300: #cfbf89;
+  --string-400: #c8bb93;
+  --string-600: #958963;
+  --string-800: #4f4935;
+  --indigo-700: #424a70;
+
+  /* Data colours that stay the same in both themes (EQ bands, chart series). */
+  --viz-orange: #ff8a65;
+  --viz-yellow: #ffd54f;
+  --viz-cyan: #4dd0e1;
+  --viz-purple: #b388ff;
+  --viz-pink: #f78ca0;
+  --viz-indigo: #5862b9;
+}
+
+/* ===== Semantic tokens, light ===== */
+:root {
+  /* Surfaces */
+  --color-bg: var(--gray-50); /* behind the sheet */
+  --color-surface: var(--gray-0); /* dialogs, panels, menus */
+  --color-surface-sunken: var(--gray-25); /* inset blocks inside a surface */
+  --color-surface-raised: var(--gray-100); /* bars, chips */
+  --color-hover: var(--gray-50);
+  --color-active: var(--gray-150);
+  --color-field: var(--gray-0); /* inputs, selects */
+  --color-field-muted: color-mix(in srgb, var(--gray-200) 57%, transparent); /* inputs outside dialogs */
+  --color-chrome: var(--gray-50); /* footer, app frame */
+  --color-chrome-raised: var(--gray-100); /* panel area under the sheet */
+  --color-chrome-border: var(--gray-200);
+  --color-chrome-hover: var(--gray-150);
+  --color-chrome-text: var(--gray-600);
+
+  /* Lines */
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-300);
+  --color-divider: var(--gray-150);
+
+  /* Text */
+  --color-text: var(--gray-900);
+  --color-text-secondary: var(--gray-800);
+  --color-text-muted: var(--gray-500);
+  --color-text-faint: var(--gray-400);
+
+  /* Accent and states */
+  --color-accent: var(--blue-600);
+  --color-accent-strong: var(--blue-700);
+  --color-accent-soft: var(--blue-100);
+  --color-on-accent: var(--gray-0);
+  --color-danger: var(--red-600);
+  --color-danger-strong: var(--red-700);
+  --color-danger-soft: var(--red-100);
+  --color-success: var(--green-500);
+  --color-warning: var(--amber-500);
+  --color-focus: color-mix(in srgb, var(--blue-600) 35%, transparent);
+  --color-shadow: var(--gray-900);
+
+  /* Inverse surfaces: banners, hints and popovers are dark in both themes. */
+  --color-inverse: var(--gray-800);
+  --color-inverse-raised: var(--gray-700);
+  --color-inverse-border: var(--gray-650);
+  --color-inverse-sunken: var(--gray-900);
+  --color-inverse-text: var(--gray-25);
+  --color-inverse-muted: var(--gray-300);
+  --color-inverse-faint: var(--gray-400);
+  --color-inverse-accent: var(--blue-300);
+  --color-backdrop: color-mix(in srgb, var(--gray-900) 35%, transparent);
+
+  /* Shape, space, type, motion */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --font-ui: "Source Sans Pro", "Segoe UI Variable", "Segoe UI", sans-serif;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 14px;
+  --control-height: 30px;
+  --control-padding-x: 10px;
+  --textarea-min-height: 72px;
+  --duration-fast: 0.15s;
+
+  /* Sequencer grid */
+  --seq-cell: var(--gray-0);
+  --seq-cell-bar: var(--gray-100);
+  --seq-cell-border: color-mix(in srgb, var(--gray-100) 24%, transparent);
+  --seq-header: var(--gray-200);
+  --seq-active-row: var(--gray-300);
+  --seq-muted: color-mix(in srgb, var(--gray-0) 80%, transparent);
+  --seq-indicator-cell: color-mix(in srgb, var(--gray-700) 22%, transparent);
+  --seq-meter: var(--gray-400); /* track level bars, drawn on canvas: plain colours only */
+  --seq-edit-off: color-mix(in srgb, var(--gray-550) 22%, transparent);
+
+  /* Graph editors in dialogs (bend, tremolo bar, chord) */
+  --editor-bg: var(--gray-0);
+  --editor-cell-border: var(--gray-200);
+  --editor-grid: var(--gray-250);
+  --editor-grid-strong: var(--gray-450);
+  --editor-text: var(--gray-1000); /* also the default for SVG text */
+  --editor-point: var(--blue-800);
+  --editor-on-point: var(--gray-0);
+
+  /* Tab sheet */
+  --tab-bg: var(--gray-0);
+  --tab-shadow: 0 22px 56px color-mix(in srgb, var(--gray-900) 12%, transparent);
+  --tab-primary: var(--gray-900); /* notes, repeat signs, labels */
+  --tab-secondary: var(--gray-600); /* author, bar numbers, grace notes */
+  --tab-tertiary: var(--gray-800); /* effects, bends, ties, vibrato, trills, tremolo */
+  --tab-muted: var(--gray-600); /* durations, chord grid, separators */
+  --tab-subtle: var(--gray-500); /* let ring, ghost notes */
+  --tab-ghost: var(--gray-400);
+  --tab-string: var(--gray-500);
+  --tab-separator: var(--gray-800);
+  --tab-chord-dot: var(--gray-800);
+  --tab-chord-finger: var(--gray-0);
+  --tab-muted-string: var(--red-500);
+  --tab-slide: var(--blue-600);
+  --tab-hover: var(--blue-100); /* behind titles and chord diagrams under the pointer */
+  /* Same in both themes: */
+  --tab-playhead: color-mix(in srgb, var(--blue-400) 60%, transparent);
+  --tab-range: color-mix(in srgb, var(--blue-400) 19%, transparent);
+  --tab-cursor: color-mix(in srgb, var(--blue-500) 20%, transparent);
+  --tab-cursor-border: var(--blue-500);
+  --tab-on-marker: var(--gray-0);
+}
+
+/* ===== Semantic tokens, dark ===== */
+#darkMode {
+  --color-bg: var(--gray-950);
+  --color-surface: var(--gray-900);
+  --color-surface-sunken: var(--gray-950);
+  --color-surface-raised: var(--gray-750);
+  --color-hover: var(--gray-800);
+  --color-active: var(--gray-700);
+  --color-field: var(--gray-850);
+  --color-field-muted: var(--gray-950);
+  --color-chrome: var(--gray-900);
+  --color-chrome-raised: var(--gray-850);
+  --color-chrome-border: var(--gray-800);
+  --color-chrome-hover: var(--gray-800);
+  --color-chrome-text: var(--gray-350);
+
+  --color-border: var(--gray-700);
+  --color-border-strong: var(--gray-600);
+  --color-divider: var(--gray-750);
+
+  --color-text: var(--gray-100);
+  --color-text-secondary: var(--gray-200);
+  --color-text-muted: var(--gray-400);
+  --color-text-faint: var(--gray-500);
+
+  --color-accent: var(--blue-400);
+  --color-accent-strong: var(--blue-600);
+  --color-accent-soft: var(--blue-800);
+  --color-danger: var(--red-400);
+  --color-danger-strong: var(--red-500);
+  --color-danger-soft: var(--red-900);
+  --color-success: var(--green-400);
+  --color-warning: var(--amber-400);
+  --color-focus: color-mix(in srgb, var(--blue-400) 45%, transparent);
+  --color-shadow: var(--gray-1000);
+
+  --color-inverse: var(--gray-750);
+  --color-inverse-raised: var(--gray-650);
+  --color-inverse-border: var(--gray-600);
+
+  --seq-cell: var(--gray-700);
+  --seq-cell-bar: var(--gray-700);
+  --seq-cell-border: color-mix(in srgb, var(--gray-1000) 7.8%, transparent);
+  --seq-header: var(--gray-800);
+  --seq-active-row: var(--gray-700);
+  --seq-muted: color-mix(in srgb, var(--gray-550) 80%, transparent);
+  --seq-indicator-cell: color-mix(in srgb, var(--gray-800) 67%, transparent);
+  --seq-meter: var(--gray-600);
+
+  --editor-bg: var(--gray-950);
+  --editor-cell-border: var(--gray-950);
+  --editor-grid: var(--gray-750);
+  --editor-grid-strong: var(--gray-550);
+  --editor-text: var(--gray-0);
+  --editor-point: var(--blue-400);
+
+  --tab-bg: var(--gray-850);
+  --tab-shadow: 0 2px 8px color-mix(in srgb, var(--gray-1000) 40%, transparent);
+  --tab-primary: var(--gray-200);
+  --tab-secondary: var(--gray-400);
+  --tab-tertiary: var(--gray-300);
+  --tab-muted: var(--gray-350);
+  --tab-subtle: var(--gray-400);
+  --tab-ghost: var(--gray-500);
+  --tab-string: var(--gray-650);
+  --tab-separator: var(--gray-550);
+  --tab-chord-dot: var(--gray-300);
+  --tab-chord-finger: var(--gray-850);
+  --tab-muted-string: var(--red-400);
+  --tab-slide: var(--blue-300);
+  --tab-hover: var(--blue-800);
+}
+
+/*
+ * Tokens built from other themed tokens. A custom property is computed where it is declared and
+ * inherited as that value, so these are declared on both :root and #darkMode (body) to pick up the
+ * dark values there.
+ */
+:root,
+#darkMode {
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--color-shadow) 18%, transparent);
+  --shadow-md: 0 4px 12px color-mix(in srgb, var(--color-shadow) 12%, transparent);
+  --shadow-popover: 0 18px 40px color-mix(in srgb, var(--color-shadow) 14%, transparent),
+    0 2px 8px color-mix(in srgb, var(--color-shadow) 6%, transparent);
+  --seq-row-divider: color-mix(in srgb, var(--color-text) 11%, transparent);
+  --seq-indicator: color-mix(in srgb, var(--color-shadow) 22%, transparent);
+}

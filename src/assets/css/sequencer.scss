@@ -1,14 +1,13 @@
-$color-glowingRed: #ef596f;
 
 #indicator {
-    background-color: rgba(23, 61, 66, 0.22);
+    background-color: var(--seq-indicator);
     position: absolute;
     width: 30px;
     top: 0;
     pointer-events: none;
 }
 #indicatorCell,  #indicatorCellHeader{
-    background-color: rgba(23, 61, 66, 0.22);
+    background-color: var(--seq-indicator-cell);
     position: absolute;
     width: 30px;
     height: 30px;
@@ -47,14 +46,14 @@ $color-glowingRed: #ef596f;
     }
     #sequencerMainHeader{
         /*margin-right: 17px;
-        border-right: 1px solid #dcdada;*/
+        border-right: 1px solid var(--gray-250);*/
         overflow-x: hidden;
         height: 30px;
         min-height: 30px;
         position: relative;
     }
     #sequencerMainBody{
-        background: white;
+        background: var(--seq-cell);
         flex: 0 0 auto;
         position:relative;
         overflow-x: auto;
@@ -91,14 +90,14 @@ $color-glowingRed: #ef596f;
     position: absolute;
     padding: 0px;
     z-index: 2;
-    background: #3f67a2;
+    background: var(--viz-indigo);
     padding-left: 10px;
     padding-right: 10px;
-    color: white;
+    color: var(--gray-0);
 
     &:hover{
         z-index: 3;
-        border-right: 1px solid white;
+        border-right: 1px solid var(--gray-0);
     }
 }
 /* Markers on the last bars grow leftwards instead of out of the sequencer. */
@@ -117,21 +116,19 @@ $color-glowingRed: #ef596f;
     min-width: 0;
 
     .sequencerOneBlock{
-        background-color: white;
+        background-color: var(--seq-cell);
         cursor: pointer;
         display: table;
         line-height: 30px;
         &:first-child{
-            background-color: #e2e2e2;
+            background-color: var(--seq-header);
         }
         .beat.beatNumber {
-            background-color: #f0f0f0;
-
-            border-color: #dcdada;
-            background-color: #e2e2e2;
+            border-color: var(--color-border);
+            background-color: var(--seq-header);
         }
         .beat{
-            background-color: #ffffff;
+            background-color: var(--seq-cell);
             display: inline-block;
             width: 30px;
             text-align: center;
@@ -139,7 +136,7 @@ $color-glowingRed: #ef596f;
         	line-height: 30px;
             position: relative;
             box-sizing: border-box;
-            border-left: 1px solid rgba(240, 240, 240, 0.24);
+            border-left: 1px solid var(--seq-cell-border);
             vertical-align: top;
             pointer-events: none;
 
@@ -149,10 +146,11 @@ $color-glowingRed: #ef596f;
                 padding: 0px;
             }
             &.bar{
-                background-color: #f0f0f0;
+                background-color: var(--seq-cell-bar);
             }
             &::after{
                 content: attr(symbol);
+                color: var(--color-text);
                 /* position: absolute; */
                 font-size: 12px;
                 /* top: 50%; */
@@ -177,18 +175,18 @@ $color-glowingRed: #ef596f;
         top: 0;
         padding-left: 12px;
         box-sizing: border-box;
-        color: #ffffff;
+        color: var(--gray-0);
         text-transform: uppercase;
         font-size: 0.8em;
         text-align: right;
-        background-color: #31838e;
+        background-color: var(--teal-600);
         -webkit-transform: translateZ(0);
         transform: translateZ(0);
     }
 }
 
 #sequencerBar{
-    background: #f8f8f8;
+    background: var(--color-chrome);
     width: fit-content;
     max-width: 100%;
     overflow-x: auto;
@@ -206,26 +204,26 @@ $color-glowingRed: #ef596f;
     display: flex;
     flex-direction: column;
     min-width: 258px;
-    border-bottom: 1px solid rgba(0,0,0,0.11);
-    background: #e2e2e2;
+    border-bottom: 1px solid var(--seq-row-divider);
+    background: var(--seq-header);
     overflow: hidden;
 
     .instrumentLabel{
-    	cursor:pointer !important;
+    	cursor:pointer;
     }
     .label.activeInstrument{
     	width:78px;
     	box-sizing: border-box;
     }
     .labelDiv.activeInstrument{
-        background: #cccccc !important;
+        background: var(--seq-active-row);
     }
     .labelDiv {
         height: 30px;
         clear: both;
         width: 258px;
-        background: #e2e2e2!important;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.11);
+        background: var(--seq-header);
+        border-bottom: 1px solid var(--seq-row-divider);
         box-sizing: border-box;
 
         .knob-root {
@@ -237,7 +235,7 @@ $color-glowingRed: #ef596f;
             height: 30px;
             padding: 2px;
                 background:none;
-            /*background: rgb(59, 59, 59)*/
+            /*background: var(--gray-700)*/
         	cursor:pointer;
         }
         .muteBtn{
@@ -251,7 +249,7 @@ $color-glowingRed: #ef596f;
             padding: 5px;
         	cursor:pointer;
             background:none;
-            color: #2ecc71;
+            color: var(--green-400);
         }
         .soloBtn{
             float: left;
@@ -264,7 +262,7 @@ $color-glowingRed: #ef596f;
             padding: 5px;
         	cursor:pointer;
             background:none;
-            color: $color-glowingRed;
+            color: var(--red-400);
         }
         .volumeFader{
         	float: left;
@@ -272,7 +270,7 @@ $color-glowingRed: #ef596f;
             height: 30px;
             box-sizing: border-box;
             text-align: center;
-            color: white;
+            color: var(--gray-0);
             vertical-align: middle;
         	position: relative;
         	overflow: hidden;
@@ -295,7 +293,7 @@ $color-glowingRed: #ef596f;
                 top: auto;
                 transform: none;
                 height: 4px;
-                background: #555;
+                background: var(--gray-600);
                 border-radius: 15px;
                 margin-top: 13px;
                 box-sizing: border-box;
@@ -319,9 +317,9 @@ $color-glowingRed: #ef596f;
                         width: 12px;
                         height: 12px;
                         border-radius: 50%;
-                        background: #f0f0f0;
+                        background: var(--gray-100);
                         cursor: pointer;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                        box-shadow: 0 1px 3px color-mix(in srgb, var(--gray-1000) 40%, transparent);
                         margin-top: -5px;
                     }
 
@@ -336,9 +334,9 @@ $color-glowingRed: #ef596f;
                         height: 12px;
                         border-radius: 50%;
                         border: none;
-                        background: #f0f0f0;
+                        background: var(--gray-100);
                         cursor: pointer;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+                        box-shadow: 0 1px 3px color-mix(in srgb, var(--gray-1000) 40%, transparent);
                     }
 
                     &::-moz-range-track {
@@ -359,7 +357,7 @@ $color-glowingRed: #ef596f;
         padding-right: 8px;
         height: 30px;
         line-height: 30px;
-        color: #000000;
+        color: var(--color-text);
         text-transform: uppercase;
         font-size: 0.8em;
         text-align: right;
@@ -368,9 +366,9 @@ $color-glowingRed: #ef596f;
         overflow: hidden;
     }
     .headerLabel {
-        background-color: #31838e;
+        background-color: var(--teal-600);
         width:100px;
-        background-color: #246068;
+        background-color: var(--teal-800);
     }
     #masterVolume {
          background: none;
@@ -391,10 +389,10 @@ $color-glowingRed: #ef596f;
     margin: 5px 1px 0;
     padding: 0;
     text-align: center;
-    border: 1px solid #c3cad4;
+    border: 1px solid var(--color-border-strong);
     border-radius: 5px;
-    background: #f6f7f9;
-    color: #6b7380;
+    background: var(--color-surface-raised);
+    color: var(--color-text-muted);
     font-size: 10px;
     font-weight: 600;
     line-height: 18px;
@@ -404,29 +402,29 @@ $color-glowingRed: #ef596f;
     transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
 
     &:hover{
-        border-color: #8f9aaa;
-        color: #1f2937;
+        border-color: var(--color-text-faint);
+        color: var(--color-text-secondary);
     }
     &:focus-visible{
-        outline: 2px solid #2f5cce;
+        outline: 2px solid var(--color-focus);
         outline-offset: 1px;
     }
     & + &{
         width: 32px;
     }
     &.fxActive{
-        border-color: #2f86ff;
-        background: #e6f0ff;
-        color: #1f5fd6;
+        border-color: var(--color-accent);
+        background: var(--color-accent-soft);
+        color: var(--color-accent);
     }
 }
 /* RotaryKnob in the track rows (pan / reverb / chorus) */
 #sequencerSideBar .seqKnob{
-    --ap-knob-track: #c9d0da;
-    --ap-knob-body: #ffffff;
-    --ap-knob-edge: #aeb7c3;
-    --ap-knob-pointer: #374151;
-    --ap-accent: #2f86ff;
+    --ap-knob-track: var(--color-border-strong);
+    --ap-knob-body: var(--color-surface);
+    --ap-knob-edge: var(--color-text-faint);
+    --ap-knob-pointer: var(--color-text-secondary);
+    --ap-accent: var(--color-accent);
     float: left;
     width: 30px;
     height: 30px;
@@ -440,7 +438,7 @@ $color-glowingRed: #ef596f;
     border-radius: 20px;
 
     &.muted{
-        background: rgba(255, 255, 255, 0.8);
+        background: var(--seq-muted);
     }
 }
 .volumeControl{
@@ -451,7 +449,7 @@ $color-glowingRed: #ef596f;
     box-sizing: border-box;
     background: transparent;
     /*
-    background: rgba(255, 255, 255, 0.27);
+    background: color-mix(in srgb, var(--gray-0) 27%, transparent);
     width: 90px;
     transform-origin: left;
     transform: scaleX(0);*/
@@ -459,7 +457,25 @@ $color-glowingRed: #ef596f;
 #sideBarButtons{
     width: 44px;
     position: relative;
-    border-right: 1px solid #e9e8f6;
+    border-right: 1px solid var(--gray-150);
     padding-top: 78px;
     overflow: visible;
+}
+/* Icon buttons in the sequencer header and track rows (AppIcon inside). */
+.seq-icon-button{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 0;
+    background: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    &:hover{
+        color: var(--color-text);
+    }
+    &:focus-visible{
+        outline: 2px solid var(--color-focus);
+        outline-offset: -2px;
+    }
 }

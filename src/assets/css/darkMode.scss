@@ -1,435 +1,130 @@
-$color-glowingRed: #ef596f;
-$color-glowingGreen: #53caa0;
 
 #darkMode{
-    svg text{
-        fill:white;
-    }
-    .pointConnectionLine{
-        stroke: #4386ca;
-    }
     /*.gridLine{
-        stroke: #343434;
+        stroke: var(--gray-750);
     }*/
-    .strongGridLine{
-        stroke: #616161;
-    }
-    .chordBox{
-        background: #2d2d2d;
-    }
-    .chordCross{
-        stroke: white;
-    }
-    svg.svgPage .chordCross{
-        stroke: black;
-    }
-    #bendEditor rect, #tremoloEditor rect, #chordDisplay rect{
-        fill: #111;
-        stroke: #111;
-    }
-    #bendEditor circle, #tremoloEditor circle, #chordDisplay circle{
-        fill: #4386ca;
-    }
-    /* Sheet music dark mode: override CSS variables for Vue tab view */
-    --tab-bg: #1e1e1e;
-    --tab-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --tab-primary: #e0e0e0;
-    --tab-secondary: #aaaaaa;
-    --tab-tertiary: #cccccc;
-    --tab-muted: #bbbbbb;
-    --tab-subtle: #999999;
-    --tab-ghost: #777777;
-    --tab-string: #444444;
-    --tab-separator: #666666;
-    --tab-chord-dot: #cccccc;
-    --tab-chord-finger: #1e1e1e;
-    --tab-muted-string: #ff6666;
-    --tab-slide: #6fa8dc;
-
-    /* Invert all toolbar / button icons to white */
-    .checkBoxNote img,
-    .classicalButton img,
-    .playStart img,
-    .playChange img,
+    /* Instrument illustrations are grey drawings: invert their tones but keep the detail. The
+       other icons are drawn in currentColor (AppIcon) and need nothing here. */
     #trackSign img,
-    #sequencerBar img,
-    #sequencerMenuBody img,
-    #sideBarButtons img,
-    .visibleEye,
     #sequencerSideBar img {
-        filter: brightness(0) invert(1);
-    }
-    .filterNodeSetting{
-        background: #282828;
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) {
-        --modal-card-bg: rgba(20, 27, 38, 0.94);
-        --modal-card-subtle: rgba(17, 23, 32, 0.94);
-        --modal-card-border: rgba(45, 58, 77, 0.92);
-        --modal-card-hover: rgba(20, 28, 40, 0.98);
-        --modal-divider: rgba(57, 70, 90, 0.9);
-        --modal-text-strong: #edf2fa;
-        --modal-text-muted: #95a4bc;
-        --modal-accent: #2f86ff;
-        --modal-accent-strong: #1f5fd6;
-        background: rgba(16, 21, 29, 0.97);
-        border-color: rgba(49, 61, 79, 0.96);
-        color: #edf2fa;
-        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(84, 102, 130, 0.08);
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBar {
-        background: rgba(16, 21, 29, 0.97);
-        border-bottom-color: var(--modal-divider);
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBarLabel {
-        color: #dce5f4;
-    }
-    .modal-section {
-        border: none;
-        background: transparent;
-    }
-    .modal-stack > .modal-section + .modal-section {
-        border-top-color: var(--modal-divider);
-    }
-    .modal-submit-row {
-        border-top-color: var(--modal-divider);
-    }
-    .modal-field label,
-    .modal-field-label,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) label {
-        color: #95a4bc;
-    }
-    .modal-field input:not([type=checkbox]):not(.styled-checkbox),
-    .modal-field textarea,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select,
-    .modal-surface-block {
-        border-color: rgba(40, 54, 74, 0.94);
-        background: rgba(17, 24, 34, 0.94);
-        color: #edf2fa;
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input::placeholder,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea::placeholder {
-        color: #6f7f96;
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:hover,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus,
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus-within {
-        background: rgba(20, 28, 40, 0.98);
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select__arrow {
-        border-top-color: #8fa2bd;
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close .icon {
-        fill: #7f91ab;
-        stroke: #7f91ab;
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover {
-        background: rgba(20, 28, 40, 0.98);
-    }
-    .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark {
-        background: linear-gradient(180deg, #2f86ff 0%, #1f5fd6 100%);
-        box-shadow: 0 10px 20px rgba(31, 95, 214, 0.26);
+        filter: invert(0.88);
     }
     #sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument{
-        color: white;
+        color: var(--gray-0);
     }
     #sideBarButtons {
         border-right: none;
-        background: rgb(68, 68, 68);
+        background: var(--gray-650);
     }
     #classicalToggle.classicalBack{
-        background: #a24f4f;
-    }
-    #footerBar {
-        background: #101010;
-    }
-    .masterFxBtn {
-        border-color: #4a4a4a;
-        background: #2f2f2f;
-        color: #a0a0a0;
-        &:hover {
-            border-color: #6a6a6a;
-            color: #f0f0f0;
-        }
-        &.fxActive {
-            border-color: #4f9cf9;
-            background: rgba(79, 156, 249, 0.18);
-            color: #8cc0ff;
-        }
-    }
-    #sequencerSideBar .seqKnob {
-        --ap-knob-track: #4a4a4a;
-        --ap-knob-body: #2c2c2c;
-        --ap-knob-edge: #5a5a5a;
-        --ap-knob-pointer: #f0f0f0;
-        --ap-accent: #5aa2ff;
+        background: var(--red-600);
     }
     .bottomStatusBar {
-        border-top-color: #333;
+        border-top-color: var(--gray-750);
     }
     .tabBarElem:hover {
-        color: #ffffff;
-    }
-    #footerBar {
-        background: #161616;
-        border-top-color: #2a2a2a;
-    }
-    .footerBlock + .footerBlock {
-        border-left-color: #2a2a2a;
-    }
-    .footerBlock[role='button']:hover {
-        background: #262626;
-        color: #ffffff;
-    }
-    .footerLabel {
-        color: #7d7d7d;
-    }
-    .bottomBars {
-        background: #1c1c1c;
-        border-top-color: #2c2c2c;
-    }
-    .footerBlock {
-        color: #c4c4c4;
-    }
-    #songPlayArea {
-        border-bottom: 1px solid rgb(68, 68, 68);
-        /* box-shadow: 0 1px 2px rgba(222, 222, 222, 0.3), 0 0 20px rgba(198, 198, 198, 0.1) inset; */
-        box-shadow: none;
-        border-right: 1px solid rgb(68, 68, 68);
-        background: rgb(68, 68, 68);
+        color: var(--gray-0);
     }
     #completeBar {
-        border: 1px solid #2e2e2e;
+        border: 1px solid var(--gray-750);
         border-top: none;
         border-left: none;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-        background: #262626;
+        box-shadow: 0 6px 18px color-mix(in srgb, var(--gray-1000) 35%, transparent);
+        background: var(--gray-800);
     }
     .statusBar {
         border-top: none;
     }
-    .mainWrapper {
-        background: #111;
-    }
-    .svgPage {
-        filter: drop-shadow(0 1px 4px rgba(0,0,0,0.1));
-    }
     .tabBarElemSelected {
-        border-top: 2px solid #ffffff !important;
-        color: #ffffff !important;
-    }
-    .clickMarkerPath{
-        stroke: rgb(119, 255, 255);
-    }
-    .exactPositionMarker{
-        fill: rgba(226, 199, 148, 0.4);
-    }
-    svg.svgPage .blockNumber{
-        fill: rgb(41, 255, 255);
+        border-top: 2px solid var(--gray-0) !important;
+        color: var(--gray-0) !important;
     }
     .tabBarElem {
-        color: #a8a8a8;
+        color: var(--gray-400);
         border-top: 2px solid transparent;
     }
     #trackSign {
-        background: rgba(241, 241, 241, 0.12);
+        background: color-mix(in srgb, var(--gray-100) 12%, transparent);
     }
     #voiceLabel {
-        color: white;
+        color: var(--gray-0);
     }
     #tabBar{
-        background: #262626;
+        background: var(--gray-800);
     }
     .statusBar {
         background: none;
     }
     .bottomStatusBar {
-        background: #2b2b2b;
+        background: var(--gray-800);
     }
     #content button.checkBoxNote {
-        /*background: rgba(241, 241, 241, 0.12);*/
-        color: white;
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
+        color: var(--gray-0);
     }
     #content button.classicalButton, #classicalToggle, button.classicalButton {
-        /*background: rgba(241, 241, 241, 0.12);*/
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
     }
     #content button.playStart, #oneMeasureBack, #oneMeasureForward{
-        /*background: rgba(241, 241, 241, 0.12);*/
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
     }
     #tabBar {
         border-right: none;
     }
     #content #tempoMeter {
-        /*background: rgba(241, 241, 241, 0.12);*/
-        color: white;
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
+        color: var(--gray-0);
     }
     #content button#pianoEyeToggle {
-        /*background: rgba(241, 241, 241, 0.12);*/
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
     }
     #content button#guitarEyeToggle {
-        /*background: rgba(241, 241, 241, 0.12);*/
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
     }
     #content #stopButton {
-        /*background: rgba(241, 241, 241, 0.12);*/
-    }
-    .ui-slider-range-min {
-        background: $color-glowingGreen;
-    }
-    #compressorModal .modalBody{
-        background: #202020;/*#111111;*/
+        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
     }
     #drumInfo div span {
-        background: #353535;
-    }
-    #addTrackRowCapsule{
-        background: #191919;
-        color: white;
+        background: var(--gray-750);
     }
     ::-webkit-scrollbar {
         border-radius:5px;
-        background: rgb(100, 100, 100);  /* Optional: just make scrollbar invisible */
+        background: var(--gray-550);  /* Optional: just make scrollbar invisible */
     }
     /* Optional: show position indicator in red */
     ::-webkit-scrollbar-thumb {
-        background: rgb(27, 27, 27);
+        background: var(--gray-900);
         border-radius:5px;
     }
     ::-webkit-scrollbar-corner{
         background:transparent;
     }
-    .addTrackDropDown {
-        border-bottom: 1px solid #303030;
-    }
-    .muteBtn{
-        background: $color-glowingGreen;
-    }
     #voice0 {
-        background: rgba(255, 153, 153, 0.67);
-        background: $color-glowingRed;
+        background: color-mix(in srgb, var(--viz-pink) 67%, transparent);
+        background: var(--red-400);
     }
     .or-spacer-vertical.left .inner:after {
-        box-shadow: 0 0 2px #ffffff;
+        box-shadow: 0 0 2px var(--gray-0);
     }
     #content button.pressed {
-        background: #df4b4b !important;
-    }
-    #composition .sequencerOneBlock .beat {
-        background-color: #3c3c3c;
-    }
-    #composition .sequencerOneBlock .beat, #composition #sequencerOneBlock .beat {
-        border-left: 1px solid #676767;
-        border-left: 0.5px solid #363636;
-        border-left: 1px solid rgba(0, 0, 0, 0.0784313725490196);
-    }
-    #composition .sequencerOneBlock .beat::after, #composition #sequencerOneBlock .beat::after {
-        color: white;
-    }
-    #composition .sequencerOneBlock .beat.beatNumber {
-        background-color: #2a2a2a;
-    }
-    #sequencerSideBar {
-        background: #2a2a2a;
-    }
-    #sequencerMainHeader{
-        background: #2a2a2a;
-    }
-    #sequencerMainBody{
-        background: #3c3c3c;
+        background: var(--red-500) !important;
     }
     #content button.checkBoxNote:hover {
-        background: rgb(62, 62, 62);
+        background: var(--gray-700);
     }
     #content .classicalButton:hover{
-        background: rgba(193, 193, 193, 0.48);
+        background: color-mix(in srgb, var(--gray-350) 48%, transparent);
     }
     #content button#guitarEyeToggle:hover, #content button#pianoEyeToggle:hover{
-        background: rgba(193, 193, 193, 0.48);
-    }
-    #indicator {
-        background-color: rgba(210, 210, 210, 0.22);
-        background-color: rgba(0, 0, 0, 0.22);
-    }
-    #indicatorCell {
-        background-color: rgba(177, 177, 177, 0.22);
-        background: rgba(35, 35, 35, 0.67);
+        background: color-mix(in srgb, var(--gray-350) 48%, transparent);
     }
     #pageLayoutToggle {
-        background: #ffffff;
-    }
-    .modal{
-        background-color: #202020; /*#383838;*/
-        color: white;
-        box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
-    }
-    .modalTopBar {
-        color: black;
-        border-bottom: none;
-        background: #111111;
+        background: var(--gray-0);
     }
     .bpmSidebarLabel{
-        color: white;
-    }
-    .modalTopBarLabel {
-        color: white;
-    }
-    input, textarea, input[type="number"]{
-        background: #111111;
-        border: 1px solid #111111;
-        color: white;
-    }
-    .volume .ui-slider-handle {
-        background: #ffffff;
-    }
-    div.panKnobInner:after{
-        border: 2px solid #222222;
-    }
-    .modal_close .icon {
-        fill: #fff;
-        stroke: #fff;
+        color: var(--gray-0);
     }
     /*#bendEditor{
-        background: #383838;
+        background: var(--gray-700);
     }*/
-    #bendEditor text{
-        color:white;
-    }
-    .select{
-        background: #111111;
-    }
-    .select select {
-        background: #111111;
-        color: white;
-    }
-    .slotNumber {
-        background: none;
-        color: #cfcfcf;
-        border-bottom: none;
-    }
-    .slotName{
-        color: #adadad;
-    }
-    .muteBtnCircle.muted{
-        background: rgba(95, 95, 95, 0.8);
-    }
-    .gridLine{
-        stroke: #2c2c2c;
-    }
-    .mixerColumn {
-        background: #111111;
-        border-right: 1px solid rgba(218, 218, 218, 0.05);
-    }
-    .slotVolume {
-        border: 1px solid rgba(197, 197, 197, 0.18);
-        background: rgba(255, 255, 255, 0.09);
-    }
-    #sequencerSideBar .labelDiv {
-        background: none !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.11);
-        box-sizing: border-box;
-    }
-    #sequencerSideBar .label {
-        color: white;
-    }
 }

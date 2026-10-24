@@ -163,9 +163,9 @@ onMounted(() => {
 .note-pad {
   flex: 0 0 auto;
   padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--compact-border);
-  background: var(--compact-surface);
-  color: var(--compact-text);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
   user-select: none;
 }
 
@@ -174,7 +174,7 @@ onMounted(() => {
   min-height: 44px;
   border: 0;
   border-radius: 10px;
-  background: var(--compact-surface-raised);
+  background: var(--color-surface-raised);
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -182,7 +182,7 @@ onMounted(() => {
 }
 
 .note-pad button:active {
-  background: var(--compact-accent-soft);
+  background: var(--color-accent-soft);
 }
 
 .note-pad svg {
@@ -204,7 +204,7 @@ onMounted(() => {
 .note-pad__position {
   flex: 1;
   overflow: hidden;
-  color: var(--compact-text-muted);
+  color: var(--color-text-muted);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -217,8 +217,8 @@ onMounted(() => {
 
 .note-pad__done {
   padding: 0 16px;
-  background: var(--compact-accent) !important;
-  color: #fff !important;
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
   font-weight: 600 !important;
 }
 
@@ -235,7 +235,7 @@ onMounted(() => {
 }
 
 .note-pad__delete {
-  color: var(--compact-danger) !important;
+  color: var(--color-danger) !important;
 }
 
 .note-pad__frets {
@@ -251,13 +251,13 @@ onMounted(() => {
 }
 
 .note-pad__page {
-  color: var(--compact-accent) !important;
+  color: var(--color-accent) !important;
   font-size: 13px !important;
 }
 
 .note-pad button.is-current {
-  background: var(--compact-accent);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .note-pad__glyph {
@@ -276,10 +276,10 @@ onMounted(() => {
 .note-pad__drums select {
   flex: 1;
   min-height: 44px;
-  border: 1px solid var(--compact-border);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 0 8px;
-  background: var(--compact-surface-raised);
+  background: var(--color-surface-raised);
   color: inherit;
   font: inherit;
 }

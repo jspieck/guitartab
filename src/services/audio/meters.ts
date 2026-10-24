@@ -47,7 +47,8 @@ function drawLevel(
 export function drawMeters(): void {
   if (!Settings.songPlaying && averageVolumeIsNull) return
   averageVolumeIsNull = true
-  const color = Settings.darkMode ? '#4d4d4d' : 'rgba(43, 43, 43, 0.47)'
+  // The theme's meter colour (tokens.css); var() is already substituted in the computed value.
+  const color = getComputedStyle(document.body).getPropertyValue('--seq-meter').trim()
   for (let i = 0, n = Song.measures.length; i < n; i += 1) {
     const canvasContext = getMeterCanvas(i + 1)
     const bus = audioGraph.busses[i]

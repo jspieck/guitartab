@@ -16,8 +16,6 @@
               :y="padding"
               :width="gridWidth"
               :height="gridHeight"
-              fill="none"
-              stroke="black"
               stroke-width="1"
             />
             <text
@@ -36,8 +34,8 @@
               :y1="padding"
               :x2="padding + (gridWidth * (i - 1)) / columnCount"
               :y2="padding + gridHeight"
-              stroke="#ddd"
               stroke-width="1"
+              class="gridLine"
             />
             <line
               v-for="i in rowCount + 1"
@@ -46,8 +44,8 @@
               :y1="padding + (gridHeight * (i - 1)) / rowCount"
               :x2="padding + gridWidth"
               :y2="padding + (gridHeight * (i - 1)) / rowCount"
-              stroke="#ddd"
               stroke-width="1"
+              class="gridLine"
             />
           </g>
           <g ref="pointsLayerRef" class="tremolo-points" />

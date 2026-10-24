@@ -22,8 +22,6 @@
     font-weight: normal;
 }
 
-$color-glowingRed: #ef596f;
-$color-glowingGreen: #53caa0;
 
 html, body, div, span, applet, object, iframe,
 h1, h2, h3, h4, h5, h6, p, blockquote, pre,
@@ -95,8 +93,8 @@ body{
     transform-style: preserve-3d;
 }
 .bottomBars{
-    background: #eef0f3;
-    border-top: 1px solid #dde1e6;
+    background: var(--color-chrome-raised);
+    border-top: 1px solid var(--color-chrome-border);
     flex-grow: 0;
     flex-shrink: 0;
     display: block;
@@ -108,7 +106,7 @@ body{
     overflow: auto;
     will-change: transform;
 	flex: 1;
-    background: #f5f5f5;
+    background: var(--color-bg);
 }
 
 #drumInfo{
@@ -122,19 +120,19 @@ body{
         cursor: pointer;
 
         &:hover {
-            background: #4982d0;
+            background: var(--blue-400);
         }
         span{
             padding: 5px;
-            background: #f7f7f7;
+            background: var(--gray-50);
         }
         span.sp2{
-            background: #70dd78;
-            color: black;
+            background: var(--green-300);
+            color: var(--gray-1000);
         }
         span.sp3{
-            background: #6691b3;
-            color: white;
+            background: var(--gray-450);
+            color: var(--gray-0);
         }
     }
 }
@@ -147,7 +145,7 @@ body{
     vertical-align: middle;
     font-size: 20px;
     margin-left:5px;
-    color: #6d7998;
+    color: var(--gray-500);
 }
 
 .disable-select, label, span, img, button, .note, .blockNumber {
@@ -174,7 +172,7 @@ body{
     width: 80%;
     top: 50%;
     transform: translateY(-50%);
-    background: #555;
+    background: var(--gray-600);
     border-radius: 15px;
 
     input[type=range] {
@@ -195,9 +193,9 @@ body{
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: #f0f0f0;
+            background: var(--gray-100);
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            box-shadow: 0 1px 3px color-mix(in srgb, var(--gray-1000) 40%, transparent);
             margin-top: -4px;
         }
 
@@ -212,9 +210,9 @@ body{
             height: 14px;
             border-radius: 50%;
             border: none;
-            background: #f0f0f0;
+            background: var(--gray-100);
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            box-shadow: 0 1px 3px color-mix(in srgb, var(--gray-1000) 40%, transparent);
         }
 
         &::-moz-range-track {
@@ -228,7 +226,7 @@ body{
         height: 5px;
         width: 300px;
         position: absolute;
-        background: #2ecc71;
+        background: var(--green-400);
         border: none;
         border-radius: 10px;
         outline: none;
@@ -238,7 +236,7 @@ body{
         width: 15px;
        height: 15px;
        border-radius: 20px;
-       background: #fafafa;
+       background: var(--gray-25);
        position: absolute;
        margin-left: -8px;
        margin-top: -5px;
@@ -278,35 +276,35 @@ body{
 }
 
 #completeBar{
-    border: 1px solid #e8e8e8;
-    /* background-image: -webkit-linear-gradient(right, rgba(255, 219, 219, 0.2), rgba(253, 195, 207, 0.23)) !important; */
-    box-shadow: 0 1px 2px rgba(222, 222, 222, 0.3), 0 0 20px rgba(198, 198, 198, 0.1) inset;
-    /*background: rgba(255, 255, 255, 0.92);*/
-    background: rgb(255, 255, 255);
+    border: 1px solid var(--gray-150);
+    /* background-image: -webkit-linear-gradient(right, color-mix(in srgb, var(--red-100) 20%, transparent), color-mix(in srgb, var(--red-100) 23%, transparent)) !important; */
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--gray-200) 30%, transparent), 0 0 20px color-mix(in srgb, var(--gray-300) 10%, transparent) inset;
+    /*background: color-mix(in srgb, var(--gray-0) 92%, transparent);*/
+    background: var(--gray-0);
     position: absolute;
     z-index: 200;
 }
 
 .tabBarElemSelected{
-    border-top: 2px solid #2f5cce !important;
-    color: #aac1fb !important;
-    color: #2f5cce !important;
+    border-top: 2px solid var(--blue-600) !important;
+    color: var(--blue-300) !important;
+    color: var(--blue-600) !important;
 }
 
 .tabBarElem{
     cursor: pointer;
     margin: 0 15px;
     display:inline-block;
-    color: #6d7998;
-    color: #111;
+    color: var(--gray-500);
+    color: var(--gray-950);
     font-size: 14px;
-    border-top: 2px solid #ffffff;
+    border-top: 2px solid var(--gray-0);
     transition: all 200ms ease-in-out;
 
     &:hover, &:active{
-        border-top: 2px solid #2f5cce;
-        color: #aac1fb;
-        color: #2f5cce;
+        border-top: 2px solid var(--blue-600);
+        color: var(--blue-300);
+        color: var(--blue-600);
     }
 }
 .hideChord{
@@ -323,8 +321,8 @@ body {
 #content .muteButton, #content .soloButton{
     width:20px;
     height:20px;
-    border:1px solid white;
-    color:white;
+    border:1px solid var(--gray-0);
+    color:var(--gray-0);
     border-radius:20px;
     background: transparent;
     margin-right: 5px;
@@ -333,8 +331,8 @@ body {
 }
 
 #content .muteButton:hover, #content .soloButton:hover{
-    background: white;
-    color: #3C4669;
+    background: var(--gray-0);
+    color: var(--indigo-700);
 }
 
 #trackSign{
@@ -394,9 +392,9 @@ body {
     height: 25px;
     line-height: 25px;
     text-align: center;
-    background: #5ed490;
+    background: var(--green-400);
     border-radius: 6px;
-    color: white;
+    color: var(--gray-0);
     max-width: min(420px, calc(100vw - 120px));
     white-space: nowrap;
     overflow: hidden;
@@ -410,20 +408,20 @@ body {
     font: inherit;
     font-weight: 600;
     color: inherit;
-    background: rgba(255, 255, 255, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: color-mix(in srgb, var(--gray-0) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gray-0) 70%, transparent);
     border-radius: 4px;
     cursor: pointer;
 }
 #notificationAction:hover{
-    background: rgba(255, 255, 255, 0.3);
+    background: color-mix(in srgb, var(--gray-0) 30%, transparent);
 }
 #notificationAction:focus-visible{
-    outline: 2px solid white;
+    outline: 2px solid var(--gray-0);
     outline-offset: 1px;
 }
 #notificationEmblem.notification-error{
-    background: #d45e5e;
+    background: var(--red-400);
 }
 .notification-fade-enter-active, .notification-fade-leave-active{
     transition: opacity 0.5s;
@@ -452,14 +450,14 @@ body {
         justify-content: center;
         align-items: center;
         transition: all 1s;
-        color: #FFFFFF;
+        color: var(--gray-0);
         vertical-align: top;
-        background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
-        background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
-        background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
-        background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
-        background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
-        /*box-shadow: 2px 2px 5px 0px rgb(175, 175, 175);*/
+        background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
+        background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
+        background-image: -moz-linear-gradient(top, var(--gray-50), var(--gray-150));
+        background-image: -ms-linear-gradient(top, var(--gray-50), var(--gray-150));
+        background-image: -o-linear-gradient(top, var(--gray-50), var(--gray-150));
+        /*box-shadow: 2px 2px 5px 0px var(--gray-350);*/
         text-align: center;
 
         input[type='file'] {
@@ -476,7 +474,7 @@ body {
         }
         &:hover {
           background-position: 0 -100%;
-          color: #2590EB;
+          color: var(--blue-400);
         }
     }
 }
@@ -489,9 +487,9 @@ body {
     margin-top: 90px;
 }
 .svgPage{
-    background-color: #fff;
-    -webkit-filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
-    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.3));
+    background-color: var(--gray-0);
+    -webkit-filter: drop-shadow(0 1px 4px color-mix(in srgb, var(--gray-1000) 30%, transparent));
+    filter: drop-shadow(0 1px 4px color-mix(in srgb, var(--gray-1000) 30%, transparent));
 }
 
 #graceSelect label{
@@ -532,11 +530,12 @@ body {
     width: 20px;
     height: 28px;
     opacity: 1;
+    color: var(--color-text);
     line-height: 12px;
     border-radius: 0;
     padding: 4px;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
-    background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
+    background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
 }
 #content #oneMeasureBack{
     margin: 2px;
@@ -557,35 +556,35 @@ body {
     /* margin-bottom: 7px; */
     /* margin-top: 17px; */
     height: 28px;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
-    background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
-    background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
-    background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
-    background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+    background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
+    background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
+    background-image: -moz-linear-gradient(top, var(--gray-50), var(--gray-150));
+    background-image: -ms-linear-gradient(top, var(--gray-50), var(--gray-150));
+    background-image: -o-linear-gradient(top, var(--gray-50), var(--gray-150));
     /* border-radius: 20px; */
     text-align: center;
-    /* border: 1px solid rgb(236, 236, 236); */
+    /* border: 1px solid var(--gray-150); */
     cursor: pointer;
     padding: 6px;
     padding-left: 7px;
     float: left;
     grid-column: 1/2;
     grid-row: 1;
-    border-right: 1px solid rgba(93, 93, 93, 0.08);
-    border-left: 1px solid rgba(93, 93, 93, 0.08);
+    border-right: 1px solid color-mix(in srgb, var(--gray-550) 8%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--gray-550) 8%, transparent);
     z-index: 2;
 }
 #content button.playStart:hover, #content button.playChange:hover, #content #stopButton:hover{
-	background: white;
-	background-image: -webkit-linear-gradient(top, #c5e0fb, #759dba);
+	background: var(--gray-0);
+	background-image: -webkit-linear-gradient(top, var(--blue-100), var(--gray-400));
 
 	/*    transform: rotate(360deg);*/
-    background: #cb5920;
-    background-image: linear-gradient(to top, #d5d4d0 0%, #d5d4d0 1%, #eeeeec 31%, #efeeec 75%, #e9e9e7 100%);
+    background: var(--red-500);
+    background-image: linear-gradient(to top, var(--gray-250) 0%, var(--gray-250) 1%, var(--gray-100) 31%, var(--gray-100) 75%, var(--gray-150) 100%);
     transition-duration: 1s;
 }
 #content #recordButton:hover{
-    background: #e88888;
+    background: var(--red-300);
 }
 #content #playMusicImg{
 	display: block;
@@ -596,17 +595,17 @@ body {
 #content button.classicalButton, button.classicalButton{
     width: 28px;
     height: 28px;
-    background: white;
+    background: var(--gray-0);
     border-radius: 30px;
-    background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+    background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
     cursor: pointer;
     margin: 7px 9px;
 }
 .deleteButton{
     outline: 0;
     padding: 10px;
-    color: black;
-    background: #e2e2e2;
+    color: var(--gray-1000);
+    background: var(--gray-200);
     border: none;
     margin-top: 5px;
     height: 40px;
@@ -614,7 +613,7 @@ body {
     cursor: pointer;
 }
 #classicalToggleButton.classicalBack {
-    background: #f8c1c1 !important;
+    background: var(--red-200) !important;
 }
 .shiftPiano{
     height: 0px !important;
@@ -644,7 +643,7 @@ body {
 #tabTitle, #tabAuthor, #tuningTitle, #capoTitle{
     text-align: center;
     cursor:pointer;
-    fill:black;
+    fill:var(--gray-1000);
 }
 .bpmMeter, .chordDiagram, #trackTitle{
     cursor:pointer;
@@ -660,7 +659,7 @@ body {
 }
 .statusBar{
     display:none;
-    border-top: 1px solid #e9e8f6;
+    border-top: 1px solid var(--gray-150);
 }
 #tabArea{
 	position:relative;
@@ -677,7 +676,7 @@ body {
 }
 .note{
 	position: absolute;
-	background: rgba(255, 255, 255, 0.26);
+	background: color-mix(in srgb, var(--gray-0) 26%, transparent);
 	line-height: 20px;
 	width: 17px;
 	text-align: center;
@@ -715,12 +714,12 @@ body {
 .tabArea:focus {outline:0;}
 #content button:focus {outline:0;}
 #content button.pressed{
-	/*background-image: -webkit-linear-gradient(top, #ffd8fb, rgb(186, 83, 83)) !important;*/
-	    background: #f8c1c1 !important;
+	/*background-image: -webkit-linear-gradient(top, var(--red-100), var(--red-500)) !important;*/
+	    background: var(--red-200) !important;
 }
 #content button.checkBoxNote:hover {
-    background-image: -webkit-linear-gradient(top, #dfdfdf, #e7e7e7);
-    background: #ebebeb;
+    background-image: -webkit-linear-gradient(top, var(--gray-200), var(--gray-150));
+    background: var(--gray-150);
 }
 #content button.checkBoxNote{
 	display: inline-flex;
@@ -730,12 +729,12 @@ body {
 	margin-right:10px;
     width: 28px;
     height: 28px;
-	background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
-	background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
-	background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
-	background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
-	background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
-	/*box-shadow: 2px 2px 5px 0px rgb(175, 175, 175);*/
+	background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
+	background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
+	background-image: -moz-linear-gradient(top, var(--gray-50), var(--gray-150));
+	background-image: -ms-linear-gradient(top, var(--gray-50), var(--gray-150));
+	background-image: -o-linear-gradient(top, var(--gray-50), var(--gray-150));
+	/*box-shadow: 2px 2px 5px 0px var(--gray-350);*/
 	border-radius: 20px;
 	text-align: center;
 	line-height: 1;
@@ -743,25 +742,25 @@ body {
     margin: 4px;
     box-sizing: border-box;
 }
-#content button.checkBoxNote > img {
+#content button.checkBoxNote > :is(img, svg) {
     display: block;
     margin: 0;
     object-fit: contain;
     pointer-events: none;
     flex-shrink: 0;
 }
-#content button.checkBoxNote > img.noteImg {
+#content button.checkBoxNote > .noteImg {
     width: 12px;
     height: 20px;
 }
-#content #statusBar2 button.checkBoxNote > img,
-#content #statusBar4 button.checkBoxNote > img,
-#content #statusBar5 button.checkBoxNote > img,
-#content button.checkBoxNote.playButton > img {
+#content #statusBar2 button.checkBoxNote > :is(img, svg),
+#content #statusBar4 button.checkBoxNote > :is(img, svg),
+#content #statusBar5 button.checkBoxNote > :is(img, svg),
+#content button.checkBoxNote.playButton > :is(img, svg) {
     width: 20px;
     height: 20px;
 }
-#content #statusBar1 button.checkBoxNote:not(.playButton) > img:not(.noteImg) {
+#content #statusBar1 button.checkBoxNote:not(.playButton) > :is(img, svg):not(.noteImg) {
     width: 20px;
     height: 20px;
 }
@@ -801,7 +800,7 @@ body {
     left: 50%;
     z-index: 10;
     transform: scale(3);
-    background: rgba(255, 255, 255, 0.63);
+    background: color-mix(in srgb, var(--gray-0) 63%, transparent);
 }
 
 #content button.playButton{
@@ -813,7 +812,7 @@ body {
 	color: inherit;
 }
 #content button.playButton:hover, #content button.playButton:hover, #content .classicalButton:hover {
-    background: #e7e7e7;
+    background: var(--gray-150);
 }
 /*MODAL EFFECT*/
 .show {
@@ -824,15 +823,15 @@ body {
   height: 40px;
   margin-top: -20px;
   margin-left: -75px;
-  background: #e74c3c;
-  color: #fff;
+  background: var(--red-500);
+  color: var(--gray-0);
   border-radius: 5px;
   border: 0;
-  border-bottom: 2px solid #c0392b;
+  border-bottom: 2px solid var(--red-600);
   cursor: pointer;
 }
 .show:hover {
-  background: #c0392b;
+  background: var(--red-600);
 }
 .show:active {
   transform: scale(0.9);
@@ -843,8 +842,8 @@ body {
     right: 0;
     width: 35px;
     height: 30px;
-    background: #000;
-    color: #fff;
+    background: var(--gray-1000);
+    color: var(--gray-0);
     cursor: pointer;
     border: 0;
 }
@@ -873,7 +872,7 @@ body {
   stroke-dashoffset: 166;
   stroke-width: 2;
   stroke-miterlimit: 10;
-  stroke: #7ac142;
+  stroke: var(--green-400);
   fill: none;
   animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
 }
@@ -883,34 +882,18 @@ body {
     border-radius: 50%;
     display: block;
     stroke-width: 2;
-    stroke: #fff;
+    stroke: var(--gray-0);
     stroke-miterlimit: 10;
-    box-shadow: inset 0px 0px 0px #7ac142;
+    box-shadow: inset 0px 0px 0px var(--green-400);
     animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
 }
 .modal {
-    --modal-ui-font: "Source Sans Pro", "Segoe UI Variable", "Segoe UI", sans-serif;
-    --modal-card-bg: #ffffff;
-    --modal-card-subtle: #f8fafc;
-    --modal-card-border: #d8e0ea;
-    --modal-card-hover: #f3f6fa;
-    --modal-divider: #e4eaf1;
-    --modal-text-strong: #111827;
-    --modal-text-muted: #64748b;
-    --modal-accent: #2f5cce;
-    --modal-accent-strong: #2449a8;
-    --modal-control-height: 30px;
-    --modal-control-padding-x: 10px;
-    --modal-textarea-min-height: 72px;
     position: fixed;
-    background-color: white;
-    -moz-box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
-    -webkit-box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
-    box-shadow: 2px 2px 8px 1px rgba(0, 0, 0, 0.2);
-    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.08);
-    border: 1px solid rgba(214, 220, 230, 0.9);
-    border-radius: 16px;
-    color: #1f2937;
+    background-color: var(--color-surface);
+    box-shadow: 0 16px 34px color-mix(in srgb, var(--color-shadow) 14%, transparent), 0 4px 12px color-mix(in srgb, var(--color-shadow) 8%, transparent);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    color: var(--color-text-secondary);
     z-index: 100;
     /*transition: 0.5s ease-out;*/
     transform: translateY(45px);
@@ -918,7 +901,7 @@ body {
     box-sizing: border-box;
     display:none;
     overflow: hidden;
-    font-family: var(--modal-ui-font);
+    font-family: var(--font-ui);
 }
 .modal button,
 .modal input,
@@ -935,11 +918,11 @@ body {
     min-width: 300px;
     max-width: min(420px, calc(100vw - 32px));
     max-height: 78vh;
-    background: #ffffff;
-    color: var(--modal-text-strong);
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14), 0 2px 8px rgba(15, 23, 42, 0.06);
-    border: 1px solid var(--modal-card-border);
-    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-popover);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBar{
     min-height: 44px;
@@ -950,8 +933,8 @@ body {
     justify-content: space-between;
     gap: 8px;
     padding: 0 8px 0 16px;
-    border-bottom: 1px solid var(--modal-divider);
-    background: #ffffff;
+    border-bottom: 1px solid var(--color-divider);
+    background: var(--color-surface);
     width: 100%;
     box-sizing: border-box;
 }
@@ -961,7 +944,7 @@ body {
     flex: 1;
     display: flex;
     align-items: center;
-    color: var(--modal-text-strong);
+    color: var(--color-text);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0;
@@ -986,17 +969,17 @@ body {
     transition: background-color 0.15s ease;
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover {
-    background: var(--modal-card-hover);
+    background: var(--color-hover);
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close .icon {
-    fill: #64748b;
-    stroke: #64748b;
+    fill: var(--color-text-muted);
+    stroke: var(--color-text-muted);
     width: 14px;
     height: 14px;
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover .icon {
-    fill: #1e293b;
-    stroke: #1e293b;
+    fill: var(--color-text-secondary);
+    stroke: var(--color-text-secondary);
 }
 .modal-stack {
     display: grid;
@@ -1015,7 +998,7 @@ body {
 }
 .modal-stack > .modal-section + .modal-section {
     padding-top: 14px;
-    border-top: 1px solid var(--modal-divider);
+    border-top: 1px solid var(--color-divider);
 }
 .modal-field-grid {
     display: grid;
@@ -1038,7 +1021,7 @@ body {
 .modal-field label,
 .modal-field-label,
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) label {
-    color: var(--modal-text-muted);
+    color: var(--color-text-muted);
     font-size: 13px;
     font-weight: 500;
     letter-spacing: 0;
@@ -1055,8 +1038,8 @@ body {
     width: 100%;
     min-width: 0;
     border-radius: 10px;
-    border: 1px solid var(--modal-card-border);
-    background: var(--modal-card-bg);
+    border: 1px solid var(--color-border);
+    background: var(--color-field);
     box-sizing: border-box;
 }
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
@@ -1064,7 +1047,7 @@ body {
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
     margin: 0;
-    padding: 0 var(--modal-control-padding-x);
+    padding: 0 var(--control-padding-x);
     font: inherit;
     font-size: 13px;
     color: inherit;
@@ -1073,14 +1056,14 @@ body {
 }
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox) {
-    height: var(--modal-control-height);
+    height: var(--control-height);
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input::placeholder,
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea::placeholder {
-    color: #94a3b8;
+    color: var(--color-text-faint);
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
-    min-height: var(--modal-textarea-min-height);
+    min-height: var(--textarea-min-height);
     padding-top: 8px;
     padding-bottom: 8px;
     resize: vertical;
@@ -1089,24 +1072,24 @@ body {
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select {
     position: relative;
     display: block;
-    height: var(--modal-control-height);
+    height: var(--control-height);
     color: inherit;
-    background: var(--modal-card-bg);
+    background: var(--color-field);
     overflow: hidden;
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select select {
     appearance: none;
     -webkit-appearance: none;
     width: 100%;
-    height: var(--modal-control-height);
-    padding: 0 30px 0 var(--modal-control-padding-x);
+    height: var(--control-height);
+    padding: 0 30px 0 var(--control-padding-x);
     margin: 0;
     border: 0;
     background: transparent;
     box-sizing: border-box;
     color: inherit;
     font-size: 13px;
-    line-height: var(--modal-control-height);
+    line-height: var(--control-height);
     cursor: pointer;
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select__arrow {
@@ -1114,13 +1097,13 @@ body {
     transform: translateY(-50%);
     right: 11px;
     border-width: 5px 4px 0 4px;
-    border-color: #64748b transparent transparent transparent;
+    border-color: var(--color-text-muted) transparent transparent transparent;
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:hover,
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus-within {
     color: inherit;
-    background: var(--modal-card-hover);
-    border-color: #c7d2e0;
+    background: var(--color-hover);
+    border-color: var(--color-border-strong);
 }
 .modal-primary-button {
     display: inline-flex;
@@ -1131,8 +1114,8 @@ body {
     padding: 0 12px;
     border: 0;
     border-radius: 7px;
-    background: var(--modal-accent);
-    color: #ffffff;
+    background: var(--color-accent);
+    color: var(--color-on-accent);
     font: inherit;
     font-size: 12px;
     font-weight: 600;
@@ -1141,10 +1124,10 @@ body {
     transition: background-color 0.15s ease;
 }
 .modal-primary-button:hover {
-    background: var(--modal-accent-strong);
+    background: var(--color-accent-strong);
 }
 .modal-primary-button:focus-visible {
-    outline: 2px solid rgba(47, 92, 206, 0.35);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 .modal-secondary-button {
@@ -1154,10 +1137,10 @@ body {
     min-width: 64px;
     height: 28px;
     padding: 0 12px;
-    border: 1px solid #9aa8bc;
+    border: 1px solid var(--color-border-strong);
     border-radius: 7px;
-    background: #eef1f6;
-    color: #1f2937;
+    background: var(--color-surface-raised);
+    color: var(--color-text-secondary);
     font: inherit;
     font-size: 12px;
     font-weight: 600;
@@ -1166,16 +1149,16 @@ body {
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .modal-secondary-button:hover {
-    background: #e2e8f0;
-    border-color: #7a8799;
-    color: #111827;
+    background: var(--color-active);
+    border-color: var(--color-text-faint);
+    color: var(--color-text);
 }
 .modal-secondary-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 .modal-secondary-button:focus-visible {
-    outline: 2px solid rgba(47, 92, 206, 0.25);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 .modal-danger-button {
@@ -1187,8 +1170,8 @@ body {
     padding: 0 12px;
     border: 0;
     border-radius: 7px;
-    background: #c53030;
-    color: #ffffff;
+    background: var(--color-danger);
+    color: var(--color-on-accent);
     font: inherit;
     font-size: 12px;
     font-weight: 600;
@@ -1197,11 +1180,11 @@ body {
     transition: background-color 0.15s ease;
 }
 .modal-danger-button:hover {
-    background: #9b2c2c;
+    background: var(--color-danger-strong);
 }
 .modal-body-text {
     margin: 0;
-    color: var(--modal-text-strong);
+    color: var(--color-text);
     font-size: 14px;
     line-height: 1.5;
 }
@@ -1211,7 +1194,7 @@ body {
     gap: 8px;
     padding-top: 14px;
     margin-top: 2px;
-    border-top: 1px solid var(--modal-divider);
+    border-top: 1px solid var(--color-divider);
 }
 .modal-inline-display {
     display: flex;
@@ -1228,7 +1211,7 @@ body {
     justify-content: flex-end;
     padding-top: 14px;
     margin-top: 2px;
-    border-top: 1px solid var(--modal-divider);
+    border-top: 1px solid var(--color-divider);
 }
 .modal-submit-row .selectButton,
 .modal-submit-row .modal-primary-button,
@@ -1238,11 +1221,11 @@ body {
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark {
     width: 34px;
     height: 34px;
-    background: linear-gradient(180deg, var(--modal-accent) 0%, var(--modal-accent-strong) 100%);
-    box-shadow: 0 10px 18px rgba(22, 95, 190, 0.2);
+    background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
+    box-shadow: 0 10px 18px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
 .modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark__circle {
-    stroke: rgba(255, 255, 255, 0.3);
+    stroke: color-mix(in srgb, var(--gray-0) 30%, transparent);
 }
 .modal-checkbox-list {
     display: grid;
@@ -1267,7 +1250,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    min-height: var(--modal-control-height);
+    min-height: var(--control-height);
     cursor: pointer;
     user-select: none;
 }
@@ -1284,8 +1267,8 @@ body {
     width: 36px;
     height: 20px;
     border-radius: 999px;
-    background: #cbd5e1;
-    transition: background-color 0.15s ease;
+    background: var(--color-border-strong);
+    transition: background-color var(--duration-fast) ease;
 }
 .modal-toggle-thumb {
     position: absolute;
@@ -1294,22 +1277,22 @@ body {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #ffffff;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+    background: var(--gray-0);
+    box-shadow: var(--shadow-sm);
     transition: transform 0.15s ease;
 }
 .modal-toggle-label {
-    color: var(--modal-text-strong);
+    color: var(--color-text);
     font-size: 13px;
     font-weight: 500;
     line-height: 1.2;
 }
 .modal-toggle-input:focus-visible + .modal-toggle-track {
-    outline: 2px solid rgba(47, 92, 206, 0.35);
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
 }
 .modal-toggle-input:checked + .modal-toggle-track {
-    background: var(--modal-accent);
+    background: var(--color-accent);
 }
 .modal-toggle-input:checked + .modal-toggle-track .modal-toggle-thumb {
     transform: translateX(16px);
@@ -1368,11 +1351,11 @@ body {
     min-width: 0;
     padding: 8px;
     border-radius: 10px;
-    border: 1px solid var(--modal-card-border);
-    background: var(--modal-card-subtle);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-sunken);
 }
 #instrumentSettingsModal #tuningAreaModal .tuning-slot__label {
-    color: var(--modal-text-muted);
+    color: var(--color-text-muted);
     font-size: 12px;
     font-weight: 600;
 }
@@ -1421,16 +1404,16 @@ body {
     height: 25px;
     line-height: 25px;
     width: 100%;
-    color: black;
-    border-bottom: 1px solid #e9e8f6;
-    background: #f7f7f7;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-divider);
+    background: var(--color-surface-sunken);
 }
 .modal .eyeToggle{
     display: none;
     position: absolute;
     top: 0px;
     right: 0px;
-    background: rgba(0, 0, 0, 0.37);
+    background: color-mix(in srgb, var(--gray-1000) 37%, transparent);
 }
 .modal.hideBar:hover .eyeToggle{
     display:block
@@ -1459,8 +1442,8 @@ body {
     justify-content: center;
     width: 13px;
     height: 13px;
-    fill: #222;
-    stroke: #222;
+    fill: var(--color-text);
+    stroke: var(--color-text);
 }
 .modal_close .icon svg {
     display: block;
@@ -1493,11 +1476,11 @@ body {
 }
 @keyframes fill {
   100% {
-    box-shadow: inset 0px 0px 0px 30px #7ac142;
+    box-shadow: inset 0px 0px 0px 30px var(--green-400);
   }
 }
 #bendEditor{
-    /*border: 1px solid #adadad;*/
+    /*border: 1px solid var(--gray-400);*/
     width: 487px;
     display: block;
     height: 200px;
@@ -1519,7 +1502,7 @@ body {
     width: min(1176px, calc(100vw - 32px));
     min-width: min(980px, calc(100vw - 32px));
     max-width: calc(100vw - 32px);
-    background: white;
+    background: var(--gray-0);
 }
 #pianoModal .modalBody{
     padding: 0;
@@ -1533,7 +1516,7 @@ body {
     position: absolute;
     top: 4px;
     right: 30px;
-    background: #FF5722;
+    background: var(--red-400);
     width: 12px;
     z-index: 6;
     height: 12px;
@@ -1545,7 +1528,7 @@ body {
     top: 200px;
     left: 200px;
     width: 1176px;
-    background: white;
+    background: var(--gray-0);
     height: 112px;
 }
 #guitarModal .modalBody{
@@ -1556,16 +1539,16 @@ body {
     display: none;
 }
 .modal.hideBar .hideTopBar{
-    background: #9E9E9E;
+    background: var(--gray-400);
 }
 .openWindows{
     height: 20px;
     line-height: 20px;
     padding: 0 4px;
     flex-grow: 0;
-    background: $color-glowingRed;
+    background: var(--red-400);
     text-transform: uppercase;
-    color: white;
+    color: var(--gray-0);
     vertical-align: middle;
     cursor: pointer;
     user-select: none;
@@ -1576,19 +1559,19 @@ body {
 /*SELECT BOXES*/
 .selectButton{
     outline: 0;
-    color: white;
+    color: var(--gray-0);
     border: none;
     cursor: pointer;
     margin-top: 10px;
 }
 .selectButton:hover{
-    background: #2895b5;
+    background: var(--teal-600);
 }
 .select {
     position: relative;
     display: inline-block;
-    background: #e6e6e6;
-    color: #7b7b7b;
+    background: var(--color-field-muted);
+    color: var(--color-text-muted);
 }
  .harmonicSelect select{
     width: 100%;
@@ -1611,9 +1594,9 @@ body {
 
 .select:hover,
 .select:focus {
-  color: #000;
-  background: #ccc;
-  background: rgba(204, 204, 204, 0.66);
+  color: var(--gray-1000);
+  background: var(--gray-300);
+  background: color-mix(in srgb, var(--gray-300) 66%, transparent);
 }
 .select:disabled {
     opacity: 0.5;
@@ -1626,14 +1609,14 @@ body {
     pointer-events: none;
     border-style: solid;
     border-width: 8px 5px 0 5px;
-    border-color: #7b7b7b transparent transparent transparent;
+    border-color: var(--gray-500) transparent transparent transparent;
 }
 .select:hover ~ .select__arrow,
 .select:focus ~ .select__arrow {
-  border-top-color: #000;
+  border-top-color: var(--gray-1000);
 }
 .select:disabled ~ .select__arrow {
-  border-top-color: #ccc;
+  border-top-color: var(--gray-300);
 }
 /*Separator*/
 .or-spacer-vertical {
@@ -1653,7 +1636,7 @@ body {
   width: 20px;
   height: 100%;
   border-radius: 12px / 125px;
-  box-shadow: 0 0 2px #1b3d7b;
+  box-shadow: 0 0 2px var(--blue-800);
 }
 .or-spacer-vertical.right .inner:before {
   content: '';
@@ -1662,18 +1645,18 @@ body {
   width: 20px;
   height: 100%;
   border-radius: 12px / 125px;
-  box-shadow: 0 0 2px #1b3d7b;
+  box-shadow: 0 0 2px var(--blue-800);
 }
 /*Add Tracks*/
 .addTrackIcon{
-    /*background: rgba(14, 14, 86, 0.93);*/
+    /*background: color-mix(in srgb, var(--blue-900) 93%, transparent);*/
     height: 25px;
     width: 30px;
     border-radius: 40px;
 }
 .addTrackDropDown{
     align-items: center;
-    border-bottom: 1px solid #cacaca;
+    border-bottom: 1px solid var(--gray-300);
     position: relative;
     font-size: 14px;
     padding-top: 5px;
@@ -1681,8 +1664,8 @@ body {
 }
 .addTrackRowCapsule {
     display: none;
-    background: #f6f6f6;
-    color: black;
+    background: var(--gray-50);
+    color: var(--gray-1000);
     margin: 5px 0px;
     padding: 5px;
     &.visible {
@@ -1696,7 +1679,7 @@ body {
     margin: 2px;
 }
 .addTrackInnerRow:not(:last-child){
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid color-mix(in srgb, var(--gray-0) 8%, transparent);
 }
 .addTrackDropDown:after{
   /* Little arrow */
@@ -1709,7 +1692,7 @@ body {
   margin-top: -3px;
   border-width: 6px 6px 0 6px;
   border-style: solid;
-  border-color: #4cbeff transparent;
+  border-color: var(--blue-300) transparent;
 }
 .instrumentContainer{
     height: 450px;
@@ -1733,17 +1716,17 @@ body {
     width: 100%;
     height: 83px;
     transition:0.5s;
-    background: #f9f9f9;
-    border-top: 1px solid #e9e8f6;
-    box-shadow: 2px 1px 2px rgba(222, 222, 222, 0.3), 0 0 20px rgba(198, 198, 198, 0.1) inset;
+    background: var(--gray-25);
+    border-top: 1px solid var(--gray-150);
+    box-shadow: 2px 1px 2px color-mix(in srgb, var(--gray-200) 30%, transparent), 0 0 20px color-mix(in srgb, var(--gray-300) 10%, transparent) inset;
 }
 #sequencerSideBar #masterVolume{
     width: 90px;
-    background: rgba(255, 255, 255, 0.06)
+    background: color-mix(in srgb, var(--gray-0) 6%, transparent)
 }
 #masterVolume .volume .ui-slider-range{
-    background: #cc2e2e;
-    background: $color-glowingRed;
+    background: var(--red-500);
+    background: var(--red-400);
 }
 
 @include meta.load-css('./piano');
@@ -1794,35 +1777,35 @@ body {
   vertical-align: text-top;
   width: 20px;
   height: 20px;
-  background: #cecece;
-  background: #eaeaea;
+  background: var(--gray-300);
+  background: var(--gray-150);
 }
 .styled-checkbox:hover + label:before {
-  background: #ffae99;
+  background: var(--red-200);
 }
 .styled-checkbox:focus + label:before {
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gray-1000) 12%, transparent);
 }
 .styled-checkbox:checked + label:before {
-  background: #f35429;
+  background: var(--red-400);
 }
 .styled-checkbox:disabled + label {
-  color: #b8b8b8;
+  color: var(--gray-350);
   cursor: auto;
 }
 .styled-checkbox:disabled + label:before {
     box-shadow: none;
-    background: #ddd;
+    background: var(--gray-250);
 }
 .styled-checkbox:checked + label:after {
     content: '';
     position: absolute;
     left: 5px;
     top: 9px;
-    background: white;
+    background: var(--gray-0);
     width: 2px;
     height: 2px;
-    box-shadow: 2px 0 0 white, 4px 0 0 white, 4px -2px 0 white, 4px -4px 0 white, 4px -6px 0 white, 4px -8px 0 white;
+    box-shadow: 2px 0 0 var(--gray-0), 4px 0 0 var(--gray-0), 4px -2px 0 var(--gray-0), 4px -4px 0 var(--gray-0), 4px -6px 0 var(--gray-0), 4px -8px 0 var(--gray-0);
     transform: rotate(45deg);
 }
 #alternativeContainer{
@@ -1856,8 +1839,8 @@ button[data-tooltip] {
         */
         content: attr(data-tooltip);
         z-index: 100;
-        background: #000;
-        color: #fff;
+        background: var(--gray-1000);
+        color: var(--gray-0);
         font-size: 13px;
         padding: 5px;
         border-radius: 5px;
@@ -1873,7 +1856,7 @@ button[data-tooltip] {
         height: 0;
         border: 6px solid transparent;
         content: '';
-        border-bottom-color: #000;
+        border-bottom-color: var(--gray-1000);
         border-top: none;
         top: 100%;
         left: 10px;
@@ -1891,7 +1874,7 @@ button[data-tooltip] {
     width: min(760px, calc(100vw - 32px));
     min-width: 360px;
     max-width: calc(100vw - 32px);
-    background: white;
+    background: var(--gray-0);
 
     .modalBody{
         padding: 0;
@@ -1899,18 +1882,18 @@ button[data-tooltip] {
     }
 }
 /*#mixerModal div.panKnobInner:after {
-    background: #5862b9;
+    background: var(--viz-indigo);
 }*/
 div.mixerColumnActive{
-    background: #ffd7cf;
+    background: var(--red-100);
 }
 .mixerColumn{
     display: block;
     width: 42px;
     flex: 0 0 42px;
-    background: #f7f7f7;
+    background: var(--gray-50);
     font-size: 11px;
-    border-right: 1px solid #f0f0f0;
+    border-right: 1px solid var(--gray-100);
     height: 100%;
 }
 .mixerColumn > div {
@@ -1963,14 +1946,14 @@ div.mixerColumnActive{
     width: 100%;
     padding-top: 4px;
     text-align: center;
-    /*background: rgba(196, 196, 196, 0.16);*/
-    color: #3d3d3d;
+    /*background: color-mix(in srgb, var(--gray-350) 16%, transparent);*/
+    color: var(--gray-700);
 }
 .slotVolume {
     height: 68px;
-    border: 1px solid rgba(255, 255, 255, 0.84);
-    background: rgb(238, 238, 238);
-    background: rgb(226, 226, 226);
+    border: 1px solid color-mix(in srgb, var(--gray-0) 84%, transparent);
+    background: var(--gray-100);
+    background: var(--gray-200);
     margin-left: 0;
     width: 18px;
 }
@@ -1987,16 +1970,16 @@ div.mixerColumnActive{
         left: 50%;
         width: 5px;
         height: 80%;
-        background: #555;
+        background: var(--gray-600);
         border-radius: 15px;
         transform: translateX(-50%);
-        /*background: #aaa3a3;*/
+        /*background: var(--gray-400);*/
 
         .ui-slider-range-min {
             width: 5px;
             height: 300px;
             position: absolute;
-            background: #2ecc71;
+            background: var(--green-400);
             border: none;
             border-radius: 10px;
             outline: none;
@@ -2013,10 +1996,10 @@ div.mixerColumnActive{
     }
 }
 .volume .ui-slider-handle {
-    background: #555555;
+    background: var(--gray-600);
 }
 .slotActive.slotInActive{
-    background: #555555;
+    background: var(--gray-600);
 }
 .slotPan{
     height: 20px;
@@ -2069,34 +2052,34 @@ transform-origin: 11px center 0px;
     width: 12px;
     margin: 6px auto 2px;
     border-radius: 50%;
-    background: #F44336;
+    background: var(--red-500);
 }
 
 @include meta.load-css('sequencer');
 
 /*#content button#guitarEyeToggle{
-	background: #f4cfb2;
-	background-image: linear-gradient(to top, rgba(230, 185, 128, 0.69) 0%, rgba(234, 205, 163, 0.69) 100%);
+	background: var(--wood-200);
+	background-image: linear-gradient(to top, color-mix(in srgb, var(--wood-400) 69%, transparent) 0%, color-mix(in srgb, var(--wood-300) 69%, transparent) 100%);
 }
 #content button#pianoEyeToggle, #content button#guitarEyeToggle{
-	background-image: linear-gradient(to top, #c79081 0%, #dfa579 100%);
-    background: #797676;
+	background-image: linear-gradient(to top, var(--red-300) 0%, var(--wood-500) 100%);
+    background: var(--gray-500);
 }*/
 #content button#pianoEyeToggle:hover, #content button#guitarEyeToggle:hover{
-    background: #e7e7e7;
+    background: var(--gray-150);
 }
 .instrumentListDelete{
 	width: 30px;
     height: 30px;
     padding: 5px;
-    background: rgba(191, 93, 93, 0.9);
+    background: color-mix(in srgb, var(--red-500) 90%, transparent);
 	display:none;
 }
 .instrumentChange{
 	width: 30px;
     height: 30px;
     padding: 5px;
-	background: rgba(75, 151, 201, 0.66);
+	background: color-mix(in srgb, var(--blue-400) 66%, transparent);
 	display:none;
 }
 #sequencerEdit{
@@ -2104,11 +2087,10 @@ transform-origin: 11px center 0px;
     height: 30px;
     float: right;
     cursor: pointer;
-    img{
-        padding: 5px;
-        width: 30px;
-    }
-    &:hover img{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    &:hover .app-icon{
         transition-duration: 1s;
         transform: rotate(90deg);
     }
@@ -2165,7 +2147,7 @@ transform-origin: 11px center 0px;
     &::after{
         position: absolute;
         font-size: 14px;
-        background: white;
+        background: var(--gray-0);
         width: 50px;
         text-align: center;
         /*New Settings*/
@@ -2180,26 +2162,26 @@ transform-origin: 11px center 0px;
     vertical-align: top;
 }
 #fNodeContainer1 .filterNodeSetting::after{
-    /*background: rgb(204, 236, 197);*/
+    /*background: var(--green-100);*/
     background:none;
-    background: rgb(116, 176, 103);
-    background: #89ca78;
-    color: white;
+    background: var(--green-500);
+    background: var(--green-300);
+    color: var(--gray-0);
     content:"LOW";
 }
 #fNodeContainer2 .filterNodeSetting::after{
-    /*background: rgb(235, 182, 182);*/
+    /*background: var(--red-200);*/
     background:none;
-    background: rgb(213, 107, 107);
-    background: $color-glowingRed;
-    color: white;
+    background: var(--red-400);
+    background: var(--red-400);
+    color: var(--gray-0);
     content:"MID";
 }
 #fNodeContainer3 .filterNodeSetting::after{
-    /*background: rgb(246, 225, 185);*/
+    /*background: var(--amber-100);*/
     background:none;
-    background: rgb(234, 191, 114);
-    color: white;
+    background: var(--amber-300);
+    color: var(--gray-0);
     content:"HIGH";
 }
 div.knob{
@@ -2208,7 +2190,7 @@ div.knob{
     padding: 4px;
     box-sizing: border-box;
     position:relative;
-    background: rgba(255, 255, 255, 0.57);
+    background: color-mix(in srgb, var(--gray-0) 57%, transparent);
 }
 .knob-root {
     position: relative;
@@ -2231,7 +2213,7 @@ div.panKnobInner, div.reverbKnobInner, div.chorusKnobInner{
 	border-radius: 22px;
     width: 22px;
     height: 22px;
-    /* background: #cfcfcf; */
+    /* background: var(--gray-300); */
     position: relative;
     transform-origin: 11px 11px;
     /* transform: rotate(10deg); */
@@ -2245,7 +2227,7 @@ div.panKnobInner, div.reverbKnobInner, div.chorusKnobInner{
         z-index: 2;
         height: 5px;
         width: 2px;
-        background: white;
+        background: var(--gray-0);
         border-radius: 2px;
         /*top: 4px;*/
         bottom: 4px;
@@ -2279,15 +2261,15 @@ div.panKnobInner:after, div.reverbKnob:after, div.chorusKnob:after {
     height: 22px;
     width: 22px;
     border-radius: 100%;
-    /*box-shadow: 0px 2px 5px 4px rgba(0, 0, 0, 0.2);*/
-	background: radial-gradient(ellipse 20px 20px, rgba(73, 73, 73, 0.72), rgb(26, 26, 26) );
-	background: radial-gradient(ellipse 20px 20px, rgba(36, 82, 123, 0.72), rgb(63, 117, 228) );
-    background: #595757;
+    /*box-shadow: 0px 2px 5px 4px color-mix(in srgb, var(--gray-1000) 20%, transparent);*/
+	background: radial-gradient(ellipse 20px 20px, color-mix(in srgb, var(--gray-650) 72%, transparent), var(--gray-900) );
+	background: radial-gradient(ellipse 20px 20px, color-mix(in srgb, var(--indigo-700) 72%, transparent), var(--blue-500) );
+    background: var(--gray-600);
     box-sizing: border-box;
-    border: 2px solid #226aa9;
-    border: 2px solid #373737;
-    border: 2px solid #d7d7d7;
-    border: 2px solid #ffffff;
+    border: 2px solid var(--viz-indigo);
+    border: 2px solid var(--gray-700);
+    border: 2px solid var(--gray-250);
+    border: 2px solid var(--gray-0);
 
     /*Prevent aliasing on border*/
     height: 24px;
@@ -2320,7 +2302,7 @@ document, img {
 	width: 30px;
     height: 30px;
     float: right;
-    color: black;
+    color: var(--gray-1000);
     text-align: center;
     font-size: 12px;
     line-height: 30px;
@@ -2334,14 +2316,14 @@ document, img {
     width: 28px;
     margin: 5px 8px;
     height: 28px;
-    background: white;
-    color: white;
+    background: var(--gray-0);
+    color: var(--gray-0);
     cursor: pointer;
     border-radius: 30px;
     opacity: 0.2;
 }
 #pageLayoutToggle{
-    background: #2b2b2b;
+    background: var(--gray-800);
     overflow: hidden;
     opacity: 0.7;
 }
@@ -2349,7 +2331,7 @@ document, img {
     /*height: 150px;*/
     min-height: 150px;
     /*width: 400px;
-    background: #e2e2e2;*/
+    background: var(--gray-200);*/
     padding: 15px;
     position: relative;
 }
@@ -2362,10 +2344,10 @@ document, img {
     right: 5px;
     top: 5px;
     display: inline-block;
-    background: #464646;
+    background: var(--gray-650);
     height: 28px;
     line-height: 28px;
-    color: white;
+    color: var(--gray-0);
     font-size: 22px;
     text-align: center;
     cursor: pointer;
@@ -2379,7 +2361,7 @@ document, img {
     width: 100px;
     margin-top: 10px;
     position: relative;
-    background: #eeeeee;
+    background: var(--gray-100);
     display: inline-block;
     margin-right: 15px;
 }
@@ -2403,9 +2385,9 @@ document, img {
     height: 20px;
     cursor: pointer;
     text-align: center;
-    background: #9c9c9c;
-    background: #464646;
-    color: white;
+    background: var(--gray-400);
+    background: var(--gray-650);
+    color: var(--gray-0);
 }
 .removeChord{
     position: absolute;
@@ -2413,7 +2395,7 @@ document, img {
     right: -10px;
     width: 20px;
     height: 20px;
-    background: white;
+    background: var(--gray-0);
     border-radius: 20px;
     cursor: pointer;
 }
@@ -2421,15 +2403,15 @@ document, img {
 	opacity: 1;
 }
 #voice0{
-	/*background-image: linear-gradient(to right, #f78ca0 0%, #f9748f 19%, #fd868c 60%, #fe9a8b 100%);*/
-    background-color: #ed9797;
+	/*background-image: linear-gradient(to right, var(--viz-pink) 0%, var(--viz-pink) 19%, var(--red-300) 60%, var(--viz-orange) 100%);*/
+    background-color: var(--red-300);
 }
 #voice1{
-	/*background-image: linear-gradient(to top, #4481eb 0%, #04befe 100%);*/
-    background: #6099e8;
+	/*background-image: linear-gradient(to top, var(--blue-500) 0%, var(--viz-cyan) 100%);*/
+    background: var(--blue-400);
 }
 .isTooBright{
-	background: #666666;
+	background: var(--gray-550);
     padding: 2px;
 }
 #stringsListBackTop{
@@ -2451,9 +2433,9 @@ document, img {
     width: 7px;
     /* height: 10px; */
     height: 100%;
-    background: #1e1e1e;
-    box-shadow: inset 3px 0 #070707;
-    border: 1px solid #767676;
+    background: var(--gray-850);
+    box-shadow: inset 3px 0 var(--gray-950);
+    border: 1px solid var(--gray-500);
     border-radius: 5px;
     z-index: 4;
 }
@@ -2502,7 +2484,7 @@ document, img {
 .svgNote{
     font-family: "Source Sans Pro";
     text-anchor: "middle";
-    fill:black;
+    fill:var(--gray-1000);
     font-size:18px;
 }
 #content #recordButton{
@@ -2511,8 +2493,8 @@ document, img {
     left: 42px;
     width: 26px;
     height: 26px;
-    background: #ff9999;
-    background: $color-glowingRed;
+    background: var(--viz-pink);
+    background: var(--red-400);
     grid-column: 2;
     grid-row: 2;
     margin: 6px;
@@ -2520,13 +2502,13 @@ document, img {
     display: inline-block;
 
     &.prepareRecording{
-        background: #c76262;
+        background: var(--red-400);
     }
     &.recording{
-        background: #ffffff;
-        border: 1px solid #ece9e9;
+        background: var(--gray-0);
+        border: 1px solid var(--gray-150);
         &:after {
-            background: $color-glowingRed;
+            background: var(--red-400);
         	animation: pulse 1.25s infinite cubic-bezier(0.66, 0, 0, 1);
         	animation: pulse 1.25s infinite;
         }
@@ -2540,14 +2522,14 @@ document, img {
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        /* border: 1px solid #cac7c7; */
-        background: $color-glowingRed;
+        /* border: 1px solid var(--gray-300); */
+        background: var(--red-400);
         background-size: 100px 100px;
         opacity: 0.9;
     }
 }
 
-@keyframes pulse {to {box-shadow: 0 0 0 8px rgba(232, 76, 61, 0.8);}}
+@keyframes pulse {to {box-shadow: 0 0 0 8px color-mix(in srgb, var(--red-500) 80%, transparent);}}
 
 #content #stopButton{
     opacity: 1.0;
@@ -2555,7 +2537,7 @@ document, img {
     left: 1px;
     width: 26px;
     height: 26px;
-    background: #f1f1f1;
+    background: var(--gray-100);
     grid-column: 1;
     grid-row: 2;
     margin: 6px;
@@ -2570,7 +2552,7 @@ document, img {
     transform: translate(-50%, -50%);
     width: 10px;
     height: 10px;
-	background: #769ee3;
+	background: var(--blue-400);
     background-size: 100px 100px;
     opacity: 0.9;
 }
@@ -2584,9 +2566,9 @@ document, img {
     margin: 7px;
     /* border-radius: 4px; */
     text-align: center;
-    /* border-bottom: 1px solid #4481eb; */
+    /* border-bottom: 1px solid var(--blue-500); */
     cursor: n-resize;
-    /*background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);*/
+    /*background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));*/
     margin-top: -10px;
 }
 .bpmSidebarLabel{
@@ -2633,7 +2615,7 @@ document, img {
     .select{
     	display: block;
         width: 100%;
-        height: var(--modal-control-height);
+        height: var(--control-height);
         margin: 0;
     }
     .select select{
@@ -2668,7 +2650,7 @@ document, img {
     bottom: 0;
     z-index: 1;
     padding-top: 6px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--modal-card-bg) 42%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--gray-0) 0%, transparent) 0%, var(--color-field) 42%);
 }
 
 #addChordModal #chordDisplay {
@@ -2681,13 +2663,6 @@ svg text {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-}
-#audioWaveForm{
-    background:white;
-    height:30px;
-}
-#audioWaveForm wave{
-    border-right: none !important;
 }
 
 #tabAreas{
@@ -2728,7 +2703,7 @@ svg text {
     /*Give each their own layer*/
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    /*box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 40px rgba(128, 128, 128, 0.1) inset;*/
+    /*box-shadow: 0 1px 4px color-mix(in srgb, var(--gray-1000) 30%, transparent), 0 0 40px color-mix(in srgb, var(--gray-500) 10%, transparent) inset;*/
 }
 .vexFlowRow svg{
     overflow: visible;
@@ -2737,15 +2712,15 @@ svg text {
     font-size: 12px;
 }
 input, textarea, input[type="number"]{
-    border: 1px solid #cacaca;
+    border: 1px solid var(--gray-300);
     padding: 2px;
     padding-left: 5px;
         box-sizing: border-box;
     font-family: "Source Sans Pro";
     font-size: 12px;
-    background: #eaeaea;
-    background: rgba(230, 230, 230, 0.57);
-    border: 1px solid #eaeaea;
+    background: var(--color-field-muted);
+    border: 1px solid var(--color-divider);
+    color: var(--color-text);
     padding-top: 8px;
     padding-bottom: 8px;
 }
@@ -2754,8 +2729,8 @@ select{
 }
 input:focus, textarea:focus{
     outline: none;
-    box-shadow: 0 0 5px #43D1AF;
-    border: 1px solid #43D1AF;
+    box-shadow: 0 0 5px var(--teal-400);
+    border: 1px solid var(--teal-400);
 }
 .labelRightMargin{
     margin-right: 5px;
@@ -2768,7 +2743,7 @@ input:focus, textarea:focus{
     margin-left: 10px;
 }
 #markerColorPicker{
-    border: 1px solid white;
+    border: 1px solid var(--gray-0);
     margin-right: 10px;
 }
 #content #heavyAccentuated{
@@ -2798,7 +2773,7 @@ img{
 }
 /*TABLE*/
 table{
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.24);
+    box-shadow: 0 1px 3px 0 color-mix(in srgb, var(--gray-1000) 12%, transparent), 0 1px 2px 0 color-mix(in srgb, var(--gray-1000) 24%, transparent);
     border-spacing: 0;
 
     tr{
@@ -2810,22 +2785,21 @@ table{
         border:none;
     }
     th{
-        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+        border-bottom: 1px solid color-mix(in srgb, var(--gray-1000) 12%, transparent);
     }
     tbody tr:hover td{
-        background: rgb(33, 113, 138);
-        color: white;
+        background: var(--gray-550);
+        color: var(--gray-0);
         cursor:pointer;
     }
 }
 .selectedRow td{
-    color: white;
-    background: rgb(49, 142, 126);
+    color: var(--gray-0);
+    background: var(--teal-600);
 }
 #footerBar{
     display: flex;
     height: 20px;
-    background: #2f2f2f;
     width: 100%;
     flex-grow: 0;
     flex-shrink: 0;
@@ -2841,7 +2815,6 @@ table{
     height: 100%;
     font-size: 11px;
     display: inline-block;
-    color: white;
     margin: 0px 10px;
     vertical-align: middle;
     flex-grow:0;
@@ -2855,7 +2828,7 @@ table{
      cursor:pointer
 }
 .footerBlock:hover{
-    color: #094694;
+    color: var(--color-accent-strong);
 }
 #isMidiActive{
     height:10px;
@@ -2867,34 +2840,34 @@ table{
     left: 50%;
     vertical-align: middle;
     transform: translate(-50%,-50%);
-    background: $color-glowingRed;
+    background: var(--red-400);
 }
 #isMidiActive.activated{
-    background: rgb(49, 142, 126);
+    background: var(--teal-600);
 }
 
 /*Optional Styles*/
 .tabBarElem{
     /*font-family: "Roboto";*/
     text-transform: uppercase;
-    color: #6b6b6b;
+    color: var(--gray-550);
 }
 /*.modal label {
     font-family: "Roboto";
     text-transform: uppercase;
-    color: #232323;
+    color: var(--gray-800);
 }*/
 #tabBar, #songPlayArea, #sideBarButtons{
-    background: #f7f7f7;
+    background: var(--gray-50);
 }
 .tabBarElem{
-    border-top: 2px solid #f7f7f7;
+    border-top: 2px solid var(--gray-50);
 }
 .statusBar{
-    background: #e2e2e2;
+    background: var(--gray-200);
 }
 #songPlayArea{
-    background: linear-gradient(180deg, #f7f7f7 45%, #e2e2e2 45%);
+    background: linear-gradient(180deg, var(--gray-50) 45%, var(--gray-200) 45%);
 }
 #content #oneMeasureForward {
     background: none;
@@ -2904,40 +2877,31 @@ table{
 }
 #content button.playStart{
     background: none;
+    color: var(--color-text);
 }
 #tabBar {
     height: 31px;
-    border-right: 1px solid #e9e8f6;
+    border-right: 1px solid var(--gray-150);
 }
 #completeBar{
     border: none;
     box-shadow: none;
 }
 #content button.playStart:hover{
-    background: #e2e2e2;
+    background: var(--gray-200);
 }
 /*.modal{
-    background-color: #e2e2e2;
+    background-color: var(--gray-200);
 }*/
-.select {
-    background: #eaeaea;
-    background: rgba(230, 230, 230, 0.57);
-}
 .or-spacer-vertical.left .inner:after {
-    box-shadow: 0 0 2px #868686;
+    box-shadow: 0 0 2px var(--gray-450);
 }
 #trackSign{
-    background: white;
-}
-#footerBar {
-    background: #e2e2e2;
-}
-.footerBlock {
-    color: black;
+    background: var(--gray-0);
 }
 .bottomStatusBar{
     height: 37px;
-    background: #e2e2e2;
+    background: var(--gray-200);
 }
 .vexFlowRow{
     position:absolute;
@@ -2969,7 +2933,7 @@ div.knob {
     background: none;
 }
 #content #recordButton.prepareRecording {
-    background: #eda4a4;
+    background: var(--red-200);
 }
 #statusBars{
     display:inline-block;
@@ -2978,20 +2942,19 @@ div.knob {
 svg text{
     font-size: "10px";
     text-align: "right";
-    fill: black;
+    fill: var(--editor-text);
 }
 .strongGridLine{
-    stroke:#909090;
-} 
+    stroke: var(--editor-grid-strong);
+}
 .gridLine{
-    stroke:rgb(214, 214, 214);
-    /*stroke: #343434*/
+    stroke: var(--editor-grid);
 }
 #bendEditor rect, #tremoloEditor rect, #chordDisplay rect{
-    stroke: rgb(230, 225, 225);
+    stroke: var(--editor-cell-border);
     stroke-width: 1;
-    fill: white;
-} 
+    fill: var(--editor-bg);
+}
 #content button.playing #playMusicImg{
 	display: none;
 }
@@ -2999,14 +2962,14 @@ svg text{
 	display: block;
 }
 .clickMarkerPath{
-    stroke: rgb(136, 0, 0);
+    stroke: var(--red-700);
 } 
 svg.svgPage .blockNumber{
     font-size: 10px;
-    fill: rgb(204, 0, 0);
+    fill: var(--red-600);
 }
 .exactPositionMarker{
-    fill: rgba(29, 56, 107, 0.4);
+    fill: color-mix(in srgb, var(--blue-800) 40%, transparent);
 }
  
 @include meta.load-css('darkMode');
@@ -3101,10 +3064,6 @@ svg.svgPage .blockNumber{
         }
     }
 }
-.headerDiv{
-    background: #bcbcbc !important;
-    border-bottom: none;
-}
 :focus {
     outline: none;
 }
@@ -3123,59 +3082,59 @@ body {
 /* ---- Shell polish: toolbar palette and footer ------------------------- */
 #completeBar{
     overflow: hidden;
-    border-right: 1px solid #e1e5eb;
-    border-bottom: 1px solid #e1e5eb;
+    border-right: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
     border-bottom-right-radius: 10px;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--gray-900) 6%, transparent);
 }
 #tabBar{
-    background: #ffffff;
+    background: var(--gray-0);
     border-right: none;
 }
 .bottomStatusBar{
-    background: #f4f6f8;
-    border-top: 1px solid #e8ebef;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-150);
 }
 .tabBarElem{
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    color: #6b7280;
+    color: var(--gray-500);
     border-top-color: transparent;
     transition: color 0.12s ease;
 }
 .tabBarElem:hover{
-    color: #1f2937;
+    color: var(--gray-800);
 }
 #footerBar{
     height: 24px;
     line-height: 24px;
     align-items: stretch;
-    background: #f4f6f8;
-    border-top: 1px solid #e1e5eb;
+    background: var(--color-chrome);
+    border-top: 1px solid var(--color-chrome-border);
     box-sizing: border-box;
 }
 .footerBlock{
     margin: 0;
     padding: 0 10px;
-    color: #4b5563;
+    color: var(--color-chrome-text);
     font-size: 11.5px;
     transition: background-color 0.12s ease, color 0.12s ease;
 }
 .footerBlock + .footerBlock{
-    border-left: 1px solid #e1e5eb;
+    border-left: 1px solid var(--color-chrome-border);
 }
 .footerBlock[role='button']:hover{
-    background: #e8ebef;
-    color: #111827;
+    background: var(--color-chrome-hover);
+    color: var(--color-text);
     cursor: pointer;
 }
 .footerBlock[role='button']:focus-visible{
-    outline: 2px solid #2f5cce;
+    outline: 2px solid var(--color-focus);
     outline-offset: -2px;
 }
 .footerLabel{
-    color: #8a93a3;
+    color: var(--color-text-faint);
     margin-right: 4px;
 }
 #midiLabel #isMidiActive{
@@ -3203,15 +3162,15 @@ body {
     line-height: 18px;
     padding: 0 8px;
     border-radius: 4px;
-    background: #e3e9f5;
-    color: #2f4a8a;
+    background: var(--gray-150);
+    color: var(--blue-700);
     font-size: 11px;
     font-weight: 600;
     text-transform: none;
 }
 #darkMode .openWindows{
-    background: #263247;
-    color: #a9c4f5;
+    background: var(--gray-750);
+    color: var(--blue-200);
 }
 /* `.modal button { font: inherit }` would otherwise win over the button's own size */
 .modal .modal-primary-button,

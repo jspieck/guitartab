@@ -15,6 +15,8 @@ const BUDGETS_KB = {
   'editor-core-': 280,
   'notation-': 1100,
   'shortcuts-': 4,
+  // AppIcon + the generated icon map (scripts/build-icons.mjs)
+  'icons-': 40,
   'toolbar-': 32,
   'demoArrangement-': 10,
 }

@@ -162,13 +162,13 @@ function submitSettings() {
 
   width: 100%;
 
-  min-height: var(--modal-control-height);
+  min-height: var(--control-height);
 
-  border: 1px solid #9aa8bc;
+  border: 1px solid var(--color-border-strong);
 
   border-radius: 10px;
 
-  background: #eef1f6;
+  background: var(--color-surface-raised);
 
   box-sizing: border-box;
 
@@ -204,14 +204,14 @@ function submitSettings() {
 
 .instrument-settings-section-label {
   font-weight: 600;
-  color: var(--modal-text-strong);
+  color: var(--color-text);
 }
 
 .instrument-settings-help {
 
   margin: 4px 0 8px;
 
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
 
   font-size: 13px;
 

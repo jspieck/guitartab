@@ -6,30 +6,30 @@
 #equalizerModal,
 #compressorModal,
 #mixerModal {
-    --ap-bg: #12151b;
-    --ap-panel: #181c24;
-    --ap-panel-raised: #1e232d;
-    --ap-inset: #0d1015;
-    --ap-border: #2a303b;
-    --ap-border-strong: #3a4250;
-    --ap-grid: rgba(255, 255, 255, 0.06);
-    --ap-grid-strong: rgba(255, 255, 255, 0.13);
-    --ap-text: #e7eaf0;
-    --ap-muted: #8a93a3;
-    --ap-faint: #5d6676;
-    --ap-accent: #5aa2ff;
-    --ap-amber: #f2b84b;
-    --ap-red: #f06c6c;
-    --ap-green: #5fd08a;
-    --ap-knob-track: #2b313c;
-    --ap-knob-body: #262c37;
-    --ap-knob-edge: #3c4452;
+    --ap-bg: var(--gray-900);
+    --ap-panel: var(--gray-850);
+    --ap-panel-raised: var(--gray-800);
+    --ap-inset: var(--gray-950);
+    --ap-border: var(--gray-750);
+    --ap-border-strong: var(--gray-650);
+    --ap-grid: color-mix(in srgb, var(--gray-0) 6%, transparent);
+    --ap-grid-strong: color-mix(in srgb, var(--gray-0) 13%, transparent);
+    --ap-text: var(--gray-150);
+    --ap-muted: var(--gray-450);
+    --ap-faint: var(--gray-550);
+    --ap-accent: var(--blue-400);
+    --ap-amber: var(--amber-400);
+    --ap-red: var(--red-400);
+    --ap-green: var(--green-400);
+    --ap-knob-track: var(--gray-750);
+    --ap-knob-body: var(--gray-750);
+    --ap-knob-edge: var(--gray-650);
 
     background: var(--ap-bg);
     color: var(--ap-text);
     border: 1px solid var(--ap-border);
     border-radius: 12px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 24px 60px color-mix(in srgb, var(--gray-1000) 45%, transparent), 0 2px 8px color-mix(in srgb, var(--gray-1000) 30%, transparent);
     overflow: hidden;
     max-width: calc(100vw - 24px);
 }
@@ -105,7 +105,7 @@
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    font-family: var(--modal-ui-font, 'Source Sans Pro', 'Segoe UI', sans-serif);
+    font-family: var(--font-ui);
     font-size: 12px;
     line-height: 1.35;
     color: var(--ap-text);
@@ -148,7 +148,7 @@
 }
 .ap-btn:hover {
     border-color: var(--ap-border-strong);
-    background: #252b36;
+    background: var(--gray-800);
 }
 .ap-btn:focus-visible,
 .ap-select:focus-visible,
@@ -158,7 +158,7 @@
 }
 .ap-btn[aria-pressed='true'] {
     border-color: var(--ap-accent);
-    color: #fff;
+    color: var(--gray-0);
     background: color-mix(in srgb, var(--ap-accent) 28%, var(--ap-panel-raised));
 }
 

@@ -102,7 +102,7 @@
         :y="markerLane.top + 13"
         font-family="Source Sans Pro"
         font-size="10px"
-        fill="#fff"
+        style="fill: var(--tab-on-marker)"
         class="marker-text"
       >
         {{ measureMeta.marker.text }}

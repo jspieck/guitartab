@@ -151,9 +151,9 @@ function useDesktopLayout(): void {
   z-index: 300;
   flex: 0 0 auto;
   padding: 6px 10px 4px;
-  background: var(--compact-surface);
-  border-bottom: 1px solid var(--compact-border);
-  color: var(--compact-text);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .compact-bar__row {
@@ -187,10 +187,10 @@ function useDesktopLayout(): void {
 .compact-bar__speed select {
   max-width: 100%;
   min-height: 32px;
-  border: 1px solid var(--compact-border);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 2px 6px;
-  background: var(--compact-surface-raised);
+  background: var(--color-surface-raised);
   color: inherit;
   font: inherit;
   font-size: 14px;
@@ -201,7 +201,7 @@ function useDesktopLayout(): void {
   margin-top: 2px;
   border-color: transparent;
   background: transparent;
-  color: var(--compact-text-muted);
+  color: var(--color-text-muted);
 }
 
 .compact-bar__button {
@@ -234,15 +234,15 @@ function useDesktopLayout(): void {
 }
 
 .compact-bar__button.is-on {
-  background: var(--compact-accent-soft);
-  color: var(--compact-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .compact-bar__play {
   width: 56px;
   border-radius: 28px;
-  background: var(--compact-accent);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
 }
 
 .compact-bar__play svg path {
@@ -257,10 +257,10 @@ function useDesktopLayout(): void {
   flex-direction: column;
   min-width: 180px;
   padding: 6px;
-  border: 1px solid var(--compact-border);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: var(--compact-surface-raised);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  background: var(--color-surface-raised);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-shadow) 18%, transparent);
 }
 
 .compact-bar__menu button {
@@ -275,7 +275,7 @@ function useDesktopLayout(): void {
 }
 
 .compact-bar__menu button:active {
-  background: var(--compact-accent-soft);
+  background: var(--color-accent-soft);
 }
 
 .visually-hidden {

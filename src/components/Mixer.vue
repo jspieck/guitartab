@@ -261,7 +261,7 @@ useAnimationLoop(isOpen, () => {
 }
 
 .mx-strip {
-    --group-color: #8a93a3;
+    --group-color: var(--gray-450);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -272,12 +272,12 @@ useAnimationLoop(isOpen, () => {
     overflow: hidden;
     transition: opacity 0.15s ease;
 }
-.mx-group-kick { --group-color: #ff8a65; }
-.mx-group-snare { --group-color: #ffd54f; }
-.mx-group-tom { --group-color: #81c784; }
-.mx-group-hat { --group-color: #4dd0e1; }
-.mx-group-cymbal { --group-color: #64b5f6; }
-.mx-group-perc { --group-color: #b388ff; }
+.mx-group-kick { --group-color: var(--viz-orange); }
+.mx-group-snare { --group-color: var(--viz-yellow); }
+.mx-group-tom { --group-color: var(--green-300); }
+.mx-group-hat { --group-color: var(--viz-cyan); }
+.mx-group-cymbal { --group-color: var(--blue-300); }
+.mx-group-perc { --group-color: var(--viz-purple); }
 
 .mx-strip-silent {
     opacity: 0.5;
@@ -346,12 +346,12 @@ useAnimationLoop(isOpen, () => {
 .mx-btn-mute[aria-pressed='true'] {
     background: var(--ap-red);
     border-color: var(--ap-red);
-    color: #1a0d0d;
+    color: var(--gray-950);
 }
 .mx-btn-solo[aria-pressed='true'] {
     background: var(--ap-amber);
     border-color: var(--ap-amber);
-    color: #1d1505;
+    color: var(--gray-900);
 }
 
 .mx-fader-row {
@@ -372,7 +372,7 @@ useAnimationLoop(isOpen, () => {
     position: absolute;
     inset: 0;
     clip-path: inset(100% 0 0 0);
-    background: linear-gradient(to top, #3fbf7f 0%, #3fbf7f 62%, #f2b84b 85%, #f06c6c 100%);
+    background: linear-gradient(to top, var(--green-400) 0%, var(--green-400) 62%, var(--amber-400) 85%, var(--red-400) 100%);
 }
 
 .mx-db {

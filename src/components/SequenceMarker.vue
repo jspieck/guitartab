@@ -1,7 +1,7 @@
 <template>
     <svg :style="markerStyle">
         <rect :x="0" :y="0" :width="markerWidth" :height="height"
-              fill="#adadad" stroke-width="1" stroke="rgba(62, 173, 255, 0.19)" />
+              style="fill: var(--color-text-faint); stroke: var(--tab-range)" stroke-width="1" />
     </svg>
 </template>
 

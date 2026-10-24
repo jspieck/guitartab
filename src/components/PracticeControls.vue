@@ -139,9 +139,10 @@ function onSpeedChange(event: Event): void {
 .practice-controls__speed select {
   height: 22px;
   padding: 0 2px;
-  border: 1px solid #c8ccd2;
+  border: 1px solid var(--color-border-strong);
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-field);
+  color: var(--color-text);
   font-size: 12px;
 }
 
@@ -155,7 +156,7 @@ function onSpeedChange(event: Event): void {
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: #4b5563;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
 
@@ -165,18 +166,18 @@ function onSpeedChange(event: Event): void {
 }
 
 .practice-controls__toggle:hover {
-  background: #e5e7eb;
+  background: var(--color-active);
 }
 
 .practice-controls__toggle.active {
-  border-color: #2563eb;
-  background: #dbeafe;
-  color: #1d4ed8;
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .practice-controls__toggle:focus-visible,
 .practice-controls__speed select:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--color-focus);
   outline-offset: 1px;
 }
 
@@ -190,10 +191,10 @@ function onSpeedChange(event: Event): void {
   width: 250px;
   padding: 8px 10px;
   border-radius: 6px;
-  background: #1f2937;
-  color: #f9fafb;
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
   line-height: 1.4;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 20%, transparent);
 }
 
 .practice-controls__row {
@@ -211,7 +212,7 @@ function onSpeedChange(event: Event): void {
 
 .practice-controls__hint {
   margin: 6px 0 0;
-  color: #d1d5db;
+  color: var(--color-inverse-muted);
   font-size: 11px;
 }
 </style>

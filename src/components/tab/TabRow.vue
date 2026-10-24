@@ -42,8 +42,7 @@
         :y="rangeOverlayRect.y"
         :width="rangeOverlayRect.width"
         :height="rangeOverlayRect.height"
-        fill="rgba(62, 173, 255, 0.19)"
-        stroke="none"
+        style="fill: var(--tab-range); stroke: none"
       />
     </g>
 
@@ -54,8 +53,7 @@
         :y="selectionRenderPoint.y - 8"
         width="20"
         height="16"
-        fill="rgba(74, 144, 226, 0.2)"
-        stroke="#4A90E2"
+        style="fill: var(--tab-cursor); stroke: var(--tab-cursor-border)"
         stroke-width="1"
         rx="2"
       />
@@ -102,7 +100,7 @@
         :y="(stringIndex - 1) * stringSpacing - 6"
         :width="width"
         :height="12"
-        fill="rgba(0, 0, 0, 0)"
+        fill="transparent"
         class="string-click-area"
         @mousedown="(event: MouseEvent) => handleStringPointerDown(event, stringLine(stringIndex - 1, numStrings))"
         cursor="pointer"

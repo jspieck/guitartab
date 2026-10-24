@@ -54,12 +54,12 @@ function placeNote(midiNote: number) {
 }
 .drum-map-hint {
   margin: 0;
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 .drum-map-heading {
   margin: 0 0 6px;
-  color: var(--modal-text-muted);
+  color: var(--color-text-muted);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -77,26 +77,26 @@ function placeNote(midiNote: number) {
   min-width: 0;
   height: 28px;
   padding: 0 8px;
-  border: 1px solid var(--modal-card-border);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--modal-card-subtle);
-  color: var(--modal-text-strong);
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
   font-size: 12px;
   text-align: left;
   cursor: pointer;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 .drum-map-item:hover {
-  border-color: var(--modal-accent);
-  background: var(--modal-card-hover);
+  border-color: var(--color-accent);
+  background: var(--color-hover);
 }
 .drum-map-item:focus-visible {
-  outline: 2px solid var(--modal-accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 .drum-map-note {
   min-width: 18px;
-  color: var(--modal-accent);
+  color: var(--color-accent);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }

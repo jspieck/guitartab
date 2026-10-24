@@ -1,22 +1,5 @@
-export function createRect(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  stroke: string,
-  strokeWidth: string,
-  fill: string,
-): SVGRectElement {
-  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-  rect.setAttribute('x', x.toString())
-  rect.setAttribute('y', y.toString())
-  rect.style.width = width.toString()
-  rect.style.height = height.toString()
-  rect.style.stroke = stroke
-  rect.style.strokeWidth = strokeWidth
-  rect.style.fill = fill
-  return rect
-}
+// Colours are set as inline styles, not presentation attributes: only styles accept var(--token),
+// so the editors follow the light/dark theme.
 
 export function createText(
   x: number,
@@ -48,9 +31,9 @@ export function createText(
 export function createPath(path: string, stroke: string, strokeWidth: string, fill: string): SVGPathElement {
   const pathElem = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   pathElem.setAttribute('d', path)
-  pathElem.setAttribute('stroke', stroke)
-  pathElem.setAttribute('stroke-width', strokeWidth)
-  pathElem.setAttribute('fill', fill)
+  pathElem.style.stroke = stroke
+  pathElem.style.strokeWidth = strokeWidth
+  pathElem.style.fill = fill
   return pathElem
 }
 
@@ -66,9 +49,9 @@ export function createCircle(
   circle.setAttribute('cx', cx.toString())
   circle.setAttribute('cy', cy.toString())
   circle.setAttribute('r', radius.toString())
-  circle.setAttribute('stroke', stroke)
-  circle.setAttribute('stroke-width', strokeWidth)
-  circle.setAttribute('fill', fill)
+  circle.style.stroke = stroke
+  circle.style.strokeWidth = strokeWidth
+  circle.style.fill = fill
   return circle
 }
 
@@ -83,17 +66,26 @@ export function drawPoint(
 ): SVGGElement {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   svgParent.appendChild(group)
-  const pointElem = createCircle(xPos + paddingLeft, yPos + paddingTop, radius, 'none', '1', '#123e74')
+  const pointElem = createCircle(
+    xPos + paddingLeft,
+    yPos + paddingTop,
+    radius,
+    'none',
+    '1',
+    'var(--editor-point)',
+  )
   group.appendChild(pointElem)
   if (text != null) {
-    group.appendChild(createText(xPos - 3, yPos + paddingTop + 4, text, '13px', '#fff', 'Source Sans Pro'))
+    group.appendChild(
+      createText(xPos - 3, yPos + paddingTop + 4, text, '13px', 'var(--editor-on-point)', 'Source Sans Pro'),
+    )
   }
   return group
 }
 
 export function connectPoints(pointA: SVGElement, pointB: SVGElement, svgElem: SVGElement): SVGPathElement {
   const pathStr = `M${pointA.getAttribute('cx')} ${pointA.getAttribute('cy')}L${pointB.getAttribute('cx')} ${pointB.getAttribute('cy')}`
-  const pathEl = createPath(pathStr, '#123e74', '2', 'none')
+  const pathEl = createPath(pathStr, 'var(--editor-point)', '2', 'none')
   pathEl.setAttribute('class', 'pointConnectionLine')
   svgElem.appendChild(pathEl)
   return pathEl

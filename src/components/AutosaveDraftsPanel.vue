@@ -76,9 +76,9 @@ onMounted(() => {
   overflow: auto;
   padding: 12px 14px;
   border-radius: 8px;
-  background: #1f2937;
-  color: #f9fafb;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 20%, transparent);
 }
 
 .autosave-drafts__header {
@@ -103,7 +103,7 @@ onMounted(() => {
 
 .autosave-drafts__empty {
   margin: 4px 0;
-  color: #d1d5db;
+  color: var(--color-inverse-muted);
 }
 
 .autosave-drafts__list {
@@ -118,7 +118,7 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 6px 0;
-  border-top: 1px solid #374151;
+  border-top: 1px solid var(--color-inverse-border);
 }
 
 .autosave-drafts__name {
@@ -128,7 +128,7 @@ onMounted(() => {
 }
 
 .autosave-drafts__time {
-  color: #d1d5db;
+  color: var(--color-inverse-muted);
   font-size: 12px;
 }
 </style>

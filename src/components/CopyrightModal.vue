@@ -130,7 +130,7 @@ import { MODALS } from "../services/dialogs/modalTypes";
 .copyright-table th,
 .copyright-table td {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--modal-divider);
+  border-bottom: 1px solid var(--color-divider);
   text-align: left;
   vertical-align: top;
 }
@@ -138,8 +138,8 @@ import { MODALS } from "../services/dialogs/modalTypes";
 .copyright-table th {
   position: sticky;
   top: 0;
-  background: var(--modal-card-subtle);
-  color: var(--modal-text-strong);
+  background: var(--color-surface-sunken);
+  color: var(--color-text);
   font-weight: 600;
 }
 </style>
