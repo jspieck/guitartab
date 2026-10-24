@@ -1,4 +1,4 @@
-import type { Beat, MeasureMetaInfo, Note, SongDescription, Track } from '../assets/js/songData'
+import type { Beat, MeasureMetaInfo, Note, SongDescription, Track } from '../stores/song'
 
 /**
  * Writes a song as MusicXML 4.0 (score-partwise), for MuseScore, Finale, Sibelius, Dorico

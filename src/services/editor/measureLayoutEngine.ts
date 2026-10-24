@@ -1,10 +1,12 @@
-import { barLeftOffset } from '../../utils/measureBeatLayout'
+import { BAR_LEFT_PADDING, barLeftOffset } from '../../utils/measureBeatLayout'
 import { groupMeasureBeats } from './beatGrouping'
 import Duration from '../../utils/duration'
-import Song from '../../assets/js/songData'
-import { Tab, tab } from '../../assets/js/tab'
+import Song from '../../stores/song'
+import Settings, { EPSILON } from '../../stores/settingsState'
+import { tabLayout } from '../../stores/tabLayoutState'
+import { classicalNotation } from '../notation/classicalNotationAdapter'
 import { TAB_CONSTANTS } from '../../utils/tabLayout'
-import { setTabNumRows } from '../../utils/tabSheetConstants'
+import { getAvailableRowWidth, setTabNumRows } from '../../utils/tabSheetConstants'
 import type { RenderedTabRow, TabBeat } from '../../types/tab'
 import renderBridge, {
   createRenderTrackLayoutState,
@@ -28,7 +30,7 @@ export interface MeasureLayoutOptions {
   tabInformationHeight: number
 }
 
-export type BlockWidthInfo = ReturnType<typeof Tab.computeWidthOfBlock>
+export type BlockWidthInfo = ReturnType<typeof computeBarWidth>
 
 export interface MeasureLayoutResult {
   rows: RenderedTabRow[]
@@ -97,13 +99,13 @@ function getBeatRenderPositions(
 }
 
 function ensureTabLayoutContainers(trackId: number, voiceId: number): void {
-  if (!tab.blocksPerRow[trackId]) tab.blocksPerRow[trackId] = []
-  if (!tab.blocksPerRow[trackId][voiceId]) tab.blocksPerRow[trackId][voiceId] = []
-  if (!tab.finalBlockWidths[trackId]) tab.finalBlockWidths[trackId] = []
-  if (!tab.finalBlockWidths[trackId][voiceId]) tab.finalBlockWidths[trackId][voiceId] = []
-  if (!tab.blockToRow[trackId]) tab.blockToRow[trackId] = []
-  if (!tab.blockToRow[trackId][voiceId]) tab.blockToRow[trackId][voiceId] = []
-  if (!tab.measureOffset[trackId]) tab.measureOffset[trackId] = []
+  if (!tabLayout.blocksPerRow[trackId]) tabLayout.blocksPerRow[trackId] = []
+  if (!tabLayout.blocksPerRow[trackId][voiceId]) tabLayout.blocksPerRow[trackId][voiceId] = []
+  if (!tabLayout.finalBlockWidths[trackId]) tabLayout.finalBlockWidths[trackId] = []
+  if (!tabLayout.finalBlockWidths[trackId][voiceId]) tabLayout.finalBlockWidths[trackId][voiceId] = []
+  if (!tabLayout.blockToRow[trackId]) tabLayout.blockToRow[trackId] = []
+  if (!tabLayout.blockToRow[trackId][voiceId]) tabLayout.blockToRow[trackId][voiceId] = []
+  if (!tabLayout.measureOffset[trackId]) tabLayout.measureOffset[trackId] = []
 }
 
 function syncTabLayoutArrays(
@@ -118,16 +120,16 @@ function syncTabLayoutArrays(
 ): void {
   ensureTabLayoutContainers(trackId, voiceId)
 
-  tab.blocksPerRow[trackId][voiceId] = blocksPerRow
-  tab.finalBlockWidths[trackId][voiceId] = finalBlockWidths
-  tab.blockToRow[trackId][voiceId] = blockToRow
-  tab.allWidths = allWidths
+  tabLayout.blocksPerRow[trackId][voiceId] = blocksPerRow
+  tabLayout.finalBlockWidths[trackId][voiceId] = finalBlockWidths
+  tabLayout.blockToRow[trackId][voiceId] = blockToRow
+  tabLayout.allWidths = allWidths
 
   measureOffsets.forEach((offset, blockId) => {
-    if (!tab.measureOffset[trackId][blockId]) {
-      tab.measureOffset[trackId][blockId] = []
+    if (!tabLayout.measureOffset[trackId][blockId]) {
+      tabLayout.measureOffset[trackId][blockId] = []
     }
-    tab.measureOffset[trackId][blockId][voiceId] = offset
+    tabLayout.measureOffset[trackId][blockId][voiceId] = offset
   })
 
   setTabNumRows(numRows)
@@ -136,7 +138,7 @@ function syncTabLayoutArrays(
 function computeBlockWidth(trackId: number, blockId: number, voiceId: number): BlockWidthInfo {
   try {
     groupMeasureBeats(trackId, blockId, voiceId)
-    return Tab.computeWidthOfBlock(trackId, blockId, voiceId)
+    return computeBarWidth(trackId, blockId, voiceId)
   } catch {
     console.warn(`Failed to compute width for measure ${blockId}, using default.`)
     return { minWidth: 200, minOffset: 40, num16ths: 4, padding: 0 }
@@ -347,4 +349,97 @@ export function recomputeTrackLayoutFromSong(
 ): MeasureLayoutResult {
   const options = resolveLayoutOptionsForTrack(trackId, voiceId, fallbackAvailableWidth, overrides)
   return computeTrackLayoutFromSong(trackId, voiceId, options)
+}
+
+/** Minimum width of a bar: padding for repeat/tempo/time signature plus a width per sixteenth. */
+export function computeBarWidth(trackId: number, blockId: number, voiceId: number) {
+  let padding = BAR_LEFT_PADDING * 2
+  if (Song.measureMeta[blockId].repeatOpen) {
+    padding += 20
+  }
+  if (Song.measureMeta[blockId].repeatClose != null) {
+    padding += 10
+  }
+  if (blockId === 0 || Song.measureMeta[blockId].bpm != null) {
+    padding += 43
+    if (`${Song.measureMeta[blockId].bpm}`.length > 2) {
+      padding += 8
+    }
+  } else if (blockId === 0 || Song.measureMeta[blockId].timeMeterPresent) {
+    padding += 10
+  }
+
+  // run over all notes and get biggest size
+  // Consider: Bend (width += 25), TremoloBar (width = 25), PalmMute (width = 20),
+  // Trill (width = 13), note (width = 17), harmonic (width = 22),
+  // stroke (width = 25 (note + arrow))
+  // Varibale lengths: chords, texts & marker (not bigger than measure)
+  const BASIC_OFFSET = 20
+  let minOffsetPerNote = 25
+  let numOf16th = 0
+  const block = Song.measures[trackId][blockId][voiceId]
+
+  for (let beatId = 0, n = block.length; beatId < n; beatId += 1) {
+    // check beat effects
+    const beat = block[beatId]
+    const beatIn16ths = Duration.getDurationWidth(beat)
+    numOf16th += beatIn16ths
+
+    if (beat.effects != null) {
+      if ((beat.effects.stroke != null || beat.effects.tremoloBar != null) && beatIn16ths === 1) {
+        minOffsetPerNote = Math.max(minOffsetPerNote, BASIC_OFFSET + 5)
+      }
+    }
+    // check note effects
+    if (beat.notes != null) {
+      for (let string = 0, w = beat.notes.length; string < w; string += 1) {
+        const note = beat.notes[string]
+        if (note != null) {
+          if (note.bendObj != null && beatIn16ths === 1) {
+            minOffsetPerNote = Math.max(minOffsetPerNote, BASIC_OFFSET + 17)
+          }
+        }
+      }
+    }
+  }
+  if (Settings.vexFlowIsActive) {
+    const vexFlowOffset = classicalNotation.calculateLargestBeatWidth(trackId, blockId, voiceId)
+    if (Number.isFinite(vexFlowOffset) && vexFlowOffset > minOffsetPerNote) {
+      minOffsetPerNote = vexFlowOffset
+    }
+  }
+  const minWidth = numOf16th * minOffsetPerNote + padding
+  return {
+    minWidth,
+    minOffset: minOffsetPerNote,
+    num16ths: numOf16th,
+    padding,
+  }
+}
+
+/** After an edit in a bar: whether its new width moves bars to other rows (then the track is laid out again). */
+export function barWidthChangesRows(trackId: number, blockId: number, voiceId: number): boolean {
+  if (Settings.vexFlowIsActive) {
+    classicalNotation.convertBlockToNotation(trackId, blockId, voiceId)
+  }
+  if (!tabLayout.allWidths[blockId]) {
+    return true
+  }
+  let completeRerenderNecessary =
+    Math.abs(tabLayout.allWidths[blockId].minWidth - computeBarWidth(trackId, blockId, voiceId).minWidth) >
+    EPSILON
+  if (completeRerenderNecessary) {
+    const { rowId } = tabLayout.blockToRow[trackId][voiceId][blockId]
+    const oldMapping = tabLayout.blocksPerRow[trackId][voiceId][rowId]
+    recomputeTrackLayoutFromSong(trackId, voiceId, getAvailableRowWidth())
+    completeRerenderNecessary =
+      oldMapping.start !== tabLayout.blocksPerRow[trackId][voiceId][rowId].start ||
+      oldMapping.end !== tabLayout.blocksPerRow[trackId][voiceId][rowId].end
+  }
+  return completeRerenderNecessary
+}
+
+/** Lays a track's bars out into rows again (at the current sheet width). */
+export function relayoutTrack(trackId: number, voiceId: number): void {
+  recomputeTrackLayoutFromSong(trackId, voiceId, getAvailableRowWidth())
 }

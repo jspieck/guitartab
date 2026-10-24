@@ -1,3 +1,4 @@
+import { tabLayout } from '../../stores/tabLayoutState'
 import { beatXInBar } from './beatGrouping'
 import { getBeatPositionInRow } from '../../utils/beatPositionInRow'
 import { registerPlaybackBarElement } from '../../stores/playbackBarState'
@@ -12,36 +13,35 @@ import {
   type RenderRowLayout,
   type RenderTrackLayoutState,
 } from '../../stores/tabRenderLayout'
-import { tab } from '../../assets/js/tab'
 import { getAvailableRowWidth } from '../../utils/tabSheetConstants'
 
 function ensureTabLayoutArrays(trackId: number, voiceId: number) {
-  if (!tab.blockToRow[trackId]) tab.blockToRow[trackId] = []
-  if (!tab.blockToRow[trackId][voiceId]) tab.blockToRow[trackId][voiceId] = []
+  if (!tabLayout.blockToRow[trackId]) tabLayout.blockToRow[trackId] = []
+  if (!tabLayout.blockToRow[trackId][voiceId]) tabLayout.blockToRow[trackId][voiceId] = []
 
-  if (!tab.finalBlockWidths[trackId]) tab.finalBlockWidths[trackId] = []
-  if (!tab.finalBlockWidths[trackId][voiceId]) tab.finalBlockWidths[trackId][voiceId] = []
+  if (!tabLayout.finalBlockWidths[trackId]) tabLayout.finalBlockWidths[trackId] = []
+  if (!tabLayout.finalBlockWidths[trackId][voiceId]) tabLayout.finalBlockWidths[trackId][voiceId] = []
 
-  if (!tab.measureOffset[trackId]) tab.measureOffset[trackId] = []
+  if (!tabLayout.measureOffset[trackId]) tabLayout.measureOffset[trackId] = []
 }
 
 function syncTrackLayoutToTab(trackId: number, voiceId: number, state: RenderTrackLayoutState) {
   ensureTabLayoutArrays(trackId, voiceId)
 
-  tab.blockToRow[trackId][voiceId] = []
-  tab.finalBlockWidths[trackId][voiceId] = []
+  tabLayout.blockToRow[trackId][voiceId] = []
+  tabLayout.finalBlockWidths[trackId][voiceId] = []
 
   state.blockLayouts.forEach((blockLayout, blockId) => {
-    tab.blockToRow[trackId][voiceId][blockId] = {
+    tabLayout.blockToRow[trackId][voiceId][blockId] = {
       rowId: blockLayout.rowId,
       numInRow: blockLayout.numInRow,
     }
-    tab.finalBlockWidths[trackId][voiceId][blockId] = blockLayout.width
+    tabLayout.finalBlockWidths[trackId][voiceId][blockId] = blockLayout.width
 
-    if (!tab.measureOffset[trackId][blockId]) {
-      tab.measureOffset[trackId][blockId] = []
+    if (!tabLayout.measureOffset[trackId][blockId]) {
+      tabLayout.measureOffset[trackId][blockId] = []
     }
-    tab.measureOffset[trackId][blockId][voiceId] = blockLayout.minOffset
+    tabLayout.measureOffset[trackId][blockId][voiceId] = blockLayout.minOffset
   })
 }
 
@@ -70,7 +70,7 @@ const renderBridge = {
   getRowIdForBlock(trackId: number, voiceId: number, blockId: number): number | null {
     return (
       getBlockRenderLayout(trackId, voiceId, blockId)?.rowId ??
-      tab.blockToRow?.[trackId]?.[voiceId]?.[blockId]?.rowId ??
+      tabLayout.blockToRow?.[trackId]?.[voiceId]?.[blockId]?.rowId ??
       null
     )
   },
@@ -82,7 +82,7 @@ const renderBridge = {
   getBlockWidth(trackId: number, voiceId: number, blockId: number): number {
     return (
       getBlockRenderLayout(trackId, voiceId, blockId)?.width ??
-      tab.finalBlockWidths?.[trackId]?.[voiceId]?.[blockId] ??
+      tabLayout.finalBlockWidths?.[trackId]?.[voiceId]?.[blockId] ??
       0
     )
   },
@@ -90,7 +90,7 @@ const renderBridge = {
   getMeasureOffset(trackId: number, voiceId: number, blockId: number): number {
     return (
       getBlockRenderLayout(trackId, voiceId, blockId)?.minOffset ??
-      tab.measureOffset?.[trackId]?.[blockId]?.[voiceId] ??
+      tabLayout.measureOffset?.[trackId]?.[blockId]?.[voiceId] ??
       0
     )
   },

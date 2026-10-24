@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Song from '../src/assets/js/songData'
+import Song from '../src/stores/song'
 import { selectionState, resetSelectionState } from '../src/stores/selectionState'
 import { playbackLoopState } from '../src/stores/playbackLoopState'
 import {
@@ -12,19 +12,16 @@ import {
   startRange,
 } from '../src/services/editor/rangeSelection'
 
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const beat = (duration: string, fret?: number) => ({
   ...Song.defaultMeasure(),

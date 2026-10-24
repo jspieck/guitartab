@@ -34,7 +34,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import interact from 'interactjs';
 import BaseModal from './BaseModal.vue';
-import { MODALS } from '../assets/js/modals/modalTypes';
+import { MODALS } from '../services/dialogs/modalTypes';
 import { songState } from '../stores/songState';
 import { soundingFrets } from '../stores/soundingNotesState';
 import { stringLine } from '../utils/tabStrings';

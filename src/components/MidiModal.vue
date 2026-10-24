@@ -32,7 +32,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
+import { MODALS } from '../services/dialogs/modalTypes'
 import { useModalOpen } from '../composables/useModalOpen'
 import { midiState, refreshMidiDevices, toggleMidiDevice } from '../services/midi/devices'
 

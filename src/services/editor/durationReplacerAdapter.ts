@@ -8,7 +8,7 @@
 
 import type { BeatDuration } from '../../types/tab'
 import { restOf } from '../../utils/durationUtils'
-import Song, { type Beat } from '../../assets/js/songData'
+import Song, { type Beat } from '../../stores/song'
 import { DurationReplacer, type Beat as DurationBeat } from '../../utils/durationReplacer'
 
 export function measureToBeats(measures: Beat[], numStrings: number): DurationBeat[] {
@@ -102,7 +102,7 @@ function findMatchingOriginal(originals: Beat[], startFrom: number, beat: Durati
 
 /**
  * High-level function that replaces `changeBeatDuration` logic for
- * non-tuplet beats.  Call this from tab.ts instead of the original
+ * non-tuplet beats (used by `changeBeatDuration` in durationEditing.ts) instead of the original
  * inline implementation.
  */
 export function changeBeatDurationViaReplacer(

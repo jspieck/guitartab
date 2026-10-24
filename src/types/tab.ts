@@ -10,7 +10,7 @@ import type {
   SongDescription as SongDescriptionSource,
   Track as SongTrack,
   TremoloBar as SongTremoloBar,
-} from '../assets/js/songData'
+} from './song'
 
 export type Note = SongNote
 export type Chord = SongChord

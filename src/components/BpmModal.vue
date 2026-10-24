@@ -22,9 +22,9 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
-import { modalManager } from '../assets/js/modals/modalManager'
-import type { TempoModalHandler } from '../assets/js/modals/effectModals'
+import { MODALS } from '../services/dialogs/modalTypes'
+import { modalManager } from '../services/dialogs/modalManager'
+import type { TempoModalHandler } from '../services/dialogs/effectModals'
 import { TEMPO_MAX, TEMPO_MIN, clampTempo } from '../utils/tempo'
 
 const handler = modalManager.getHandler<InstanceType<typeof TempoModalHandler>>(MODALS.TEMPO.id)

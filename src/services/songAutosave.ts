@@ -1,6 +1,6 @@
-import { gProReader } from '../assets/js/GProReader'
+import { loadGtBytes } from './songImport'
 import { undoHistory } from './editor/editCommands'
-import Song from '../assets/js/songData'
+import Song from '../stores/song'
 import { compressGtContent, serializeSongContent } from '../utils/gtSerialization'
 import { typedEventBus } from '../utils/typedEventBus'
 
@@ -286,7 +286,7 @@ export function restoreAutosave(snapshot: Pick<AutosaveSnapshot, 'bytes'>): bool
   // where it was and the draft stays recoverable after another crash.
   const cleanAt = dependencies().cleanMarker.get()
   try {
-    gProReader.loadGtFromBytes(snapshot.bytes)
+    loadGtBytes(snapshot.bytes)
   } catch (error) {
     console.error('Draft could not be restored', error)
     void import('./userNotifications').then(({ showUserError }) => {

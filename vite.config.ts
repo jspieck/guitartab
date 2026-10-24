@@ -1,23 +1,7 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
-// File readers: Guitar Pro 3-8, MIDI, typed import errors
-const IMPORTER_MODULES = [
-  '/src/assets/js/GProReader.ts',
-  '/src/assets/js/GP3Reader.ts',
-  '/src/assets/js/GP4Reader.ts',
-  '/src/assets/js/GP5Reader.ts',
-  '/src/services/midiImport.ts',
-  '/src/services/importErrors.ts',
-  '/src/assets/js/MidiReader.ts',
-  '/src/services/gpContainers.ts',
-  '/src/services/gpifImport.ts',
-]
-
 const MODULE_CHUNKS: Record<string, string[]> = {
-  importers: IMPORTER_MODULES,
-  // First-visit check and the small test riff; the multi-track demo itself is lazy-loaded.
-  'first-run': ['/src/data/demoSong.ts', '/src/stores/firstRunHintState.ts'],
   // The shortcut table: the key handler needs it at startup, the Help sheet lists it.
   shortcuts: ['/src/utils/keyboardShortcuts.ts', '/src/stores/shortcutsHelpState.ts'],
   // The desktop toolbar. Still loaded at startup (in parallel); a named chunk so the entry
@@ -25,8 +9,53 @@ const MODULE_CHUNKS: Record<string, string[]> = {
   toolbar: ['/src/components/Menu.vue'],
 }
 
+// The editor (song data, layout, edit commands, stores), playback and audio, the dialog
+// handlers, the importers and the first-run riff, all loaded at startup. They import each
+// other both ways (playback reads the stores, edits restart playback; the dialog registry
+// builds its handlers on load and editor code opens dialogs; the importers write the song
+// and startup imports), so they must share one chunk: split across chunks, a chunk runs
+// before the one it reads from and fails with "Cannot access 'x' before initialization".
+// To split one off again, first remove the imports back into it (scripts/check-bundle-budget.mjs
+// fails on chunk cycles). The lazy services (exports, compact layout, cloud songs, the
+// VexFlow drawing, the multi-track demo) are not in these folders.
+const EDITOR_CORE_PATHS = [
+  '/src/data/instrumentData.ts',
+  '/src/data/demoSong.ts',
+  '/src/stores/',
+  '/src/utils/',
+  '/src/services/editor/',
+  '/src/services/notation/',
+  '/src/services/audio/',
+  '/src/services/playback/',
+  '/src/services/midi/liveInput.ts',
+  '/src/services/dialogs/',
+  '/src/services/songImport.ts',
+  '/src/services/import/',
+  '/src/services/midiImport.ts',
+  '/src/services/importErrors.ts',
+  '/src/services/gpContainers.ts',
+  '/src/services/gpifImport.ts',
+  '/src/services/startup.ts',
+  '/src/services/appEvents.ts',
+  '/src/services/songAutosave.ts',
+  '/src/services/songMigrations.ts',
+  '/src/services/userNotifications.ts',
+]
+
+// The VexFlow code: loaded with the classical notation, never at startup.
+const LAZY_NOTATION_MODULES = [
+  '/src/services/notation/classicalNotation.ts',
+  '/src/services/notation/vexflowNotes.ts',
+]
+
 function manualChunks(id: string): string | undefined {
   const normalizedId = id.replace(/\\/g, '/')
+
+  // Helper modules that Vite and the Vue plugin add to many chunks. Left unassigned, Rollup puts
+  // each into the first chunk that needs it and every other user imports that chunk (a cycle).
+  if (normalizedId.includes('plugin-vue:export-helper') || normalizedId.includes('vite/preload-helper')) {
+    return 'framework'
+  }
 
   if (normalizedId.includes('/node_modules/')) {
     if (normalizedId.includes('/vue/') || normalizedId.includes('/mitt/')) {
@@ -47,7 +76,8 @@ function manualChunks(id: string): string | undefined {
       return 'serialization'
     }
     if (normalizedId.includes('/fflate/')) {
-      return 'importers'
+      // Unzips .gp files (importers, startup) and zips GP/GPX exports.
+      return 'editor-core'
     }
 
     return 'vendor'
@@ -60,17 +90,10 @@ function manualChunks(id: string): string | undefined {
   }
 
   if (
-    normalizedId.includes('/src/assets/js/audioEngine.ts') ||
-    normalizedId.includes('/src/services/audio/') ||
-    normalizedId.includes('/src/services/midi/liveInput.ts') ||
-    normalizedId.includes('/src/assets/js/playbackEngine.ts') ||
-    normalizedId.includes('/src/assets/js/sf2parser.ts')
+    EDITOR_CORE_PATHS.some((path) => normalizedId.includes(path)) &&
+    !LAZY_NOTATION_MODULES.some((path) => normalizedId.includes(path))
   ) {
-    return 'audio-engine'
-  }
-
-  if (normalizedId.includes('/src/assets/js/modals/')) {
-    return 'modal-handlers'
+    return 'editor-core'
   }
 
   if (normalizedId.includes('/src/components/tab/')) {

@@ -1,6 +1,6 @@
+import { tabLayout } from '../../src/stores/tabLayoutState'
 import { expect } from 'vitest'
-import Song from '../../src/assets/js/songData'
-import { tab } from '../../src/assets/js/tab'
+import Song from '../../src/stores/song'
 import renderBridge from '../../src/services/editor/renderBridge'
 import { getTrackRenderLayout } from '../../src/stores/tabRenderLayout'
 import { getBeatPositionInRow } from '../../src/utils/beatPositionInRow'
@@ -9,9 +9,9 @@ export function assertTabAndRenderLayoutMatch(trackId: number, voiceId: number):
   const layout = getTrackRenderLayout(trackId, voiceId)
   expect(layout).not.toBeNull()
 
-  const tabBlockToRow = tab.blockToRow[trackId]?.[voiceId] ?? []
-  const tabBlocksPerRow = tab.blocksPerRow[trackId]?.[voiceId] ?? []
-  const tabBlockWidths = tab.finalBlockWidths[trackId]?.[voiceId] ?? []
+  const tabBlockToRow = tabLayout.blockToRow[trackId]?.[voiceId] ?? []
+  const tabBlocksPerRow = tabLayout.blocksPerRow[trackId]?.[voiceId] ?? []
+  const tabBlockWidths = tabLayout.finalBlockWidths[trackId]?.[voiceId] ?? []
 
   expect(layout!.rowLayouts.length).toBe(tabBlocksPerRow.length)
   expect(layout!.numRows).toBe(tabBlocksPerRow.length)

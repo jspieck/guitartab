@@ -1,7 +1,7 @@
+import { tabLayout } from '../src/stores/tabLayoutState'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Song from '../src/assets/js/songData'
+import Song from '../src/stores/song'
 import Settings from '../src/stores/settingsState'
-import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, getBlockRenderLayout } from '../src/stores/tabRenderLayout'
 import { computeTrackLayout } from '../src/services/editor/measureLayoutEngine'
 import { getMeasureBeatX } from '../src/utils/measureBeatLayout'
@@ -9,19 +9,16 @@ import { getBeatPositionInRow } from '../src/utils/beatPositionInRow'
 import { assertTabAndRenderLayoutMatch } from './helpers/layoutConvergence'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const TRACK_ID = 0
 const VOICE_ID = 0
@@ -29,7 +26,7 @@ const NARROW_WIDTH = 520
 const WIDE_WIDTH = 4000
 const CLASSICAL_WIDTH = 900
 
-vi.mock('../src/services/editor/classicalNotationAdapter', () => ({
+vi.mock('../src/services/notation/classicalNotationAdapter', () => ({
   classicalNotation: {
     calculateLargestBeatWidth: () => 60,
     ensureStructuresForLayout: vi.fn(),
@@ -66,7 +63,7 @@ describe('layout fixtures', () => {
     expect(Song.measures[TRACK_ID].length).toBe(12)
     expect(rows.length).toBeGreaterThan(1)
     expect(state.numRows).toBe(rows.length)
-    expect(tab.blocksPerRow[TRACK_ID][VOICE_ID].length).toBe(rows.length)
+    expect(tabLayout.blocksPerRow[TRACK_ID][VOICE_ID].length).toBe(rows.length)
 
     const coveredBlocks = rows.reduce((sum, row) => sum + (row.endBlockId - row.startBlockId + 1), 0)
     expect(coveredBlocks).toBe(12)

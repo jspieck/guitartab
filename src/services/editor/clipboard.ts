@@ -1,5 +1,6 @@
-import Song, { type Beat } from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
+import { fillMeasure } from './barFilling'
+import { redrawTrack } from './layoutInvalidation'
+import Song, { type Beat } from '../../stores/song'
 import { EPSILON } from '../../stores/settingsState'
 import type { RangeEndpoint } from '../../stores/selectionState'
 import Duration from '../../utils/duration'
@@ -170,8 +171,8 @@ export function pasteRange(): void {
         next += 1
       }
       requestDurationRender(trackId, blockId, voiceId)
-      tab.fillMeasure(trackId, blockId, voiceId)
+      fillMeasure(trackId, blockId, voiceId)
     }
   })
-  tab.drawTrack(trackId, voiceId, true, null)
+  redrawTrack(trackId, voiceId)
 }

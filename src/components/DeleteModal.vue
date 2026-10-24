@@ -13,5 +13,5 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
-import { MODALS } from "../assets/js/modals/modalTypes";
+import { MODALS } from "../services/dialogs/modalTypes";
 </script>

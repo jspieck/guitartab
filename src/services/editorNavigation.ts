@@ -1,4 +1,4 @@
-import playBackLogic from '../assets/js/playbackEngine'
+import playback from './playback'
 import { typedEventBus, type TabPosition } from '../utils/typedEventBus'
 import { setLoadingWheelVisible } from '../utils/editorUi'
 import { switchTrack } from './editor/trackLoading'
@@ -37,7 +37,7 @@ export function focusEditorPosition(
   typedEventBus.emit('navigation.setClickedPos', position)
 
   if (options.updatePlaybackPosition ?? true) {
-    playBackLogic.jumpToPosition(position.blockId, 0, position.beatId)
+    playback.jumpToPosition(position.blockId, 0, position.beatId)
   }
 
   return position

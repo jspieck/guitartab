@@ -1,12 +1,5 @@
 import { reactive, ref } from 'vue'
-import type {
-  Chord,
-  Beat,
-  MeasureMetaInfo,
-  PlayBackInstrument,
-  SongDescription,
-  Track,
-} from '../assets/js/songData'
+import type { Chord, Beat, MeasureMetaInfo, PlayBackInstrument, SongDescription, Track } from '../types/song'
 
 interface Channel {
   cInstrument: number

@@ -26,9 +26,9 @@
 <script setup lang="ts">
 import { midiState } from '../services/midi/devices';
 import { computed, ref, watch } from 'vue';
-import { modalManager } from '../assets/js/modals/modalManager';
+import { modalManager } from '../services/dialogs/modalManager';
 import Settings from '../stores/settingsState';
-import { MODALS } from '../assets/js/modals/modalTypes';
+import { MODALS } from '../services/dialogs/modalTypes';
 import { useSongData } from '../composables/useSongData';
 
 const midiConnected = computed(() => midiState.devices.some((device) => device.connected));

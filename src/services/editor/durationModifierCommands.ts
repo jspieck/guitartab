@@ -1,11 +1,12 @@
+import { isNotePlaceable, setTuplet, changeBeatDuration } from './durationEditing'
+import { deleteNote } from './noteCommands'
+import { redrawTrack } from './layoutInvalidation'
 import { selectionState } from '../../stores/selectionState'
 import fastdom from 'fastdom'
 import Duration from '../../utils/duration'
-import AppManager from '../../assets/js/appManager'
-import Song from '../../assets/js/songData'
+import Song from '../../stores/song'
 import { recordBarEdit } from './editCommands'
-import { tab, Tab } from '../../assets/js/tab'
-import { classicalNotation } from './classicalNotationAdapter'
+import { classicalNotation } from '../notation/classicalNotationAdapter'
 import type { Beat } from '../../types/tab'
 import { requestDurationRender } from './renderCommands'
 import { typedEventBus } from '../../utils/typedEventBus'
@@ -25,7 +26,7 @@ export function toggleBeatDotModifier(
     if (beat.dotted) {
       beat.dotted = false
     } else if (
-      tab.isNotePlaceable(trackId, blockId, voiceId, beatId, string, previousDuration * 1.5, previousDuration)
+      isNotePlaceable(trackId, blockId, voiceId, beatId, string, previousDuration * 1.5, previousDuration)
     ) {
       beat.dotted = true
     } else {
@@ -42,7 +43,7 @@ export function toggleBeatDotModifier(
   if (beat.doubleDotted) {
     beat.doubleDotted = false
   } else if (
-    tab.isNotePlaceable(trackId, blockId, voiceId, beatId, string, previousDuration * 1.75, previousDuration)
+    isNotePlaceable(trackId, blockId, voiceId, beatId, string, previousDuration * 1.75, previousDuration)
   ) {
     beat.doubleDotted = true
   } else {
@@ -64,11 +65,11 @@ export function handleTupletSpecialSelect(
   tupleSel: number,
 ): boolean {
   // setTuplet returns false when refused and nothing on success.
-  if (tab.setTuplet(trackId, blockId, voiceId, beatId, tupleSel) === false) {
+  if (setTuplet(trackId, blockId, voiceId, beatId, tupleSel) === false) {
     return false
   }
   requestDurationRender(trackId, blockId, voiceId)
-  tab.drawTrack(trackId, voiceId, true, null)
+  redrawTrack(trackId, voiceId)
   return true
 }
 
@@ -83,7 +84,7 @@ export function finalizeSpecialDurationChange(
 ): void {
   const newDuration = Duration.getDurationOfNote(beat, true)
   if (previousDuration !== newDuration) {
-    const rescaleNecessary = tab.changeBeatDuration(
+    const { rescale: rescaleNecessary } = changeBeatDuration(
       trackId,
       blockId,
       voiceId,
@@ -97,7 +98,7 @@ export function finalizeSpecialDurationChange(
     classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId)
 
     if (rescaleNecessary) {
-      tab.drawTrack(trackId, voiceId, true, null)
+      redrawTrack(trackId, voiceId)
     }
   }
 }
@@ -134,7 +135,7 @@ export function setNotesTied(
         selectedNote.tied = shouldBeTied
         selectedNote.tiedTo = noteTiedToCopy
         if (shouldBeTied === false) {
-          Tab.deleteNote(trackId, blockId, voiceId, beatId, string)
+          deleteNote(trackId, blockId, voiceId, beatId, string)
           return
         }
         selectedNote.fret = fret
@@ -242,9 +243,6 @@ export function noteLengthSpecialSelect(
   selectedTuplet: number,
   noteTiedTo: { blockId: number; beatId: number } | null,
 ): boolean {
-  if (AppManager.duringTrackCreation) {
-    return false
-  }
   const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor
   processSpecialSelect(trackId, blockId, voiceId, beatId, string, selectedTuplet, id, noteTiedTo)
   return true

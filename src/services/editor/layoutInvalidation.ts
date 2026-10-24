@@ -1,19 +1,9 @@
 import { notifySongDataChanged } from '../appEvents'
+import { relayoutTrack } from './measureLayoutEngine'
 
-interface TrackLayoutHost {
-  assignBlocksToRows(trackId: number, voiceId: number): void
-}
-
-/**
- * Recompute row layout for a track/voice and notify Vue renderers.
- */
-export function invalidateTrackLayout(
-  tabInstance: TrackLayoutHost,
-  trackId: number,
-  voiceId: number,
-  callback?: (() => void) | null,
-): void {
-  tabInstance.assignBlocksToRows(trackId, voiceId)
+/** Lays out a track/voice again and lets the Vue renderers redraw it. */
+export function redrawTrack(trackId: number, voiceId: number, callback?: (() => void) | null): void {
+  relayoutTrack(trackId, voiceId)
   notifySongDataChanged()
   callback?.()
 }

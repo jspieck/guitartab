@@ -109,30 +109,29 @@
 </template>
 
 <script setup lang="ts">
-import { instrumentIconSrc } from '../assets/js/instrumentData';
+import { instrumentIconSrc, publicUrl } from '../data/instrumentData';
 import { computed, ref, onMounted, onUpdated, onBeforeUnmount, watch, nextTick } from 'vue';
 import fastdom from 'fastdom';
 import Settings from '../stores/settingsState';
-import { audioEngine } from '../assets/js/audioEngine';
+import { audioGraph } from '../services/audio/audioGraph';
 import { applyRangeAsLoop, clearRange, startRange, extendRange } from '../services/editor/rangeSelection';
-import playBackLogic from '../assets/js/playbackEngine';
+import playback from '../services/playback';
 import { typedEventBus } from '../utils/typedEventBus';
 import { showUserError } from '../services/userNotifications';
-import { modalManager } from '../assets/js/modals/modalManager';
-import type { EqualizerModalHandler } from '../assets/js/modals/equalizerModalHandler';
-import type { CompressorModalHandler } from '../assets/js/modals/compressorModalHandler';
+import { modalManager } from '../services/dialogs/modalManager';
+import type { EqualizerModalHandler } from '../services/dialogs/equalizerModalHandler';
+import type { CompressorModalHandler } from '../services/dialogs/compressorModalHandler';
 import editorCore from '../services/editor/editorCore';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import SequenceMarker from './SequenceMarker.vue';
 import Fader from './Fader.vue';
-import { AddTrackModalHandler } from '../assets/js/modals/addTrackModalHandler';
-import { MODALS } from "../assets/js/modals/modalTypes";
+import { AddTrackModalHandler } from '../services/dialogs/addTrackModalHandler';
+import { MODALS } from "../services/dialogs/modalTypes";
 import { registerMeterCanvas, sequencerState, setSequencerRange } from '../stores/sequencerState';
 import { useSongData } from '../composables/useSongData';
 import { changeTrackWithLoading, focusEditorPosition } from '../services/editorNavigation';
 import changeButtonImage from '../assets/images/change.svg';
 import trashButtonImage from '../assets/images/trashCan.svg';
-import masterSettingsIcon from '../assets/images/instrumentIcons/myMasterDesign.svg';
 
 const { reactiveSongData, syncSongData, songDataVersion } = useSongData();
 
@@ -219,7 +218,7 @@ onBeforeUnmount(() => {
 
 const handleTrackLabelClick = (trackId: number) => {
     if (reactiveSongData.currentTrackId !== trackId) {
-        const blockId = playBackLogic.getCurrentBlock();
+        const blockId = playback.getCurrentBlock();
         changeTrackWithLoading(trackId, 0, (complete) => {
             nextTick(() => {
                 focusEditorPosition({
@@ -274,7 +273,7 @@ const getChangeButtonImage = changeButtonImage;
 
 const getTrashButtonImage = trashButtonImage;
 
-const settingsIconSrc = masterSettingsIcon;
+const settingsIconSrc = publicUrl('instrumentIcons/myMasterDesign.svg');
 
 const getBorderStyle = (trackId: number) => {
     if (!Settings.sequencerTrackColor || !reactiveSongData.tracks || !reactiveSongData.tracks[trackId]) {
@@ -357,7 +356,7 @@ function panKnobRotate(scaled: number, trackId: number) {
         return;
     }
     editorCore.setPlayBackInstrumentEffect(trackId, 'balance', scaled);
-    audioEngine.setEffectGain(trackId, scaled, 'pan');
+    audioGraph.setEffectGain(trackId, scaled, 'pan');
     syncSongData();
 }
 
@@ -366,7 +365,7 @@ function reverbKnobRotate(scaled: number, trackId: number) {
         return;
     }
     editorCore.setPlayBackInstrumentEffect(trackId, 'reverb', scaled);
-    audioEngine.setEffectGain(trackId, scaled, 'reverb');
+    audioGraph.setEffectGain(trackId, scaled, 'reverb');
     syncSongData();
 }
 
@@ -375,7 +374,7 @@ function chorusKnobRotate(scaled: number, trackId: number) {
         return;
     }
     editorCore.setPlayBackInstrumentEffect(trackId, 'chorus', scaled);
-    audioEngine.setEffectGain(trackId, scaled, 'chorus');
+    audioGraph.setEffectGain(trackId, scaled, 'chorus');
     syncSongData();
 }
 
@@ -411,7 +410,7 @@ function sequencerClick(e: MouseEvent, trackId: number, voiceId: number) {
         if (target != null) {
             const { left } = target.getBoundingClientRect();
             const blockId = Math.floor((target.scrollLeft + e.clientX - left) / 30);
-            playBackLogic.clearQueueAndSetNewBlock(blockId);
+            playback.showBar(blockId);
             setIndicator(trackId, blockId);
             if (reactiveSongData.currentTrackId !== trackId) {
                 changeTrackWithLoading(trackId, 0, (complete) => {

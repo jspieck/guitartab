@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Song from '../src/assets/js/songData'
+import Song from '../src/stores/song'
 import type { TabBeat, TabNoteData } from '../src/types/tab'
 import { recomputeTrackLayoutFromSong } from '../src/services/editor/measureLayoutEngine'
 import { getMeasureBeatWidth, getMeasureBeatX } from '../src/utils/measureBeatLayout'
@@ -7,19 +7,16 @@ import { buildTabEffects } from '../src/utils/tabEffects'
 import { computeRowLanes, type LaneBox, type RowLanes } from '../src/utils/tabRowLanes'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const TRACK_ID = 0
 const VOICE_ID = 0

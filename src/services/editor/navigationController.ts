@@ -1,6 +1,5 @@
+import { tabLayout } from '../../stores/tabLayoutState'
 import Settings from '../../stores/settingsState'
-import AppManager from '../../assets/js/appManager'
-import { tab } from '../../assets/js/tab'
 import renderBridge from './renderBridge'
 import { getBlockRenderPageId } from '../../stores/tabRenderLayout'
 import { getYPosOfPage } from './tabLayoutMetrics'
@@ -10,11 +9,7 @@ import { getViewportMainContent } from '../../stores/tabViewportState'
 import { revealScrollTop, ROW_SCROLL_MARGIN, smoothScrollTo } from '../../utils/smoothScroll'
 
 export function scrollToSvgBlock(trackId: number, voiceId: number, blockId: number): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
-
-  const rowId = tab.blockToRow?.[trackId]?.[voiceId]?.[blockId]?.rowId
+  const rowId = tabLayout.blockToRow?.[trackId]?.[voiceId]?.[blockId]?.rowId
   if (rowId == null) {
     return
   }
@@ -28,10 +23,6 @@ export function scrollToSvgBlock(trackId: number, voiceId: number, blockId: numb
  * once so the row sits just below the top and the following rows show underneath.
  */
 export function scrollToSvgPos(trackId: number, voiceId: number, rowId: number, blockId: number): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
-
   const mainContentDiv = getViewportMainContent()
   if (!mainContentDiv) {
     return

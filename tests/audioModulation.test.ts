@@ -1,11 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import {
-  generateCurve,
-  makeBend,
-  makeDistortion,
-  setEffectGain,
-  smoothDistortion,
-} from '../src/services/editor/audioModulation'
+import { generateCurve, makeBend, setEffectGain } from '../src/services/audio/audioModulation'
 
 describe('audioModulation', () => {
   it('generateCurve returns a fixed-length LFO ending at 1', () => {
@@ -37,18 +31,6 @@ describe('audioModulation', () => {
     expect(exponentialRampToValueAtTime).toHaveBeenCalledTimes(1)
     const [, endTime] = exponentialRampToValueAtTime.mock.calls[0]
     expect(endTime).toBe(1 + 2 * (30 / 60))
-  })
-
-  it('smoothDistortion stays within a soft-clip range', () => {
-    const curve = smoothDistortion(0.5)
-    expect(curve).toHaveLength(44100)
-    expect(Math.max(...Array.from(curve))).toBeLessThanOrEqual(1.01)
-    expect(Math.min(...Array.from(curve))).toBeGreaterThanOrEqual(-1.01)
-  })
-
-  it('makeDistortion produces a non-linear transfer curve', () => {
-    const curve = makeDistortion(50)
-    expect(curve[0]).not.toBe(curve[Math.floor(curve.length / 2)])
   })
 
   it('setEffectGain maps mixer values onto bus nodes', () => {

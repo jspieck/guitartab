@@ -1,9 +1,8 @@
 import type { Ref } from 'vue'
-import { modalManager } from '../assets/js/modals/modalManager'
-import Song from '../assets/js/songData'
+import { modalManager } from '../services/dialogs/modalManager'
+import Song from '../stores/song'
 import Settings from '../stores/settingsState'
-import AppManager from '../assets/js/appManager'
-import { classicalNotation } from '../services/editor/classicalNotationAdapter'
+import { classicalNotation } from '../services/notation/classicalNotationAdapter'
 import { notesInRange } from '../services/editor/rangeSelection'
 import { isEffectSet, toggleNoteEffect } from '../services/editor/effectToggles'
 import { applyNoteLengthSelection } from '../services/menuActionCommands'
@@ -47,9 +46,6 @@ export function useMenuActions(options: UseMenuActionsOptions) {
   }
 
   function dynamicSelect(id: string) {
-    if (AppManager.duringTrackCreation) {
-      return
-    }
     const arr = notesInRange()
     processDynamicSelect(arr!, id, false)
   }
@@ -91,9 +87,6 @@ export function useMenuActions(options: UseMenuActionsOptions) {
   }
 
   function noteEffectSelect(id: string): void {
-    if (AppManager.duringTrackCreation) {
-      return
-    }
     const arr = notesInRange()
     processEffectSelect(arr!, id)
   }

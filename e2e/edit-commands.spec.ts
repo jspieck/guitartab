@@ -6,7 +6,7 @@ import { waitForEditorShell } from './helpers'
 
 async function cursorBeatText(page: import('@playwright/test').Page) {
   return page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { selectionState } = await import('/src/stores/selectionState.ts')
     const { trackId, blockId, voiceId, beatId } = selectionState.cursor
     return Song.measures[trackId][blockId][voiceId][beatId].text ?? null
@@ -21,7 +21,7 @@ test('removing beat text with the toolbar button can be undone with Ctrl+Z', asy
     .click({ position: { x: 80, y: 4 } })
 
   await page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { selectionState } = await import('/src/stores/selectionState.ts')
     const { trackId, blockId, voiceId, beatId } = selectionState.cursor
     Song.measures[trackId][blockId][voiceId][beatId].text = 'Intro'
@@ -42,7 +42,7 @@ test('a tempo drag is one undo step', async ({ page }) => {
   await waitForEditorShell(page)
   const bpm = () =>
     page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       return Song.bpm
     })
   const before = await bpm()
@@ -61,4 +61,28 @@ test('a tempo drag is one undo step', async ({ page }) => {
   await page.keyboard.press('Control+z')
   await expect.poll(bpm).toBe(before)
   await expect(meter).toHaveText(String(before))
+})
+
+test('the note length buttons change the selected beat, and Ctrl+Z undoes it', async ({ page }) => {
+  await waitForEditorShell(page)
+  const firstBar = () =>
+    page.evaluate(async () => {
+      const { default: Song } = await import('/src/stores/song.ts')
+      return Song.measures[0][0][0].map((beat) => beat.duration)
+    })
+  const before = await firstBar()
+  // The riff's fourth eighth; rests follow, so there is room for a quarter.
+  expect(before.slice(3, 5)).toEqual(['e', 'er'])
+  await page.evaluate(async () => {
+    const { selectionState } = await import('/src/stores/selectionState.ts')
+    selectionState.cursor = { trackId: 0, voiceId: 0, blockId: 0, beatId: 3, string: 0 }
+    selectionState.hasExplicitSelection = true
+  })
+
+  // (A length change returned "not applied" to the undo layer and was rolled back at once.)
+  await page.evaluate(() => (document.getElementById('quarterNote') as HTMLButtonElement).click())
+  await expect.poll(async () => (await firstBar())[3]).toBe('q')
+
+  await page.keyboard.press('Control+z')
+  await expect.poll(firstBar).toEqual(before)
 })

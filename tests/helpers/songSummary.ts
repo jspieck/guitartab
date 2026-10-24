@@ -1,4 +1,4 @@
-import type { Beat, Note } from '../../src/assets/js/songData'
+import type { Beat, Note } from '../../src/stores/song'
 import type { GpifSong } from '../../src/services/gpifImport'
 
 const NOTE_KEYS: (keyof Note)[] = [

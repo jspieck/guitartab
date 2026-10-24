@@ -7,7 +7,7 @@ import {
   getClassicalLifecyclePhase,
   prepareClassicalLayoutMetrics,
   type ClassicalNotationEngine,
-} from '../src/services/editor/classicalNotationLifecycle'
+} from '../src/services/notation/classicalNotationLifecycle'
 import {
   classicalNotationLayoutState,
   clearClassicalLayoutMetrics,

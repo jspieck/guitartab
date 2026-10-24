@@ -22,9 +22,9 @@
 <script setup lang="ts">
 import { selectionState } from '../stores/selectionState';
 import BaseModal from "./BaseModal.vue";
-import audioEngine from "../assets/js/audioEngine";
-import AppManager from "../assets/js/appManager";
-import { MODALS } from "../assets/js/modals/modalTypes";
+import { noteToDrum } from "../services/audio/drumKit";
+import { placeNote as placeNoteAtCursor } from "../services/editor/noteEntry";
+import { MODALS } from "../services/dialogs/modalTypes";
 
 const GROUPS: { name: string, test: RegExp }[] = [
   { name: 'Kicks & snares', test: /kick|snare|clap|stick/i },
@@ -33,7 +33,7 @@ const GROUPS: { name: string, test: RegExp }[] = [
   { name: 'Percussion', test: /.*/ },
 ];
 
-const pieces = Array.from(audioEngine.noteToDrum.entries()).map(([note, info]) => ({ note, name: info[0] }));
+const pieces = Array.from(noteToDrum.entries()).map(([note, info]) => ({ note, name: info[0] }));
 const groups = GROUPS.map((group, index) => ({
   name: group.name,
   pieces: pieces.filter((piece) => GROUPS.findIndex((g) => g.test.test(piece.name)) === index),
@@ -42,7 +42,7 @@ const groups = GROUPS.map((group, index) => ({
 function placeNote(midiNote: number) {
   // Read the cursor now, not when the modal was mounted.
   const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor;
-  AppManager.placeNote(trackId, blockId, voiceId, beatId, string, midiNote);
+  placeNoteAtCursor(trackId, blockId, voiceId, beatId, string, midiNote);
 }
 </script>
 

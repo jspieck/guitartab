@@ -86,8 +86,8 @@ test('damaged or random files fail with an ImportError and leave the song intact
   test.setTimeout(180_000)
   await waitForEditorShell(page)
   const results = await page.evaluate(async (all) => {
-    const { gProReader } = await import('/src/assets/js/GProReader.ts')
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { importSongBytes } = await import('/src/services/songImport.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { serializeSongContent, compressGtContent } = await import('/src/utils/gtSerialization.ts')
     const accepted: string[] = []
     const original = serializeSongContent()
@@ -97,12 +97,12 @@ test('damaged or random files fail with an ImportError and leave the song intact
     for (const { name, file, bytes } of all) {
       const started = performance.now()
       try {
-        gProReader.importSongBytes(file, new Uint8Array(bytes))
+        importSongBytes(file, new Uint8Array(bytes))
         // Some corruptions still decode to a song; that's fine as long as it is usable.
         if (!Array.isArray(Song.measures[0]) || Song.measures[0].length === 0)
           problems.push(`${name}: empty song`)
         accepted.push(name)
-        gProReader.importSongBytes('restore.gt', compressGtContent(original))
+        importSongBytes('restore.gt', compressGtContent(original))
       } catch (error) {
         rejected += 1
         if ((error as Error).name !== 'ImportError')

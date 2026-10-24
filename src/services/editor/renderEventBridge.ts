@@ -1,5 +1,5 @@
 import { selectionState } from '../../stores/selectionState'
-import playBackLogic from '../../assets/js/playbackEngine'
+import playback from '../playback'
 import { hasRegisteredSelectionSurface } from '../../stores/selectionSurfaceState'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { disablePageMode } from './pageModeController'
@@ -26,7 +26,7 @@ export function ensureRenderEventBridge(): void {
       beatId: pos.beatId,
       string: pos.string,
     }
-    playBackLogic.setPlayPosition(pos.trackId, pos.blockId, pos.voiceId, pos.beatId)
+    playback.setPlayPosition(pos.trackId, pos.blockId, pos.voiceId, pos.beatId)
   })
 
   typedEventBus.on('navigation.scrollToBlock', (data) => {

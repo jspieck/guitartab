@@ -108,11 +108,11 @@ import ModalToggle from './ModalToggle.vue'
 
 import ModalSelectField from './ModalSelectField.vue'
 
-import { MODALS } from '../assets/js/modals/modalTypes'
+import { MODALS } from '../services/dialogs/modalTypes'
 
-import { modalManager } from '../assets/js/modals/modalManager'
+import { modalManager } from '../services/dialogs/modalManager'
 
-import { InstrumentSettingsModalHandler } from '../assets/js/modals/instrumentSettingsModalHandler'
+import { InstrumentSettingsModalHandler } from '../services/dialogs/instrumentSettingsModalHandler'
 
 
 

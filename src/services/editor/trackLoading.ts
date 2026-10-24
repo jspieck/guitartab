@@ -1,24 +1,27 @@
+import { createMeasures } from './measureStructureCommands'
+import { fillMeasures } from './barFilling'
+import { redrawTrack } from './layoutInvalidation'
+import { tupletState } from '../../stores/tupletState'
 import { selectionState } from '../../stores/selectionState'
-import Song, { type PlayBackInstrument } from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
+import Song, { type PlayBackInstrument } from '../../stores/song'
 import { clearRange } from './rangeSelection'
-import playBackLogic from '../../assets/js/playbackEngine'
-import { instrumentIconSrc, numToInstr } from '../../assets/js/instrumentData'
-import { audioEngine } from '../../assets/js/audioEngine'
+import playback from '../playback'
+import { instrumentIconSrc, numToInstr } from '../../data/instrumentData'
+import { audioGraph } from '../audio/audioGraph'
 import { setSequencerIndicator } from '../../stores/sequencerState'
-import { modalManager } from '../../assets/js/modals/modalManager'
+import { modalManager } from '../dialogs/modalManager'
 import { notifySongDataChanged } from '../appEvents'
 import { setTrackSignIcon } from '../../utils/editorUi'
 
 /** Stops playback and puts cursor, selection and track back to the start. */
 export function resetEditorState(): void {
-  playBackLogic.stopSong()
+  playback.stop()
   Song.currentTrackId = 0
   Song.currentVoiceId = 0
   selectionState.cursor = { trackId: 0, voiceId: 0, blockId: 0, beatId: 0, string: 0 }
-  tab.tupletManager.length = 0
+  tupletState.groups.length = 0
   clearRange()
-  playBackLogic.resetPlayBack()
+  playback.resetPosition()
 }
 
 /** Bars without their own time signature take the one in force before them. */
@@ -68,7 +71,7 @@ export function playbackInstrumentFor(trackId: number): PlayBackInstrument {
 /** Sets up a track's playback settings and audio bus. */
 export function initTrackPlayback(trackId: number): void {
   Song.playBackInstrument[trackId] = playbackInstrumentFor(trackId)
-  audioEngine.updateBusses(Song.playBackInstrument)
+  audioGraph.updateBusses(Song.playBackInstrument)
   notifySongDataChanged()
 }
 
@@ -79,8 +82,8 @@ export function loadSongIntoEditor(trackId: number): void {
   Song.measureMoveHelper = Song.measures.map((bars) => bars.map((voices) => voices.map(() => [])))
   for (let track = 0; track < Song.measures.length; track += 1) {
     for (let voice = 0; voice < Song.numVoices; voice += 1) {
-      tab.createMeasures(track, voice)
-      tab.fillMeasures(track, voice)
+      createMeasures(track, voice)
+      fillMeasures(track, voice)
     }
   }
   fillTimeSignatures()
@@ -89,7 +92,7 @@ export function loadSongIntoEditor(trackId: number): void {
   }
 
   selectionState.cursor = { trackId: 0, blockId: 0, beatId: 0, voiceId: 0, string: 0 }
-  tab.drawTrack(trackId, 0, false, null)
+  redrawTrack(trackId, 0)
   setTrackSignIcon(instrumentIconSrc(Song.playBackInstrument[trackId].instrument))
   setSequencerIndicator(0, 0)
   modalManager.closeAllModals()
@@ -114,10 +117,10 @@ export function switchTrack(
   Song.currentVoiceId = voiceId
   clearRange()
   setTrackSignIcon(instrumentIconSrc(Song.playBackInstrument[trackId].instrument))
-  playBackLogic.trackChange = true
+  playback.followTrackChange()
   // The cursor's beat or string may not exist on the new track.
   selectionState.cursor.beatId = 0
   selectionState.cursor.string = 0
-  tab.drawTrack(trackId, voiceId, true, callback)
+  redrawTrack(trackId, voiceId, callback)
   notifySongDataChanged()
 }

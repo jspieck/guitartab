@@ -1,9 +1,8 @@
+import { tabLayout } from '../../stores/tabLayoutState'
 import { barLeftOffset } from '../../utils/measureBeatLayout'
-import Song from '../../assets/js/songData'
+import Song from '../../stores/song'
 import Settings from '../../stores/settingsState'
-import AppManager from '../../assets/js/appManager'
-import { audioEngine } from '../../assets/js/audioEngine'
-import { tab } from '../../assets/js/tab'
+import { audioGraph } from '../audio/audioGraph'
 import renderBridge from './renderBridge'
 import {
   hasRegisteredPlaybackBar,
@@ -53,12 +52,8 @@ function movePlayBackBarToXPos(
   xPos: number,
   timing: number,
 ): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
-
   const useReactivePlaybackBar = hasRegisteredPlaybackBar()
-  const rowId = tab.blockToRow[trackId]?.[voiceId]?.[blockId]?.rowId
+  const rowId = tabLayout.blockToRow[trackId]?.[voiceId]?.[blockId]?.rowId
   if (rowId == null) {
     return
   }
@@ -139,16 +134,12 @@ export function movePlayBackBarToPosition(
   currentBlockId: number,
   currentBeatId: number,
 ): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
-
   const pageId = renderBridge.getBlockLayout(trackId, voiceId, currentBlockId)?.pageId
   if (pageId == null) {
     return
   }
 
-  const currentTime = audioEngine.getCurrentTime()
+  const currentTime = audioGraph.getCurrentTime()
   const resolvedCurrent = resolveCurrentPlaybackPos(
     { trackId, voiceId, blockId: currentBlockId, beatId: currentBeatId },
     {
@@ -174,14 +165,14 @@ export function movePlayBackBarToPosition(
     lastPlayBackBarPageId = pageId
   }
 
-  const rowId = tab.blockToRow[trackId]?.[voiceId]?.[currentBlockId]?.rowId
+  const rowId = tabLayout.blockToRow[trackId]?.[voiceId]?.[currentBlockId]?.rowId
   if (rowId == null) {
     return
   }
 
   let nextRowId = -1
   if (nextBlockId < Song.measures[trackId].length) {
-    nextRowId = tab.blockToRow[trackId][voiceId][nextBlockId].rowId
+    nextRowId = tabLayout.blockToRow[trackId][voiceId][nextBlockId].rowId
   }
 
   const resolvedNext = resolveNextPlaybackXPos({

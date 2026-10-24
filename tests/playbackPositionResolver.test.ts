@@ -6,13 +6,13 @@ vi.mock('../src/services/editor/renderBridge', () => ({
   },
 }))
 
-vi.mock('../src/assets/js/tab', () => ({
-  tab: {
+vi.mock('../src/stores/tabLayoutState', () => ({
+  tabLayout: {
     measureOffset: [[[[10]]]],
   },
 }))
 
-vi.mock('../src/assets/js/songData', async () => {
+vi.mock('../src/stores/song', async () => {
   const { createSongMock } = await import('./helpers/songMock')
   return {
     default: createSongMock({ measures: [[[[{ duration: 'e' }, { duration: 'e' }, { duration: 'e' }]]]] }),

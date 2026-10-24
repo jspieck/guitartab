@@ -1,6 +1,10 @@
+import { changeNoteDuration } from './durationCommands'
+import { deleteNote } from './noteCommands'
+import { tabDurationHost } from './durationEditing'
+import { setFret } from './noteCommands'
 import { selectionState } from '../../stores/selectionState'
 import { notifySongDataChanged as publishSongDataChanged } from '../appEvents'
-import playBackLogic from '../../assets/js/playbackEngine'
+import playback from '../playback'
 import Song, {
   type Beat as SongBeat,
   type MeasureMetaInfo,
@@ -8,8 +12,7 @@ import Song, {
   type PlayBackInstrument,
   type SongDescription,
   type Track,
-} from '../../assets/js/songData'
-import { tab, Tab } from '../../assets/js/tab'
+} from '../../stores/song'
 import { hasRegisteredSelectionSurface } from '../../stores/selectionSurfaceState'
 import { songState } from '../../stores/songState'
 import { DURATION_NAMES } from '../../utils/musicUtils'
@@ -107,7 +110,7 @@ function syncSelectionEffects(selection: TabSelectionData | null): void {
     return
   }
 
-  playBackLogic.setPlayPosition(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex)
+  playback.setPlayPosition(selection.trackId, selection.blockId, selection.voiceId, selection.beatIndex)
 }
 
 function ensureBeatAtPosition(
@@ -268,7 +271,7 @@ const editorCore = {
     stringIndex: number,
     durationId: BeatDuration,
   ): boolean {
-    return tab.changeNoteDuration(trackId, blockId, voiceId, beatIndex, stringIndex, durationId, false)
+    return changeNoteDuration(tabDurationHost, trackId, blockId, voiceId, beatIndex, stringIndex, durationId)
   },
 
   setNoteAtPosition(
@@ -290,9 +293,9 @@ const editorCore = {
     }
 
     if (fret === -1) {
-      Tab.deleteNote(trackId, blockId, voiceId, beatIndex, stringIndex, false)
+      deleteNote(trackId, blockId, voiceId, beatIndex, stringIndex, false)
     } else {
-      tab.drawNote(trackId, blockId, voiceId, beatIndex, stringIndex, fret, false)
+      setFret(trackId, blockId, voiceId, beatIndex, stringIndex, fret, false)
     }
 
     publishSongDataChanged()

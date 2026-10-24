@@ -10,16 +10,17 @@ interface AudioEvent {
 /** Record every scheduled metronome click and note (audio-clock times) without muting them. */
 async function recordAudio(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const { audioEngine } = await import('/src/assets/js/audioEngine.ts')
+    const { metronome } = await import('/src/services/audio/metronome.ts')
+    const { samplePlayer } = await import('/src/services/audio/samplePlayer.ts')
     const log: AudioEvent[] = []
     ;(window as unknown as { __audioLog: AudioEvent[] }).__audioLog = log
-    const playClick = audioEngine.playMetronomeNote.bind(audioEngine)
-    audioEngine.playMetronomeNote = (time: number, accent: boolean) => {
+    const playClick = metronome.playClick.bind(metronome)
+    metronome.playClick = (time: number, accent: boolean) => {
       log.push({ kind: 'click', time, accent })
       playClick(time, accent)
     }
-    const playNote = audioEngine.playSF2.bind(audioEngine) as (...args: unknown[]) => unknown
-    ;(audioEngine as unknown as { playSF2: (...args: unknown[]) => unknown }).playSF2 = (
+    const playNote = samplePlayer.playFret.bind(samplePlayer) as (...args: unknown[]) => unknown
+    ;(samplePlayer as unknown as { playFret: (...args: unknown[]) => unknown }).playFret = (
       ...args: unknown[]
     ) => {
       log.push({ kind: 'note', time: args[5] as number })

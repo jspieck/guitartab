@@ -84,7 +84,7 @@
 import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Menu from './components/Menu.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
-import { startUp } from './assets/js/guitarTab'
+import { startUp } from './services/startup'
 import { useSongData } from './composables/useSongData'
 import { useEditorScopeState } from './stores/editorScopeState'
 import { useTabViewport } from './composables/useTabViewport'

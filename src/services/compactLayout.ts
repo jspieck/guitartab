@@ -1,6 +1,6 @@
-import Song from '../assets/js/songData'
+import { redrawTrack } from './editor/layoutInvalidation'
+import Song from '../stores/song'
 import Settings from '../stores/settingsState'
-import { tab } from '../assets/js/tab'
 import { applyViewportPageMode, tabViewportState } from '../stores/tabViewportState'
 import { sheetFitMode } from '../stores/layoutModeState'
 
@@ -63,11 +63,10 @@ export function compactSheetWidth(containerWidth: number, zoom: number): number 
 function setZoom(zoom: number): void {
   tabViewportState.zoom = zoom
   Settings.currentZoom = zoom
-  tab.currentZoom = zoom
 }
 
 function redraw(): void {
-  tab.drawTrackMain(Song.currentTrackId, Song.currentVoiceId, true, () => {})
+  redrawTrack(Song.currentTrackId, Song.currentVoiceId)
 }
 
 /** Fits the sheet to the container at the current compact zoom. Returns whether anything changed. */

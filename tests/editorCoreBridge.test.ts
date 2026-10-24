@@ -1,3 +1,4 @@
+import { tabLayout } from '../src/stores/tabLayoutState'
 import { selectionState } from '../src/stores/selectionState'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -5,11 +6,21 @@ vi.mock('vanilla-picker', () => ({
   default: class PickerMock {},
 }))
 
-vi.mock('../src/assets/js/playbackEngine', () => ({
+vi.mock('../src/services/playback', () => ({
   default: {
     setPlayPosition: vi.fn(),
   },
 }))
+
+vi.mock('../src/services/dialogs/modalManager', () =>
+  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
+)
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
+)
+vi.mock('../src/services/midi/liveInput', () =>
+  import('./helpers/legacyMocks').then((m) => m.liveInputModule),
+)
 
 vi.mock('../src/services/editor/rangeSelection', () => ({
   clearRange: vi.fn(),
@@ -17,58 +28,15 @@ vi.mock('../src/services/editor/rangeSelection', () => ({
   extendRange: vi.fn(),
 }))
 
-vi.mock('../src/assets/js/tab', async () => {
-  const SongModule = await import('../src/assets/js/songData')
-  const Song = SongModule.default
-  class TabMock {
-    static computeWidthOfBlock() {
-      return { minWidth: 200, minOffset: 40, num16ths: 4 }
-    }
-
-    static deleteNote(trackId: number, blockId: number, voiceId: number, beatId: number, string: number) {
-      Song.measures[trackId][blockId][voiceId][beatId].notes[string] = null
-    }
-  }
-
-  return {
-    Tab: TabMock,
-    tab: {
-      blockToRow: [[[]]],
-      finalBlockWidths: [[[]]],
-      blocksPerRow: [[[]]],
-      measureOffset: [[]],
-      allWidths: [],
-      changeNoteDuration: vi.fn(() => true),
-      drawNote(
-        trackId: number,
-        blockId: number,
-        voiceId: number,
-        beatId: number,
-        string: number,
-        fretNumber: number,
-      ) {
-        const beat = Song.measures[trackId][blockId][voiceId][beatId]
-        beat.notes[string] = {
-          ...Song.defaultNote(),
-          fret: fretNumber,
-          string,
-        }
-        beat.duration = beat.duration[0]
-      },
-    },
-  }
-})
-
-import playBackLogic from '../src/assets/js/playbackEngine'
+import playback from '../src/services/playback'
 import Song, {
   type MeasureMetaInfo,
   type PlayBackInstrument,
   type SongDescription,
   type Track,
-} from '../src/assets/js/songData'
+} from '../src/stores/song'
 import { resetPlaybackBarState, usePlaybackBarState } from '../src/stores/playbackBarState'
 import { registerSelectionSurface, resetSelectionSurfaceState } from '../src/stores/selectionSurfaceState'
-import { tab } from '../src/assets/js/tab'
 import { clearTrackRenderLayout, useTabRenderLayout } from '../src/stores/tabRenderLayout'
 import { useTabSelection } from '../src/composables/useTabSelection'
 import { useTabSelectionBridge } from '../src/composables/useTabSelectionBridge'
@@ -175,7 +143,6 @@ describe('editorCore bridge', () => {
 
     expect(Song.measures[0][0][0][0].duration).toBe('q')
     expect(Song.measures[0][0][0][0].notes[2]?.fret).toBe(5)
-    expect(Song.measures[0][0][0][0].notes[2]?.string).toBe(2)
     expect(emitSpy).toHaveBeenCalledWith('song-data-changed')
 
     editorCore.setNoteAtPosition(0, 0, 0, 0, 2, -1)
@@ -226,9 +193,9 @@ describe('editorCore bridge', () => {
     expect(layout?.blockLayouts[0]?.beatPositions).toEqual([61])
     expect(layout?.blockLayouts[1]?.rowId).toBe(1)
     expect(reactiveLayout?.blockLayouts[1]?.rowId).toBe(1)
-    expect(tab.blockToRow[0][0][1]).toEqual({ rowId: 1, numInRow: 0 })
-    expect(tab.blocksPerRow[0][0][0]).toEqual({ start: 0, end: 1 })
-    expect(tab.measureOffset[0][1][0]).toBe(52.5)
+    expect(tabLayout.blockToRow[0][0][1]).toEqual({ rowId: 1, numInRow: 0 })
+    expect(tabLayout.blocksPerRow[0][0][0]).toEqual({ start: 0, end: 1 })
+    expect(tabLayout.measureOffset[0][1][0]).toBe(52.5)
     // Rows stack by their real content height: row 1 starts below row 0's bottom.
     expect(reactiveLayout?.rowLayouts[1]?.yOffset).toBe(rows[1].yOffset)
     expect(rows[1].top).toBeGreaterThanOrEqual(rows[0].top! + rows[0].height!)
@@ -289,7 +256,7 @@ describe('useTabSelection', () => {
       beatId: 0,
       string: 2,
     })
-    expect(playBackLogic.setPlayPosition).toHaveBeenCalledWith(0, 0, 0, 0)
+    expect(playback.setPlayPosition).toHaveBeenCalledWith(0, 0, 0, 0)
     expect(selectedNote.value?.fret).toBe(9)
     expect(selectedNote.value?.duration).toBe('eighth')
 

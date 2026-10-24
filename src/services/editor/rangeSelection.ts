@@ -1,5 +1,5 @@
-import Song, { type Beat, type Interval, type Note } from '../../assets/js/songData'
-import playBackLogic from '../../assets/js/playbackEngine'
+import Song, { type Beat, type Interval, type Note } from '../../stores/song'
+import playback from '../playback'
 import Settings from '../../stores/settingsState'
 import { clearSequencerRange } from '../../stores/sequencerState'
 import { syncPlaybackLoopFromInterval } from '../../stores/playbackLoopState'
@@ -34,11 +34,9 @@ function endpoint(
   return { trackId, blockId, voiceId, beatId, abstractTimePos: ticks / WHOLE }
 }
 
-function setLoop(interval: Interval | null): Interval | null {
-  const previous = loopInterval
+function setLoop(interval: Interval | null): void {
   loopInterval = interval
   syncPlaybackLoopFromInterval(interval)
-  return previous
 }
 
 /** Starts a new range at a beat; drops the loop interval. */
@@ -48,8 +46,8 @@ export function startRange(trackId: number, blockId: number, voiceId: number, be
   selectionState.rangeEnd = null
   rangeComplete = false
   if (loopInterval != null) {
-    const previous = setLoop(null)
-    if (Settings.songPlaying) playBackLogic.adaptPlayBackToLoopIntervalChange(previous, null)
+    setLoop(null)
+    if (Settings.songPlaying) playback.adaptToLoopChange(null)
   }
 }
 
@@ -78,10 +76,11 @@ export function applyRangeAsLoop(): void {
       Duration.getDurationOfNote(Song.getBeat({ trackId, blockId, voiceId, beatId }), false),
     WHOLE,
   )
-  const previous = setLoop(interval)
+  setLoop(interval)
   if (Settings.songPlaying) {
-    playBackLogic.adaptPlayBackToLoopIntervalChange(previous, interval)
-    playBackLogic.jumpToPosition(interval.startBlock, interval.startRatio, interval.startBeat)
+    playback.adaptToLoopChange(interval)
+    // jumpToPosition takes ticks; the interval counts in whole notes
+    playback.jumpToPosition(interval.startBlock, interval.startRatio * WHOLE, interval.startBeat)
   }
 }
 

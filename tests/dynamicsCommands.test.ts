@@ -6,7 +6,7 @@ const deactivateEffects = vi.fn()
 const setEffectVariable = vi.fn()
 const requestOverBarRender = vi.fn()
 
-vi.mock('../src/assets/js/songData', async () => {
+vi.mock('../src/stores/song', async () => {
   const { createSongMock } = await import('./helpers/songMock')
   return {
     default: createSongMock({

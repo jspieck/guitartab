@@ -9,9 +9,9 @@ import type { Page } from '@playwright/test'
  */
 export async function loadEffectsShowcase(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { default: editorCore } = await import('/src/services/editor/editorCore.ts')
-    const { tab } = await import('/src/assets/js/tab.ts')
+    const { tupletState } = await import('/src/stores/tupletState.ts')
     const { notifySongDataChanged } = await import('/src/services/appEvents.ts')
     const { default: typedEventBus } = await import('/src/utils/typedEventBus.ts')
 
@@ -122,7 +122,7 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
     for (let string = 0; string < 4; string += 1) note(3, 1, string, [3, 3, 0, 0][string])
     beat(3, 1).effects.stroke = { strokeLength: 8, strokeType: 'up' }
     const tupletId = 9000
-    tab.tupletManager[tupletId] = { originalDuration: 'e' }
+    tupletState.groups[tupletId] = { originalDuration: 'e' }
     for (let b = 2; b < 5; b += 1) {
       note(3, b, 1, b)
       Object.assign(beat(3, b), { tuplet: 3, tupletId })

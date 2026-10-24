@@ -12,16 +12,8 @@ const markedNoteObj = {
   string: 3,
 }
 
-vi.mock('../src/assets/js/appManager', () => ({
-  default: {
-    duringTrackCreation: false,
-  },
-}))
-
-vi.mock('../src/assets/js/tab', () => ({
-  tab: {
-    changeNoteDuration: (...args: unknown[]) => changeNoteDuration(...args),
-  },
+vi.mock('../src/services/editor/durationCommands', () => ({
+  changeNoteDuration: (_host: unknown, ...args: unknown[]) => changeNoteDuration(...args),
 }))
 
 vi.mock('../src/utils/typedEventBus', () => ({
@@ -41,16 +33,7 @@ describe('menuActionCommands', () => {
     const applied = applyNoteLengthSelection('q')
 
     expect(applied).toBe(true)
-    expect(changeNoteDuration).toHaveBeenCalledWith(0, 1, 0, 2, 3, 'q', false)
+    expect(changeNoteDuration).toHaveBeenCalledWith(0, 1, 0, 2, 3, 'q')
     expect(noteInputState.noteLength).toBe('q')
-  })
-
-  it('does nothing while a track is being created', async () => {
-    const AppManager = (await import('../src/assets/js/appManager')).default
-    AppManager.duringTrackCreation = true
-
-    expect(applyNoteLengthSelection('e')).toBe(false)
-
-    AppManager.duringTrackCreation = false
   })
 })

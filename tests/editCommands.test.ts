@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { toRaw } from 'vue'
-import Song from '../src/assets/js/songData'
+import Song from '../src/stores/song'
 import { typedEventBus } from '../src/utils/typedEventBus'
 import {
   editTransaction,
@@ -20,19 +20,16 @@ import { processDynamicSelect } from '../src/services/editor/dynamicsCommands'
 import type { Chord } from '../src/types/tab'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 function beat(blockId = 1, beatId = 0, trackId = 0) {
   return Song.measures[trackId][blockId][0][beatId]

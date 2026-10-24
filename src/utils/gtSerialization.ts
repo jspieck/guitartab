@@ -1,6 +1,6 @@
 import LZString from 'lz-string'
-import Song from '../assets/js/songData'
-import { audioEngine } from '../assets/js/audioEngine'
+import Song from '../stores/song'
+import { noteToDrum } from '../services/audio/drumKit'
 
 /** The .gt document as text (before compression); equal text means equal song content. */
 export function serializeSongContent(): string {
@@ -17,7 +17,7 @@ export function serializeSongContent(): string {
   content += JSON.stringify(Song.playBackInstrument)
   content += limiter
   // Entries, not the Map itself: JSON.stringify(new Map()) is "{}".
-  content += JSON.stringify(Array.from(audioEngine.noteToDrum.entries()))
+  content += JSON.stringify(Array.from(noteToDrum.entries()))
 
   return content
 }

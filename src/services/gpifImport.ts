@@ -9,7 +9,7 @@ import Song, {
   type Stroke,
   type Track,
   type TremoloBar,
-} from '../assets/js/songData'
+} from '../stores/song'
 import { IMPORT_LIMITS, ImportError } from './importErrors'
 import { assignDrumLines } from '../utils/drumLines'
 import type { NoteLengthCode } from '../types/tab'

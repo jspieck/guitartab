@@ -17,7 +17,7 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
     await page.waitForSelector('#compressorModal', { state: 'attached', timeout: 60_000 })
     await page.evaluate(async () => {
       await Promise.all([
-        import('/src/assets/js/vexflowClassical.ts'),
+        import('/src/services/notation/classicalNotation.ts'),
         import('/src/services/songExport.ts'),
         import('/src/services/compactLayout.ts'),
         import('/src/components/compact/CompactBar.vue'),

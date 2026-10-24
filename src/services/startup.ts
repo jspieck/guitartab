@@ -1,0 +1,63 @@
+import Song from '../stores/song'
+import {
+  hasCompletedFirstVisit,
+  markFirstVisitComplete,
+  seedDemoNotes,
+  wantsSmallDemo,
+} from '../data/demoSong'
+import { startFirstRunHint } from '../stores/firstRunHintState'
+import { markStartupStepDone } from '../utils/startupReadiness'
+import { audioGraph } from './audio/audioGraph'
+import { loadSoundFont } from './audio/soundFont/loader'
+import { handleKeyDown } from './editor/keyboardDispatch'
+import { loadSongIntoEditor } from './editor/trackLoading'
+import { zoomOnWheel } from './editor/zoom'
+import playback from './playback'
+import { loadBuiltSong } from './songImport'
+import { showUserError } from './userNotifications'
+
+/**
+ * Starts the editor once the app is mounted: document listeners (shortcuts, Ctrl + wheel
+ * zoom, unlocking audio on the first gesture), the playback timer, the audio graph, the
+ * first song (the demo on a first visit) and, in the background, the SoundFont.
+ */
+export function startUp(): void {
+  // Browsers start audio suspended until a user gesture.
+  const unlockAudio = () => {
+    void audioGraph.ensureContextRunning()
+    document.removeEventListener('pointerdown', unlockAudio)
+    document.removeEventListener('keydown', unlockAudio)
+  }
+
+  void document.fonts.load('10pt "musicFont"')
+  void document.fonts.load('10pt "notesFont"')
+
+  document.addEventListener('wheel', zoomOnWheel, { passive: false })
+  document.addEventListener('keydown', handleKeyDown, true)
+  document.addEventListener('pointerdown', unlockAudio)
+  document.addEventListener('keydown', unlockAudio)
+
+  playback.init()
+  Song.initEmptySong()
+  audioGraph.createBusses()
+
+  const firstVisit = !hasCompletedFirstVisit()
+  if (firstVisit && wantsSmallDemo()) seedDemoNotes()
+  if (firstVisit) markFirstVisitComplete()
+
+  loadSongIntoEditor(0)
+  if (firstVisit && !wantsSmallDemo()) {
+    startFirstRunHint()
+    // The multi-track demo lives in its own chunk, so it costs nothing after the first visit.
+    void import('../data/demoArrangement')
+      .then(({ buildDemoArrangement }) => loadBuiltSong(buildDemoArrangement()))
+      .catch(() => {
+        // e.g. offline on the first visit: keep the empty song instead of a silent blank page
+        showUserError("Couldn't load the demo song. You can start with this empty one.")
+      })
+      .finally(() => markStartupStepDone('editor'))
+  } else {
+    markStartupStepDone('editor')
+  }
+  loadSoundFont()
+}

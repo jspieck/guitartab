@@ -4,7 +4,7 @@ All files here are authored for this project (no third-party songs).
 
 | File | How it was made |
 |---|---|
-| `showcase.gp5` | `GP5Writer.buildSongBytes()` on the effects showcase (`../effectsShowcase.ts`) |
+| `showcase.gp5` | `currentSongAsGp5()` (`src/services/gp5Export.ts`) on the effects showcase (`../effectsShowcase.ts`) |
 | `showcase.gt` | `serializeSongToGtBytes()` on the same song |
 | `showcase.expected.json` | `songFingerprintSource()` of the showcase before export |
 | `open-road.gpx` | The demo song (`src/data/demoArrangement.ts`) exported with Download → Guitar Pro 6 (.gpx) |

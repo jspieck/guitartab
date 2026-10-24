@@ -1,6 +1,6 @@
+import { tabLayout } from '../../stores/tabLayoutState'
 import Duration from '../../utils/duration'
-import Song from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
+import Song from '../../stores/song'
 import type { BeatLocation, PlaybackBeatTransition, PlaybackInterpolationInput } from '../../types/playback'
 import renderBridge from './renderBridge'
 
@@ -59,7 +59,7 @@ export function resolveNextPlaybackXPos(transition: PlaybackBeatTransition): {
   if (shouldJumpPlaybackWithinRow(transition)) {
     nextXPos = renderBridge.getPositionInRow(trackId, voiceId, current.blockId, current.beatId)
     nextXPos +=
-      tab.measureOffset[trackId][current.blockId][voiceId] *
+      tabLayout.measureOffset[trackId][current.blockId][voiceId] *
       Duration.getDurationWidth(
         Song.getBeat({ trackId, blockId: current.blockId, voiceId, beatId: current.beatId }),
       )

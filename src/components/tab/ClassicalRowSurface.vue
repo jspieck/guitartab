@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, type CSSProperties } from 'vue'
 import type { RenderedTabRow } from '../../types/tab'
-import { classicalNotation } from '../../services/editor/classicalNotationAdapter'
+import { classicalNotation } from '../../services/notation/classicalNotationAdapter'
 import {
   registerClassicalRowSurface,
   unregisterClassicalRowSurface,

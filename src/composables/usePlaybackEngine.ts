@@ -16,7 +16,7 @@ export interface PlaybackPosition {
 export type { PlaybackTransportState }
 
 async function getPlaybackEngine() {
-  const module = await import('../assets/js/playbackEngine')
+  const module = await import('../services/playback')
   return module.default
 }
 
@@ -34,13 +34,13 @@ export function usePlaybackEngine() {
   }))
 
   async function play(): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.playSongB()
+    const playback = await getPlaybackEngine()
+    playback.togglePlayback()
   }
 
   async function stop(): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.stopSong()
+    const playback = await getPlaybackEngine()
+    playback.stop()
   }
 
   async function togglePlay(): Promise<void> {
@@ -48,18 +48,18 @@ export function usePlaybackEngine() {
   }
 
   async function stepBackward(): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.moveOneBackward()
+    const playback = await getPlaybackEngine()
+    playback.stepBackward()
   }
 
   async function stepForward(): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.moveOneForward()
+    const playback = await getPlaybackEngine()
+    playback.stepForward()
   }
 
   async function seekTo(blockId: number, beatId = 0, positionInBlock = 0): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.jumpToPosition(blockId, positionInBlock, beatId)
+    const playback = await getPlaybackEngine()
+    playback.jumpToPosition(blockId, positionInBlock, beatId)
   }
 
   async function setPlayhead(
@@ -68,8 +68,8 @@ export function usePlaybackEngine() {
     voiceId: number,
     beatId: number,
   ): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.setPlayPosition(trackId, blockId, voiceId, beatId)
+    const playback = await getPlaybackEngine()
+    playback.setPlayPosition(trackId, blockId, voiceId, beatId)
   }
 
   /** Running playback continues from this beat; when stopped, playback will start there. */
@@ -79,14 +79,14 @@ export function usePlaybackEngine() {
     voiceId: number,
     beatId: number,
   ): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.jumpToBeat(trackId, blockId, voiceId, beatId)
+    const playback = await getPlaybackEngine()
+    playback.jumpToBeat(trackId, blockId, voiceId, beatId)
   }
 
   /** Loads the playback chunk and the first notes' samples ahead of a likely Play click. */
   async function preload(): Promise<void> {
-    const playBackLogic = await getPlaybackEngine()
-    playBackLogic.preloadStart()
+    const playback = await getPlaybackEngine()
+    playback.preloadStart()
   }
 
   function getPlayingState(): boolean {

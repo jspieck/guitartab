@@ -1,9 +1,9 @@
-import Song, { type Beat } from '../../assets/js/songData'
+import Song, { type Beat } from '../../stores/song'
 import Settings from '../../stores/settingsState'
 import { recordBarEdit } from './editCommands'
-import { classicalNotation } from './classicalNotationAdapter'
+import { classicalNotation } from '../notation/classicalNotationAdapter'
 import type { BeatDuration } from '../../types/tab'
-import { restOf } from '../../utils/durationUtils'
+import { noteLengthOf, restOf } from '../../utils/durationUtils'
 
 export function addNoteToBlock(
   trackId: number,
@@ -42,6 +42,27 @@ export function tupletOnlyRests(
     lastIndex += 1
   }
   return { lastIndex: lastIndex - 1, onlyRests }
+}
+
+/** Sets a fret (a rest becomes a note); records an undo step unless `withoutUndo` (song building, tests). */
+export function setFret(
+  trackId: number,
+  blockId: number,
+  voiceId: number,
+  beatId: number,
+  string: number,
+  fret: number,
+  withoutUndo = false,
+): void {
+  const apply = () => {
+    const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
+    beat.notes[string] ??= Song.defaultNote()
+    beat.notes[string]!.fret = fret
+    beat.effects ??= Song.defaultMeasureEffects()
+    beat.duration = noteLengthOf(beat.duration)
+  }
+  if (withoutUndo) apply()
+  else recordBarEdit('Note', { trackId, blockIds: [blockId] }, apply)
 }
 
 /** Removes a note (and the notes tied to it); records an undo step unless `withoutUndo`. */

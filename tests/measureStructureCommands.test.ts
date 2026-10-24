@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../src/assets/js/appManager', () => ({
-  default: {
-    duringTrackCreation: false,
-  },
-}))
-
 vi.mock('../src/services/editor/trackLoading', () => ({
   initTrackPlayback: vi.fn(),
 }))
@@ -19,63 +13,61 @@ vi.mock('../src/services/editor/renderCommands', () => ({
   requestBlocksRender: vi.fn(),
 }))
 
+vi.mock('../src/services/editor/barFilling', () => ({
+  fillMeasure: vi.fn(),
+}))
+
+vi.mock('../src/services/editor/layoutInvalidation', () => ({
+  redrawTrack: vi.fn(),
+}))
+
 vi.mock('fastdom', () => ({
   default: {
     mutate: (fn: () => void) => fn(),
   },
 }))
 
-import Song from '../src/assets/js/songData'
-import AppManager from '../src/assets/js/appManager'
+import Song from '../src/stores/song'
 import { showNotification } from '../src/stores/notificationState'
 import { initTrackPlayback } from '../src/services/editor/trackLoading'
 import { undoHistory } from '../src/services/editor/editCommands'
 import { selectionState } from '../src/stores/selectionState'
+import { tabLayout } from '../src/stores/tabLayoutState'
+import { fillMeasure } from '../src/services/editor/barFilling'
+import { redrawTrack } from '../src/services/editor/layoutInvalidation'
 import {
   addBlock,
   addMeasureSlot,
   createNewTrack,
   createMeasures,
-  initEmptyTab,
   removeBlock,
 } from '../src/services/editor/measureStructureCommands'
-
-function createHost() {
-  return {
-    measureOffset: [] as number[][][],
-    fillMeasure: vi.fn(),
-    drawTrack: vi.fn(),
-  }
-}
 
 describe('measureStructureCommands', () => {
   beforeEach(() => {
     Song.initEmptySong()
     undoHistory.clear()
-    AppManager.duringTrackCreation = false
     vi.clearAllMocks()
+    tabLayout.measureOffset = []
   })
 
   it('addMeasureSlot initializes a finite default offset', () => {
-    const host = createHost()
-    addMeasureSlot(host, 0, 0, 0)
-    expect(host.measureOffset[0][0][0]).toBe(20)
+    addMeasureSlot(0, 0, 0)
+    expect(tabLayout.measureOffset[0][0][0]).toBe(20)
   })
 
   it('createMeasures fills offsets for every measure', () => {
-    const host = createHost()
-    createMeasures(host, 0, 0)
-    expect(host.measureOffset[0]).toHaveLength(Song.numMeasures)
-    expect(host.measureOffset[0][Song.numMeasures - 1][0]).toBe(20)
+    createMeasures(0, 0)
+    expect(tabLayout.measureOffset[0]).toHaveLength(Song.numMeasures)
+    expect(tabLayout.measureOffset[0][Song.numMeasures - 1][0]).toBe(20)
   })
 
   it('addBlock appends a measure, undo removes it again', () => {
-    const host = createHost()
     const before = Song.numMeasures
-    addBlock(host)
+    addBlock()
     expect(Song.numMeasures).toBe(before + 1)
-    expect(host.fillMeasure).toHaveBeenCalled()
-    expect(host.drawTrack).toHaveBeenCalled()
+    expect(fillMeasure).toHaveBeenCalled()
+    expect(redrawTrack).toHaveBeenCalled()
 
     undoHistory.undo()
     expect(Song.numMeasures).toBe(before)
@@ -85,12 +77,11 @@ describe('measureStructureCommands', () => {
   })
 
   it('removeBlock pops the last measure; undo brings its notes back', () => {
-    const host = createHost()
     const lastBar = Song.numMeasures - 1
     Song.measures[0][lastBar][0][0].text = 'last'
     selectionState.cursor = { trackId: 0, voiceId: 0, blockId: lastBar, beatId: 3, string: 0 }
 
-    removeBlock(host)
+    removeBlock()
 
     expect(Song.numMeasures).toBe(lastBar)
     expect(selectionState.cursor.blockId).toBe(lastBar - 1)
@@ -103,17 +94,16 @@ describe('measureStructureCommands', () => {
   })
 
   it('removeBlock offers an Undo that only reverts while the removal is the last edit', () => {
-    const host = createHost()
     const before = Song.numMeasures
 
-    removeBlock(host)
+    removeBlock()
 
     const [text, kind, action] = vi.mocked(showNotification).mock.calls.at(-1)!
     expect(text).toBe(`Removed bar ${before}`)
     expect(kind).toBe('info')
     expect(action?.label).toBe('Undo')
 
-    addBlock(host) // a later edit: the banner must not undo it
+    addBlock() // a later edit: the banner must not undo it
     action!.run()
     expect(Song.numMeasures).toBe(before)
 
@@ -124,8 +114,7 @@ describe('measureStructureCommands', () => {
   })
 
   it('createNewTrack seeds measures and offsets for a track', () => {
-    const host = createHost()
-    createNewTrack(host, 1, {
+    createNewTrack(1, {
       name: 'Guitar',
       channel: 24,
       numStrings: 6,
@@ -133,15 +122,7 @@ describe('measureStructureCommands', () => {
     })
     expect(Song.tracks[1].name).toBe('Guitar')
     expect(Song.measures[1]).toHaveLength(Song.numMeasures)
-    expect(host.measureOffset[1][0][0]).toBe(20)
+    expect(tabLayout.measureOffset[1][0][0]).toBe(20)
     expect(initTrackPlayback).toHaveBeenCalledWith(1)
-  })
-
-  it('initEmptyTab clears measure helpers and fills rests', () => {
-    Song.measureMoveHelper[0] = [{ beatId: 1 } as any]
-    initEmptyTab()
-    expect(Song.measureMoveHelper).toHaveLength(1)
-    expect(Song.measures[0]).toHaveLength(Song.numMeasures)
-    expect(Song.measures[0][0][0].length).toBeGreaterThan(0)
   })
 })

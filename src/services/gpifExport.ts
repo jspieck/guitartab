@@ -1,4 +1,4 @@
-import type { Beat, Chord, MeasureMetaInfo, Note, SongDescription, Track } from '../assets/js/songData'
+import type { Beat, Chord, MeasureMetaInfo, Note, SongDescription, Track } from '../stores/song'
 import { GP6_DRUM_ELEMENTS } from './gpifImport'
 
 /**

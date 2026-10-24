@@ -82,9 +82,9 @@
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
-import { TremoloBarModalHandler } from '../assets/js/modals/tremoloBarModalHandler'
-import { modalManager } from '../assets/js/modals/modalManager'
+import { MODALS } from '../services/dialogs/modalTypes'
+import { TremoloBarModalHandler } from '../services/dialogs/tremoloBarModalHandler'
+import { modalManager } from '../services/dialogs/modalManager'
 
 const tremoloEditorRef = ref<SVGElement | null>(null)
 const pointsLayerRef = ref<SVGGElement | null>(null)

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MODALS } from '../src/assets/js/modals/modalTypes'
+import { MODALS } from '../src/services/dialogs/modalTypes'
 import {
   applyTimeMeterToFollowingBlocks,
   findMenuEffectGroup,
@@ -11,7 +11,7 @@ import {
 } from '../src/services/menuMutationRouting'
 import type { Beat, MeasureMeta, Note } from '../src/types/tab'
 
-vi.mock('../src/assets/js/modals/modalTypes', () => ({
+vi.mock('../src/services/dialogs/modalTypes', () => ({
   MODALS: {
     TEXT: { id: 'TEXT' },
     ADD_CHORD: { id: 'ADD_CHORD' },

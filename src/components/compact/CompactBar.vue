@@ -86,7 +86,7 @@
 <script setup lang="ts">
 import { selectionState } from '../../stores/selectionState'
 import { computed, ref } from 'vue'
-import playBackLogic from '../../assets/js/playbackEngine'
+import playback from '../../services/playback'
 import Settings from '../../stores/settingsState'
 import { playbackTransportState } from '../../stores/playbackTransportState'
 import { usePlaybackEngine } from '../../composables/usePlaybackEngine'
@@ -121,7 +121,7 @@ function stepBar(direction: -1 | 1): void {
   const bars = reactiveSongData.measures?.[trackId]?.length ?? 0
   const target = Math.min(Math.max(0, blockId + direction), Math.max(0, bars - 1))
   focusEditorPosition({ trackId, voiceId, blockId: target, beatId: 0, string }, { updatePlaybackPosition: false })
-  playBackLogic.setPlayPosition(trackId, target, voiceId, 0)
+  playback.setPlayPosition(trackId, target, voiceId, 0)
 }
 
 function setSpeed(rate: number): void {

@@ -2,45 +2,50 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Drives the real playback scheduler (`playbackEngine.scheduler`) on a fake clock: Vitest's
+ * Drives the real playback scheduler (`services/playback/scheduler.ts`) on a fake clock: Vitest's
  * fake timers stand in for the timer worker's 25 ms ticks, and the audio clock reads the same
- * fake time. `playChord` is recorded instead of played, so the test sees exactly when every
+ * fake time. `notePlayback.playBeat` is recorded instead of played, so the test sees exactly when every
  * beat is scheduled.
  */
 
 const clock = vi.hoisted(() => ({ startMs: 0 }))
 
-vi.mock('../src/assets/js/audioEngine', () => {
-  const audioEngine: Record<string | symbol, unknown> = {
+// Every audio call not listed (buses, synthesis) is a no-op here.
+const { noOpProxy } = vi.hoisted(() => ({
+  noOpProxy: (known: Record<string | symbol, unknown>) =>
+    new Proxy(known, {
+      get: (target, key) => {
+        if (!(key in target)) target[key] = vi.fn()
+        return target[key]
+      },
+    }),
+}))
+vi.mock('../src/services/audio/audioGraph', () => ({
+  audioGraph: noOpProxy({
     getCurrentTime: () => (Date.now() - clock.startMs) / 1000,
     ensureContextRunning: () => Promise.resolve(),
-    playMetronomeNote: vi.fn(),
-    noteToDrum: new Map(),
-  }
-  // Every other engine call (meters, busses, synthesis) is a no-op here.
-  const engine = new Proxy(audioEngine, {
-    get: (target, key) => {
-      if (!(key in target)) target[key] = vi.fn()
-      return target[key]
-    },
-  })
-  return { audioEngine: engine, default: engine }
-})
+  }),
+}))
+vi.mock('../src/services/audio/samplePlayer', () => ({ samplePlayer: noOpProxy({}) }))
+vi.mock('../src/services/audio/meters', () => ({ drawMeters: vi.fn() }))
+vi.mock('../src/services/audio/metronome', () => ({ metronome: { playClick: vi.fn() } }))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
 
-type PlaybackModule = typeof import('../src/assets/js/playbackEngine')
-type SongModule = typeof import('../src/assets/js/songData')
+type SongModule = typeof import('../src/stores/song')
 
-let playback: PlaybackModule['default']
+let playback: (typeof import('../src/services/playback'))['default']
+let scheduler: (typeof import('../src/services/playback/scheduler'))['scheduler']
+let notePlayback: (typeof import('../src/services/playback/notePlayback'))['notePlayback']
 let Song: SongModule['default']
-let audioEngine: { playMetronomeNote: ReturnType<typeof vi.fn> }
+let metronome: { playClick: ReturnType<typeof vi.fn> }
 let practice: typeof import('../src/stores/practiceState')
 let tempo: typeof import('../src/stores/tempoState')
+let Settings: (typeof import('../src/stores/settingsState'))['default']
 const scheduled: {
   track: number
   voice: number
@@ -53,11 +58,14 @@ const scheduled: {
 const TICK_MS = 25
 
 beforeAll(async () => {
-  playback = (await import('../src/assets/js/playbackEngine')).default
-  Song = (await import('../src/assets/js/songData')).default
-  audioEngine = (await import('../src/assets/js/audioEngine')).audioEngine as never
+  playback = (await import('../src/services/playback')).default
+  scheduler = (await import('../src/services/playback/scheduler')).scheduler
+  notePlayback = (await import('../src/services/playback/notePlayback')).notePlayback
+  Song = (await import('../src/stores/song')).default
+  metronome = (await import('../src/services/audio/metronome')).metronome as never
   practice = await import('../src/stores/practiceState')
   tempo = await import('../src/stores/tempoState')
+  Settings = (await import('../src/stores/settingsState')).default
 })
 
 beforeEach(() => {
@@ -74,19 +82,18 @@ beforeEach(() => {
   })
   clock.startMs = Date.now()
   scheduled.length = 0
-  audioEngine.playMetronomeNote.mockClear()
+  metronome.playClick.mockClear()
 
   // The timer worker, on fake timers: 'start' ticks the scheduler every 25 ms, 'stop' ends it.
   let timer: ReturnType<typeof setInterval> | null = null
-  playback.timerWorker = {
+  scheduler.timerWorker = {
     postMessage: (message: unknown) => {
-      if (message === 'start') timer = setInterval(() => playback.scheduler(), TICK_MS)
+      if (message === 'start') timer = setInterval(() => scheduler.tick(), TICK_MS)
       if (message === 'stop' && timer != null) clearInterval(timer)
     },
   } as unknown as Worker
 
-  const PlayBackLogic = playback.constructor as unknown as { playChord: (...args: unknown[]) => void }
-  vi.spyOn(PlayBackLogic, 'playChord').mockImplementation((...args: unknown[]) => {
+  vi.spyOn(notePlayback, 'playBeat').mockImplementation((...args: unknown[]) => {
     const [track, block, voice, beat, duration, start] = args as number[]
     scheduled.push({ track, voice, block, beat, start, duration })
   })
@@ -96,11 +103,11 @@ beforeEach(() => {
   practice.practiceState.metronome = false
   practice.practiceState.countIn = false
   practice.practiceState.trainer = false
-  playback.resetPlayBack()
+  playback.resetPosition()
 })
 
 afterEach(() => {
-  if (playback.timerWorker) playback.stopSong()
+  if (Settings.songPlaying) playback.stop()
   vi.useRealTimers()
   vi.restoreAllMocks()
 })
@@ -133,8 +140,8 @@ function startTimesOf(block: number): number[] {
 describe('playback scheduler', () => {
   it('schedules quarter notes half a second apart at 120 BPM, bar after bar', () => {
     fillQuarters(3, 120)
-    playback.startPlayback()
-    const first = playback.playStartAudioTime
+    playback.start()
+    const first = scheduler.playStartAudioTime
 
     vi.advanceTimersByTime(3500)
 
@@ -155,28 +162,27 @@ describe('playback scheduler', () => {
     fillQuarters(2, bpm)
     practice.setPlaybackRate(rate)
     const lateness: number[] = []
-    const PlayBackLogic = playback.constructor as unknown as { playChord: (...args: unknown[]) => void }
-    vi.mocked(PlayBackLogic.playChord).mockImplementation((...args: unknown[]) => {
+    vi.mocked(notePlayback.playBeat).mockImplementation((...args: unknown[]) => {
       if (args[0] !== 0 || args[2] !== 0) return
       const start = args[5] as number
       lateness.push(start - (Date.now() - clock.startMs) / 1000)
     })
-    playback.startPlayback()
+    playback.start()
     vi.advanceTimersByTime(4000)
 
     expect(lateness.length).toBeGreaterThanOrEqual(2)
     for (const lead of lateness) {
       expect(lead).toBeGreaterThanOrEqual(-0.001)
       // The look-ahead plus one tick of the timer.
-      expect(lead).toBeLessThanOrEqual(playback.scheduleAhead + TICK_MS / 1000 + 0.01)
+      expect(lead).toBeLessThanOrEqual(scheduler.scheduleAhead + TICK_MS / 1000 + 0.01)
     }
   })
 
   it('stretches the timing with the practice speed, not the written tempo', () => {
     fillQuarters(2, 120)
     practice.setPlaybackRate(0.5)
-    playback.startPlayback()
-    const first = playback.playStartAudioTime
+    playback.start()
+    const first = scheduler.playStartAudioTime
     vi.advanceTimersByTime(5000)
 
     const bar1 = startTimesOf(0)
@@ -188,11 +194,11 @@ describe('playback scheduler', () => {
   it('clicks the metronome on every beat when it is on', () => {
     fillQuarters(2, 120)
     practice.practiceState.metronome = true
-    playback.startPlayback()
-    const first = playback.playStartAudioTime
+    playback.start()
+    const first = scheduler.playStartAudioTime
     vi.advanceTimersByTime(2200)
 
-    const clicks = audioEngine.playMetronomeNote.mock.calls
+    const clicks = metronome.playClick.mock.calls
       .map(([time, accent]) => ({ time: time as number, accent: accent as boolean }))
       .filter((click) => click.time < first + 2 - 0.01)
     expect(clicks.map((click) => click.accent)).toEqual([true, false, false, false])
@@ -201,12 +207,29 @@ describe('playback scheduler', () => {
 
   it('stops after the last bar', () => {
     fillQuarters(12, 240)
-    playback.startPlayback()
+    playback.start()
     // 12 bars of 4/4 at 240 BPM take 12 s.
     vi.advanceTimersByTime(13_000)
     expect(new Set(melody().map((entry) => entry.block)).size).toBe(12)
     const count = scheduled.length
     vi.advanceTimersByTime(2000)
     expect(scheduled.length).toBe(count)
+  })
+
+  it('plays a song with more tracks than bars', () => {
+    // Play used to throw here: it counted bars with the number of tracks.
+    fillQuarters(1, 120)
+    Song.measures.length = 1
+    Song.measureMeta.length = 1
+    for (let track = 1; track < 3; track += 1) {
+      Song.tracks.push({ ...Song.tracks[0] })
+      Song.playBackInstrument.push({ ...Song.playBackInstrument[0] })
+      Song.measures.push(
+        Song.measures[0].map((voices) => voices.map((voice) => voice.map((beat) => ({ ...beat })))),
+      )
+    }
+    expect(() => playback.start()).not.toThrow()
+    vi.advanceTimersByTime(1000)
+    expect(new Set(scheduled.map((entry) => entry.track))).toEqual(new Set([0, 1, 2]))
   })
 })

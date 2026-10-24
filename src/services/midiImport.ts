@@ -1,24 +1,9 @@
-import Song, { type Beat, type MeasureMetaInfo, type Note, type Track } from '../assets/js/songData'
+import Song, { type Beat, type MeasureMetaInfo, type Note, type Track } from '../stores/song'
 import { IMPORT_LIMITS, ImportError } from './importErrors'
 import type { NoteLengthCode } from '../types/tab'
+import type { MidiFileData } from './import/midiFile'
 
-/** The parts of a decoded Standard MIDI File the converter needs. */
-export interface MidiFileData {
-  ticksPerBeat: number
-  tracks: {
-    trackName: string
-    events: {
-      delta: number
-      type: string
-      midiChannel: number
-      metaType: number
-      metaData: number[]
-      midiEventType: number
-      parameter1: number
-      parameter2?: number
-    }[]
-  }[]
-}
+export type { MidiFileData }
 
 export interface ImportedSong {
   title: string

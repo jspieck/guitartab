@@ -1,6 +1,6 @@
-import Song from '../../assets/js/songData'
+import { redrawTrack } from './layoutInvalidation'
+import Song from '../../stores/song'
 import Settings from '../../stores/settingsState'
-import { tab } from '../../assets/js/tab'
 import {
   applyViewportPageMode,
   CM_TO_PX,
@@ -29,7 +29,7 @@ export function disablePageMode(): void {
     lastWidth = sheetWidthPx
   }
 
-  tab.drawTrackMain(Song.currentTrackId, Song.currentVoiceId, true, () => {})
+  redrawTrack(Song.currentTrackId, Song.currentVoiceId)
 
   typedEventBus.emit('ui.pageModeChanged', tabViewportState.pageMode)
 }

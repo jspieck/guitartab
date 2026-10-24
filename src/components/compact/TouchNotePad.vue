@@ -71,8 +71,8 @@
 <script setup lang="ts">
 import { selectionState } from '../../stores/selectionState'
 import { computed, onMounted, ref } from 'vue'
-import AppManager from '../../assets/js/appManager'
-import { audioEngine } from '../../assets/js/audioEngine'
+import { deleteSelectedNotes, hasExplicitNoteSelection, moveSelection, placeNote } from '../../services/editor/noteEntry'
+import { noteToDrum } from '../../services/audio/drumKit'
 import { useUndoRedo } from '../../composables/useUndoRedo'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
@@ -103,7 +103,7 @@ const isDrumTrack = computed(() => {
   const trackId = currentSelection.value?.trackId ?? reactiveSongData.currentTrackId ?? 0
   return reactiveSongData.playBackInstrument?.[trackId]?.instrument === 'drums'
 })
-const drumPieces = [...audioEngine.noteToDrum.entries()]
+const drumPieces = [...noteToDrum.entries()]
   .map(([note, info]) => ({ note, name: `${info[0]} (${note})` }))
   .sort((a, b) => a.note - b.note)
 
@@ -130,17 +130,17 @@ const positionLabel = computed(() => {
 })
 
 function placeFret(fret: number): void {
-  if (!AppManager.hasExplicitNoteSelection() || Number.isNaN(fret)) return
+  if (!hasExplicitNoteSelection() || Number.isNaN(fret)) return
   const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor
-  AppManager.placeNote(trackId, blockId, voiceId, beatId, string, fret)
+  placeNote(trackId, blockId, voiceId, beatId, string, fret)
 }
 
 function move(direction: 'left' | 'right' | 'up' | 'down'): void {
-  AppManager.moveSelection(direction)
+  moveSelection(direction)
 }
 
 function deleteNote(): void {
-  AppManager.deleteSelectedNotes()
+  deleteSelectedNotes()
 }
 
 function setLength(code: NoteLengthCode): void {
@@ -153,7 +153,7 @@ function toggleDot(): void {
 
 onMounted(() => {
   // Start at the cursor (the first beat if nothing was picked yet) so the pad works at once.
-  if (!AppManager.hasExplicitNoteSelection()) {
+  if (!hasExplicitNoteSelection()) {
     typedEventBus.emit('navigation.setClickedPos', { ...selectionState.cursor })
   }
 })

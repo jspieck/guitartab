@@ -40,10 +40,10 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import BaseModal from './BaseModal.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
-import { TimeMeterModalHandler } from '../assets/js/modals/timeMeterModalHandler'
+import { MODALS } from '../services/dialogs/modalTypes'
+import { TimeMeterModalHandler } from '../services/dialogs/timeMeterModalHandler'
 import SubmitButton from './SubmitButton.vue'
-import { modalManager } from '../assets/js/modals/modalManager'
+import { modalManager } from '../services/dialogs/modalManager'
 
 const denominators = [1, 2, 4, 8, 16, 32]
 const handler = modalManager.getHandler(MODALS.TIME_METER.id) as TimeMeterModalHandler

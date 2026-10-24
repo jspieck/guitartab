@@ -1,7 +1,7 @@
-import Song from '../../assets/js/songData'
-import audioEngine from '../../assets/js/audioEngine'
+import Song from '../../stores/song'
+import { audioGraph } from '../audio/audioGraph'
 import type { Chord } from '../../types/tab'
-import type { PlayBackInstrument, Track } from '../../assets/js/songData'
+import type { PlayBackInstrument, Track } from '../../stores/song'
 import { cloneData, executeCommand, setValue, syncInto, trackScoped, type EditCommand } from './editCommands'
 import { requestChordDiagramsRender } from './renderCommands'
 import { clampTempo } from '../../utils/tempo'
@@ -28,7 +28,7 @@ export function previewTrackVolume(trackId: number, volume: number): void {
   if (instrument) {
     instrument.volume = volume
   }
-  const bus = audioEngine.busses[trackId]
+  const bus = audioGraph.busses[trackId]
   if (bus?.volume) {
     bus.volume.gain.value = volume / 100.0
   }

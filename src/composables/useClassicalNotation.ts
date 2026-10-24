@@ -1,6 +1,6 @@
 import { computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import Settings from '../stores/settingsState'
-import { classicalNotation } from '../services/editor/classicalNotationAdapter'
+import { classicalNotation } from '../services/notation/classicalNotationAdapter'
 import { typedEventBus } from '../utils/typedEventBus'
 
 export function useClassicalNotation(trackId: number, voiceId: number) {

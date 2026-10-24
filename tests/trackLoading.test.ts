@@ -1,24 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Song from '../src/assets/js/songData'
+import Song from '../src/stores/song'
 import Duration from '../src/utils/duration'
 import { fillTimeSignatures, playbackInstrumentFor } from '../src/services/editor/trackLoading'
 import { fitBarsToTimeSignature } from '../src/services/editor/timeSignatureCommands'
 import { notificationState } from '../src/stores/notificationState'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 function barLength64ths(trackId: number, blockId: number, voiceId = 0): number {
   return Song.measures[trackId][blockId][voiceId].reduce(

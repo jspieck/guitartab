@@ -4,12 +4,6 @@ import { buildJpegPdf } from '../src/services/pdfExport'
 import { composeTabExportSvg, computeExportBounds } from '../src/services/tabExportSvg'
 import type { Chord } from '../src/types/tab'
 
-vi.mock('../src/assets/js/appManager', () => ({
-  default: {
-    showNotification: vi.fn(),
-  },
-}))
-
 function chord(partial: Partial<Chord> & Pick<Chord, 'name' | 'frets'>): Chord {
   return {
     capo: 1,

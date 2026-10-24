@@ -57,9 +57,10 @@ import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import VerticalFader from './audio/VerticalFader.vue';
 import './audio/audioPlugin.css';
-import audioEngine from '../assets/js/audioEngine';
-import { MODALS } from '../assets/js/modals/modalTypes';
-import { modalManager } from '../assets/js/modals/modalManager';
+import { FIRST_DRUM_NOTE, drumSolo, noteToDrum } from '../services/audio/drumKit';
+import { audioGraph } from '../services/audio/audioGraph';
+import { MODALS } from '../services/dialogs/modalTypes';
+import { modalManager } from '../services/dialogs/modalManager';
 import { formatGainDb, getUsedDrumNotes } from '../services/drumMixer';
 import { useAnimationLoop, useModalOpen } from '../composables/useModalOpen';
 
@@ -76,7 +77,6 @@ interface DrumStrip {
     soloed: boolean;
 }
 
-const FIRST_DRUM_NOTE = 35;
 const STRIP_WIDTH = 74;
 const PEAK_FALL_PER_FRAME = 0.025;
 
@@ -90,7 +90,7 @@ function groupOf(name: string): DrumGroup {
 }
 
 // Captured when the panel chunk loads, before the user can change anything.
-const strips = reactive<DrumStrip[]>(Array.from(audioEngine.noteToDrum.entries()).map(([note, info]) => ({
+const strips = reactive<DrumStrip[]>(Array.from(noteToDrum.entries()).map(([note, info]) => ({
     note,
     name: info[0],
     group: groupOf(info[0]),
@@ -98,7 +98,7 @@ const strips = reactive<DrumStrip[]>(Array.from(audioEngine.noteToDrum.entries()
     defaultVolume: info[2],
     pan: info[3],
     muted: info[4] === false,
-    soloed: audioEngine.drumSolo.has(note),
+    soloed: drumSolo.has(note),
 })));
 
 const view = ref<'song' | 'kit'>('song');
@@ -132,11 +132,11 @@ watch([isOpen, () => visibleStrips.value.length], ([open]) => {
 });
 
 function drumBus(strip: DrumStrip) {
-    return audioEngine.drumBusses[strip.note - FIRST_DRUM_NOTE];
+    return audioGraph.drumBusses[strip.note - FIRST_DRUM_NOTE];
 }
 
 function drumInfo(strip: DrumStrip) {
-    return audioEngine.noteToDrum.get(strip.note)!;
+    return noteToDrum.get(strip.note)!;
 }
 
 function isAudible(strip: DrumStrip): boolean {
@@ -147,14 +147,14 @@ function setVolume(strip: DrumStrip, volume: number) {
     strip.volume = volume;
     drumInfo(strip)[2] = volume;
     const bus = drumBus(strip);
-    if (bus) bus.volume.gain.setTargetAtTime(volume, audioEngine.context.currentTime, 0.01);
+    if (bus) bus.volume.gain.setTargetAtTime(volume, audioGraph.context.currentTime, 0.01);
 }
 
 function setPan(strip: DrumStrip, pan: number) {
     strip.pan = Math.abs(pan) < 0.02 ? 0 : pan;
     drumInfo(strip)[3] = strip.pan;
     const bus = drumBus(strip);
-    if (bus) bus.pan.pan.setTargetAtTime(strip.pan, audioEngine.context.currentTime, 0.01);
+    if (bus) bus.pan.pan.setTargetAtTime(strip.pan, audioGraph.context.currentTime, 0.01);
 }
 
 function setMuted(strip: DrumStrip, muted: boolean) {
@@ -164,8 +164,8 @@ function setMuted(strip: DrumStrip, muted: boolean) {
 
 function setSoloed(strip: DrumStrip, soloed: boolean) {
     strip.soloed = soloed;
-    if (soloed) audioEngine.drumSolo.add(strip.note);
-    else audioEngine.drumSolo.delete(strip.note);
+    if (soloed) drumSolo.add(strip.note);
+    else drumSolo.delete(strip.note);
 }
 
 function resetAll() {
@@ -194,7 +194,7 @@ function setMeterRef(note: number, el: HTMLElement | null) {
 
 useAnimationLoop(isOpen, () => {
     for (const [note, el] of meterEls) {
-        const bus = audioEngine.drumBusses[note - FIRST_DRUM_NOTE];
+        const bus = audioGraph.drumBusses[note - FIRST_DRUM_NOTE];
         if (bus == null) continue;
         const analyser = bus.analyser;
         if (samples == null || samples.length !== analyser.fftSize) samples = new Float32Array(analyser.fftSize);

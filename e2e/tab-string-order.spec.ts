@@ -9,7 +9,7 @@ test.describe('tab string order', () => {
   test('an E minor chord reads 0 0 0 2 2 0 from the top line down', async ({ page }) => {
     await waitForEditorShell(page)
     const frets = await page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       const { default: editorCore } = await import('/src/services/editor/editorCore.ts')
       const { notifySongDataChanged } = await import('/src/services/appEvents.ts')
       // Em from the low E up: E B E G B E.
@@ -44,7 +44,7 @@ test.describe('tab string order', () => {
       .click({ position: { x: 80, y: 4 } })
     await page.keyboard.press('7')
     const strings = await page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       return Song.measures[0][0][0]
         .flatMap((beat) => beat.notes.map((note, string) => (note?.fret === 7 ? string : -1)))
         .filter((string) => string >= 0)

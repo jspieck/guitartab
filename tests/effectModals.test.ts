@@ -1,28 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Song from '../src/assets/js/songData'
+import Song from '../src/stores/song'
 import { undoHistory } from '../src/services/editor/editCommands'
 import {
   RepeatAlternativeModalHandler,
   StrokeModalHandler,
   TempoModalHandler,
   TextModalHandler,
-} from '../src/assets/js/modals/effectModals'
-import { AddChordModalHandler } from '../src/assets/js/modals/addChordModalHandler'
+} from '../src/services/dialogs/effectModals'
+import { AddChordModalHandler } from '../src/services/dialogs/addChordModalHandler'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const at = { trackId: 0, blockId: 1, voiceId: 0, beatId: 0 }
 

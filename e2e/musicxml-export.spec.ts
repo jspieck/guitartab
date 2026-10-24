@@ -12,7 +12,7 @@ import { buildGpArchive, readShowcaseGpif } from './fixtures/gpFiles'
 async function checkExport(page: Page) {
   return page.evaluate(async () => {
     const { songAsMusicXml } = await import('/src/services/songExport.ts')
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { default: Duration } = await import('/src/utils/duration.ts')
     const xml = songAsMusicXml()
     const doc = new DOMParser().parseFromString(xml, 'application/xml')
@@ -101,8 +101,8 @@ test.describe('MusicXML export', () => {
     await waitForEditorShell(page)
     await page.evaluate(
       async (bytes) => {
-        const { gProReader } = await import('/src/assets/js/GProReader.ts')
-        gProReader.importSongBytes('showcase.gp', new Uint8Array(bytes))
+        const { importSongBytes } = await import('/src/services/songImport.ts')
+        importSongBytes('showcase.gp', new Uint8Array(bytes))
       },
       Array.from(buildGpArchive(readShowcaseGpif())),
     )
@@ -120,8 +120,8 @@ test.describe('MusicXML export', () => {
     await waitForEditorShell(page)
     await page.evaluate(
       async (bytes) => {
-        const { gProReader } = await import('/src/assets/js/GProReader.ts')
-        gProReader.importSongBytes('showcase.gp5', new Uint8Array(bytes))
+        const { importSongBytes } = await import('/src/services/songImport.ts')
+        importSongBytes('showcase.gp5', new Uint8Array(bytes))
       },
       Array.from(readFileSync('e2e/fixtures/files/showcase.gp5')),
     )

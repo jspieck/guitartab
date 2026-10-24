@@ -1,4 +1,4 @@
-import type { Beat } from '../assets/js/songData'
+import type { Beat } from '../stores/song'
 
 /**
  * Upgrades song data loaded from older .gt files (and autosave drafts) to the

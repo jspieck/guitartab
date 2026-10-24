@@ -1,6 +1,5 @@
 import { reactive } from 'vue'
 import Settings from './settingsState'
-import { tab } from '../assets/js/tab'
 import { setScrollTop, TAB_SHEET } from '../utils/tabSheetConstants'
 
 export const DIN_A4_WIDTH_CM = 31.5
@@ -27,7 +26,6 @@ export function registerMainContentElement(element: HTMLElement | null): void {
 export function syncViewportZoom(zoom: number, previousZoom: number): void {
   tabViewportState.zoom = zoom
   Settings.currentZoom = zoom
-  tab.currentZoom = zoom
 
   const parent = tabViewportState.mainContentEl
   if (parent == null || previousZoom === zoom) {
@@ -61,7 +59,6 @@ export function applyViewportPageMode(pageMode: boolean, sheetWidthPx: number): 
   if (!pageMode) {
     tabViewportState.zoom = 1
     Settings.currentZoom = 1
-    tab.currentZoom = 1
   }
 }
 

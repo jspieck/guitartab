@@ -80,13 +80,13 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import './audio/audioPlugin.css';
-import { MODALS } from '../assets/js/modals/modalTypes';
-import audioEngine from '../assets/js/audioEngine';
-import { modalManager } from '../assets/js/modals/modalManager';
+import { MODALS } from '../services/dialogs/modalTypes';
+import { audioGraph } from '../services/audio/audioGraph';
+import { modalManager } from '../services/dialogs/modalManager';
 import {
     EqualizerModalHandler, EQ_BAND_COLORS, EQ_MAX_GAIN, EQ_MIN_FREQ, EQ_MAX_FREQ, EQ_Q_RANGE,
     createDefaultEqBands, eqTypeUsesGain,
-} from '../assets/js/modals/equalizerModalHandler';
+} from '../services/dialogs/equalizerModalHandler';
 import { useModalOpen } from '../composables/useModalOpen';
 
 const FILTER_TYPES: { value: BiquadFilterType, label: string }[] = [
@@ -165,7 +165,7 @@ function onHandleWheel(event: WheelEvent, index: number) {
 
 onMounted(() => {
     // Usually a no-op: createBusses() already built and wired the nodes for this context.
-    handler.setAudioContext(audioEngine.context);
+    handler.setAudioContext(audioGraph.context);
     if (canvasRef.value) handler.attachCanvas(canvasRef.value);
 });
 

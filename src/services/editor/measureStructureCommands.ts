@@ -1,60 +1,47 @@
 import fastdom from 'fastdom'
 import { selectionState } from '../../stores/selectionState'
-import Song, { type Beat, type MeasureMetaInfo } from '../../assets/js/songData'
-import AppManager from '../../assets/js/appManager'
+import Song, { type Beat, type MeasureMetaInfo } from '../../stores/song'
 import { cloneData, executeCommand, undoHistory } from './editCommands'
 import { requestDurationRender } from './renderCommands'
 import { showNotification } from '../../stores/notificationState'
 import { initTrackPlayback } from './trackLoading'
+import { tabLayout } from '../../stores/tabLayoutState'
+import { fillMeasure } from './barFilling'
+import { redrawTrack } from './layoutInvalidation'
 
-/** Host surface for measure-structure mutations (usually the Tab singleton). */
-export interface MeasureStructureHost {
-  measureOffset: number[][][]
-  fillMeasure: (trackId: number, blockId: number, voiceId: number) => void
-  drawTrack: (trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null) => void
-}
-
-export function addMeasureSlot(
-  host: Pick<MeasureStructureHost, 'measureOffset'>,
-  trackId: number,
-  blockId: number,
-  voiceId: number,
-): void {
-  if (host.measureOffset[trackId] == null) {
-    host.measureOffset[trackId] = []
+/** Gives a new bar its default unit width until the layout engine sets the real one. */
+export function addMeasureSlot(trackId: number, blockId: number, voiceId: number): void {
+  if (tabLayout.measureOffset[trackId] == null) {
+    tabLayout.measureOffset[trackId] = []
   }
-  if (host.measureOffset[trackId][blockId] == null) {
-    host.measureOffset[trackId][blockId] = []
+  if (tabLayout.measureOffset[trackId][blockId] == null) {
+    tabLayout.measureOffset[trackId][blockId] = []
   }
   const defaultOffset = 20
-  host.measureOffset[trackId][blockId][voiceId] = defaultOffset
+  tabLayout.measureOffset[trackId][blockId][voiceId] = defaultOffset
 
-  if (!Number.isFinite(host.measureOffset[trackId][blockId][voiceId])) {
+  if (!Number.isFinite(tabLayout.measureOffset[trackId][blockId][voiceId])) {
     console.warn(`Setting invalid measureOffset, using default: ${defaultOffset}`)
-    host.measureOffset[trackId][blockId][voiceId] = defaultOffset
+    tabLayout.measureOffset[trackId][blockId][voiceId] = defaultOffset
   }
 }
 
-export function createMeasures(
-  host: Pick<MeasureStructureHost, 'measureOffset'>,
-  trackId: number,
-  voiceId: number,
-): void {
-  if (host.measureOffset[trackId] == null) {
-    host.measureOffset[trackId] = []
+export function createMeasures(trackId: number, voiceId: number): void {
+  if (tabLayout.measureOffset[trackId] == null) {
+    tabLayout.measureOffset[trackId] = []
   }
   for (let i = 0; i < Song.numMeasures; i += 1) {
-    addMeasureSlot(host, trackId, i, voiceId)
+    addMeasureSlot(trackId, i, voiceId)
   }
 }
 
-function appendBar(host: MeasureStructureHost): void {
+function appendBar(): void {
   const blockId = Song.numMeasures
   for (let trackId = 0; trackId < Song.tracks.length; trackId += 1) {
     for (let voiceId = 0; voiceId < Song.numVoices; voiceId += 1) {
-      addMeasureSlot(host, trackId, blockId, voiceId)
+      addMeasureSlot(trackId, blockId, voiceId)
       Song.initEmptyMeasure(trackId, blockId, voiceId)
-      host.fillMeasure(trackId, blockId, voiceId)
+      fillMeasure(trackId, blockId, voiceId)
       requestDurationRender(trackId, blockId, voiceId)
     }
   }
@@ -86,25 +73,20 @@ function restoreLastBar(bar: RemovedBar): void {
   Song.numMeasures += 1
 }
 
-function barStructureChanged(host: MeasureStructureHost): () => void {
-  return () => {
-    host.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null)
-  }
+function barStructureChanged(): void {
+  redrawTrack(Song.currentTrackId, Song.currentVoiceId)
 }
 
 /** Appends an empty bar to every track. */
-export function addBlock(host: MeasureStructureHost): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
+export function addBlock(): void {
   let removed: RemovedBar | null = null
   executeCommand({
     label: 'Add bar',
-    apply: () => appendBar(host),
+    apply: appendBar,
     invert: () => {
       removed = removeLastBar()
     },
-    afterChange: barStructureChanged(host),
+    afterChange: barStructureChanged,
     adaptToTrackRemove(trackId) {
       removed?.tracks.splice(trackId, 1)
       return true
@@ -113,10 +95,7 @@ export function addBlock(host: MeasureStructureHost): void {
 }
 
 /** Removes the last bar on every track. */
-export function removeBlock(host: MeasureStructureHost): void {
-  if (AppManager.duringTrackCreation) {
-    return
-  }
+export function removeBlock(): void {
   fastdom.mutate(() => {
     if (Song.numMeasures <= 1) return
     let removed: RemovedBar | null = null
@@ -128,7 +107,7 @@ export function removeBlock(host: MeasureStructureHost): void {
       invert: () => {
         if (removed) restoreLastBar(removed)
       },
-      afterChange: barStructureChanged(host),
+      afterChange: barStructureChanged,
       adaptToTrackRemove(trackId) {
         removed?.tracks.splice(trackId, 1)
         return true
@@ -151,7 +130,6 @@ function offerUndoOfRemovedBar(barNumber: number): void {
 }
 
 export function createNewTrack(
-  host: Pick<MeasureStructureHost, 'measureOffset'>,
   trackId: number,
   instrObj: { name: string; channel: number; numStrings: number; strings: number[] },
 ): void {
@@ -191,17 +169,6 @@ export function createNewTrack(
       Song.initEmptyMeasure(trackId, i, j)
     }
   }
-  createMeasures(host, trackId, 0)
+  createMeasures(trackId, 0)
   initTrackPlayback(trackId)
-}
-
-export function initEmptyTab(): void {
-  Song.measureMoveHelper.length = 0
-  Song.measureMoveHelper[0] = []
-
-  for (let i = 0; i < Song.numMeasures; i += 1) {
-    for (let j = 0; j < Song.numVoices; j += 1) {
-      Song.initEmptyMeasure(0, i, j)
-    }
-  }
 }

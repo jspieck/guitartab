@@ -1,5 +1,5 @@
 import { computed, type ComputedRef } from 'vue'
-import Song from '../assets/js/songData'
+import Song from '../stores/song'
 import { selectionState } from '../stores/selectionState'
 import type { RenderedTabRow } from '../types/tab'
 import {

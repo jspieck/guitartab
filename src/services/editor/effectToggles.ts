@@ -1,4 +1,4 @@
-import Song, { type Beat, type Note } from '../../assets/js/songData'
+import Song, { type Beat, type Note } from '../../stores/song'
 import { selectionState } from '../../stores/selectionState'
 import {
   deactivateMenuEffectsInGroup,

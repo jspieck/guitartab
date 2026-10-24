@@ -89,7 +89,7 @@ function keyRange(lo, hi) {
   return new Bytes().u16(GEN.keyRange).u8(lo).u8(hi).build()
 }
 
-function buildPdta() {
+function buildPdta(sampleRate) {
   const presets = []
   for (const bank of [0, 128]) {
     for (let program = 0; program < 128; program += 1) presets.push({ bank, program })
@@ -132,7 +132,7 @@ function buildPdta() {
     .u32(SAMPLE_FRAMES)
     .u32(0)
     .u32(SAMPLE_FRAMES)
-    .u32(SAMPLE_RATE)
+    .u32(sampleRate)
     .u8(ROOT_KEY)
     .u8(0)
     .u16(0)
@@ -161,14 +161,20 @@ function buildPdta() {
   ])
 }
 
-export function buildTestSoundFont() {
+/** `sampleRate` lets tests build a low-rate sample (the parser stretches those). */
+export function buildTestSoundFont({ sampleRate = SAMPLE_RATE } = {}) {
   const info = list('INFO', [
     chunk('ifil', new Bytes().u16(2).u16(1).build()),
     chunk('isng', ascii('EMU8000', 8)),
     chunk('INAM', ascii('GuitarTab test SoundFont', 26)),
   ])
   const sdta = list('sdta', [chunk('smpl', sampleData())])
-  const body = new Bytes().raw(ascii('sfbk', 5).subarray(0, 4)).raw(info).raw(sdta).raw(buildPdta()).build()
+  const body = new Bytes()
+    .raw(ascii('sfbk', 5).subarray(0, 4))
+    .raw(info)
+    .raw(sdta)
+    .raw(buildPdta(sampleRate))
+    .build()
   return chunk('RIFF', body)
 }
 

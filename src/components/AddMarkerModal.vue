@@ -24,9 +24,9 @@ import { onMounted, ref, watch } from 'vue'
 import Picker from 'vanilla-picker'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
-import { modalManager } from '../assets/js/modals/modalManager'
-import type { MarkerModalHandler } from '../assets/js/modals/effectModals'
+import { MODALS } from '../services/dialogs/modalTypes'
+import { modalManager } from '../services/dialogs/modalManager'
+import type { MarkerModalHandler } from '../services/dialogs/effectModals'
 
 const handler = modalManager.getHandler<InstanceType<typeof MarkerModalHandler>>(MODALS.MARKER.id)
 const colorPickerRef = ref<HTMLElement | null>(null)

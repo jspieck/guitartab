@@ -1,5 +1,5 @@
-import Song, { type Beat } from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
+import { tabLayout } from '../../stores/tabLayoutState'
+import Song, { type Beat } from '../../stores/song'
 import { getBeatRenderPosition } from '../../stores/tabRenderLayout'
 import Duration from '../../utils/duration'
 import { barLeftOffset } from '../../utils/measureBeatLayout'
@@ -94,7 +94,7 @@ export function beatXInBar(trackId: number, blockId: number, voiceId: number, be
     return 0
   }
   const left = barLeftOffset(blockId)
-  const unitWidth = tab.measureOffset[trackId]?.[blockId]?.[voiceId]
+  const unitWidth = tabLayout.measureOffset[trackId]?.[blockId]?.[voiceId]
   if (unitWidth == null || !Number.isFinite(unitWidth) || unitWidth === 0) return left
   return left + position * unitWidth
 }

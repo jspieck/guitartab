@@ -1,7 +1,8 @@
+import { relayoutTrack } from '../src/services/editor/measureLayoutEngine'
 import { selectionState } from '../src/stores/selectionState'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../src/services/editor/classicalNotationAdapter', () => ({
+vi.mock('../src/services/notation/classicalNotationAdapter', () => ({
   classicalNotation: {
     updateVexFlowBlock: vi.fn(),
   },
@@ -17,8 +18,7 @@ vi.mock('../src/services/editor/effectToggles', () => ({
   setEffect: vi.fn(),
 }))
 
-import Song from '../src/assets/js/songData'
-import { tab } from '../src/assets/js/tab'
+import Song from '../src/stores/song'
 import { undoHistory } from '../src/services/editor/editCommands'
 import { clearRange, startRange, extendRange } from '../src/services/editor/rangeSelection'
 import { clipboardBeats, copyRange, pasteRange } from '../src/services/editor/clipboard'
@@ -34,23 +34,20 @@ import { clearTrackRenderLayout } from '../src/stores/tabRenderLayout'
 import { assertTabAndRenderLayoutMatch } from './helpers/layoutConvergence'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 const tabDurationHost = {
   isNotePlaceable: vi.fn(() => true),
-  // Stands in for Tab.changeBeatDuration: writes the new length into the beat.
+  // Stands in for changeBeatDuration (durationEditing.ts): writes the new length into the beat.
   changeBeatDuration: vi.fn(
     (
       trackId: number,
@@ -63,6 +60,7 @@ const tabDurationHost = {
       length: string,
     ) => {
       Song.measures[trackId][blockId][voiceId][beatId].duration = length as never
+      return { applied: true, rescale: false }
     },
   ),
   trackRerenderNecessary: vi.fn(() => false),
@@ -73,7 +71,7 @@ describe('integration mutations', () => {
   beforeEach(() => {
     Song.initEmptySong()
     clearTrackRenderLayout(0, 0)
-    tab.assignBlocksToRows(0, 0)
+    relayoutTrack(0, 0)
     selectionState.cursor = { trackId: 0, voiceId: 0, blockId: 0, beatId: 0, string: 0 }
     undoHistory.clear()
     vi.clearAllMocks()
@@ -254,7 +252,7 @@ describe('integration mutations', () => {
 
     it('keeps playback layout aligned after a duration mutation', () => {
       Song.measures[0][0][0][0].duration = 'h'
-      tab.assignBlocksToRows(0, 0)
+      relayoutTrack(0, 0)
       assertTabAndRenderLayoutMatch(0, 0)
     })
   })

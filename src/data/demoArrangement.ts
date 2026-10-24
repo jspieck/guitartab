@@ -6,7 +6,7 @@ import Song, {
   type MeasureMetaInfo,
   type Note,
   type Track,
-} from '../assets/js/songData'
+} from '../stores/song'
 import type { GpifSong } from '../services/gpifImport'
 import type { NoteLengthCode } from '../types/tab'
 import { drumLine } from '../utils/drumLines'

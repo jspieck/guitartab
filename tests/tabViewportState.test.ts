@@ -3,14 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 class HTMLElementStub {}
 vi.stubGlobal('HTMLElement', HTMLElementStub)
 
-const { tabMock } = vi.hoisted(() => ({
-  tabMock: { currentZoom: 1 },
-}))
-
-vi.mock('../src/assets/js/tab', () => ({
-  tab: tabMock,
-}))
-
 import Settings from '../src/stores/settingsState'
 import {
   applyViewportPageMode,
@@ -30,17 +22,15 @@ describe('tabViewportState', () => {
     tabViewportState.pageMode = true
     tabViewportState.sheetWidthPx = 1200
     tabViewportState.mainContentEl = null
-    tabMock.currentZoom = 1
     Settings.currentZoom = 1
     Settings.pageMode = true
   })
 
-  it('syncs zoom into settings and tab state', () => {
+  it('syncs zoom into settings', () => {
     syncViewportZoom(1.2, 1)
 
     expect(tabViewportState.zoom).toBe(1.2)
     expect(Settings.currentZoom).toBe(1.2)
-    expect(tabMock.currentZoom).toBe(1.2)
   })
 
   it('applies page mode width and resets zoom in fullscreen', () => {
@@ -51,7 +41,6 @@ describe('tabViewportState', () => {
     expect(tabViewportState.sheetWidthPx).toBe(1600)
     expect(Settings.pageMode).toBe(false)
     expect(tabViewportState.zoom).toBe(1)
-    expect(tabMock.currentZoom).toBe(1)
   })
 
   it('registers the scroll container element', () => {

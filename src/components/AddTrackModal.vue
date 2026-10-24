@@ -37,7 +37,7 @@
             >
               <img
                 class="instrument-icon"
-                :src="instrumentList[choice][0]"
+                :src="instrumentIconSrc(choice)"
                 :alt="instrumentList[choice][1]"
               />
               <span class="instrument-name">{{ instrumentList[choice][1] }}</span>
@@ -52,10 +52,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import BaseModal from "./BaseModal.vue";
-import { instrumentList } from "../assets/js/instrumentData";
-import { modalManager } from "../assets/js/modals/modalManager";
-import { AddTrackModalHandler } from "../assets/js/modals/addTrackModalHandler";
-import { MODALS } from "../assets/js/modals/modalTypes";
+import { instrumentIconSrc, instrumentList } from "../data/instrumentData";
+import { modalManager } from "../services/dialogs/modalManager";
+import { AddTrackModalHandler } from "../services/dialogs/addTrackModalHandler";
+import { MODALS } from "../services/dialogs/modalTypes";
 
 const handler = modalManager.getHandler<AddTrackModalHandler>(MODALS.ADD_TRACK.id);
 const instrumentGroups = handler.getInstrumentGroups();

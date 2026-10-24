@@ -1,5 +1,5 @@
-import Song from '../../assets/js/songData'
-import { tab } from '../../assets/js/tab'
+import { redrawTrack } from './layoutInvalidation'
+import Song from '../../stores/song'
 import { notifySongDataChanged } from '../appEvents'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { getNumChordDiagramRows } from './tabLayoutMetrics'
@@ -17,7 +17,7 @@ export function refreshChordDiagrams(): boolean {
   }
 
   cachedNumChordDiagramRows = nextRowCount
-  tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null)
+  redrawTrack(Song.currentTrackId, Song.currentVoiceId)
   return true
 }
 

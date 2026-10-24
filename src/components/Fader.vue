@@ -12,9 +12,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed, watch } from "vue";
 import { previewTrackVolume, setTrackVolume } from "../services/editor/songSettingsCommands";
-import audioEngine from "../assets/js/audioEngine";
+import { audioGraph } from "../services/audio/audioGraph";
 import Settings from '../stores/settingsState';
-import Song from "../assets/js/songData";
+import Song from "../stores/song";
 
 // These Slider classes are legacy and ideally should be refactored into Vue components
 // For now, their direct DOM manipulation is kept.
@@ -51,7 +51,7 @@ class MasterSlider {
             range: 'min',
             slide(event: Event) {
                 const value = parseInt((event.target as HTMLInputElement).value);
-                audioEngine.setMasterGain(value / 127);
+                audioGraph.setMasterGain(value / 127);
             },
         });
     }

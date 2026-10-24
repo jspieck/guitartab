@@ -1,4 +1,4 @@
-import Song from '../../assets/js/songData'
+import Song from '../../stores/song'
 import { recordBarEdit } from './editCommands'
 import { clearEffectGroup, setEffect } from './effectToggles'
 import { requestOverBarRender } from './renderCommands'

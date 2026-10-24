@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import Knob from './Knob.vue'
-import audioEngine from '../assets/js/audioEngine'
+import { audioGraph } from '../services/audio/audioGraph'
 import editorCore from '../services/editor/editorCore'
 
 const props = defineProps<{ trackId: number }>()
@@ -94,28 +94,28 @@ const panKnobRotate = (angle: number, _dataId: string) => {
   if (!instrument.value) return
   const scaled = (angle / 360) * 127
   editorCore.setPlayBackInstrumentEffect(props.trackId, 'balance', scaled)
-  audioEngine.setEffectGain(props.trackId, scaled, 'pan')
+  audioGraph.setEffectGain(props.trackId, scaled, 'pan')
 }
 
 const reverbKnobRotate = (angle: number, _dataId: string) => {
   if (!instrument.value) return
   const scaled = (angle / 360) * 127
   editorCore.setPlayBackInstrumentEffect(props.trackId, 'reverb', scaled)
-  audioEngine.setEffectGain(props.trackId, scaled, 'reverb')
+  audioGraph.setEffectGain(props.trackId, scaled, 'reverb')
 }
 
 const chorusKnobRotate = (angle: number, _dataId: string) => {
   if (!instrument.value) return
   const scaled = (angle / 360) * 127
   editorCore.setPlayBackInstrumentEffect(props.trackId, 'chorus', scaled)
-  audioEngine.setEffectGain(props.trackId, scaled, 'chorus')
+  audioGraph.setEffectGain(props.trackId, scaled, 'chorus')
 }
 
 const phaserKnobRotate = (angle: number, _dataId: string) => {
   if (!instrument.value) return
   const scaled = (angle / 360) * 127
   editorCore.setPlayBackInstrumentEffect(props.trackId, 'phaser', scaled)
-  audioEngine.setEffectGain(props.trackId, scaled, 'phaser')
+  audioGraph.setEffectGain(props.trackId, scaled, 'phaser')
 }
 </script>
 

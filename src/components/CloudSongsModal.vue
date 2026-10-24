@@ -62,8 +62,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import BaseModal from './BaseModal.vue'
-import Song from '../assets/js/songData'
-import { modalManager } from '../assets/js/modals/modalManager'
+import Song from '../stores/song'
+import { modalManager } from '../services/dialogs/modalManager'
 import { serializeSongToGtBytes } from '../utils/gtSerialization'
 import { loadCloudSongById } from '../services/cloudSongLoader'
 import { confirmReplaceUnsavedSong } from '../services/songAutosave'

@@ -33,9 +33,9 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import BaseModal from "./BaseModal.vue";
-import { modalManager } from "../assets/js/modals/modalManager";
-import { InfoModalHandler } from "../assets/js/modals/infoModalHandler";
-import { MODALS } from "../assets/js/modals/modalTypes";
+import { modalManager } from "../services/dialogs/modalManager";
+import { InfoModalHandler } from "../services/dialogs/infoModalHandler";
+import { MODALS } from "../services/dialogs/modalTypes";
 import SubmitButton from "./SubmitButton.vue";
 
 const handler = modalManager.getHandler<InfoModalHandler>(MODALS.INFO.id);

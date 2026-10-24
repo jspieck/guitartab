@@ -6,7 +6,7 @@ const SHOWCASE_GP5 = 'e2e/fixtures/files/showcase.gp5'
 
 const songState = (page: Page) =>
   page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     return { bars: Song.numMeasures, title: Song.songDescription.title }
   })
 

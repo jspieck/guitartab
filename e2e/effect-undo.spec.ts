@@ -4,7 +4,7 @@ import { waitForEditorShell } from './helpers'
 test('undoing the removal of beat text and a repeat sign brings their data back', async ({ page }) => {
   await waitForEditorShell(page)
   const result = await page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { processNotationSelect } = await import('/src/services/editor/notationCommands.ts')
     const { undoHistory } = await import('/src/services/editor/editCommands.ts')
 

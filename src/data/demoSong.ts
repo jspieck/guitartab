@@ -1,5 +1,5 @@
-import { tab } from '../assets/js/tab'
-import Song from '../assets/js/songData'
+import { setFret } from '../services/editor/noteCommands'
+import Song from '../stores/song'
 
 const FIRST_VISIT_KEY = 'guitartab:firstVisitDone'
 // End-to-end tests set this to 'riff' to get the small one-track riff below instead of
@@ -39,6 +39,6 @@ export function seedDemoNotes(): void {
   ]
 
   notes.forEach(([blockId, beatId, string, fret]) => {
-    tab.drawNote(0, blockId, 0, beatId, string, fret, true)
+    setFret(0, blockId, 0, beatId, string, fret, true)
   })
 }

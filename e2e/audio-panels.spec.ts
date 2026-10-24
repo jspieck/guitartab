@@ -3,7 +3,7 @@ import { waitForEditorShell } from './helpers'
 
 async function openModal(page: Page, id: string): Promise<void> {
   await page.evaluate(async (modalId) => {
-    const { modalManager } = await import('/src/assets/js/modals/modalManager.ts')
+    const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
     modalManager.toggleModal(modalId, modalId)
   }, id)
   await expect(page.locator(`#${id}`)).toHaveClass(/active/)
@@ -18,7 +18,7 @@ test.describe('studio panels', () => {
   test('equalizer edits the filters that are wired into the master chain', async ({ page }) => {
     // Remember the nodes createBusses() wired in at startup.
     await page.evaluate(async () => {
-      const { modalManager } = await import('/src/assets/js/modals/modalManager.ts')
+      const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
       ;(window as unknown as { __eqNodes: unknown[] }).__eqNodes = [
         ...modalManager.getHandler('equalizerModal').equalizerNodes,
       ]
@@ -30,7 +30,7 @@ test.describe('studio panels', () => {
     await page.keyboard.press('PageUp')
 
     const state = await page.evaluate(async () => {
-      const { modalManager } = await import('/src/assets/js/modals/modalManager.ts')
+      const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
       const handler = modalManager.getHandler('equalizerModal')
       const before = (window as unknown as { __eqNodes: BiquadFilterNode[] }).__eqNodes
       return {
@@ -46,7 +46,7 @@ test.describe('studio panels', () => {
 
   test('a +12 dB bell boosts a 1 kHz tone by about 12 dB', async ({ page }) => {
     const boostDb = await page.evaluate(async () => {
-      const { EqualizerModalHandler } = await import('/src/assets/js/modals/equalizerModalHandler.ts')
+      const { EqualizerModalHandler } = await import('/src/services/dialogs/equalizerModalHandler.ts')
       const render = async (gain: number) => {
         const ctx = new OfflineAudioContext(1, 48000, 48000)
         const eq = new EqualizerModalHandler()
@@ -78,16 +78,16 @@ test.describe('studio panels', () => {
     await page.locator('#compressorPreset').selectOption('Punchy')
 
     const node = await page.evaluate(async () => {
-      const { audioEngine } = await import('/src/assets/js/audioEngine.ts')
-      return { threshold: audioEngine.limiter!.threshold.value, ratio: audioEngine.limiter!.ratio.value }
+      const { audioGraph } = await import('/src/services/audio/audioGraph.ts')
+      return { threshold: audioGraph.limiter!.threshold.value, ratio: audioGraph.limiter!.ratio.value }
     })
     expect(node.threshold).toBeCloseTo(-14)
     expect(node.ratio).toBeCloseTo(4)
 
     await page.getByRole('switch', { name: 'Compressor on' }).click()
     const bypassed = await page.evaluate(async () => {
-      const { audioEngine } = await import('/src/assets/js/audioEngine.ts')
-      return audioEngine.limiter!.ratio.value
+      const { audioGraph } = await import('/src/services/audio/audioGraph.ts')
+      return audioGraph.limiter!.ratio.value
     })
     expect(bypassed).toBe(1)
   })
@@ -107,12 +107,12 @@ test.describe('studio panels', () => {
     await page.getByRole('button', { name: 'Solo Closed Hi-hat' }).click()
 
     const state = await page.evaluate(async () => {
-      const { audioEngine } = await import('/src/assets/js/audioEngine.ts')
+      const drumKit = await import('/src/services/audio/drumKit.ts')
       return {
-        kickVolume: audioEngine.noteToDrum.get(35)![2],
-        snareActive: audioEngine.noteToDrum.get(38)![4],
-        hatAudible: audioEngine.isDrumAudible(42),
-        kickAudible: audioEngine.isDrumAudible(35),
+        kickVolume: drumKit.noteToDrum.get(35)![2],
+        snareActive: drumKit.noteToDrum.get(38)![4],
+        hatAudible: drumKit.isDrumAudible(42),
+        kickAudible: drumKit.isDrumAudible(35),
       }
     })
     expect(state.kickVolume).toBeLessThan(2)
@@ -122,8 +122,8 @@ test.describe('studio panels', () => {
 
     await page.getByRole('button', { name: 'Reset all' }).click()
     const reset = await page.evaluate(async () => {
-      const { audioEngine } = await import('/src/assets/js/audioEngine.ts')
-      return { kickVolume: audioEngine.noteToDrum.get(35)![2], solo: audioEngine.drumSolo.size }
+      const drumKit = await import('/src/services/audio/drumKit.ts')
+      return { kickVolume: drumKit.noteToDrum.get(35)![2], solo: drumKit.drumSolo.size }
     })
     expect(reset.kickVolume).toBe(2)
     expect(reset.solo).toBe(0)

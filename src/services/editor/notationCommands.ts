@@ -1,8 +1,7 @@
+import { redrawTrack } from './layoutInvalidation'
 import { selectionState } from '../../stores/selectionState'
-import AppManager from '../../assets/js/appManager'
-import Song from '../../assets/js/songData'
-import { modalManager } from '../../assets/js/modals/modalManager'
-import { tab } from '../../assets/js/tab'
+import Song from '../../stores/song'
+import { modalManager } from '../dialogs/modalManager'
 import type { Beat, MeasureMeta } from '../../types/tab'
 import {
   applyTimeMeterToFollowingBlocks,
@@ -91,7 +90,7 @@ function removeTimeSignature(trackId: number, blockId: number, voiceId: number):
     // null: refused (a tuplet would be cut); recordBarEdit rolls the bars back.
     return fitBarsToTimeSignature(previousChange)
   })
-  tab.drawTrack(Song.currentTrackId, Song.currentVoiceId, true, null)
+  redrawTrack(Song.currentTrackId, Song.currentVoiceId)
   requestBlockRender(trackId, blockId, voiceId)
 }
 
@@ -100,10 +99,6 @@ function effectLabel(id: string): string {
 }
 
 export function notationSelect(id: string): boolean {
-  if (AppManager.duringTrackCreation) {
-    return false
-  }
-
   processNotationSelect(
     selectionState.cursor.trackId,
     selectionState.cursor.blockId,
@@ -129,10 +124,6 @@ export function processMeasureSelect(
 }
 
 export function measureSelect(id: string): boolean {
-  if (AppManager.duringTrackCreation) {
-    return false
-  }
-
   processMeasureSelect(
     selectionState.cursor.trackId,
     selectionState.cursor.blockId,

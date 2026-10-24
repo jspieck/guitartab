@@ -1,6 +1,6 @@
-import Song from '../assets/js/songData'
+import { tabLayout } from '../stores/tabLayoutState'
+import Song from '../stores/song'
 import Duration from './duration'
-import { tab } from '../assets/js/tab'
 import { getBlockRenderLayout } from '../stores/tabRenderLayout'
 import type { TabBeat } from '../types/tab'
 import { getDisplayWidth } from './tabLayout'
@@ -40,7 +40,7 @@ export function getMeasureBeatWidth(
   // Prefer the reactive layout state so cached computeds re-run when the row is re-justified.
   const minOffset =
     getBlockRenderLayout(trackId, voiceId, blockId)?.minOffset ??
-    tab.measureOffset[trackId]?.[blockId]?.[voiceId]
+    tabLayout.measureOffset[trackId]?.[blockId]?.[voiceId]
 
   if (beat != null && minOffset != null && Number.isFinite(minOffset) && minOffset > 0) {
     return Duration.getDurationWidth(beat) * minOffset
@@ -56,7 +56,7 @@ function getFallbackMeasureBeatX(
   beatIndex: number,
   measureData: TabBeat[],
 ): number {
-  const minOffset = tab.measureOffset[trackId]?.[blockId]?.[voiceId]
+  const minOffset = tabLayout.measureOffset[trackId]?.[blockId]?.[voiceId]
 
   if (minOffset != null && Number.isFinite(minOffset) && minOffset > 0) {
     let x = 0

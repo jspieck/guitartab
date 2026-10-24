@@ -1,4 +1,4 @@
-import Song from '../assets/js/songData'
+import Song from '../stores/song'
 
 /** Whether a track plays through the General MIDI percussion channel. */
 export function isDrumTrack(trackId: number): boolean {

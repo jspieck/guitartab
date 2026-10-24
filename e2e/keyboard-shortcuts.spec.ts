@@ -4,7 +4,7 @@ import { waitForEditorShell } from './helpers'
 /** Bar 1, beat 1 of the riff as `duration:frets` (string 0 first), plus the cursor. */
 async function readFirstBeats(page: Page) {
   return page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const { selectionState } = await import('/src/stores/selectionState.ts')
     const beats = Song.measures[0][0][0]
     return {

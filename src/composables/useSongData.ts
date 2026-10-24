@@ -1,7 +1,6 @@
 import { watch } from 'vue'
 import type { Beat as SongBeat, Note as SongNote } from '../types/tab'
 import editorCore from '../services/editor/editorCore'
-import { ensureSongDataEventBridge } from '../services/songDataEventBridge'
 import { ensureRenderEventBridge } from '../services/editor/renderEventBridge'
 import { bumpSongDataVersion, songDataVersion, songState } from '../stores/songState'
 import { typedEventBus } from '../utils/typedEventBus'
@@ -65,7 +64,6 @@ export function useSongData() {
   }
 }
 
-ensureSongDataEventBridge()
 ensureRenderEventBridge()
 typedEventBus.on('song-data-changed', syncSongDataState)
 

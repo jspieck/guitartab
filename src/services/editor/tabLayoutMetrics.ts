@@ -1,4 +1,4 @@
-import Song from '../../assets/js/songData'
+import Song from '../../stores/song'
 import Settings from '../../stores/settingsState'
 import { getTrackRenderLayout } from '../../stores/tabRenderLayout'
 import { TAB_SHEET } from '../../utils/tabSheetConstants'

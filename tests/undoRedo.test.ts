@@ -1,24 +1,22 @@
+import { deleteNote } from '../src/services/editor/noteCommands'
+import { setFret } from '../src/services/editor/noteCommands'
 import { selectionState } from '../src/stores/selectionState'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { undoHistory } from '../src/services/editor/editCommands'
-import Song from '../src/assets/js/songData'
-import { tab, Tab } from '../src/assets/js/tab'
+import Song from '../src/stores/song'
 import { recordTrackEdit } from '../src/services/editor/songSettingsCommands'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
-vi.mock('../src/assets/js/audioEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.audioEngineModule),
+vi.mock('../src/services/audio/audioGraph', () =>
+  import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
-vi.mock('../src/assets/js/playbackEngine', () =>
-  import('./helpers/legacyMocks').then((m) => m.playbackModule),
-)
+vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/assets/js/modals/modalManager', () =>
+vi.mock('../src/services/dialogs/modalManager', () =>
   import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
 )
-vi.mock('../src/assets/js/appManager', () => import('./helpers/legacyMocks').then((m) => m.appManagerModule))
 
 describe('undo/redo', () => {
   beforeEach(() => {
@@ -34,14 +32,14 @@ describe('undo/redo', () => {
   })
 
   it('records note placement when drawNote is called during editing', () => {
-    tab.drawNote(0, 0, 0, 0, 5, 3, false)
+    setFret(0, 0, 0, 0, 5, 3, false)
 
     expect(undoHistory.canUndo()).toBe(true)
     expect(Song.measures[0][0][0][0].notes[5]?.fret).toBe(3)
   })
 
   it('undoes and redoes a note placement', () => {
-    tab.drawNote(0, 0, 0, 0, 5, 3, false)
+    setFret(0, 0, 0, 0, 5, 3, false)
 
     undoHistory.undo()
     expect(Song.measures[0][0][0][0].notes[5] ?? null).toBeNull()
@@ -52,11 +50,11 @@ describe('undo/redo', () => {
   })
 
   it('deleting a note is undoable, and deleting it removes the tied note after it in one step', () => {
-    tab.drawNote(0, 0, 0, 0, 5, 3, true)
-    tab.drawNote(0, 0, 0, 1, 5, 3, true)
+    setFret(0, 0, 0, 0, 5, 3, true)
+    setFret(0, 0, 0, 1, 5, 3, true)
     Song.measures[0][0][0][1].notes[5]!.tied = true
 
-    Tab.deleteNote(0, 0, 0, 0, 5)
+    deleteNote(0, 0, 0, 0, 5)
     expect(Song.measures[0][0][0][0].notes[5] ?? null).toBeNull()
     expect(Song.measures[0][0][0][1].notes[5] ?? null).toBeNull()
 

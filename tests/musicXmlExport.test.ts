@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Beat, MeasureMetaInfo, Note, Track } from '../src/assets/js/songData'
+import type { Beat, MeasureMetaInfo, Note, Track } from '../src/stores/song'
 import {
   beatDivisions,
   buildMusicXml,

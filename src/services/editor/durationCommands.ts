@@ -1,11 +1,11 @@
 import { notifySongDataChanged } from '../appEvents'
 import Settings from '../../stores/settingsState'
-import Song from '../../assets/js/songData'
+import Song from '../../stores/song'
 import type { BeatDuration } from '../../types/tab'
 import Duration from '../../utils/duration'
 import { startRange } from './rangeSelection'
 import { recordBarEdit } from './editCommands'
-import { classicalNotation } from './classicalNotationAdapter'
+import { classicalNotation } from '../notation/classicalNotationAdapter'
 
 export interface TabDurationHost {
   isNotePlaceable(
@@ -26,7 +26,7 @@ export interface TabDurationHost {
     newDuration: number,
     previousDuration: number,
     noteLength: BeatDuration,
-  ): void
+  ): { applied: boolean; rescale: boolean }
   trackRerenderNecessary(trackId: number, blockId: number, voiceId: number): boolean
   drawTrack(trackId: number, voiceId: number, forceScale: boolean, callback: (() => void) | null): void
 }
@@ -56,6 +56,7 @@ export function changeNoteDuration(
 
   startRange(trackId, blockId, voiceId, beatId)
 
+  // Returning false makes recordBarEdit roll back: only when the length did not fit.
   const change = () =>
     tabInstance.changeBeatDuration(
       trackId,
@@ -66,7 +67,7 @@ export function changeNoteDuration(
       newDuration,
       previousDuration,
       noteLength,
-    )
+    ).applied
   if (withoutUndo) {
     change()
   } else {

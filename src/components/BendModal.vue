@@ -73,9 +73,9 @@
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
-import { BendModalHandler } from '../assets/js/modals/bendModalHandler'
-import { modalManager } from '../assets/js/modals/modalManager'
+import { MODALS } from '../services/dialogs/modalTypes'
+import { BendModalHandler } from '../services/dialogs/bendModalHandler'
+import { modalManager } from '../services/dialogs/modalManager'
 
 const handler = modalManager.getHandler(MODALS.BEND.id) as BendModalHandler
 const bendEditorRef = ref<SVGSVGElement | null>(null)

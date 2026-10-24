@@ -13,7 +13,7 @@ test.describe('demo song on the first visit', () => {
       .poll(
         () =>
           page.evaluate(async () => {
-            const { default: Song } = await import('/src/assets/js/songData.ts')
+            const { default: Song } = await import('/src/stores/song.ts')
             return Song.songDescription.title
           }),
         { timeout: 10_000 },
@@ -21,7 +21,7 @@ test.describe('demo song on the first visit', () => {
       .toBe('Open Road')
 
     const state = await page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       const { isSongDirty } = await import('/src/services/songAutosave.ts')
       return {
         tracks: Song.tracks.map((track) => track.name),
@@ -52,8 +52,8 @@ test.describe('demo song on the first visit', () => {
     await page.locator('#play').click()
     await page.waitForTimeout(2500)
     const block = await page.evaluate(async () => {
-      const { default: playBackLogic } = await import('/src/assets/js/playbackEngine.ts')
-      return playBackLogic.getCurrentBlock()
+      const { default: playback } = await import('/src/services/playback/index.ts')
+      return playback.getCurrentBlock()
     })
     await page.locator('#play').click()
     expect(block).toBeGreaterThanOrEqual(1) // 112 BPM: a bar takes ~2.1 s
@@ -66,7 +66,7 @@ test.describe('demo song on the first visit', () => {
       .poll(
         () =>
           page.evaluate(async () => {
-            const { default: Song } = await import('/src/assets/js/songData.ts')
+            const { default: Song } = await import('/src/stores/song.ts')
             return Song.tracks.length
           }),
         { timeout: 10_000 },
@@ -76,7 +76,7 @@ test.describe('demo song on the first visit', () => {
     await page.waitForSelector('.tab-row')
     await page.waitForTimeout(1000)
     const tracks = await page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       return Song.tracks.length
     })
     expect(tracks).toBe(1)
@@ -89,10 +89,9 @@ test.describe('demo song on the first visit', () => {
     page.on('pageerror', (error) => errors.push(error.message))
     await waitForEditorShell(page, { demo: 'arrangement' })
     await expect
-      .poll(
-        () => page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.tracks.length),
-        { timeout: 10_000 },
-      )
+      .poll(() => page.evaluate(async () => (await import('/src/stores/song.ts')).default.tracks.length), {
+        timeout: 10_000,
+      })
       .toBe(4)
     const fingerprint = () => page.evaluate(songFingerprintSource())
     const builtIn = await fingerprint()
@@ -100,7 +99,7 @@ test.describe('demo song on the first visit', () => {
     // Start from an empty song, then open the file (over the now "unsaved" empty song).
     page.on('dialog', (dialog) => void dialog.accept())
     await page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       Song.initEmptySong()
     })
     await page
@@ -109,7 +108,7 @@ test.describe('demo song on the first visit', () => {
       .setInputFiles('e2e/fixtures/files/open-road.gpx')
     await expect
       .poll(() =>
-        page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.songDescription.title),
+        page.evaluate(async () => (await import('/src/stores/song.ts')).default.songDescription.title),
       )
       .toBe('Open Road')
     const opened = await fingerprint()

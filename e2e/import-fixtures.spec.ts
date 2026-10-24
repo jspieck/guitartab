@@ -11,8 +11,8 @@ async function importFile(page: Page, name: string): Promise<void> {
   const bytes = Array.from(readFileSync(`${FILES}/${name}`))
   await page.evaluate(
     async ({ fileName, data }) => {
-      const { gProReader } = await import('/src/assets/js/GProReader.ts')
-      gProReader.importSongBytes(fileName, new Uint8Array(data))
+      const { importSongBytes } = await import('/src/services/songImport.ts')
+      importSongBytes(fileName, new Uint8Array(data))
     },
     { fileName: name, data: bytes },
   )
@@ -35,7 +35,7 @@ test.describe('import fixtures', () => {
   test('two-bars.mid becomes a playable tab', async ({ page }) => {
     await importFile(page, 'two-bars.mid')
     const song = await page.evaluate(async () => {
-      const { default: Song } = await import('/src/assets/js/songData.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
       return {
         title: Song.songDescription.title,
         tracks: Song.tracks.length,
@@ -76,7 +76,7 @@ test.describe('import fixtures', () => {
 test('opening a damaged file through the menu explains the problem and keeps the song', async ({ page }) => {
   await waitForEditorShell(page)
   const titleBefore = await page.evaluate(
-    async () => (await import('/src/assets/js/songData.ts')).default.songDescription.title,
+    async () => (await import('/src/stores/song.ts')).default.songDescription.title,
   )
   const truncated = readFileSync(`${FILES}/showcase.gp5`).subarray(0, 900)
   await page.locator('input[type=file][accept*=".gp5"]').setInputFiles({
@@ -88,7 +88,7 @@ test('opening a damaged file through the menu explains the problem and keeps the
     'Could not open broken.gp5: The file ends unexpectedly',
   )
   const titleAfter = await page.evaluate(
-    async () => (await import('/src/assets/js/songData.ts')).default.songDescription.title,
+    async () => (await import('/src/stores/song.ts')).default.songDescription.title,
   )
   expect(titleAfter).toBe(titleBefore)
   await expect(page.locator('.tab-row').first()).toBeVisible()

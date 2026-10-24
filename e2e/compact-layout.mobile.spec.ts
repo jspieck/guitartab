@@ -20,7 +20,7 @@ async function rowRightEdges(page: Page): Promise<number[]> {
 
 async function firstBeatFrets(page: Page): Promise<(number | '-')[]> {
   return page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     return Array.from(Song.measures[0][0][0][0].notes, (note) => note?.fret ?? '-')
   })
 }
@@ -180,9 +180,7 @@ test.describe('phone layout', () => {
     await expect(page.locator('#compactTrackSelect option')).toHaveCount(4)
     await page.locator('#compactTrackSelect').selectOption({ label: 'Bass' })
     await expect
-      .poll(() =>
-        page.evaluate(async () => (await import('/src/assets/js/songData.ts')).default.currentTrackId),
-      )
+      .poll(() => page.evaluate(async () => (await import('/src/stores/song.ts')).default.currentTrackId))
       .toBe(2)
   })
 })

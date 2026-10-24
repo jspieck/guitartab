@@ -5,7 +5,7 @@
  */
 export function songFingerprintSource(): string {
   return `(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
     const pick = (obj, keys) => Object.fromEntries(keys.filter((k) => obj?.[k] != null && obj[k] !== false).map((k) => [k, obj[k]]))
     const tracks = Song.measures.map((track, trackId) => ({
       strings: Song.tracks[trackId]?.strings,

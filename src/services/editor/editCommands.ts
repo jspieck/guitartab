@@ -1,5 +1,5 @@
 import { computed, ref, toRaw } from 'vue'
-import Song, { type Beat, type MeasureMetaInfo } from '../../assets/js/songData'
+import Song, { type Beat, type MeasureMetaInfo } from '../../stores/song'
 import { notifySongDataChanged } from '../appEvents'
 import { requestBlocksRender } from './renderCommands'
 import { RevertStack } from './revertStack'

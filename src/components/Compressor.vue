@@ -77,12 +77,12 @@ import { computed, ref } from 'vue';
 import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import './audio/audioPlugin.css';
-import { MODALS } from '../assets/js/modals/modalTypes';
-import { modalManager } from '../assets/js/modals/modalManager';
-import audioEngine from '../assets/js/audioEngine';
+import { MODALS } from '../services/dialogs/modalTypes';
+import { modalManager } from '../services/dialogs/modalManager';
+import { audioGraph } from '../services/audio/audioGraph';
 import {
     COMPRESSOR_PRESETS, COMPRESSOR_RANGES, CompressorModalHandler, compressorCurve,
-} from '../assets/js/modals/compressorModalHandler';
+} from '../services/dialogs/compressorModalHandler';
 import { useAnimationLoop, useModalOpen } from '../composables/useModalOpen';
 
 const CURVE = 200;
@@ -162,7 +162,7 @@ const meters = computed(() => [
 ]);
 
 function readPeakDb(): number {
-    const analyser = audioEngine.masterAnalyser;
+    const analyser = audioGraph.masterAnalyser;
     if (timeDomain == null || timeDomain.length !== analyser.fftSize) {
         timeDomain = new Float32Array(analyser.fftSize);
     }

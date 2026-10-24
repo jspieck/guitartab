@@ -1,6 +1,6 @@
+import { deleteNote } from './noteCommands'
 import { selectionState } from '../../stores/selectionState'
-import Song from '../../assets/js/songData'
-import { Tab } from '../../assets/js/tab'
+import Song from '../../stores/song'
 import Duration from '../../utils/duration'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { restOf } from '../../utils/durationUtils'
@@ -58,7 +58,7 @@ export function fitBarsToTimeSignature(startBlockId: number): boolean {
         // Remove the notes first, so notes tied to them go too.
         for (let j = i; j < beats.length; j += 1) {
           beats[j].notes?.forEach((note, string) => {
-            if (note != null) Tab.deleteNote(trackId, blockId, voiceId, j, string)
+            if (note != null) deleteNote(trackId, blockId, voiceId, j, string)
           })
         }
         beats.splice(i)

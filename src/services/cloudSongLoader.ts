@@ -1,12 +1,12 @@
 import { downloadCloudSong } from './cloudSongApi'
-import { gProReader } from '../assets/js/GProReader'
+import { loadGtBytes } from './songImport'
 import { setLoadingWheelVisible } from '../utils/editorUi'
 
 export async function loadCloudSongById(id: string): Promise<void> {
   setLoadingWheelVisible(true)
   try {
     const buffer = await downloadCloudSong(id)
-    gProReader.loadGtFromBytes(new Uint8Array(buffer))
+    loadGtBytes(new Uint8Array(buffer))
   } finally {
     setLoadingWheelVisible(false)
   }

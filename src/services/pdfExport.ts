@@ -6,7 +6,7 @@
 import { showUserError, showUserMessage } from './userNotifications'
 import { composeTabExportSvg, downloadSvgMarkup } from './tabExportSvg'
 import { withAllRowsRendered } from '../stores/tabVirtualizationState'
-import { classicalNotation } from './editor/classicalNotationAdapter'
+import { classicalNotation } from './notation/classicalNotationAdapter'
 
 /**
  * Virtualized rows are off-DOM; mount them all and draw their classical staves

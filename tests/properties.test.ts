@@ -2,7 +2,7 @@
 // (jsdom for the GPIF parser in the round-trip property; happy-dom rejects CDATA.)
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import Song, { type Beat, type MeasureMetaInfo, type Note } from '../src/assets/js/songData'
+import Song, { type Beat, type MeasureMetaInfo, type Note } from '../src/stores/song'
 import { buildDemoArrangement } from '../src/data/demoArrangement'
 import { extractGpifXml } from '../src/services/gpContainers'
 import { buildGpif } from '../src/services/gpifExport'

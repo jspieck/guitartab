@@ -1,4 +1,4 @@
-import { MODALS, type ModalDefinition } from '../assets/js/modals/modalTypes'
+import { MODALS, type ModalDefinition } from './dialogs/modalTypes'
 import type { Beat, MeasureMeta, Note } from '../types/tab'
 import { beatHasText } from './songMigrations'
 

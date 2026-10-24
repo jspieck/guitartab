@@ -9,9 +9,9 @@ const gpif = readShowcaseGpif()
 async function importAndSummarize(page: Page, fileName: string, bytes: Uint8Array) {
   return page.evaluate(
     async ({ fileName, bytes }) => {
-      const { gProReader } = await import('/src/assets/js/GProReader.ts')
-      const { default: Song } = await import('/src/assets/js/songData.ts')
-      gProReader.importSongBytes(fileName, new Uint8Array(bytes))
+      const { importSongBytes } = await import('/src/services/songImport.ts')
+      const { default: Song } = await import('/src/stores/song.ts')
+      importSongBytes(fileName, new Uint8Array(bytes))
 
       const guitar = Song.measures[0]
       const drums = Song.measures[1]
@@ -224,9 +224,9 @@ test.describe('Guitar Pro 6/7/8 import', () => {
       )
     const before = await fingerprint()
     await page.evaluate(async () => {
-      const { gProReader } = await import('/src/assets/js/GProReader.ts')
-      const { gp5Writer } = await import('/src/assets/js/GP5Writ.ts')
-      gProReader.importSongBytes('roundtrip.gp5', gp5Writer.buildSongBytes())
+      const { importSongBytes } = await import('/src/services/songImport.ts')
+      const { currentSongAsGp5 } = await import('/src/services/gp5Export.ts')
+      importSongBytes('roundtrip.gp5', currentSongAsGp5())
     })
     expect(await fingerprint()).toEqual(before)
   })
@@ -235,12 +235,12 @@ test.describe('Guitar Pro 6/7/8 import', () => {
     await waitForEditorShell(page)
     const result = await page.evaluate(
       async (bytes) => {
-        const { gProReader } = await import('/src/assets/js/GProReader.ts')
+        const { importSongBytes } = await import('/src/services/songImport.ts')
         const { serializeSongContent } = await import('/src/utils/gtSerialization.ts')
         const before = serializeSongContent()
         let error = ''
         try {
-          gProReader.importSongBytes('broken.gp', new Uint8Array(bytes))
+          importSongBytes('broken.gp', new Uint8Array(bytes))
         } catch (caught) {
           error = (caught as Error).name
         }

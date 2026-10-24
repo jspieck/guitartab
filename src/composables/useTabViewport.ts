@@ -1,5 +1,5 @@
+import Settings from '../stores/settingsState'
 import { computed, onMounted, onUnmounted, type ComputedRef, type Ref } from 'vue'
-import { tab } from '../assets/js/tab'
 import {
   DIN_A4_WIDTH_CM,
   registerMainContentElement,
@@ -65,7 +65,7 @@ export function useTabViewport(mainContentRef?: Ref<HTMLElement | null>): TabVie
       registerMainContent(mainContentRef.value)
     }
 
-    tabViewportState.zoom = tab.currentZoom
+    tabViewportState.zoom = Settings.currentZoom
     typedEventBus.on('ui.zoomChanged', handleZoomChanged)
   })
 

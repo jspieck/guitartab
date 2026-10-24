@@ -1,6 +1,7 @@
-import Song from '../../assets/js/songData'
-import { audioEngine } from '../../assets/js/audioEngine'
-import playBackLogic from '../../assets/js/playbackEngine'
+import Song from '../../stores/song'
+import { samplePlayer } from '../audio/samplePlayer'
+import { audioGraph } from '../audio/audioGraph'
+import playback from '../playback'
 import Settings from '../../stores/settingsState'
 import { pressLiveNote, releaseLiveNote } from '../../stores/soundingNotesState'
 import Duration from '../../utils/duration'
@@ -37,27 +38,20 @@ class LiveInput {
     const trackId = Song.currentTrackId
     const voiceId = Song.currentVoiceId
     const track = Song.tracks[trackId]
-    const { instrument } = Song.playBackInstrument[trackId]
     const volume = (2 * velocity) / 127
-    const now = audioEngine.getCurrentTime()
+    const now = audioGraph.getCurrentTime()
     if (Settings.songPlaying && this.isRecording) this.recorded.push(pitch)
 
-    const gain =
-      instrument === 'drums'
-        ? audioEngine.playDrums(trackId, voiceId, pitch, volume, now, Song.defaultMeasure())
-        : audioEngine.playSF2(
-            trackId,
-            voiceId,
-            0,
-            pitch - track.strings[0],
-            volume,
-            now,
-            2,
-            Song.defaultMeasure(),
-            Song.defaultNote(),
-            instrument,
-            -1,
-          )
+    const gain = samplePlayer.playPitch(
+      trackId,
+      voiceId,
+      pitch,
+      volume,
+      now,
+      2,
+      Song.defaultMeasure(),
+      Song.defaultNote(),
+    )
     if (gain != null) this.sounding.set(pitch, gain)
 
     const [placed] = arrangeOnStrings([pitch], track.strings, track.capo, new Set(this.heldStrings.values()))
@@ -75,7 +69,7 @@ class LiveInput {
     const gain = this.sounding.get(pitch)
     if (gain == null) return
     this.sounding.delete(pitch)
-    const now = audioEngine.getCurrentTime()
+    const now = audioGraph.getCurrentTime()
     gain.gain.setValueAtTime(gain.gain.value, now + 0.05)
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15)
   }
@@ -97,7 +91,7 @@ class LiveInput {
     if (pitches.length === 0) return
     const trackId = Song.currentTrackId
     const voiceId = Song.currentVoiceId
-    const { blockId, positionInBlock } = playBackLogic.getCurrentTime()
+    const { blockId, positionInBlock } = playback.songPosition()
     const beatId = nearestBeat(trackId, blockId, voiceId, positionInBlock)
     const beat = Song.getBeat({ trackId, blockId, voiceId, beatId })
     const taken = new Set(beat.notes.flatMap((note, string) => (note != null ? [string] : [])))

@@ -4,8 +4,8 @@ import { waitForEditorShell } from './helpers'
 test('undoing a shorter time signature brings the cut-off beats back', async ({ page }) => {
   await waitForEditorShell(page)
   const result = await page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
-    const { modalManager } = await import('/src/assets/js/modals/modalManager.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
+    const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
     const { undoHistory } = await import('/src/services/editor/editCommands.ts')
 
     const snapshot = () => JSON.stringify(Song.measures[0][0])
@@ -40,8 +40,8 @@ test('removing a time signature with the toolbar re-fits the bars, and undo brin
 }) => {
   await waitForEditorShell(page)
   const result = await page.evaluate(async () => {
-    const { default: Song } = await import('/src/assets/js/songData.ts')
-    const { modalManager } = await import('/src/assets/js/modals/modalManager.ts')
+    const { default: Song } = await import('/src/stores/song.ts')
+    const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
     const { undoHistory } = await import('/src/services/editor/editCommands.ts')
     const { selectionState } = await import('/src/stores/selectionState.ts')
 

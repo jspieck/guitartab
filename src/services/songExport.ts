@@ -1,6 +1,6 @@
 import { toRaw } from 'vue'
-import Song from '../assets/js/songData'
-import { gp5Writer } from '../assets/js/GP5Writ'
+import Song from '../stores/song'
+import { currentSongAsGp5 } from './gp5Export'
 import { serializeSongToGtBytes } from '../utils/gtSerialization'
 import { buildMusicXml, musicXmlFileName } from './musicXmlExport'
 import { buildGpif } from './gpifExport'
@@ -53,7 +53,7 @@ export function exportSong(format: ExportFormat): void {
       download(serializeSongToGtBytes(), `${baseName()}.gt`, 'application/octet-stream')
       markSongSaved()
     } else if (format === 'gp5') {
-      download(gp5Writer.buildSongBytes(), `${baseName()}.gp5`, 'application/octet-stream')
+      download(currentSongAsGp5(), `${baseName()}.gp5`, 'application/octet-stream')
     } else if (format === 'gpx') {
       download(songAsGpx(), `${baseName()}.gpx`, 'application/octet-stream')
     } else {

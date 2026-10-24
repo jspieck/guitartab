@@ -97,9 +97,9 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
-import { MODALS } from "../assets/js/modals/modalTypes";
-import { AddChordModalHandler } from "../assets/js/modals/addChordModalHandler";
-import { modalManager } from "../assets/js/modals/modalManager";
+import { MODALS } from "../services/dialogs/modalTypes";
+import { AddChordModalHandler } from "../services/dialogs/addChordModalHandler";
+import { modalManager } from "../services/dialogs/modalManager";
 import SubmitButton from "./SubmitButton.vue";
 
 const chordNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'H'];

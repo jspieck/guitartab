@@ -24,9 +24,9 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../assets/js/modals/modalTypes'
-import { modalManager } from '../assets/js/modals/modalManager'
-import type { RepeatAlternativeModalHandler } from '../assets/js/modals/effectModals'
+import { MODALS } from '../services/dialogs/modalTypes'
+import { modalManager } from '../services/dialogs/modalManager'
+import type { RepeatAlternativeModalHandler } from '../services/dialogs/effectModals'
 
 const handler = modalManager.getHandler<InstanceType<typeof RepeatAlternativeModalHandler>>(
   MODALS.REPEAT_ALTERNATIVE.id,

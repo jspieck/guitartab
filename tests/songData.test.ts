@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import Song, { type Beat } from '../src/assets/js/songData'
+import Song, { type Beat } from '../src/stores/song'
 
 describe('Song.isBeatEmpty', () => {
   beforeEach(() => {

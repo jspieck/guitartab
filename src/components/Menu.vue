@@ -212,9 +212,9 @@
                                 src="../assets/images/statusBar/denom.svg" /></button>
                         <button id="bpmMeter" @click="notationSelect('bpmMeter')" data-tooltip="BPM" v-bind="menuButtonBindings('bpmMeter')"><img id="bpmMeterImg"
                                 src="../assets/images/statusBar/bpmMeter.svg" /></button>
-                        <button id="addMeasure" @click="tab.addBlock()" data-tooltip="Add Measure" class="checkBoxNote"><img id="addMeasureImg"
+                        <button id="addMeasure" @click="addBlock()" data-tooltip="Add Measure" class="checkBoxNote"><img id="addMeasureImg"
                                 src="../assets/images/statusBar/addMeasure.svg" /></button>
-                        <button id="removeMeasure" @click="tab.removeBlock()" data-tooltip="Remove Measure" class="checkBoxNote"><img
+                        <button id="removeMeasure" @click="removeBlock()" data-tooltip="Remove Measure" class="checkBoxNote"><img
                                 id="removeMeasureImg" src="../assets/images/statusBar/removeMeasure.svg" /></button>
                         <button id="openBar" @click="measureSelect('openBar')" data-tooltip="Add Open Bar" v-bind="menuButtonBindings('openBar')"><img id="openBarImg"
                                 src="../assets/images/statusBar/openBar.svg" /></button>
@@ -247,9 +247,9 @@
             <img id="chordSection" @click="modalManager.toggleByModal(MODALS.CHORD_MANAGER, {trackId: currentTrackId})" class="classicalButton"
                 src="../assets/images/chordSection.svg" />
         </button>
-        <button id="zoomIn" @click="tab.scaleCompleteTab(true)" data-tooltip="Zoom In" class="classicalButton"><img id="zoomInImg"
+        <button id="zoomIn" @click="zoomTab(true)" data-tooltip="Zoom In" class="classicalButton"><img id="zoomInImg"
                 src="../assets/images/zoomIn.svg" /></button>
-        <button id="zoomOut" @click="tab.scaleCompleteTab(false)" data-tooltip="Zoom Out" class="classicalButton"><img id="zoomOutImg"
+        <button id="zoomOut" @click="zoomTab(false)" data-tooltip="Zoom Out" class="classicalButton"><img id="zoomOutImg"
                 src="../assets/images/zoomOut.svg" /></button>
         <button id="fullscreen" @click="typedEventBus.emit('ui.disablePageMode')" data-tooltip="Fullscreen" class="classicalButton"><img id="fullscreenImg"
                 src="../assets/images/fullscreen.svg" /></button>
@@ -267,24 +267,25 @@
         <!--<div id="pageLayoutToggle"></div>-->
     </div>
     <div id="trackCapsule">
-        <div id="trackSign"><img id="trackSignImg" src="../assets/images/instrumentIcons/myAccGuitarDesign.svg" /></div>
+        <div id="trackSign"><img id="trackSignImg" :src="instrumentIconSrc('guitar')" /></div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { modalManager } from '../assets/js/modals/modalManager';
-import { classicalNotation } from '../services/editor/classicalNotationAdapter';
+import { instrumentIconSrc } from '../data/instrumentData';
+import { addBlock, removeBlock } from '../services/editor/measureStructureCommands';
+import { zoomTab } from '../services/editor/zoom';
+import { modalManager } from '../services/dialogs/modalManager';
+import { classicalNotation } from '../services/notation/classicalNotationAdapter';
 import Settings from '../stores/settingsState';
 import liveInput from '../services/midi/liveInput';
 import { typedEventBus } from '../utils/typedEventBus';
-import Song from '../assets/js/songData';
-import { tab } from '../assets/js/tab';
-import AppManager from '../assets/js/appManager';
+import Song from '../stores/song';
 import { usePlaybackEngine } from '../composables/usePlaybackEngine';
 import { playbackTransportState } from '../stores/playbackTransportState';
 import { computed, ref } from 'vue';
-import { MODALS } from '../assets/js/modals/modalTypes';
-import { gProReader } from '../assets/js/GProReader';
+import { MODALS } from '../services/dialogs/modalTypes';
+import { openSongFile } from '../services/songImport';
 import { confirmReplaceUnsavedSong } from '../services/songAutosave';
 import { clampTempo } from '../utils/tempo';
 import { setSongTempo } from '../services/editor/songSettingsCommands';
@@ -365,10 +366,6 @@ function selectBar(id: number) {
 }
 
 function selectVoice(voiceId: number) {
-    if (AppManager.duringTrackCreation) {
-        return;
-    }
-
     switchTrack(Song.currentTrackId, voiceId, false, null);
 }
 
@@ -383,7 +380,7 @@ function handleFileSelect(event: Event) {
     const files = input.files;
     // Asked after picking, so the question can name the file.
     if (files && files.length > 0 && confirmReplaceUnsavedSong(files[0].name)) {
-        gProReader.handleFiles(files);
+        openSongFile(files);
     }
     // Reset the input so the same file can be selected again
     input.value = '';

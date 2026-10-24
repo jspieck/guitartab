@@ -6,14 +6,7 @@ import tseslint from 'typescript-eslint'
 const lintTargets = [
   'vite.config.ts',
   'src/**/*.vue',
-  'src/composables/**/*.ts',
-  'src/stores/**/*.ts',
-  'src/services/**/*.ts',
-  'src/types/**/*.ts',
-  'src/utils/**/*.ts',
-  'src/assets/js/modals/bendModalHandler.ts',
-  'src/assets/js/modals/tremoloBarModalHandler.ts',
-  'src/assets/js/modals/effectModals.ts',
+  'src/**/*.ts',
   'tests/**/*.ts',
   'e2e/**/*.ts',
   'scripts/**/*.mjs',
@@ -31,13 +24,6 @@ export default [
       'test-results/**',
       'playwright-report/**',
       'src/vue-shims.d.ts',
-      // The legacy core (src/assets/js) is not linted yet, except the handlers listed in lintTargets.
-      'src/assets/js/**',
-      '!src/assets/js/modals/',
-      'src/assets/js/modals/**',
-      '!src/assets/js/modals/bendModalHandler.ts',
-      '!src/assets/js/modals/tremoloBarModalHandler.ts',
-      '!src/assets/js/modals/effectModals.ts',
     ],
   },
   js.configs.recommended,
@@ -83,8 +69,14 @@ export default [
   },
   {
     // Layering: the lower layers must not import the Vue layer. Shared state belongs
-    // in src/stores (tests/layering.test.ts checks the legacy core, which isn't linted).
-    files: ['src/services/**/*.ts', 'src/stores/**/*.ts', 'src/utils/**/*.ts', 'src/types/**/*.ts'],
+    // in src/stores.
+    files: [
+      'src/services/**/*.ts',
+      'src/stores/**/*.ts',
+      'src/utils/**/*.ts',
+      'src/types/**/*.ts',
+      'src/data/**/*.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -93,7 +85,8 @@ export default [
             {
               group: ['**/components/**', '**/composables/**', '*.vue'],
               allowTypeImports: true,
-              message: 'services/, stores/, utils/ and types/ must not import components or composables.',
+              message:
+                'services/, stores/, utils/, types/ and data/ must not import components or composables.',
             },
           ],
         },
