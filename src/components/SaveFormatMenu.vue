@@ -3,9 +3,9 @@
     <button
       id="downloadGP"
       type="button"
-      class="checkBoxNote playButton"
-      data-tooltip="Download File"
-      aria-label="Download file"
+      class="tb-button"
+      data-tip="Save as…"
+      aria-label="Save as"
       aria-haspopup="menu"
       :aria-expanded="open"
       @click="toggle"
@@ -42,15 +42,8 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import type { ExportFormat } from '../services/songExport'
+import { EXPORT_OPTIONS as options, exportSongAs, type ExportFormat } from '../utils/exportFormats'
 import AppIcon from './AppIcon.vue'
-
-const options: { format: ExportFormat, label: string, hint: string }[] = [
-  { format: 'gt', label: 'GuitarTab (.gt)', hint: 'Everything, opens here again' },
-  { format: 'gpx', label: 'Guitar Pro 6 (.gpx)', hint: 'For Guitar Pro 6, 7 and 8' },
-  { format: 'gp5', label: 'Guitar Pro 5 (.gp5)', hint: 'For Guitar Pro, TuxGuitar, Songsterr' },
-  { format: 'musicxml', label: 'MusicXML (.musicxml)', hint: 'For MuseScore, Finale, Sibelius, Dorico' },
-]
 
 const open = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
@@ -73,7 +66,7 @@ function toggle(): void {
 
 function choose(format: ExportFormat): void {
   close()
-  void import('../services/songExport').then(({ exportSong }) => exportSong(format))
+  exportSongAs(format)
 }
 
 function onPointerDown(event: PointerEvent): void {
@@ -106,10 +99,12 @@ onBeforeUnmount(() => {
   flex-direction: column;
   width: 260px;
   padding: 4px;
-  border-radius: 6px;
-  background: var(--color-inverse);
-  color: var(--color-inverse-text);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-shadow) 20%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  box-shadow: var(--shadow-popover);
 }
 
 .save-menu__item {
@@ -123,19 +118,20 @@ onBeforeUnmount(() => {
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-md);
+  line-height: 1.3;
   text-align: left;
   cursor: pointer;
 }
 
 .save-menu__item:hover,
 .save-menu__item:focus-visible {
-  background: var(--color-inverse-border);
+  background: var(--color-hover);
   outline: none;
 }
 
 .save-menu__hint {
-  color: var(--color-inverse-muted);
-  font-size: 11px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 </style>

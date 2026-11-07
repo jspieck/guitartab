@@ -27,10 +27,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 function beat(blockId = 1, beatId = 0, trackId = 0) {
   return Song.measures[trackId][blockId][0][beatId]
 }

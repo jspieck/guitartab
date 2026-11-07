@@ -1,30 +1,35 @@
-import { typedEventBus } from '../../utils/typedEventBus'
+import { invalidateAll, invalidateBars, invalidateChords } from '../../stores/renderVersionState'
 
-export function requestBlockRender(trackId: number, blockId: number, voiceId: number): void {
-  typedEventBus.emit('render.block', { trackId, blockId, voiceId })
+/**
+ * What commands call after changing the song: they bump the version counters the tab reads
+ * (`stores/renderVersionState.ts`). The voice is part of the signature for the callers'
+ * sake; a bar's version covers both voices.
+ */
+export function requestBlockRender(trackId: number, blockId: number, _voiceId?: number): void {
+  invalidateBars(trackId, [blockId])
 }
 
-export function requestBlocksRender(trackId: number, blockIds: number[], voiceId: number): void {
-  typedEventBus.emit('render.blocks', { trackId, blockIds, voiceId })
+export function requestBlocksRender(trackId: number, blockIds: number[], _voiceId?: number): void {
+  invalidateBars(trackId, blockIds)
 }
 
-export function requestOverBarRender(
-  trackId: number,
-  blockId: number,
-  voiceId: number,
-  rerender = false,
-): void {
-  typedEventBus.emit('render.overBar', { trackId, blockId, voiceId, rerender })
+/** Lanes above the bar (markers, tempo, chords, text): the row height may change. */
+export function requestOverBarRender(trackId: number, blockId: number, _voiceId?: number): void {
+  invalidateBars(trackId, [blockId])
 }
 
-export function requestDurationRender(trackId: number, blockId: number, voiceId: number): void {
-  typedEventBus.emit('render.durations', { trackId, blockId, voiceId })
+export function requestDurationRender(trackId: number, blockId: number, _voiceId?: number): void {
+  invalidateBars(trackId, [blockId])
 }
 
 export function requestChordDiagramsRender(): void {
-  typedEventBus.emit('render.chordDiagrams')
+  invalidateChords()
 }
 
-export function requestTrackDeleteRender(trackId: number): void {
-  typedEventBus.emit('render.deleteTrack', { trackId })
+export function requestTrackDeleteRender(_trackId?: number): void {
+  invalidateAll()
+}
+
+export function requestFullRender(): void {
+  invalidateAll()
 }

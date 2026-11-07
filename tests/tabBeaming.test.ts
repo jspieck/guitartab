@@ -105,6 +105,15 @@ describe('tab beaming groups', () => {
     ])
   })
 
+  it('beams plain beats that carry tuplet 0 (songs imported from Guitar Pro before the fix)', () => {
+    const beats = [0, 1, 2, 3].map((tupletId) => makeNoteBeat('e', { tuplet: 0, tupletId }))
+
+    expect(getBeamedBeatGroups(beats).map((group) => group.map(({ beatIndex }) => beatIndex))).toEqual([
+      [0, 1],
+      [2, 3],
+    ])
+  })
+
   it('returns a flat index set for beamed beats only', () => {
     const beats = [
       makeNoteBeat('e'),

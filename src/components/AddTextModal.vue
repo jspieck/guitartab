@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.TEXT.id">
+  <BaseModal :modal-id="DIALOGS.TEXT.id">
     <template #title>Add Text</template>
     <div class="modal-stack modal-stack-compact">
       <div class="modal-field modal-field-compact">
@@ -16,9 +16,9 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 import type { TextModalHandler } from '../services/dialogs/effectModals'
 
-const handler = modalManager.getHandler<InstanceType<typeof TextModalHandler>>(MODALS.TEXT.id)
+const handler = getDialogHandler<InstanceType<typeof TextModalHandler>>(DIALOGS.TEXT.id)
 </script>

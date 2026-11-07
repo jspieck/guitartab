@@ -28,7 +28,7 @@
     </g>
 
     <!-- Tempo -->
-    <g v-if="showBpm && tempoLane" class="bpm-marking" :transform="`translate(${bpmX}, ${tempoLane.top + tempoLane.height - 4})`">
+    <g v-if="annotations && showBpm && tempoLane" class="bpm-marking" :transform="`translate(${bpmX}, ${tempoLane.top + tempoLane.height - 4})`">
       <text
         x="0"
         y="0"
@@ -67,7 +67,7 @@
     </g>
 
     <!-- Alternative ending (volta) spanning the measure -->
-    <g v-if="measureMeta.repeatAlternative != null && voltaLane" class="alternative-ending">
+    <g v-if="annotations && measureMeta.repeatAlternative != null && voltaLane" class="alternative-ending">
       <path
         :d="`M3,${voltaLane.top + voltaLane.height} L3,${voltaLane.top + 4} L${width - 4},${voltaLane.top + 4}`"
         class="alternative-bracket"
@@ -86,7 +86,7 @@
     </g>
 
     <!-- Marker: left-aligned at the measure start, box sized to its text -->
-    <g v-if="measureMeta.marker != null && markerLane" class="marker">
+    <g v-if="annotations && measureMeta.marker != null && markerLane" class="marker">
       <rect
         x="2"
         :y="markerLane.top + 2"
@@ -108,12 +108,49 @@
         {{ measureMeta.marker.text }}
       </text>
     </g>
+
+    <!-- Segno / coda / Fine at the measure start, D.C. / D.S. / To Coda at its end -->
+    <g v-if="annotations && directionLane && (targetSigns.length > 0 || jumpLabels.length > 0)" class="directions">
+      <g
+        v-for="(sign, index) in targetSigns"
+        :key="`target-${index}`"
+        :transform="`translate(${sign.x}, ${directionLane.top + directionLane.height - 5})`"
+        :class="`direction-target direction-${sign.kind}`"
+      >
+        <template v-if="sign.kind === 'segno'">
+          <text x="0" y="0" font-family="Source Sans Pro" font-size="16px" font-style="italic" font-weight="bold" class="direction-glyph">S</text>
+          <line x1="-1" y1="1" x2="10" y2="-12" stroke-width="1.2" class="direction-line"/>
+          <circle cx="1" cy="-8" r="1.3" class="direction-dot"/>
+          <circle cx="8" cy="-3" r="1.3" class="direction-dot"/>
+        </template>
+        <template v-else-if="sign.kind === 'coda'">
+          <circle cx="5" cy="-5" r="4" stroke-width="1.2" fill="none" class="direction-line"/>
+          <line x1="5" y1="-11" x2="5" y2="1" stroke-width="1.2" class="direction-line"/>
+          <line x1="-1" y1="-5" x2="11" y2="-5" stroke-width="1.2" class="direction-line"/>
+        </template>
+        <text v-else x="0" y="0" font-family="Source Sans Pro" font-size="12px" font-style="italic" font-weight="bold" class="direction-text">Fine</text>
+      </g>
+      <text
+        v-if="jumpLabels.length > 0"
+        :x="width - 4"
+        :y="directionLane.top + directionLane.height - 5"
+        font-family="Source Sans Pro"
+        font-size="12px"
+        font-style="italic"
+        font-weight="bold"
+        text-anchor="end"
+        class="direction-text direction-jump"
+      >
+        {{ jumpLabels.join(' · ') }}
+      </text>
+    </g>
   </g>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { TabMeasureMetaData } from '../../types/tab'
+import { DIRECTION_LABELS } from '../../utils/directions'
 import {
   estimateTextWidth,
   LANE_HEIGHTS,
@@ -142,11 +179,14 @@ interface Props {
   stringSpacing: number
   lanes?: RowLanes
   contentPadding?: number
+  /** Tempo, marker, volta and signs; in the score view only on a system's top staff. */
+  annotations?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   contentPadding: 10,
   lanes: undefined,
+  annotations: true,
 })
 
 const stringsBottom = computed(() => (props.numStrings - 1) * props.stringSpacing)
@@ -159,6 +199,24 @@ function laneOr(lane: AboveLaneId): LaneBox {
 const tempoLane = computed(() => laneOr('tempo'))
 const markerLane = computed(() => laneOr('marker'))
 const voltaLane = computed(() => laneOr('volta'))
+const directionLane = computed(() => laneOr('direction'))
+
+/** Segno and coda signs drawn side by side (a double sign twice), then Fine. */
+const targetSigns = computed(() => {
+  const signs: { kind: 'segno' | 'coda' | 'fine'; x: number }[] = []
+  let x = props.measureMeta.repeatOpen ? 14 : 4
+  for (const target of props.measureMeta.directionTargets ?? []) {
+    const kind = target.startsWith('Segno') ? 'segno' : target.endsWith('Coda') ? 'coda' : 'fine'
+    const count = target === 'SegnoSegno' || target === 'DoubleCoda' ? 2 : 1
+    for (let i = 0; i < count; i += 1) {
+      signs.push({ kind, x })
+      x += kind === 'fine' ? 28 : 14
+    }
+  }
+  return signs
+})
+
+const jumpLabels = computed(() => (props.measureMeta.directionJumps ?? []).map((jump) => DIRECTION_LABELS[jump]))
 const markerWidth = computed(() => (
   Math.min(Math.max(30, estimateTextWidth(props.measureMeta.marker?.text ?? '', 6) + 10), props.width - 6)
 ))
@@ -238,6 +296,16 @@ const showBpm = computed(() => {
 }
 
 .marker-border {
+  stroke: var(--tab-primary);
+}
+
+.direction-glyph,
+.direction-text,
+.direction-dot {
+  fill: var(--tab-primary);
+}
+
+.direction-line {
   stroke: var(--tab-primary);
 }
 </style> 

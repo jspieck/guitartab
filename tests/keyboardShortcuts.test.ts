@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DRUM_KEYS,
   FRET_DIGIT_WINDOW_MS,
+  drumOfKey,
   SHORTCUTS,
   combineFretDigit,
   displayKeys,
@@ -73,13 +75,40 @@ describe('keyboard shortcut table', () => {
     const groups = groupShortcuts()
     expect(groups.map((group) => group.name)).toEqual([
       'Enter notes',
+      'Drum tracks',
       'Move',
+      'Select',
       'Note length',
+      'Rhythm',
       'Playback',
       'Edit',
       'View',
     ])
     expect(groups.flatMap((group) => group.items)).toHaveLength(SHORTCUTS.length)
+  })
+
+  it('takes drum letter keys only on drum tracks, before the note lengths', () => {
+    const s = key({ key: 's', code: 'KeyS' })
+    expect(matchShortcut(s)?.id).toBe('durationSixteenth')
+    expect(matchShortcut(s, { drums: true })?.id).toBe('drum:S')
+    expect(matchShortcut(key({ key: 'x', code: 'KeyX' }), { drums: true })?.id).toBe('drum:X')
+    // the note lengths stay on Shift there
+    expect(matchShortcut(key({ key: 'S', code: 'KeyS', shiftKey: true }), { drums: true })?.id).toBe(
+      'durationSixteenth',
+    )
+    expect(matchShortcut(key({ key: 'H', code: 'KeyH', shiftKey: true }), { drums: true })?.id).toBe(
+      'durationHalf',
+    )
+    // keys that are no drum keep their shortcut
+    expect(matchShortcut(key({ key: 'q', code: 'KeyQ' }), { drums: true })?.id).toBe('durationQuarter')
+  })
+
+  it('enters the drum of a key that the drum map has, else its first drum', () => {
+    expect(drumOfKey('K', [35, 38])).toBe(35)
+    expect(drumOfKey('K', [38])).toBe(36)
+    expect(drumOfKey('M', [36, 45, 38])).toBe(45)
+    expect(drumOfKey('Q', [36])).toBeNull()
+    expect(new Set(DRUM_KEYS.map((entry) => entry.key)).size).toBe(DRUM_KEYS.length)
   })
 
   it('shows Mod as Ctrl, or ⌘ on a Mac', () => {

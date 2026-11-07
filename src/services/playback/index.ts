@@ -1,6 +1,7 @@
 import Song, { type Interval } from '../../stores/song'
 import { selectionState } from '../../stores/selectionState'
 import Settings from '../../stores/settingsState'
+import { onSoundFontSettled, soundFontState } from '../../stores/soundFontState'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { samplePlayer } from '../audio/samplePlayer'
 import { playhead } from './playhead'
@@ -17,6 +18,12 @@ export const playback = {
   /** Starts the timer worker; once at startup. */
   init(): void {
     scheduler.init()
+    // Play pressed while the instruments were loading
+    onSoundFontSettled(() => {
+      if (!soundFontState.playWhenReady) return
+      soundFontState.playWhenReady = false
+      if (!Settings.songPlaying) scheduler.start()
+    })
   },
 
   start(): void {
@@ -24,13 +31,16 @@ export const playback = {
   },
 
   stop(): void {
+    soundFontState.playWhenReady = false
     scheduler.stop()
   },
 
   /** Play/pause: pausing keeps the beat that was playing as the start (and moves the cursor there). */
   togglePlayback(): void {
     if (!Settings.songPlaying) {
-      scheduler.start()
+      // Without instruments the song would play silently: wait for them (pressing again cancels).
+      if (soundFontState.status === 'loading') soundFontState.playWhenReady = !soundFontState.playWhenReady
+      else scheduler.start()
       return
     }
     const blockId = Math.max(0, playhead.block)

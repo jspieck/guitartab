@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.MIDI.id">
+  <BaseModal :modal-id="DIALOGS.MIDI.id">
     <template #title>Midi</template>
     <div class="modal-stack midi-modal">
       <p class="modal-body-text">Click a device to play and enter notes with it; click again to disconnect.</p>
@@ -32,16 +32,17 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { useModalOpen } from '../composables/useModalOpen'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { useDialogOpen } from '../composables/useDialogOpen'
 import { midiState, refreshMidiDevices, toggleMidiDevice } from '../services/midi/devices'
 
-const isOpen = useModalOpen(MODALS.MIDI.id)
+const isOpen = useDialogOpen(DIALOGS.MIDI.id)
 
 // Ask for MIDI access only when the dialog is opened.
+// immediate: the dialog mounts with its first opening, already open.
 watch(isOpen, (open) => {
   if (open) void refreshMidiDevices()
-})
+}, { immediate: true })
 
 const emptyText = computed(() => {
   if (!midiState.supported) return 'MIDI is not supported in this browser.'

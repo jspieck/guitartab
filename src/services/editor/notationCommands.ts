@@ -1,7 +1,7 @@
 import { redrawTrack } from './layoutInvalidation'
 import { selectionState } from '../../stores/selectionState'
 import Song from '../../stores/song'
-import { modalManager } from '../dialogs/modalManager'
+import { toggleDialog } from '../dialogs/dialogs'
 import type { Beat, MeasureMeta } from '../../types/tab'
 import {
   applyTimeMeterToFollowingBlocks,
@@ -17,7 +17,6 @@ import {
 } from '../menuEffectMutations'
 import { requestBlockRender } from './renderCommands'
 import { recordBarEdit } from './editCommands'
-import { typedEventBus } from '../../utils/typedEventBus'
 import { fitBarsToTimeSignature } from './timeSignatureCommands'
 
 function toggleEffectSelect(id: string, beat: Beat, measureMeta: MeasureMeta): void {
@@ -52,7 +51,7 @@ export function processNotationSelect(
   })
 
   if (modalRequest != null) {
-    modalManager.toggleByModal(modalRequest.modal, modalRequest.params)
+    void toggleDialog(modalRequest.modal, modalRequest.params)
     return
   }
 
@@ -120,7 +119,7 @@ export function processMeasureSelect(
   recordBarEdit('Repeat start', { trackId, blockIds: [blockId] }, () => {
     Song.measureMeta[blockId].repeatOpen = !Song.measureMeta[blockId].repeatOpen
   })
-  typedEventBus.emit('render.block', { trackId, blockId, voiceId })
+  requestBlockRender(trackId, blockId, voiceId)
 }
 
 export function measureSelect(id: string): boolean {

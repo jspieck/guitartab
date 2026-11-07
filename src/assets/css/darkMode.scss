@@ -1,91 +1,11 @@
 
 #darkMode{
-    /*.gridLine{
-        stroke: var(--gray-750);
-    }*/
-    /* Instrument illustrations are grey drawings: invert their tones but keep the detail. The
-       other icons are drawn in currentColor (AppIcon) and need nothing here. */
+    /* What tokens can't do: the instrument illustrations are grey drawings (invert their tones but
+       keep the detail; icons are drawn in currentColor and need nothing), and the scrollbars. */
     #trackSign img,
-    #sequencerSideBar img {
+    #sequencerSideBar img,
+    #addTrackModal .instrument-icon{
         filter: invert(0.88);
-    }
-    #sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument{
-        color: var(--gray-0);
-    }
-    #sideBarButtons {
-        border-right: none;
-        background: var(--gray-650);
-    }
-    #classicalToggle.classicalBack{
-        background: var(--red-600);
-    }
-    .bottomStatusBar {
-        border-top-color: var(--gray-750);
-    }
-    .tabBarElem:hover {
-        color: var(--gray-0);
-    }
-    #completeBar {
-        border: 1px solid var(--gray-750);
-        border-top: none;
-        border-left: none;
-        box-shadow: 0 6px 18px color-mix(in srgb, var(--gray-1000) 35%, transparent);
-        background: var(--gray-800);
-    }
-    .statusBar {
-        border-top: none;
-    }
-    .tabBarElemSelected {
-        border-top: 2px solid var(--gray-0) !important;
-        color: var(--gray-0) !important;
-    }
-    .tabBarElem {
-        color: var(--gray-400);
-        border-top: 2px solid transparent;
-    }
-    #trackSign {
-        background: color-mix(in srgb, var(--gray-100) 12%, transparent);
-    }
-    #voiceLabel {
-        color: var(--gray-0);
-    }
-    #tabBar{
-        background: var(--gray-800);
-    }
-    .statusBar {
-        background: none;
-    }
-    .bottomStatusBar {
-        background: var(--gray-800);
-    }
-    #content button.checkBoxNote {
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-        color: var(--gray-0);
-    }
-    #content button.classicalButton, #classicalToggle, button.classicalButton {
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-    }
-    #content button.playStart, #oneMeasureBack, #oneMeasureForward{
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-    }
-    #tabBar {
-        border-right: none;
-    }
-    #content #tempoMeter {
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-        color: var(--gray-0);
-    }
-    #content button#pianoEyeToggle {
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-    }
-    #content button#guitarEyeToggle {
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-    }
-    #content #stopButton {
-        /*background: color-mix(in srgb, var(--gray-100) 12%, transparent);*/
-    }
-    #drumInfo div span {
-        background: var(--gray-750);
     }
     ::-webkit-scrollbar {
         border-radius:5px;
@@ -99,32 +19,4 @@
     ::-webkit-scrollbar-corner{
         background:transparent;
     }
-    #voice0 {
-        background: color-mix(in srgb, var(--viz-pink) 67%, transparent);
-        background: var(--red-400);
-    }
-    .or-spacer-vertical.left .inner:after {
-        box-shadow: 0 0 2px var(--gray-0);
-    }
-    #content button.pressed {
-        background: var(--red-500) !important;
-    }
-    #content button.checkBoxNote:hover {
-        background: var(--gray-700);
-    }
-    #content .classicalButton:hover{
-        background: color-mix(in srgb, var(--gray-350) 48%, transparent);
-    }
-    #content button#guitarEyeToggle:hover, #content button#pianoEyeToggle:hover{
-        background: color-mix(in srgb, var(--gray-350) 48%, transparent);
-    }
-    #pageLayoutToggle {
-        background: var(--gray-0);
-    }
-    .bpmSidebarLabel{
-        color: var(--gray-0);
-    }
-    /*#bendEditor{
-        background: var(--gray-700);
-    }*/
 }

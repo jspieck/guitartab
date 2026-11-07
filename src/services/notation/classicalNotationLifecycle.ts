@@ -10,7 +10,7 @@
  *    `classicalNotationLayoutState` (computed from notation data, never from drawn output)
  * 5. **Bump** `classicalNotationLayoutState.version` and set `active` so Vue layout
  *    re-reads widths and row heights
- * 6. **Invalidate** Vue tab rows (`song-data-changed` / `render.all`)
+ * 6. **Invalidate** Vue tab rows (`song-data-changed` / `requestFullRender`)
  * 7. **Draw** each mounted `ClassicalRowSurface` (one per visible tab row)
  *
  * Layout (`measureLayoutEngine.computeBarWidth`) reads classical beat

@@ -125,6 +125,13 @@ export function getBeamCount(duration: string | undefined): number {
   return BEAM_COUNTS[baseDuration] ?? 0
 }
 
+/** Whether a beat draws a stem: it has notes, or it is a slash beat (rhythm only). */
+export function beatShowsRhythm(
+  beat: (Pick<TabBeat, 'notes'> & { slash?: boolean }) | null | undefined,
+): boolean {
+  return beat?.slash === true || beatHasNotes(beat)
+}
+
 /**
  * Check if a beat has any actual notes (not all null/undefined/empty)
  * This is critical for determining whether to show rests

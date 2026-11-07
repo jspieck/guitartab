@@ -14,9 +14,24 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
     await page.addInitScript(() => localStorage.setItem('guitartab:demoSong', 'riff'))
     await page.goto(baseURL)
     await page.waitForSelector('html[data-editor-ready]', { state: 'attached', timeout: 120_000 })
-    await page.waitForSelector('#compressorModal', { state: 'attached', timeout: 60_000 })
     await page.evaluate(async () => {
+      // Dialogs mount when first opened (stores/dialogState.ts): open each once, so its
+      // component chunk is compiled too, then close them again.
+      const { DIALOGS, openDialog, closeAllDialogs } = await import('/src/services/dialogs/dialogs.ts')
+      const params = { trackId: 0, blockId: 0, voiceId: 0, beatId: 0, string: 0 }
+      for (const dialog of [
+        DIALOGS.INFO,
+        DIALOGS.COMPRESSOR,
+        DIALOGS.EQUALIZER,
+        DIALOGS.MIXER,
+        DIALOGS.TEMPO,
+      ])
+        await openDialog(dialog, params)
+      closeAllDialogs()
       await Promise.all([
+        import('/src/components/ModalsContainer.vue'),
+        import('/src/services/import/guitarProReaders.ts'),
+        import('/src/services/musicXmlImport.ts'),
         import('/src/services/notation/classicalNotation.ts'),
         import('/src/services/songExport.ts'),
         import('/src/services/compactLayout.ts'),

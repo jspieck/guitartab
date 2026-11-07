@@ -80,6 +80,7 @@
   --teal-300: #7fd9dc;
   --teal-400: #43c9b0;
   --teal-600: #2f8790;
+  --teal-700: #2a7a83;
   --teal-800: #235f67;
 
   /* Wood, strings and ivory of the virtual guitar and piano (same in both themes). */
@@ -131,13 +132,14 @@
   /* Text */
   --color-text: var(--gray-900);
   --color-text-secondary: var(--gray-800);
-  --color-text-muted: var(--gray-500);
-  --color-text-faint: var(--gray-400);
+  --color-text-muted: var(--gray-550); /* 4.5:1 on every surface (tests/tokenContrast.test.ts) */
+  --color-text-faint: var(--gray-400); /* disabled controls, placeholders, icons: not for text to read */
 
   /* Accent and states */
   --color-accent: var(--blue-600);
   --color-accent-strong: var(--blue-700);
   --color-accent-soft: var(--blue-100);
+  --color-on-accent-soft: var(--blue-700); /* accent text on --color-accent-soft */
   --color-on-accent: var(--gray-0);
   --color-danger: var(--red-600);
   --color-danger-strong: var(--red-700);
@@ -188,7 +190,7 @@
   --seq-active-row: var(--gray-300);
   --seq-muted: color-mix(in srgb, var(--gray-0) 80%, transparent);
   --seq-indicator-cell: color-mix(in srgb, var(--gray-700) 22%, transparent);
-  --seq-meter: var(--gray-400); /* track level bars, drawn on canvas: plain colours only */
+  --seq-meter: var(--green-400); /* track level bars, drawn on canvas: plain colours only */
   --seq-edit-off: color-mix(in srgb, var(--gray-550) 22%, transparent);
 
   /* Graph editors in dialogs (bend, tremolo bar, chord) */
@@ -210,11 +212,13 @@
   --tab-subtle: var(--gray-500); /* let ring, ghost notes */
   --tab-ghost: var(--gray-400);
   --tab-string: var(--gray-500);
+  --tab-staff: var(--gray-450); /* classical staff lines */
   --tab-separator: var(--gray-800);
   --tab-chord-dot: var(--gray-800);
   --tab-chord-finger: var(--gray-0);
   --tab-muted-string: var(--red-500);
   --tab-slide: var(--blue-600);
+  --tab-voice2: var(--teal-700); /* voice 2 frets, and its faint notes behind voice 1 */
   --tab-hover: var(--blue-100); /* behind titles and chord diagrams under the pointer */
   /* Same in both themes: */
   --tab-playhead: color-mix(in srgb, var(--blue-400) 60%, transparent);
@@ -252,9 +256,11 @@
   --color-accent: var(--blue-400);
   --color-accent-strong: var(--blue-600);
   --color-accent-soft: var(--blue-800);
+  --color-on-accent-soft: var(--blue-300);
   --color-danger: var(--red-400);
   --color-danger-strong: var(--red-500);
   --color-danger-soft: var(--red-900);
+  --color-on-accent: var(--gray-950); /* white on the light dark-mode blue is only 3:1 */
   --color-success: var(--green-400);
   --color-warning: var(--amber-400);
   --color-focus: color-mix(in srgb, var(--blue-400) 45%, transparent);
@@ -271,7 +277,7 @@
   --seq-active-row: var(--gray-700);
   --seq-muted: color-mix(in srgb, var(--gray-550) 80%, transparent);
   --seq-indicator-cell: color-mix(in srgb, var(--gray-800) 67%, transparent);
-  --seq-meter: var(--gray-600);
+  --seq-meter: var(--green-400);
 
   --editor-bg: var(--gray-950);
   --editor-cell-border: var(--gray-950);
@@ -288,12 +294,14 @@
   --tab-muted: var(--gray-350);
   --tab-subtle: var(--gray-400);
   --tab-ghost: var(--gray-500);
-  --tab-string: var(--gray-650);
+  --tab-string: var(--gray-500);
+  --tab-staff: var(--gray-500);
   --tab-separator: var(--gray-550);
   --tab-chord-dot: var(--gray-300);
   --tab-chord-finger: var(--gray-850);
   --tab-muted-string: var(--red-400);
   --tab-slide: var(--blue-300);
+  --tab-voice2: var(--teal-300);
   --tab-hover: var(--blue-800);
 }
 

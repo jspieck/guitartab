@@ -32,9 +32,12 @@ describe('SaveFormatMenu', () => {
     expect(wrapper!.element.contains(popover())).toBe(false)
     expect([...document.querySelectorAll('[role="menuitem"]')].map((item) => item.id)).toEqual([
       'download-gt',
+      'download-gp',
       'download-gpx',
       'download-gp5',
       'download-musicxml',
+      'download-midi',
+      'download-midi-bars',
     ])
     expect(wrapper!.get('#downloadGP').attributes('aria-expanded')).toBe('true')
   })

@@ -1,14 +1,20 @@
 import Song, {
+  type Beat,
   type BeatEffects,
   type Bend,
   type Chord,
   type Grace,
+  type MeasureMetaInfo,
   type Note,
   type TremoloBar,
 } from '../stores/song'
-import { STROKE_LENGTHS } from './import/guitarPro/gp5'
+import { keyChanges, keyFifths } from '../utils/keySignature'
+import { STROKE_LENGTHS } from './import/guitarPro/beatReader'
 import type { GuitarProSong } from './import/guitarPro/guitarProSong'
 import { beatHasText } from './songMigrations'
+import { barsHaveLyrics, collectLyricLines, MAX_LYRIC_VERSES } from '../utils/lyrics'
+import { DIRECTION_JUMPS, DIRECTION_TARGETS } from '../utils/directions'
+import { assignDrumLines } from '../utils/drumLines'
 
 /** What a GP5 file is written from: the song plus each track's mixer settings. */
 export type Gp5Source = Pick<
@@ -68,19 +74,17 @@ class Gp5Writer {
     this.writeStringByteSizeOfInteger(this.song.description.instructions) // ...
     // write comments
     this.writeComments(this.song.description.comments)
-    // write lyrics
-    this.writeLyrics() // no lyrics at the moment
+    this.writeLyrics()
 
     // page setup
     this.writePageSetup()
 
     this.writeInteger(this.song.bpm) // write tempo
-    this.writeInteger(0) // no idea :)
-    this.writeByte(0) // write key?   -1:F, 0:C, 1:G, 2:D
+    this.writeInteger(keyFifths(this.song.measureMeta[0])) // key in fifths: -1 F, 0 C, 1 G
+    this.writeByte(0) // octave
     this.writeChannels()
-    for (let i = 0; i < 42; i += 1) {
-      this.writeByte(255)
-    }
+    this.writeDirections()
+    this.writeInteger(-1) // master reverb
     this.writeInteger(this.song.measureMeta.length) // number of measures
     this.writeInteger(this.song.tracks.length) // number of tracks
 
@@ -102,6 +106,23 @@ class Gp5Writer {
     for (let i = 0; i < num; i += 1) {
       this.writeByte(0)
     }
+  }
+
+  /** The bar (1-based, -1 = none) of each sign and jump; Guitar Pro keeps one bar per kind. */
+  writeDirections() {
+    const barOf = (has: (meta: MeasureMetaInfo) => boolean) => {
+      const blockId = this.song.measureMeta.findIndex(has)
+      return blockId < 0 ? -1 : blockId + 1
+    }
+    for (const target of DIRECTION_TARGETS)
+      this.writeShort(barOf((meta) => meta.directionTargets?.includes(target) ?? false))
+    for (const jump of DIRECTION_JUMPS)
+      this.writeShort(barOf((meta) => meta.directionJumps?.includes(jump) ?? false))
+  }
+
+  writeShort(value: number) {
+    this.writeByte(value & 255)
+    this.writeByte((value >> 8) & 255)
   }
 
   writeInteger(size: number) {
@@ -177,15 +198,17 @@ class Gp5Writer {
     }
   }
 
+  /** GP5 has one lyric track: the first track with lyrics, its verses as five lines. */
   writeLyrics() {
-    this.writeInteger(0) // no of track lyrics are associated
-    this.writeInteger(0) // no of characters in the string
-
-    this.writeInteger(0) // actually lyrics string, but 0 here
-    // string itself without size in front of it
-    for (let i = 0; i < 4; i += 1) {
-      this.writeInteger(0) // length of lyrics
-      this.writeInteger(0) // actually lyrics string but 0 here
+    const track = this.song.measures.findIndex((bars) => barsHaveLyrics(bars ?? []))
+    const lines = track >= 0 ? collectLyricLines(this.song.measures[track]) : []
+    this.writeInteger(track + 1) // 1-based, 0 = none
+    for (let i = 0; i < MAX_LYRIC_VERSES; i += 1) {
+      const line = lines[i] ?? { startBar: 0, text: '' }
+      this.writeInteger(line.startBar + 1)
+      const bytes = Gp5Writer.unpack(line.text)
+      this.writeInteger(bytes.length)
+      this.writeString(bytes, 0)
     }
   }
 
@@ -260,8 +283,8 @@ class Gp5Writer {
     if (meta.marker != null) {
       flags |= 0x20 // is a marker present in this measure
     }
-    if (num === 1) {
-      // TODO
+    // (the song header holds bar 1's key)
+    if (num > 0 && keyChanges(meta, this.song.measureMeta[num - 1])) {
       flags |= 0x40 // new key signature in that measure
     }
     this.writeUnsignedByte(flags)
@@ -273,7 +296,10 @@ class Gp5Writer {
     if ((flags & 0x08) !== 0) this.writeByte(meta.repeatClose! + 1)
     if ((flags & 0x20) !== 0) this.writeMarker(meta.marker!)
     if ((flags & 0x10) !== 0) this.writeByte(meta.repeatAlternative!)
-    if ((flags & 0x40) !== 0) this.skipBytesWrite(2)
+    if ((flags & 0x40) !== 0) {
+      this.writeByte(keyFifths(meta))
+      this.writeByte(meta.keyMinor ? 1 : 0)
+    }
 
     // do not know what is done here
     if ((flags & 0x01) !== 0) {
@@ -711,7 +737,37 @@ class Gp5Writer {
 
 /** A song as Guitar Pro 5 (v5.00) file bytes. Does not change `song`. */
 export function writeGp5(song: Gp5Source): Uint8Array {
-  return new Gp5Writer(song).buildSongBytes()
+  return new Gp5Writer(withSixLineDrums(song)).buildSongBytes()
+}
+
+/**
+ * GP5 has at most 7 strings, and our drum tracks have a line per drum: they are written
+ * on 6 lines by kind of drum (kick at the bottom, cymbals on top; `utils/drumLines.ts`).
+ */
+function withSixLineDrums(song: Gp5Source): Gp5Source {
+  if (!song.tracks.some((track) => track.drumMap != null)) return song
+  const tracks = song.tracks.map((track) =>
+    track.drumMap == null ? track : { ...track, numStrings: 6, strings: new Array(6).fill(0), capo: 0 },
+  )
+  const measures = song.measures.map((bars, trackId) =>
+    song.tracks[trackId]?.drumMap == null
+      ? bars
+      : bars.map((voices) => voices.map((beats) => beats.map(beatOnSixLines))),
+  )
+  return { ...song, tracks, measures }
+}
+
+function beatOnSixLines(beat: Beat): Beat {
+  const notes = (beat.notes ?? []).filter((note): note is Note => note != null)
+  if (notes.length === 0) return beat
+  const placed: (Note | null)[] = new Array(6).fill(null)
+  assignDrumLines(
+    notes.map((note) => note.fret),
+    6,
+  ).forEach((line, i) => {
+    if (line >= 0) placed[line] = { ...notes[i], string: line }
+  })
+  return { ...beat, notes: placed }
 }
 
 /** The current song as a .gp5 file. */

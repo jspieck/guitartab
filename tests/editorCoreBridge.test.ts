@@ -12,9 +12,6 @@ vi.mock('../src/services/playback', () => ({
   },
 }))
 
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
 vi.mock('../src/services/audio/audioGraph', () =>
   import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )

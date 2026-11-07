@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.TIME_METER.id">
+  <BaseModal :modal-id="DIALOGS.TIME_METER.id">
     <template #title>Time signature</template>
     <div class="modal-stack">
       <div class="modal-field-grid two-column">
@@ -40,13 +40,13 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import BaseModal from './BaseModal.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
+import { DIALOGS } from '../services/dialogs/dialogs'
 import { TimeMeterModalHandler } from '../services/dialogs/timeMeterModalHandler'
 import SubmitButton from './SubmitButton.vue'
-import { modalManager } from '../services/dialogs/modalManager'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 
 const denominators = [1, 2, 4, 8, 16, 32]
-const handler = modalManager.getHandler(MODALS.TIME_METER.id) as TimeMeterModalHandler
+const handler = getDialogHandler<TimeMeterModalHandler>(DIALOGS.TIME_METER.id)
 
 function handleSubmit() {
   handler.handleSubmit()

@@ -106,6 +106,15 @@ describe('song migrations', () => {
     expect(bars[2]).toEqual({ repeatClose: 2, repeatAlternative: 1 })
   })
 
+  it('turns tuplet 0 from older Guitar Pro imports into null and keeps real tuplets', () => {
+    const plain = legacyBeat({ tuplet: 0, tupletId: 4 })
+    const triplet = legacyBeat({ tuplet: 3, tupletId: 5 })
+    migrateSongMeasures([[[[plain, triplet]]]])
+
+    expect(plain.tuplet).toBeNull()
+    expect(triplet.tuplet).toBe(3)
+  })
+
   it('beatHasText ignores missing and empty text', () => {
     expect(beatHasText({ text: 'x' })).toBe(true)
     expect(beatHasText({ text: '' })).toBe(false)

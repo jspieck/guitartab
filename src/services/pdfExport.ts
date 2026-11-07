@@ -4,19 +4,32 @@
  * - rasterize that composite to a multi-page JPEG PDF
  */
 import { showUserError, showUserMessage } from './userNotifications'
-import { composeTabExportSvg, downloadSvgMarkup } from './tabExportSvg'
+import { composeTabExportSvg, downloadSvgMarkup, embedExportFonts } from './tabExportSvg'
 import { withAllRowsRendered } from '../stores/tabVirtualizationState'
 import { classicalNotation } from './notation/classicalNotationAdapter'
+import { pageLabel, printPageSlices, printTab } from './printView'
+import { applyTheme } from './theme'
+import Settings from '../stores/settingsState'
+
+/** Page numbers on the white PDF pages. */
+const PAGE_NUMBER_COLOR = '#595959'
 
 /**
  * Virtualized rows are off-DOM; mount them all and draw their classical staves
- * before the surface is cloned.
+ * before the surface is cloned. The export takes its colours from the light theme
+ * (white paper), also in dark mode.
  */
-function composeFullTabExportSvg() {
-  return withAllRowsRendered(async () => {
+export async function composeFullTabExportSvg() {
+  const composed = await withAllRowsRendered(async () => {
     await classicalNotation.flushPendingRowDraws()
-    return composeTabExportSvg()
+    applyTheme(false)
+    try {
+      return composeTabExportSvg()
+    } finally {
+      applyTheme(Settings.darkMode)
+    }
   })
+  return composed ? embedExportFonts(composed) : composed
 }
 
 const A4_WIDTH_PT = 595.28
@@ -185,6 +198,10 @@ export function buildJpegPdf(pages: PdfPage[]): Blob {
   return new Blob([out], { type: 'application/pdf' })
 }
 
+/** Room under each PDF page's content for its page number, in export units. */
+const PAGE_NUMBER_ROOM = 28
+
+/** One JPEG page per print page (whole rows, `paginateRows`), numbered when there are several. */
 async function rasterizeSvgPages(
   svg: SVGSVGElement,
   fullWidth: number,
@@ -192,35 +209,30 @@ async function rasterizeSvgPages(
 ): Promise<PdfPage[]> {
   const img = await loadImage(svgToDataUrl(svg))
   const scale = 2
-  const pageContentHeightPx = Math.floor(
-    ((A4_HEIGHT_PT - 2 * PAGE_MARGIN_PT) / (A4_WIDTH_PT - 2 * PAGE_MARGIN_PT)) * fullWidth * scale,
-  )
+  const pageHeight =
+    ((A4_HEIGHT_PT - 2 * PAGE_MARGIN_PT) / (A4_WIDTH_PT - 2 * PAGE_MARGIN_PT)) * fullWidth - PAGE_NUMBER_ROOM
+  const slices = printPageSlices(fullHeight, pageHeight)
   const canvasWidth = Math.max(1, Math.floor(fullWidth * scale))
-  const totalHeight = Math.max(1, Math.floor(fullHeight * scale))
-  const pages: PdfPage[] = []
-
-  let y = 0
-  while (y < totalHeight) {
-    const sliceHeight = Math.min(pageContentHeightPx, totalHeight - y)
+  return slices.map((slice, index) => {
+    const sliceHeight = slice.bottom - slice.top
     const canvas = document.createElement('canvas')
     canvas.width = canvasWidth
-    canvas.height = sliceHeight
+    canvas.height = Math.max(1, Math.floor((sliceHeight + PAGE_NUMBER_ROOM) * scale))
     const ctx = canvas.getContext('2d')
     if (!ctx) {
       throw new Error('Canvas unavailable for PDF export')
     }
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.drawImage(img, 0, y / scale, fullWidth, sliceHeight / scale, 0, 0, canvasWidth, sliceHeight)
-    pages.push({
-      jpeg: canvasToJpegBytes(canvas),
-      widthPx: canvasWidth,
-      heightPx: sliceHeight,
-    })
-    y += sliceHeight
-  }
-
-  return pages
+    ctx.drawImage(img, 0, slice.top, fullWidth, sliceHeight, 0, 0, canvasWidth, sliceHeight * scale)
+    if (slices.length > 1) {
+      ctx.fillStyle = PAGE_NUMBER_COLOR
+      ctx.font = `${12 * scale}px sans-serif`
+      ctx.textAlign = 'center'
+      ctx.fillText(pageLabel(index, slices.length), canvasWidth / 2, canvas.height - 8 * scale)
+    }
+    return { jpeg: canvasToJpegBytes(canvas), widthPx: canvasWidth, heightPx: canvas.height }
+  })
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -275,4 +287,9 @@ export async function exportTabAsPdf(): Promise<void> {
     console.error('PDF export failed', error)
     showUserError(error instanceof Error ? `PDF export failed: ${error.message}` : 'PDF export failed.')
   }
+}
+
+/** The browser's print dialog with the tab on A4 pages (whole rows per page, page numbers). */
+export function printCurrentTab(): Promise<void> {
+  return printTab(composeFullTabExportSvg)
 }

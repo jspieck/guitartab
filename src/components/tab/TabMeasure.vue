@@ -1,7 +1,8 @@
 <template>
-  <g class="tab-measure" :transform="`translate(${xOffset}, 0)`">
+  <g v-if="!hidden" class="tab-measure" :transform="`translate(${xOffset}, 0)`">
     <!-- Measure number -->
-    <text 
+    <text
+      v-if="barNumber"
       x="0" 
       y="-5" 
       font-family="Source Sans Pro" 
@@ -32,6 +33,8 @@
         :beat-width="getBeatWidth(beatIndex)"
         :string-spacing="stringSpacing"
         :num-strings="numStrings"
+        :voice-id="voiceId"
+        :drums="drums"
       />
     </g>
     
@@ -47,8 +50,17 @@
       :lanes="lanes"
     />
     
+    <!-- Multi-bar rest: an H-bar across the bar, the number of bars above the strings -->
+    <g v-if="multiRest" class="multi-rest">
+      <rect :x="multiRestBox.left" :y="multiRestBox.y - 4" :width="multiRestBox.right - multiRestBox.left" height="8" class="multi-rest-bar" />
+      <line :x1="multiRestBox.left" :x2="multiRestBox.left" :y1="multiRestBox.y - 9" :y2="multiRestBox.y + 9" stroke-width="2" class="multi-rest-end" />
+      <line :x1="multiRestBox.right" :x2="multiRestBox.right" :y1="multiRestBox.y - 9" :y2="multiRestBox.y + 9" stroke-width="2" class="multi-rest-end" />
+      <text :x="(multiRestBox.left + multiRestBox.right) / 2" y="-3" font-family="Source Sans Pro" font-size="14px" font-weight="bold" text-anchor="middle" class="multi-rest-count">{{ multiRest }}</text>
+    </g>
+
     <!-- Duration beams/rests -->
     <TabDurations
+      v-if="!multiRest"
       :measure-data="measureData"
       :track-id="trackId"
       :voice-id="voiceId"
@@ -57,20 +69,48 @@
       :num-strings="numStrings"
       :measure-width="measureWidth"
       :lanes="lanes"
+      :stems-up="stemsUp"
     />
+
+    <!-- The other voice, faint, over the rests (utils/otherVoiceNotes.ts) -->
+    <g v-if="otherNotes.length > 0" class="other-voice-notes" :class="{ 'other-voice-notes--voice2': voiceId === 0 }">
+      <text
+        v-for="(note, index) in otherNotes"
+        :key="`other-${index}`"
+        :x="note.x"
+        :y="stringLine(note.string, numStrings) * stringSpacing + 5"
+        font-family="Source Sans Pro"
+        font-size="13px"
+        text-anchor="middle"
+        class="other-voice-note"
+      >
+        {{ drums && /^\d+$/.test(note.text) ? drumSymbol(Number(note.text)) : note.text }}
+      </text>
+    </g>
   </g>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import TabNote from './TabNote.vue'
+import { drumSymbol } from '../../utils/drumMap'
 import TabEffects from './TabEffects.vue'
 import ChordDiagram from './ChordDiagram.vue'
 import TabDurations from './TabDurations.vue'
 import type { TabBeat, TabChordData } from '../../types/tab'
-import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
+import {
+  barLeftOffset,
+  barOtherVoiceNotes,
+  beatNoteOffset,
+  getMeasureBeatWidth,
+  getMeasureBeatX,
+} from '../../utils/measureBeatLayout'
 import { beatKey, LANE_HEIGHTS, MEASURE_NUMBER_STRIP, type RowLanes } from '../../utils/tabRowLanes'
 import { CHORD_DIAGRAM_NAME_HEIGHT, CHORD_DIAGRAM_WIDTH } from './chordDiagramGeometry'
+import Song from '../../stores/song'
+import { tabStemsGoUp } from '../../utils/otherVoiceNotes'
+import Settings from '../../stores/settingsState'
+import { stringLine } from '../../utils/tabStrings'
 
 interface RenderedChordDiagramData {
   name: string
@@ -97,11 +137,23 @@ interface Props {
   contentPadding?: number
   width?: number
   lanes?: RowLanes
+  /** Multi-bar rest: the number of empty bars this bar stands for. */
+  multiRest?: number
+  /** Inside a multi-bar rest after its first bar: nothing is drawn. */
+  hidden?: boolean
+  /** Score view: only a system's top staff numbers its bars. */
+  barNumber?: boolean
+  /** A drum track: hits drawn as x and o. */
+  drums?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   contentPadding: 0,
-  width: 200
+  width: 200,
+  multiRest: undefined,
+  hidden: false,
+  barNumber: true,
+  drums: false,
 })
 
 // Constants
@@ -128,6 +180,24 @@ function getBeatWidth(beatIndex: number): number {
   )
 }
 
+const multiRestBox = computed(() => ({
+  left: barLeftOffset(props.blockId) + 4,
+  right: props.width - 14,
+  y: ((props.numStrings - 1) * props.stringSpacing) / 2,
+}))
+
+const otherNotes = computed(() =>
+  barOtherVoiceNotes(props.trackId, props.voiceId, props.blockId, props.measureData),
+)
+
+const stemsUp = computed(() =>
+  tabStemsGoUp(
+    Settings.tabRhythmOnStems,
+    props.voiceId,
+    Song.measures[props.trackId]?.[props.blockId]?.[props.voiceId === 0 ? 1 : 0],
+  ),
+)
+
 const chordsToShow = computed<RenderedChordPlacement[]>(() => {
   const chords: RenderedChordPlacement[] = []
 
@@ -146,7 +216,7 @@ const chordsToShow = computed<RenderedChordPlacement[]>(() => {
           fingers: chord.fingers || [],
           display: chord.display !== false,
         },
-        x: getBeatXOffset(beatIndex) + getBeatWidth(beatIndex) / 2 - CHORD_DIAGRAM_WIDTH / 2,
+        x: getBeatXOffset(beatIndex) + beatNoteOffset(beat, getBeatWidth(beatIndex)) - CHORD_DIAGRAM_WIDTH / 2,
         y: laneTop + line * LANE_HEIGHTS.chord + CHORD_DIAGRAM_NAME_HEIGHT,
       })
     }
@@ -159,6 +229,33 @@ const chordsToShow = computed<RenderedChordPlacement[]>(() => {
 <style scoped>
 .tab-measure {
   /* SVG styles are handled by attributes */
+}
+
+/* The halo in the page colour keeps them readable over a rest of the edited voice. */
+.other-voice-note {
+  fill: var(--tab-primary);
+  fill-opacity: 0.4;
+  stroke: var(--tab-bg);
+  stroke-width: 3px;
+  paint-order: stroke;
+  user-select: none;
+}
+
+.other-voice-notes--voice2 .other-voice-note {
+  fill: var(--tab-voice2);
+  fill-opacity: 0.6;
+}
+
+.multi-rest-bar {
+  fill: var(--tab-primary);
+}
+
+.multi-rest-end {
+  stroke: var(--tab-primary);
+}
+
+.multi-rest-count {
+  fill: var(--tab-primary);
 }
 
 .block-number {

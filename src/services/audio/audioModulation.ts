@@ -21,6 +21,17 @@ export function generateCurve(
   return values
 }
 
+/**
+ * Bend values count 50 per semitone: 100 is a "full" (whole-tone) bend, as in Guitar Pro, the
+ * bend dialog (value / 25 = quarter tones), the tab's "full"/"½" labels and the exports.
+ */
+export const BEND_VALUE_PER_SEMITONE = 50
+
+/** Playback-rate factor for a bend value. */
+export function bendRateFactor(bendValue: number): number {
+  return 2 ** (bendValue / BEND_VALUE_PER_SEMITONE / 12)
+}
+
 export function makeBend(
   bendObj: { bendPosition: number; bendValue: number }[],
   source: AudioBufferSourceNode,
@@ -29,12 +40,12 @@ export function makeBend(
   playBackRate: number,
 ): void {
   const lastTime = startpoint + duration * (bendObj[0].bendPosition / 60)
-  const pBrate = playBackRate * 2 ** (bendObj[0].bendValue / 100 / 12)
+  const pBrate = playBackRate * bendRateFactor(bendObj[0].bendValue)
   source.playbackRate.setValueAtTime(pBrate, lastTime)
 
   for (let i = 1; i < bendObj.length; i += 1) {
     const newTime = startpoint + duration * (bendObj[i].bendPosition / 60)
-    const newValue = playBackRate * 2 ** (bendObj[i].bendValue / 100 / 12)
+    const newValue = playBackRate * bendRateFactor(bendObj[i].bendValue)
     source.playbackRate.exponentialRampToValueAtTime(newValue, newTime)
   }
 }
@@ -70,25 +81,25 @@ export function makeVibrato(
 export type EffectGainType = 'reverb' | 'chorus' | 'phaser' | 'pan' | string
 
 export interface EffectBus {
-  convolver: { wetGain: number }
-  chorus: { dry: number }
-  pan: StereoPannerNode
+  reverbSend: GainNode
+  chorusSend: GainNode
+  setPan(value: number): void
 }
 
-/** Apply mixer effect gain (0â€“127) onto a track bus. */
+/** Apply mixer effect gain (0–127) onto a track bus: the reverb/chorus send level or the pan. */
 export function setEffectGain(bus: EffectBus, value: number, type: EffectGainType): void {
   switch (type) {
     case 'reverb':
-      bus.convolver.wetGain = value / 127
+      bus.reverbSend.gain.value = value / 127
       break
     case 'chorus':
-      bus.chorus.dry = 1 - value / 127
+      bus.chorusSend.gain.value = value / 127
       break
     case 'phaser':
       // Phaser wiring is not currently supported on the live graph.
       break
     case 'pan':
-      bus.pan.pan.value = -1 + (value / 127) * 2
+      bus.setPan(-1 + (value / 127) * 2)
       break
     default:
   }

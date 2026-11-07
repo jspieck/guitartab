@@ -6,10 +6,14 @@
       :height="totalHeight"
       class="tab-svg"
       @mousedown="handleMouseDown"
+      @contextmenu.prevent="handleContextMenu"
       @mousemove="handleMouseMove"
       @mouseup="handleMouseUp"
       @keydown="handleKeyDown"
       tabindex="0"
+      role="application"
+      aria-roledescription="tablature editor"
+      aria-label="Tablature. Arrow keys move the cursor, digits enter frets, question mark lists all shortcuts."
     >
       <!-- Simple tab content for now -->
       <g :transform="`translate(${paddingLeft}, ${paddingTop})`">
@@ -51,17 +55,40 @@
           
         </g>
         
+        <!-- Score view: a bracket over each system, the track names at its staves -->
+        <g v-if="scoreStaves.length > 0" class="score-labels" pointer-events="none">
+          <path
+            v-for="system in scoreBrackets"
+            :key="`bracket-${system.id}`"
+            :d="`M -2 ${system.top} H -5 V ${system.bottom} H -2`"
+            class="score-bracket"
+          />
+          <text
+            v-for="staff in scoreStaves"
+            :key="staff.key"
+            x="-9"
+            :y="staff.middle + 4"
+            font-family="Source Sans Pro"
+            font-size="11px"
+            text-anchor="end"
+            class="score-track-name"
+            :class="{ 'score-track-name--edited': staff.edited }"
+          >
+            {{ staff.name }}
+          </text>
+        </g>
+
         <!-- Simple tab rows -->
         <TabRow
           v-for="row in visibleTabRows"
-          :key="`row-${row.id}-${row.startBlockId}`"
+          :key="`row-${row.trackId ?? trackId}-${row.id}-${row.startBlockId}`"
           :row-data="row"
-          :track-id="trackId"
-          :voice-id="voiceId"
+          :track-id="row.trackId ?? trackId"
+          :voice-id="row.voiceId ?? voiceId"
           :svg-root="svgRoot"
           :y-offset="row.yOffset"
           :width="tabGroupWidth"
-          :is-first-row="row.id === 0"
+          :label-gutter="row.labelGutter ?? row.id === 0"
           :on-string-pointer-down="handleStringPointerDown"
         />
 
@@ -71,7 +98,7 @@
           id="playBackBarGroup0"
           :style="playbackBarStyle"
         >
-          <rect x="0" y="-5" width="2" :height="getPlaybackBarHeight(playbackBarState.y) + 5" style="fill: var(--tab-playhead)" />
+          <rect x="0" :y="playheadSpan.top" width="2" :height="playheadSpan.height" style="fill: var(--tab-playhead)" />
         </g>
       </g>
     </svg>
@@ -100,12 +127,16 @@ import { useTabRangeSelection } from '../../composables/useTabRangeSelection'
 import { registerSelectionSurface } from '../../stores/selectionSurfaceState'
 import { useTabEditorCommands } from '../../composables/useTabEditorCommands'
 import { useVisibleTabRows } from '../../composables/useVisibleTabRows'
-import { useTabRenderInvalidation } from '../../composables/useTabRenderInvalidation'
 import { useTabSelectionBridge } from '../../composables/useTabSelectionBridge'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
 import editorCore from '../../services/editor/editorCore'
 import { layoutModeState } from '../../stores/layoutModeState'
+import { noteMenuState, openNoteMenu } from '../../stores/toolbarUiState'
+import { openNoteMenuAtCursor } from '../../services/editor/noteMenu'
+import { switchTrack } from '../../services/editor/trackLoading'
+import { TAB_CONSTANTS } from '../../utils/tabLayout'
+import Song from '../../stores/song'
 
 interface Props {
   trackId: number
@@ -119,7 +150,7 @@ const props = withDefaults(defineProps<Props>(), {
   height: 1600,
 })
 
-const { syncSongData, reactiveSongData } = useSongData()
+const { reactiveSongData } = useSongData()
 
 const {
   currentSelection,
@@ -128,17 +159,12 @@ const {
 } = useTabSelection()
 
 const { playbackBarState } = usePlaybackBarState()
-const {
-  renderVersion,
-  registerRenderInvalidationBridge,
-} = useTabRenderInvalidation(syncSongData)
 const { registerNavigationSelectionBridge } = useTabSelectionBridge(setSelection)
 
 const tabContainer = ref<HTMLElement | null>(null)
 const svgRoot = ref<SVGSVGElement | null>(null)
 const playbackBarGroup = ref<SVGGElement | null>(null)
 let unregisterSelectionBridge = () => {}
-let unregisterRenderInvalidationBridge = () => {}
 
 const showTabInfo = true
 const {
@@ -152,9 +178,62 @@ const {
   getPlaybackBarHeight,
   totalHeight,
   rowHeight,
-} = useGuitarTabLayout(props, renderVersion)
+} = useGuitarTabLayout(props)
 
 const { visibleTabRows } = useVisibleTabRows(tabRows, paddingTop, svgRoot)
+
+/** Bottom string line of a row, relative to its top string. */
+function stringsHeight(trackId: number): number {
+  return (editorCore.getTrackStringCount(trackId) - 1) * TAB_CONSTANTS.STRING_SPACING
+}
+
+/** "Rhythm Guitar" -> "Rhythm"; names are drawn in the page margin left of the staff. */
+function shortTrackName(trackId: number): string {
+  const name = (Song.tracks[trackId]?.name || `Track ${trackId + 1}`).trim()
+  const first = name.split(/\s+/)[0]
+  return first.length > 8 ? `${first.slice(0, 7)}.` : first
+}
+
+const scoreStaves = computed(() =>
+  visibleTabRows.value
+    .filter((row) => row.trackId != null)
+    .map((row) => ({
+      key: `name-${row.trackId}-${row.id}`,
+      name: shortTrackName(row.trackId!),
+      middle: row.yOffset + stringsHeight(row.trackId!) / 2,
+      edited: row.trackId === props.trackId,
+    })),
+)
+
+/** Each system's staves, from the top string of the first to the bottom string of the last. */
+const scoreSystemSpans = computed(() => {
+  const spans = new Map<number, { id: number; top: number; bottom: number }>()
+  for (const row of tabRows.value) {
+    if (row.trackId == null) continue
+    const bottom = row.yOffset + stringsHeight(row.trackId)
+    const span = spans.get(row.id)
+    if (span == null) spans.set(row.id, { id: row.id, top: row.yOffset, bottom })
+    else {
+      span.top = Math.min(span.top, row.yOffset)
+      span.bottom = Math.max(span.bottom, bottom)
+    }
+  }
+  return spans
+})
+
+const scoreBrackets = computed(() => {
+  const shown = new Set(visibleTabRows.value.map((row) => row.id))
+  return [...scoreSystemSpans.value.values()].filter((system) => shown.has(system.id))
+})
+
+/** The playhead, relative to the playing row's top string: across the whole system in the score view. */
+const playheadSpan = computed(() => {
+  const y = playbackBarState.y
+  const row = tabRows.value.find((candidate) => candidate.yOffset === y && (candidate.trackId ?? props.trackId) === props.trackId)
+  const system = row != null ? scoreSystemSpans.value.get(row.id) : undefined
+  if (system == null) return { top: -5, height: getPlaybackBarHeight(y) + 5 }
+  return { top: system.top - y - 5, height: system.bottom - system.top + 10 }
+})
 
 // Empty-score hint. The scan stops at the first note, so for real songs it reads a few beats.
 const trackIsEmpty = computed(() => {
@@ -191,16 +270,21 @@ function getMeasureContentPadding(blockId: number): number {
 
 const {
   handleStringPointerDown,
+  selectForContextMenu,
   clearRangeSelection,
 } = useTabRangeSelection({
   svgRoot,
   tabRows,
-  trackId: props.trackId,
-  voiceId: props.voiceId,
+  trackId: () => props.trackId,
+  voiceId: () => props.voiceId,
   rowHeight,
   getMeasureContentPadding,
   onSingleSelect: (selection) => {
     clearRangeSelection()
+    // a click in another track of the score, or on a faint note of the other voice, edits that
+    if (selection.trackId !== props.trackId || selection.voiceId !== props.voiceId) {
+      switchTrack(selection.trackId, selection.voiceId)
+    }
     setSelection(selection)
   },
 })
@@ -213,6 +297,18 @@ const playbackBarStyle = computed(() => ({
 
 function handleMouseDown(_event: MouseEvent) {
   svgRoot.value?.focus()
+}
+
+/** Right-click or long-press on a string: select the beat and open the note menu there (Shift+F10: at the cursor). */
+function handleContextMenu(event: MouseEvent) {
+  if (noteMenuState.open) return
+  const string = (event.target as Element | null)?.getAttribute?.('data-string')
+  if (string != null && selectForContextMenu(event, Number(string))) {
+    // On a phone (a long-press, services/touchGestures.ts) it is a bottom sheet.
+    openNoteMenu(event.clientX, event.clientY, { sheet: layoutModeState.compact })
+  } else {
+    openNoteMenuAtCursor()
+  }
 }
 
 function handleMouseMove(_event: MouseEvent) {
@@ -234,14 +330,12 @@ onMounted(() => {
   editorCore.setPlaybackBarObject(playbackBarGroup.value)
   registerSelectionSurface(true)
   unregisterSelectionBridge = registerNavigationSelectionBridge()
-  unregisterRenderInvalidationBridge = registerRenderInvalidationBridge()
 
   svgRoot.value?.focus()
 })
 
 onUnmounted(() => {
   unregisterSelectionBridge()
-  unregisterRenderInvalidationBridge()
   editorCore.setPlaybackBarObject(null)
   registerSelectionSurface(false)
 })
@@ -272,6 +366,21 @@ onUnmounted(() => {
 
 .tab-author {
   fill: var(--tab-secondary);
+}
+
+.score-bracket {
+  fill: none;
+  stroke: var(--tab-primary);
+  stroke-width: 2;
+}
+
+.score-track-name {
+  fill: var(--tab-secondary);
+}
+
+.score-track-name--edited {
+  fill: var(--tab-primary);
+  font-weight: 600;
 }
 
 .tab-empty-hint {

@@ -1,5 +1,5 @@
 import Song from '../../stores/song'
-import { modalManager } from '../dialogs/modalManager'
+import { masterEqualizer } from './masterEqualizer'
 import Settings from '../../stores/settingsState'
 import { getMeterCanvas } from '../../stores/sequencerState'
 import { audioGraph } from './audioGraph'
@@ -27,10 +27,9 @@ function drawLevel(
   analyser: AnalyserNode,
   dataArray: Uint8Array,
   ctx: CanvasRenderingContext2D,
-  canvasWidth: number,
-  canvasHeight: number,
   background: string,
 ): void {
+  const { width: canvasWidth, height: canvasHeight } = ctx.canvas
   analyser.getByteFrequencyData(dataArray)
   let averageVolume = 0
   for (const x of dataArray) averageVolume += x * x
@@ -39,10 +38,24 @@ function drawLevel(
   ctx.clearRect(0, 0, canvasWidth, canvasHeight)
   if (averageVolume !== 0) {
     averageVolumeIsNull = false
+    // A glowing bar along the fader's track (inset as in sequencer.scss), not a filled box.
+    const left = METER_INSET_LEFT
+    const width = (canvasWidth - METER_INSET_LEFT - METER_INSET_RIGHT) * Math.min(1, averageVolume / 120)
+    ctx.save()
     ctx.fillStyle = background
-    ctx.fillRect(0, 0, (averageVolume / 120) * canvasWidth, canvasHeight)
+    ctx.shadowColor = background
+    ctx.shadowBlur = 6
+    ctx.beginPath()
+    ctx.roundRect(left, canvasHeight / 2 - METER_HEIGHT / 2, width, METER_HEIGHT, METER_HEIGHT / 2)
+    ctx.fill()
+    ctx.restore()
   }
 }
+
+/** The fader track's inset in its 30 px high canvas, and the meter bar's height around it. */
+const METER_INSET_LEFT = 4
+const METER_INSET_RIGHT = 8
+const METER_HEIGHT = 8
 
 export function drawMeters(): void {
   if (!Settings.songPlaying && averageVolumeIsNull) return
@@ -53,16 +66,14 @@ export function drawMeters(): void {
     const canvasContext = getMeterCanvas(i + 1)
     const bus = audioGraph.busses[i]
     if (canvasContext != null && bus != null) {
-      drawLevel(bus.analyser, dataArrayFor(bus.analyser), canvasContext, 90, 30, color)
+      drawLevel(bus.analyser, dataArrayFor(bus.analyser), canvasContext, color)
     }
   }
   const masterData = dataArrayFor(audioGraph.masterAnalyser)
   const canvasContext = getMeterCanvas(0)
   if (canvasContext != null) {
-    drawLevel(audioGraph.masterAnalyser, masterData, canvasContext, 120, 30, color)
+    drawLevel(audioGraph.masterAnalyser, masterData, canvasContext, color)
   }
-  if (modalManager.isModalOpen('equalizerModal')) {
-    audioGraph.equalizerHandler?.drawSpectrum(masterData)
-  }
+  masterEqualizer.spectrumListener?.(masterData)
   requestAnimationFrame(drawMeters)
 }

@@ -84,6 +84,14 @@ export interface GrowResult {
 
 // ─── Core class ─────────────────────────────────────────────────────────────
 
+/** The dots a changed beat gets (a plain length change clears them). */
+export interface Dots {
+  dotted: boolean
+  doubleDotted: boolean
+}
+
+const NO_DOTS: Dots = { dotted: false, doubleDotted: false }
+
 export class DurationReplacer {
   // ── Duration helpers (static, pure) ─────────────────────────────────────
 
@@ -104,6 +112,11 @@ export class DurationReplacer {
       if (t === ticks) return c
     }
     return ''
+  }
+
+  /** Ticks of a note value with dots (no tuplet). */
+  static dottedTicks(code: string, dots: Dots): number {
+    return DurationReplacer.beatTicks({ duration: code, ...dots } as Beat, true)
   }
 
   static beatTicks(beat: Beat, ignoreTuplet = false): number {
@@ -191,10 +204,15 @@ export class DurationReplacer {
    * @param newDuration New duration code (e.g. 'e', 'sr')
    * @returns           A ShrinkResult with the new beats array
    */
-  static shrink(beats: Beat[], beatIndex: number, newDuration: BeatDuration): ShrinkResult {
+  static shrink(
+    beats: Beat[],
+    beatIndex: number,
+    newDuration: BeatDuration,
+    dots: Dots = NO_DOTS,
+  ): ShrinkResult {
     const beat = beats[beatIndex]
     const oldTicks = DurationReplacer.beatTicks(beat, true)
-    const newTicks = DurationReplacer.ticksOf(newDuration)
+    const newTicks = DurationReplacer.dottedTicks(newDuration, dots)
 
     if (newTicks >= oldTicks) {
       return { beats: [...beats], insertedRests: [], rescaleNeeded: false }
@@ -206,7 +224,7 @@ export class DurationReplacer {
     const result = [...beats]
 
     // Update the beat's duration
-    const updatedBeat = { ...beat, duration: newDuration, dotted: false, doubleDotted: false }
+    const updatedBeat = { ...beat, duration: newDuration, ...dots }
     // Preserve rest status
     if (!updatedBeat.hasNotes && !DurationReplacer.isRest(updatedBeat.duration)) {
       updatedBeat.duration = restOf(updatedBeat.duration)
@@ -241,11 +259,11 @@ export class DurationReplacer {
    * @param newDuration New duration code (e.g. 'q', 'h')
    * @returns           A GrowResult with the new beats array
    */
-  static grow(beats: Beat[], beatIndex: number, newDuration: BeatDuration): GrowResult {
+  static grow(beats: Beat[], beatIndex: number, newDuration: BeatDuration, dots: Dots = NO_DOTS): GrowResult {
     const EPS = 1e-9
     const beat = beats[beatIndex]
     const oldTicks = DurationReplacer.beatTicks(beat, true)
-    const newTicks = DurationReplacer.ticksOf(newDuration)
+    const newTicks = DurationReplacer.dottedTicks(newDuration, dots)
 
     if (newTicks <= oldTicks) {
       return {
@@ -303,7 +321,7 @@ export class DurationReplacer {
     const result = [...beats]
 
     // Update the target beat
-    const updatedBeat = { ...beat, duration: newDuration, dotted: false, doubleDotted: false }
+    const updatedBeat = { ...beat, duration: newDuration, ...dots }
     if (!updatedBeat.hasNotes && !DurationReplacer.isRest(updatedBeat.duration)) {
       updatedBeat.duration = restOf(updatedBeat.duration)
     }
@@ -349,21 +367,27 @@ export class DurationReplacer {
     beats: Beat[],
     beatIndex: number,
     newDurationCode: BeatDuration,
+    dots: Dots = NO_DOTS,
   ): { beats: Beat[]; rescaleNeeded: boolean; success: boolean } {
     const beat = beats[beatIndex]
     const oldTicks = DurationReplacer.beatTicks(beat, true)
-    const newTicks = DurationReplacer.ticksOf(newDurationCode)
+    const newTicks = DurationReplacer.dottedTicks(newDurationCode, dots)
     const EPS = 1e-9
 
     if (Math.abs(newTicks - oldTicks) < EPS) {
       // Same duration — just swap the code
       const result = [...beats]
-      result[beatIndex] = { ...beat, duration: newDurationCode }
+      result[beatIndex] = { ...beat, duration: newDurationCode, ...dots }
       return { beats: result, rescaleNeeded: false, success: true }
     }
 
     if (newTicks < oldTicks) {
-      const { beats: newBeats, rescaleNeeded } = DurationReplacer.shrink(beats, beatIndex, newDurationCode)
+      const { beats: newBeats, rescaleNeeded } = DurationReplacer.shrink(
+        beats,
+        beatIndex,
+        newDurationCode,
+        dots,
+      )
       return { beats: newBeats, rescaleNeeded, success: true }
     }
 
@@ -371,7 +395,7 @@ export class DurationReplacer {
       beats: newBeats,
       rescaleNeeded,
       success,
-    } = DurationReplacer.grow(beats, beatIndex, newDurationCode)
+    } = DurationReplacer.grow(beats, beatIndex, newDurationCode, dots)
     return { beats: newBeats, rescaleNeeded, success }
   }
 

@@ -70,8 +70,11 @@ class LiveInput {
     if (gain == null) return
     this.sounding.delete(pitch)
     const now = audioGraph.getCurrentTime()
-    gain.gain.setValueAtTime(gain.gain.value, now + 0.05)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15)
+    // drop the rest of the envelope (its own note-off and release are scheduled 2 s ahead)
+    const level = gain.gain.value
+    gain.gain.cancelScheduledValues(now)
+    gain.gain.setValueAtTime(level, now)
+    gain.gain.setTargetAtTime(0, now, 0.03)
   }
 
   recordMidi(): void {

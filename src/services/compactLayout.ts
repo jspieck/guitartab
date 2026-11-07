@@ -2,7 +2,11 @@ import { redrawTrack } from './editor/layoutInvalidation'
 import Song from '../stores/song'
 import Settings from '../stores/settingsState'
 import { applyViewportPageMode, tabViewportState } from '../stores/tabViewportState'
-import { sheetFitMode } from '../stores/layoutModeState'
+import { layoutModeState, sheetFitMode } from '../stores/layoutModeState'
+import { selectionState } from '../stores/selectionState'
+import { typedEventBus } from '../utils/typedEventBus'
+import { moveSelection } from './editor/noteEntry'
+import { attachTouchGestures, dispatchLongPressMenu } from './touchGestures'
 
 /**
  * Sizes the tab sheet for the compact (phone) layout. Rows always fit the screen: zooming
@@ -24,7 +28,7 @@ let desktopSheet: DesktopSheet | null = null
 let observer: ResizeObserver | null = null
 let observed: HTMLElement | null = null
 let resizeTimer: ReturnType<typeof setTimeout> | null = null
-let detachPinch: (() => void) | null = null
+let detachGestures: (() => void) | null = null
 
 export function clampCompactZoom(zoom: number): number {
   return Math.min(COMPACT_ZOOM_MAX, Math.max(COMPACT_ZOOM_MIN, Math.round(zoom * 100) / 100))
@@ -107,22 +111,19 @@ export function pinchDistance(a: { x: number; y: number }, b: { x: number; y: nu
 }
 
 /**
- * Two-finger pinch on the tab. While the fingers move, the sheet is only scaled with CSS
- * (cheap); when they lift, the rows reflow at the new zoom.
+ * Touch gestures on the phone tab (services/touchGestures.ts). Pinch: while the fingers move
+ * the sheet is only scaled with CSS (cheap); when they lift, the rows reflow at the new zoom.
+ * Swipe moves the cursor a beat while editing; long-press opens the note menu as a sheet.
  */
-function attachPinchZoom(container: HTMLElement): () => void {
-  const pointers = new Map<number, { x: number; y: number }>()
+function attachCompactGestures(container: HTMLElement): () => void {
   let startDistance = 0
   let startZoom = 1
   let scale = 1
 
   const sheet = () => container.querySelector<HTMLElement>('#completeTab')
 
-  const onDown = (event: PointerEvent) => {
-    if (event.pointerType !== 'touch') return
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    if (pointers.size === 2) {
-      const [a, b] = [...pointers.values()]
+  return attachTouchGestures(container, {
+    pinchStart(a, b) {
       startDistance = pinchDistance(a, b)
       startZoom = tabViewportState.zoom || 1
       scale = 1
@@ -131,23 +132,15 @@ function attachPinchZoom(container: HTMLElement): () => void {
         const rect = target.getBoundingClientRect()
         target.style.transformOrigin = `${(a.x + b.x) / 2 - rect.left}px ${(a.y + b.y) / 2 - rect.top}px`
       }
-    }
-  }
-
-  const onMove = (event: PointerEvent) => {
-    if (!pointers.has(event.pointerId)) return
-    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    if (pointers.size !== 2 || startDistance === 0) return
-    const [a, b] = [...pointers.values()]
-    const zoom = clampCompactZoom(startZoom * (pinchDistance(a, b) / startDistance))
-    scale = zoom / startZoom
-    const target = sheet()
-    if (target) target.style.transform = `scale(${scale})`
-  }
-
-  const onUp = (event: PointerEvent) => {
-    if (!pointers.delete(event.pointerId)) return
-    if (pointers.size < 2 && startDistance > 0) {
+    },
+    pinchMove(a, b) {
+      if (startDistance === 0) return
+      const zoom = clampCompactZoom(startZoom * (pinchDistance(a, b) / startDistance))
+      scale = zoom / startZoom
+      const target = sheet()
+      if (target) target.style.transform = `scale(${scale})`
+    },
+    pinchEnd() {
       const target = sheet()
       if (target) {
         target.style.transform = ''
@@ -155,19 +148,17 @@ function attachPinchZoom(container: HTMLElement): () => void {
       }
       startDistance = 0
       if (Math.abs(scale - 1) > 0.02) setCompactZoom(container, startZoom * scale)
-    }
-  }
-
-  container.addEventListener('pointerdown', onDown)
-  container.addEventListener('pointermove', onMove)
-  container.addEventListener('pointerup', onUp)
-  container.addEventListener('pointercancel', onUp)
-  return () => {
-    container.removeEventListener('pointerdown', onDown)
-    container.removeEventListener('pointermove', onMove)
-    container.removeEventListener('pointerup', onUp)
-    container.removeEventListener('pointercancel', onUp)
-  }
+    },
+    swipe(direction) {
+      if (!layoutModeState.editing) return
+      // Swiping left moves on, like turning a page.
+      const before = selectionState.cursor.blockId
+      moveSelection(direction === 'left' ? 'right' : 'left')
+      const { trackId, voiceId, blockId } = selectionState.cursor
+      if (blockId !== before) typedEventBus.emit('navigation.scrollToBlock', { trackId, voiceId, blockId })
+    },
+    longPress: dispatchLongPressMenu,
+  })
 }
 
 function observe(container: HTMLElement): void {
@@ -199,17 +190,17 @@ export function syncSheetFit(mode: 'compact' | 'tablet' | 'desktop', container: 
     }
     observe(container)
     if (mode === 'compact') {
-      detachPinch ??= attachPinchZoom(container)
+      detachGestures ??= attachCompactGestures(container)
     } else {
-      detachPinch?.()
-      detachPinch = null
+      detachGestures?.()
+      detachGestures = null
     }
     fitCompactSheet(container, mode === 'compact' ? readCompactZoom() : 1)
     return
   }
 
-  detachPinch?.()
-  detachPinch = null
+  detachGestures?.()
+  detachGestures = null
   observer?.disconnect()
   observer = null
   observed = null

@@ -66,11 +66,18 @@ function migrateNoteEffects(beat: LegacyBeat): void {
   }
 }
 
+/** The Guitar Pro 3–5 import stored `tuplet: 0` on plain beats; "no tuplet" is `null`
+ * everywhere else (beaming, beat grouping and duration editing took 0 for a tuplet). */
+function migrateBeatTuplet(beat: LegacyBeat): void {
+  if (beat.tuplet != null && !(beat.tuplet > 1)) beat.tuplet = null
+}
+
 const BEAT_STEPS: ((beat: LegacyBeat) => void)[] = [
   migrateBeatText,
   migrateBeatChord,
   migrateBeatEffects,
   migrateNoteEffects,
+  migrateBeatTuplet,
 ]
 
 // Bar flag → optional field it guards.
@@ -96,6 +103,24 @@ export function migrateMeasureMeta(measureMeta: unknown): void {
       delete meta[flag]
     }
   })
+  migrateKeySignatures(measureMeta)
+}
+
+/**
+ * `keySignature` used to default to -1 (which as fifths means F major) and wasn't drawn;
+ * now it is the bar's key in fifths. A song whose bars all say -1 had no key: C.
+ */
+function migrateKeySignatures(measureMeta: (Record<string, unknown> | null)[]): void {
+  const bars = measureMeta.filter(
+    (meta): meta is Record<string, unknown> =>
+      meta != null && typeof meta === 'object' && 'keySignature' in meta,
+  )
+  const unset = bars.every((meta) => meta.keySignature === -1)
+  for (const meta of bars) {
+    const key = meta.keySignature
+    const valid = !unset && typeof key === 'number' && Number.isFinite(key)
+    meta.keySignature = valid ? Math.max(-7, Math.min(7, Math.round(key))) : 0
+  }
 }
 
 /** Migrates `Song.measures` (track → block → voice → beat) in place. */

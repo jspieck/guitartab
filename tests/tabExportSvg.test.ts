@@ -30,4 +30,22 @@ describe('composeTabExportSvg', () => {
     )
     expect(markup).not.toContain('var(--')
   })
+
+  it('inlines the style-sheet look, which a standalone SVG drawn as an image would lose', () => {
+    document.body.innerHTML = `
+      <style>.tab-string-line { stroke: rgb(1, 2, 3); stroke-width: 2px } .hidden { display: none }</style>
+      <div class="guitar-tab-view">
+        <svg class="tab-svg" width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+          <line class="tab-string-line" x1="0" x2="100" />
+          <text class="hidden">editor only</text>
+          <text class="tab-empty-hint">This track is empty.</text>
+        </svg>
+      </div>`
+
+    const markup = composeTabExportSvg()!.svgMarkup
+
+    expect(markup).toMatch(/<line[^>]*style="[^"]*stroke: rgb\(1, 2, 3\)/)
+    expect(markup).not.toContain('editor only')
+    expect(markup).not.toContain('This track is empty')
+  })
 })

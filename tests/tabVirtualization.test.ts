@@ -10,10 +10,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 describe('tab row virtualization', () => {
   it('keeps rows whose full span (lanes included) overlaps the window', () => {
     const range = { top: 500, bottom: 1000 }

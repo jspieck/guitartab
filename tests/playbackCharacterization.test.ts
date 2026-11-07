@@ -83,7 +83,8 @@ vi.mock('../src/services/editor/playbackController', () => ({
 vi.mock('../src/services/editor/navigationController', () => ({
   scrollToSvgPos: (...a: number[]) => add(`scroll ${a.join(',')}`),
 }))
-vi.mock('../src/services/editor/playbackEngineBridge', () => ({
+vi.mock('../src/stores/playbackTransportState', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/stores/playbackTransportState')>()),
   publishPlaybackPosition: (block: number, beat: number, pos: number) =>
     add(`position ${block}:${beat} ${r(pos)}`),
   publishPlaybackUiStarted: () => add('ui started'),
@@ -97,10 +98,6 @@ vi.mock('../src/stores/soundingNotesState', () => ({
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 type Playback = (typeof import('../src/services/playback'))['default']
 type SongType = (typeof import('../src/stores/song'))['default']
 type Note = import('../src/stores/song').Note
@@ -282,6 +279,24 @@ describe('playback characterization', () => {
     playback.start()
     run(6500)
     await expect(snapshot()).toMatchFileSnapshot(file('repeats'))
+  })
+
+  it('D.S. al Coda', async () => {
+    // 0 | 𝄋 1 | 2 To Coda | 3 D.S. al Coda | 𝄌 4  →  0 1 2 3 1 2 4
+    setSong(
+      [
+        { tracks: [quarters(0)] },
+        { meta: { directionTargets: ['Segno'] }, tracks: [quarters(1)] },
+        { meta: { directionJumps: ['DaCoda'] }, tracks: [quarters(2)] },
+        { meta: { directionJumps: ['DaSegnoAlCoda'] }, tracks: [quarters(3)] },
+        { meta: { directionTargets: ['Coda'] }, tracks: [quarters(4)] },
+      ],
+      [{}],
+      240,
+    )
+    playback.start()
+    run(7500)
+    await expect(snapshot()).toMatchFileSnapshot(file('ds-al-coda'))
   })
 
   it('tempo and meter changes, dotted notes and triplets', async () => {

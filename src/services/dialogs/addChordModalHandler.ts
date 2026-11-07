@@ -1,13 +1,13 @@
-import { BaseModalHandler, ModalState } from './baseModalHandler'
-import { MODALS } from './modalTypes'
+import { BaseModalHandler } from './baseModalHandler'
+import { DIALOGS } from './dialogs'
 import { Song } from '../../stores/song'
-import { requestChordDiagramRefresh } from '../editor/chordDiagramAdapter'
+import { requestChordDiagramRefresh } from '../editor/chordDiagramService'
 import { editTransaction, recordBarEdit } from '../editor/editCommands'
 import { setLibraryChord } from '../editor/songSettingsCommands'
 import type { Chord } from '../../stores/song'
 import { reactive } from 'vue'
 
-interface AddChordModalState extends ModalState {
+interface AddChordModalState {
   chordModalData: {
     chordRoot: string
     chordType: string
@@ -137,10 +137,11 @@ export class AddChordModalHandler extends BaseModalHandler {
   paddingRight = 10 as const
   paddingLeft = 30 as const
 
+  private readonly modalState: AddChordModalState
+
   constructor() {
-    super(MODALS.ADD_CHORD.id, MODALS.ADD_CHORD.name)
+    super(DIALOGS.ADD_CHORD.id, DIALOGS.ADD_CHORD.name)
     this.modalState = reactive({
-      ...this.modalState,
       chordModalData: {
         chordRoot: 'C',
         chordType: 'maj',
@@ -152,7 +153,7 @@ export class AddChordModalHandler extends BaseModalHandler {
         currentNotes: [0, 0, 0, 0, 0, 0],
         fingers: Array(6).fill(null),
       },
-    } as AddChordModalState)
+    })
   }
 
   getStringY = (index: number) => {
@@ -221,7 +222,8 @@ export class AddChordModalHandler extends BaseModalHandler {
         this.modalState.chordProperties.currentNotes,
         this.modalState.chordProperties.capo,
       ),
-      fingers: this.modalState.chordProperties.fingers,
+      // Unfingered strings stay null, as this dialog always stored them.
+      fingers: this.modalState.chordProperties.fingers as number[],
       display: true,
     }
 
@@ -265,7 +267,7 @@ export class AddChordModalHandler extends BaseModalHandler {
   }
 
   public getModalState(): AddChordModalState {
-    return this.modalState as AddChordModalState
+    return this.modalState
   }
 
   /**
@@ -303,8 +305,6 @@ export class AddChordModalHandler extends BaseModalHandler {
       .map((fret) => (fret >= 0 ? fret - (chord.capo - 1) : fret))
     chordProperties.fingers = [...(chord.fingers ?? [])]
   }
-
-  public setupModalContent(): void {}
 
   public updateChordRoot(root: string): void {
     this.modalState.chordModalData.chordRoot = root

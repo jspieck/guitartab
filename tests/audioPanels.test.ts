@@ -1,10 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import {
-  COMPRESSOR_PRESETS,
-  CompressorModalHandler,
-  compressorCurve,
-} from '../src/services/dialogs/compressorModalHandler'
-import { EqualizerModalHandler, eqTypeUsesGain } from '../src/services/dialogs/equalizerModalHandler'
+import { COMPRESSOR_PRESETS, MasterCompressor, compressorCurve } from '../src/services/audio/masterCompressor'
+import { MasterEqualizer, eqTypeUsesGain } from '../src/services/audio/masterEqualizer'
+import { EqualizerGraph } from '../src/components/audio/equalizerGraph'
 import { faderPositionToGain, formatGainDb, gainToFaderPosition } from '../src/services/drumMixer'
 
 // Legacy singletons that need a browser; see tests/helpers/legacyMocks.ts.
@@ -15,10 +12,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 function fakeParam(value = 0) {
   return {
     value,
@@ -70,9 +63,9 @@ describe('compressor transfer curve', () => {
   })
 })
 
-describe('CompressorModalHandler', () => {
+describe('MasterCompressor', () => {
   it('applies settings to the node in the units WebAudio expects', () => {
-    const handler = new CompressorModalHandler()
+    const handler = new MasterCompressor()
     const node = fakeCompressorNode()
     handler.attach(node as unknown as DynamicsCompressorNode)
     const defaults = COMPRESSOR_PRESETS[0].settings
@@ -87,7 +80,7 @@ describe('CompressorModalHandler', () => {
   })
 
   it('bypass makes the node transparent and keeps the dialled-in settings', () => {
-    const handler = new CompressorModalHandler()
+    const handler = new MasterCompressor()
     const node = fakeCompressorNode()
     handler.attach(node as unknown as DynamicsCompressorNode)
     handler.update({ threshold: -24, ratio: 6 })
@@ -101,7 +94,7 @@ describe('CompressorModalHandler', () => {
   })
 
   it('recognises presets', () => {
-    const handler = new CompressorModalHandler()
+    const handler = new MasterCompressor()
     handler.update(COMPRESSOR_PRESETS[2].settings)
     expect(handler.matchingPreset()).toBe(COMPRESSOR_PRESETS[2].name)
     handler.update({ ratio: 7 })
@@ -109,9 +102,9 @@ describe('CompressorModalHandler', () => {
   })
 })
 
-describe('EqualizerModalHandler', () => {
+describe('MasterEqualizer and its graph', () => {
   it('keeps the wired filter nodes when the panel attaches to the same context', () => {
-    const handler = new EqualizerModalHandler()
+    const handler = new MasterEqualizer()
     const context = fakeAudioContext() as unknown as AudioContext
     handler.setAudioContext(context)
     const wired = [...handler.equalizerNodes]
@@ -121,7 +114,7 @@ describe('EqualizerModalHandler', () => {
   })
 
   it('pushes band edits to the filter and turns disabled bands into all-pass', () => {
-    const handler = new EqualizerModalHandler()
+    const handler = new MasterEqualizer()
     handler.setAudioContext(fakeAudioContext() as unknown as AudioContext)
     handler.setBand(1, { type: 'peaking', frequency: 1000, gain: 30, q: 2 })
     const node = handler.equalizerNodes[1]
@@ -134,7 +127,7 @@ describe('EqualizerModalHandler', () => {
   })
 
   it('maps frequency and gain to plot coordinates and back', () => {
-    const handler = new EqualizerModalHandler()
+    const handler = new EqualizerGraph()
     expect(handler.frequencyToXPos(20)).toBeCloseTo(0)
     expect(handler.frequencyToXPos(20000)).toBeCloseTo(handler.PLOT_WIDTH)
     expect(handler.xPosToFrequency(handler.frequencyToXPos(1234))).toBeCloseTo(1234)

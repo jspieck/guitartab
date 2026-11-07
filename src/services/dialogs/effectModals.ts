@@ -1,11 +1,24 @@
 import { reactive } from 'vue'
 import { BaseModalHandler } from './baseModalHandler'
-import Song, { type Beat, type Grace, type Marker, type Note, type Stroke } from '../../stores/song'
+import Song, {
+  type Beat,
+  type DirectionJump,
+  type DirectionTarget,
+  type Grace,
+  type Marker,
+  type Note,
+  type Stroke,
+} from '../../stores/song'
+import { DIRECTION_JUMPS, DIRECTION_TARGETS } from '../../utils/directions'
 import { toggleNoteEffect } from '../editor/effectToggles'
 import { recordBarEdit } from '../editor/editCommands'
 import { requestBlocksRender } from '../editor/renderCommands'
 import { classicalNotation } from '../notation/classicalNotationAdapter'
 import { clampTempo } from '../../utils/tempo'
+import { keyChanges, keyFifths } from '../../utils/keySignature'
+import { redrawTrack } from '../editor/layoutInvalidation'
+import { recordTrackEdit } from '../editor/songSettingsCommands'
+import { clefAt, setClefFrom, type Clef } from '../../utils/clefs'
 
 /** The bars an edit dialog changes, for the undo snapshot and the re-render. */
 interface EditScope {
@@ -31,6 +44,8 @@ export interface EditModalConfig<TParams, TForm extends object> {
   write: (form: TForm, params: TParams) => void | boolean
   /** Runs after the edit and after each undo/redo of it. */
   afterChange?: (params: TParams) => void
+  /** What the undo step snapshots: the scope's bars (default) or the scope's track settings. */
+  undo?: 'bars' | 'track'
 }
 
 /** Generic handler for the dialogs that edit beats, notes or bar settings. */
@@ -50,16 +65,22 @@ export class EditModalHandler<TParams, TForm extends object> extends BaseModalHa
     this.showModal()
   }
 
-  protected setupModalContent(): void {
-    // The Vue component binds to `form`.
-  }
-
   /** Applies the form as one undo step and closes the dialog. */
   apply(): void {
     const params = this.params
     if (params == null) return
     const { trackId, voiceId, blockIds } = this.config.scope(params)
     const afterChange = this.config.afterChange
+    if (this.config.undo === 'track') {
+      recordTrackEdit(
+        this.config.label,
+        trackId,
+        () => this.config.write(this.form, params),
+        afterChange ? () => afterChange(params) : undefined,
+      )
+      this.closeModal()
+      return
+    }
     recordBarEdit(
       this.config.label,
       {
@@ -74,7 +95,7 @@ export class EditModalHandler<TParams, TForm extends object> extends BaseModalHa
   }
 }
 
-/** A handler class (constructed without arguments, as `modalTypes` expects) for a config. */
+/** A handler class (constructed without arguments, as the registry expects) for a config. */
 export function defineEditModal<TParams, TForm extends object>(config: EditModalConfig<TParams, TForm>) {
   return class extends EditModalHandler<TParams, TForm> {
     constructor() {
@@ -195,6 +216,32 @@ export const RepeatAlternativeModalHandler = defineEditModal<PositionParams, { e
   },
 })
 
+/** Navigation signs on a bar; an empty form removes them. */
+export const DirectionModalHandler = defineEditModal<
+  PositionParams,
+  { targets: DirectionTarget[]; jumps: DirectionJump[] }
+>({
+  id: 'directionModal',
+  name: 'Navigation signs',
+  label: 'Navigation signs',
+  defaults: () => ({ targets: [], jumps: [] }),
+  read: ({ blockId }) => {
+    const meta = Song.measureMeta[blockId]
+    return { targets: [...(meta.directionTargets ?? [])], jumps: [...(meta.directionJumps ?? [])] }
+  },
+  scope: barScope,
+  write: ({ targets, jumps }, { blockId }) => {
+    const meta = Song.measureMeta[blockId]
+    // (in the canonical order, whatever order the boxes were ticked in)
+    const orderedTargets = DIRECTION_TARGETS.filter((target) => targets.includes(target))
+    const orderedJumps = DIRECTION_JUMPS.filter((jump) => jumps.includes(jump))
+    if (orderedTargets.length > 0) meta.directionTargets = orderedTargets
+    else delete meta.directionTargets
+    if (orderedJumps.length > 0) meta.directionJumps = orderedJumps
+    else delete meta.directionJumps
+  },
+})
+
 export const TempoModalHandler = defineEditModal<PositionParams, { bpm: number }>({
   id: 'tempoModal',
   name: 'Tempo',
@@ -205,6 +252,61 @@ export const TempoModalHandler = defineEditModal<PositionParams, { bpm: number }
   write: ({ bpm }, { blockId }) => {
     Song.measureMeta[blockId].bpm = clampTempo(Number(bpm))
   },
+})
+
+/**
+ * The key from the cursor's bar up to the next bar whose key differs (a key change), in every
+ * track (the key is bar data). Row starts get wider, so the track is laid out again.
+ */
+function keyRun(blockId: number): number[] {
+  const bars = Song.measureMeta
+  const blockIds = [blockId]
+  for (let next = blockId + 1; next < bars.length && !keyChanges(bars[next], bars[next - 1]); next += 1) {
+    blockIds.push(next)
+  }
+  return blockIds
+}
+
+export const KeySignatureModalHandler = defineEditModal<PositionParams, { fifths: number; minor: boolean }>({
+  id: 'keySignatureModal',
+  name: 'Key signature',
+  label: 'Key signature',
+  defaults: () => ({ fifths: 0, minor: false }),
+  read: ({ blockId }) => ({
+    fifths: keyFifths(Song.measureMeta[blockId]),
+    minor: Song.measureMeta[blockId].keyMinor === true,
+  }),
+  scope: ({ trackId, blockId, voiceId }) => ({ trackId, voiceId, blockIds: keyRun(blockId) }),
+  write: ({ fifths, minor }, { blockId }) => {
+    for (const id of keyRun(blockId)) {
+      const meta = Song.measureMeta[id]
+      meta.keySignature = Math.max(-7, Math.min(7, Math.round(Number(fifths))))
+      if (minor) meta.keyMinor = true
+      else delete meta.keyMinor
+    }
+  },
+  afterChange: () => redrawTrack(Song.currentTrackId, Song.currentVoiceId),
+})
+
+/**
+ * The staff's clef from the cursor's bar on, in the cursor's track (up to its next clef
+ * change). Choosing the clef of the bar before removes the change.
+ */
+export const ClefModalHandler = defineEditModal<PositionParams, { clef: Clef }>({
+  id: 'clefModal',
+  name: 'Clef',
+  label: 'Clef',
+  undo: 'track',
+  defaults: () => ({ clef: 'treble' }),
+  read: ({ trackId, blockId }) => {
+    const clef = clefAt(Song.tracks[trackId], blockId, false)
+    return clef === 'percussion' ? {} : { clef }
+  },
+  scope: barScope,
+  write: ({ clef }, { trackId, blockId }) => {
+    setClefFrom(Song.tracks[trackId], blockId, clef)
+  },
+  afterChange: ({ trackId, voiceId }) => redrawTrack(trackId, voiceId),
 })
 
 export const StrokeModalHandler = defineEditModal<SelectionParams, Stroke>({

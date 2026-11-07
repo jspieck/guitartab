@@ -1,6 +1,7 @@
 import type { TabBeat, TabNoteData } from '../types/tab'
-import { beatHasNotes, getBeamCount } from './durationUtils'
+import { beatShowsRhythm, getBeamCount } from './durationUtils'
 import { beatHasText } from '../services/songMigrations'
+import { beatHasLyrics } from './lyrics'
 
 /**
  * Vertical lane layout of one tab row.
@@ -12,6 +13,7 @@ import { beatHasText } from '../services/songMigrations'
  */
 
 export type AboveLaneId =
+  | 'rhythm'
   | 'articulation'
   | 'bend'
   | 'trill'
@@ -24,10 +26,11 @@ export type AboveLaneId =
   | 'volta'
   | 'text'
   | 'marker'
+  | 'direction'
   | 'tempo'
   | 'chord'
 
-export type BelowLaneId = 'tuplet' | 'dynamic'
+export type BelowLaneId = 'tuplet' | 'dynamic' | 'lyrics'
 
 export interface LaneBox {
   /** Row-local y of the lane's top edge. */
@@ -49,6 +52,8 @@ export interface RowLanes {
   articulationLine: Record<string, number>
   /** Baseline offset inside the whammy lane where a tremolo value of 0 sits. */
   whammyZero: number
+  /** Verses in the lyrics lane (one line each, verse 1 on top). */
+  lyricVerses: number
 }
 
 export interface LaneBeatInput {
@@ -59,11 +64,15 @@ export interface LaneBeatInput {
 
 export interface LaneBlockInput {
   blockId: number
+  /** Rhythm on stems, first voice of a two-voice bar: stems and beams above the strings. */
+  stemsUp?: boolean
   beats: LaneBeatInput[]
   meta:
     | {
         bpm?: number
         marker?: unknown
+        directionTargets?: unknown[]
+        directionJumps?: unknown[]
         repeatAlternative?: number
       }
     | undefined
@@ -83,10 +92,21 @@ export function getRhythmBandHeight(beamLevels: number): number {
   return beamLevels <= 0 ? 17 : 27 + (beamLevels - 1) * 6
 }
 
+/** Row-local y of the primary beam when stems go up (above the measure-number strip). */
+export const STEMS_UP_BEAM_Y = -24
+
+/** Lane above the strip for stems going up, for a row whose deepest such note has `beamLevels`. */
+function stemsUpLaneHeight(beamLevels: number): number {
+  // beams stack 6px further up per level; flags reach 10px beyond the last one
+  const reach = -STEMS_UP_BEAM_Y + Math.max(0, beamLevels - 1) * 6 + (beamLevels > 0 ? 10 : 0)
+  return Math.max(4, reach - MEASURE_NUMBER_STRIP + 2)
+}
+
 /** Rhythm band used when the row content is unknown (deepest supported level). */
 export const RHYTHM_BAND_HEIGHT = getRhythmBandHeight(4)
 
 export const LANE_HEIGHTS: Record<AboveLaneId | BelowLaneId, number> = {
+  rhythm: 14,
   articulation: 14,
   bend: 16,
   trill: 14,
@@ -99,14 +119,17 @@ export const LANE_HEIGHTS: Record<AboveLaneId | BelowLaneId, number> = {
   volta: 20,
   text: 15,
   marker: 20,
+  direction: 20,
   tempo: 18,
   chord: 100,
   tuplet: 22,
   dynamic: 20,
+  lyrics: 15,
 }
 
 /** Bottom-to-top order of the lanes above the strings. */
 const ABOVE_ORDER: AboveLaneId[] = [
+  'rhythm',
   'bend',
   'articulation',
   'trill',
@@ -119,11 +142,12 @@ const ABOVE_ORDER: AboveLaneId[] = [
   'volta',
   'text',
   'marker',
+  'direction',
   'tempo',
   'chord',
 ]
 
-const BELOW_ORDER: BelowLaneId[] = ['tuplet', 'dynamic']
+const BELOW_ORDER: BelowLaneId[] = ['tuplet', 'dynamic', 'lyrics']
 
 /** Articulation tokens, in the vertical order they stack (nearest to the strings first). */
 export const ARTICULATION_TOKENS: Array<[keyof TabNoteData & string, string]> = [
@@ -214,11 +238,25 @@ interface RowScan {
   whammyUp: number
   whammyDown: number
   beamLevels: number
+  /** -1 while no bar of the row has stems going up */
+  upBeamLevels: number
+  lyricVerses: number
 }
 
-function scanBeat(scan: RowScan, key: string, beat: TabBeat | undefined, centerX: number): void {
+function scanBeat(
+  scan: RowScan,
+  key: string,
+  beat: TabBeat | undefined,
+  centerX: number,
+  stemsUp: boolean,
+): void {
   const notes = notesOf(beat)
-  if (beat && beatHasNotes(beat)) {
+  if (stemsUp) {
+    scan.upBeamLevels = Math.max(
+      scan.upBeamLevels,
+      beat && beatShowsRhythm(beat) ? getBeamCount(beat.duration) : 0,
+    )
+  } else if (beat && beatShowsRhythm(beat)) {
     scan.beamLevels = Math.max(scan.beamLevels, getBeamCount(beat.duration))
   }
 
@@ -255,6 +293,7 @@ function scanBeatAnnotations(scan: RowScan, key: string, beat: TabBeat | undefin
   }
   if (beat?.dynamicPresent && beat.dynamic) scan.used.add('dynamic')
   if (beat?.tuplet) scan.used.add('tuplet')
+  if (beatHasLyrics(beat)) scan.lyricVerses = Math.max(scan.lyricVerses, beat!.lyrics!.length)
 }
 
 function scanRow(input: RowLaneInput): RowScan {
@@ -267,13 +306,16 @@ function scanRow(input: RowLaneInput): RowScan {
     whammyUp: 0,
     whammyDown: 0,
     beamLevels: 0,
+    upBeamLevels: -1,
+    lyricVerses: 0,
   }
   for (const block of input.blocks) {
     if (block.meta?.bpm != null) scan.used.add('tempo')
     if (block.meta?.marker != null) scan.used.add('marker')
+    if (block.meta?.directionTargets?.length || block.meta?.directionJumps?.length) scan.used.add('direction')
     if (block.meta?.repeatAlternative != null) scan.used.add('volta')
     block.beats.forEach(({ beat, centerX }, beatIndex) => {
-      scanBeat(scan, beatKey(block.blockId, beatIndex), beat, centerX)
+      scanBeat(scan, beatKey(block.blockId, beatIndex), beat, centerX, block.stemsUp === true)
     })
   }
   return scan
@@ -289,15 +331,21 @@ export function computeRowLanes(input: RowLaneInput): RowLanes {
     whammyUp,
     whammyDown,
     beamLevels,
+    upBeamLevels,
+    lyricVerses,
   } = scanRow(input)
   const text = assignLines(textItems)
   const chords = assignLines(chordItems)
   if (articulationLines > 0) used.add('articulation')
   if (text.count > 0) used.add('text')
   if (chords.count > 0) used.add('chord')
+  if (lyricVerses > 0) used.add('lyrics')
+  if (upBeamLevels >= 0) used.add('rhythm')
 
   const heightOf = (lane: AboveLaneId | BelowLaneId): number => {
     switch (lane) {
+      case 'rhythm':
+        return stemsUpLaneHeight(upBeamLevels)
       case 'articulation':
         return LANE_HEIGHTS.articulation * articulationLines
       case 'text':
@@ -306,6 +354,8 @@ export function computeRowLanes(input: RowLaneInput): RowLanes {
         return LANE_HEIGHTS.chord * chords.count
       case 'whammy':
         return LANE_HEIGHTS.whammy + whammyUp + whammyDown
+      case 'lyrics':
+        return LANE_HEIGHTS.lyrics * lyricVerses
       default:
         return LANE_HEIGHTS[lane]
     }
@@ -339,5 +389,6 @@ export function computeRowLanes(input: RowLaneInput): RowLanes {
     chordLine: chords.lines,
     articulationLine,
     whammyZero: LANE_HEIGHTS.whammy / 2 + whammyUp,
+    lyricVerses,
   }
 }

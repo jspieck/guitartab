@@ -1,7 +1,7 @@
 import Song, { type Beat, type Note } from '../../stores/song'
 import Duration from '../../utils/duration'
 import { samplePlayer } from '../audio/samplePlayer'
-import { nextBeatRef, nextFretOnString } from './songCursor'
+import { nextBeatRef } from './songCursor'
 import { spw } from './tempo'
 
 /**
@@ -17,23 +17,25 @@ function isAudible(trackId: number): boolean {
   return !own.mute && (!anySolo || own.solo) && own.volume >= 5
 }
 
-/** Ghost notes play at half volume (only themselves, not the notes after them in the chord). */
+/**
+ * Ghost notes play softer (only themselves, not the other notes of the chord); the sample
+ * player also makes them short and percussive (`ghostShape`), which is what keeps them audible.
+ */
 function volumeOf(note: Note): number {
-  return note.ghost ? 0.5 : 1.0
+  return note.ghost ? 0.6 : 1.0
 }
 
-/** One note of a beat, at `start` (audio clock) for `duration` seconds. */
+/** One note of a beat, at `start` (audio clock) for `duration` seconds; `nextBeat` is the beat played after it. */
 function playNote(
   trackId: number,
-  blockId: number,
   voiceId: number,
-  beatId: number,
   string: number,
   beat: Beat,
   note: Note,
   startIn: number,
   durationIn: number,
   volume: number,
+  nextBeat: Beat | null,
 ): void {
   let start = startIn
   let duration = durationIn
@@ -47,7 +49,8 @@ function playNote(
     duration -= delay * order
   }
 
-  const nextFret = nextFretOnString(Song, trackId, blockId, voiceId, beatId, string)
+  // where a slide goes
+  const nextFret = nextBeat?.notes?.[string]?.fret ?? null
   const instr = Song.playBackInstrument[trackId].instrument
   const { fret } = note
   const play = (playFret: number, at: number, length: number, effects: Note | null) =>
@@ -78,9 +81,22 @@ function playNote(
   play(fret, start + graceLength, duration, note)
 }
 
+function beatAt(
+  trackId: number,
+  voiceId: number,
+  ref: { blockId: number; beatId: number } | null,
+): Beat | null {
+  if (ref == null) return null
+  return Song.measures[trackId][ref.blockId]?.[voiceId]?.[ref.beatId] ?? null
+}
+
 /** An object, so tests can spy on what gets scheduled. */
 export const notePlayback = {
-  /** Plays the notes of a beat at `start` (audio clock) for `duration` seconds. */
+  /**
+   * Plays the notes of a beat at `start` (audio clock) for `duration` seconds. `following` is
+   * the beat played after it (after a repeat or D.S. not the next one in the bar order; null
+   * when none follows); without it, the next beat in bar order.
+   */
   playBeat(
     trackId: number,
     blockId: number,
@@ -89,12 +105,13 @@ export const notePlayback = {
     duration: number,
     start: number,
     beat: Beat,
+    following?: { blockId: number; beatId: number } | null,
   ): void {
     if (!isAudible(trackId)) return
     const chord = beat.notes
     // a tie into the next beat lengthens the note (only one tie: longer chains would outlast the sample)
-    const next = nextBeatRef(Song, trackId, blockId, voiceId, beatId)
-    const nextBeat = next != null ? Song.measures[trackId][next.blockId][voiceId][next.beatId] : null
+    const next = following === undefined ? nextBeatRef(Song, trackId, blockId, voiceId, beatId) : following
+    const nextBeat = beatAt(trackId, voiceId, next)
     const tiedLength =
       nextBeat != null ? (Duration.getDurationOfNote(nextBeat, false) / 64) * spw(Song.bpm) : 0
 
@@ -102,7 +119,7 @@ export const notePlayback = {
       const note = chord[string]
       if (note == null || note.tied) continue
       const length = nextBeat?.notes[string]?.tied ? duration + tiedLength : duration
-      playNote(trackId, blockId, voiceId, beatId, string, beat, note, start, length, volumeOf(note))
+      playNote(trackId, voiceId, string, beat, note, start, length, volumeOf(note), nextBeat)
     }
     // notes recorded from MIDI that fit no string
     for (const note of beat.otherNotes ?? []) {

@@ -1,74 +1,29 @@
 import { shallowRef } from 'vue'
-import { modalManager } from './modalManager'
+import { hideDialog, isDialogOpen, showDialog } from '../../stores/dialogState'
+import type { DialogDefinition } from './dialogs'
 
-export interface ModalState {
-  bound: boolean
-  modalId: string
-  modalName: string
-  // each dialog keeps its own fields here (typing them per dialog: BaseModalHandler<State>)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any
-}
-
+/**
+ * What a dialog reads and writes. `openModal` fills the handler's reactive state from the
+ * song and shows the window; the Vue component renders that state (no DOM access here).
+ */
 export abstract class BaseModalHandler {
-  protected modalState: ModalState
-
-  constructor(modalId: string, modalName: string) {
-    this.modalState = {
-      bound: false,
-      modalId,
-      modalName,
-    }
-  }
+  constructor(
+    readonly modalId: string,
+    readonly modalName: string,
+  ) {}
 
   abstract openModal(params?: unknown): void
 
-  protected abstract setupModalContent(): void
-
   protected showModal() {
-    this.initializeIfNeeded(() => {
-      this.setupModalContent()
-    })
-    modalManager.displayModal(this.modalState.modalId, this.modalState.modalName)
+    showDialog(this.modalId, this.modalName)
   }
 
   public closeModal() {
-    modalManager.closeModal(this.modalState.modalId)
+    hideDialog(this.modalId)
   }
 
-  protected initializeIfNeeded(initFunction: () => void) {
-    if (!this.modalState.bound) {
-      initFunction()
-      this.modalState.bound = true
-    }
-  }
-
-  protected setupSelectButton(buttonId: string, onSelect: () => void) {
-    const button = document.getElementById(buttonId)
-    if (button) {
-      button.onclick = () => {
-        onSelect()
-        this.closeModal()
-      }
-    }
-  }
-
-  protected setupSelect(selectId: string, onChange: (value: string) => void) {
-    const select = document.getElementById(selectId) as HTMLSelectElement
-    if (select) {
-      select.onchange = () => {
-        const value = select.options[select.selectedIndex].value
-        onChange(value)
-      }
-    }
-  }
-
-  get modalId() {
-    return this.modalState.modalId
-  }
-
-  get modalName() {
-    return this.modalState.modalName
+  get isOpen(): boolean {
+    return isDialogOpen(this.modalId)
   }
 }
 
@@ -83,15 +38,13 @@ export class PlainModalHandler<TParams = undefined> extends BaseModalHandler {
     this.params.value = params
     this.showModal()
   }
-
-  protected setupModalContent(): void {}
 }
 
-/** A handler class (constructed without arguments, as `modalTypes` expects) for a plain dialog. */
-export function definePlainModal<TParams = undefined>(id: string, name: string) {
+/** A handler class (constructed without arguments, as the registry expects) for a plain dialog. */
+export function definePlainModal<TParams = undefined>(dialog: DialogDefinition) {
   return class extends PlainModalHandler<TParams> {
     constructor() {
-      super(id, name)
+      super(dialog.id, dialog.name)
     }
   }
 }

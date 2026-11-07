@@ -5,7 +5,13 @@ import {
   getMeasureEndPositionInRow,
   getRowContentWidthFromLayout,
 } from './beatPositionInRow'
-import { getBeatXOffset, getDisplayWidth, getMeasureXOffset, TAB_CONSTANTS } from './tabLayout'
+import {
+  getBeatXOffset,
+  getDisplayWidth,
+  getMeasureXOffset,
+  renderedMeasureWidth,
+  TAB_CONSTANTS,
+} from './tabLayout'
 
 export interface OverlayPosition {
   trackId: number
@@ -65,7 +71,7 @@ function getBeatXInRow(
   rowData: Pick<RenderedTabRow, 'startBlockId' | 'measures'>,
   blockId: number,
   beatId: number,
-  isFirstRow: boolean,
+  labelGutter: boolean,
   getMeasureContentPadding: (blockId: number) => number,
 ): number | null {
   const measureIndex = blockId - rowData.startBlockId
@@ -79,7 +85,7 @@ function getBeatXInRow(
   }
 
   const measure = rowData.measures[measureIndex]
-  const measureX = getMeasureXOffset(rowData.measures, measureIndex, isFirstRow)
+  const measureX = getMeasureXOffset(rowData.measures, measureIndex, labelGutter)
   const beatX = getBeatXOffset(measure.data, beatId, getMeasureContentPadding(blockId))
   return measureX + beatX
 }
@@ -89,7 +95,7 @@ function getMeasureEndXInRow(
   voiceId: number,
   rowData: Pick<RenderedTabRow, 'startBlockId' | 'measures'>,
   blockId: number,
-  isFirstRow: boolean,
+  labelGutter: boolean,
 ): number | null {
   const measureIndex = blockId - rowData.startBlockId
   if (measureIndex < 0 || measureIndex >= rowData.measures.length) {
@@ -101,9 +107,9 @@ function getMeasureEndXInRow(
     return layoutEnd
   }
 
-  const measureX = getMeasureXOffset(rowData.measures, measureIndex, isFirstRow)
+  const measureX = getMeasureXOffset(rowData.measures, measureIndex, labelGutter)
   const measure = rowData.measures[measureIndex]
-  return measureX + (measure.width || TAB_CONSTANTS.MEASURE_WIDTH)
+  return measureX + renderedMeasureWidth(measure)
 }
 
 function getRowContentWidth(
@@ -111,16 +117,16 @@ function getRowContentWidth(
   voiceId: number,
   rowId: number,
   rowData: Pick<RenderedTabRow, 'measures'>,
-  isFirstRow: boolean,
+  labelGutter: boolean,
 ): number {
   const layoutWidth = getRowContentWidthFromLayout(trackId, voiceId, rowId)
   if (layoutWidth != null) {
     return layoutWidth
   }
 
-  let width = isFirstRow ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
+  let width = labelGutter ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
   for (const measure of rowData.measures) {
-    width += measure.width || TAB_CONSTANTS.MEASURE_WIDTH
+    width += renderedMeasureWidth(measure)
   }
   return width
 }
@@ -130,7 +136,7 @@ export function computeOverlayRectForRow(
   voiceId: number,
   rowId: number,
   rowData: Pick<RenderedTabRow, 'startBlockId' | 'measures'>,
-  isFirstRow: boolean,
+  labelGutter: boolean,
   range: NormalizedOverlayRange,
   beatCountInEndBlock: number,
   getMeasureContentPadding: (blockId: number) => number,
@@ -153,7 +159,7 @@ export function computeOverlayRectForRow(
           rowData,
           blockIdStart,
           beatIdStart,
-          isFirstRow,
+          labelGutter,
           getMeasureContentPadding,
         )
       : 0
@@ -165,7 +171,7 @@ export function computeOverlayRectForRow(
   let xPosEnd: number | null
   if (rowId === rowEnd) {
     if (beatCountInEndBlock === beatIdEnd + 1) {
-      xPosEnd = getMeasureEndXInRow(trackId, voiceId, rowData, blockIdEnd, isFirstRow)
+      xPosEnd = getMeasureEndXInRow(trackId, voiceId, rowData, blockIdEnd, labelGutter)
     } else {
       xPosEnd = getBeatXInRow(
         trackId,
@@ -173,12 +179,12 @@ export function computeOverlayRectForRow(
         rowData,
         blockIdEnd,
         beatIdEnd + 1,
-        isFirstRow,
+        labelGutter,
         getMeasureContentPadding,
       )
     }
   } else {
-    xPosEnd = getRowContentWidth(trackId, voiceId, rowId, rowData, isFirstRow)
+    xPosEnd = getRowContentWidth(trackId, voiceId, rowId, rowData, labelGutter)
   }
 
   if (xPosEnd == null) {

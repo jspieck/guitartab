@@ -29,14 +29,39 @@
       </button>
     </div>
 
-    <label v-if="isDrumTrack" class="note-pad__drums">
-      <span>Drum</span>
-      <select id="touchDrumSelect" :value="currentFret ?? ''" @change="placeFret(Number(($event.target as HTMLSelectElement).value))">
-        <option value="" disabled>Choose a drum…</option>
-        <option v-for="piece in drumPieces" :key="piece.note" :value="piece.note">{{ piece.name }}</option>
-      </select>
-    </label>
-    <div v-else class="note-pad__frets" role="group" aria-label="Fret">
+    <!-- Drum tracks: a pad per line of the drum map (top line first); a tap turns the hit on or off -->
+    <div v-if="isDrumTrack" id="touchDrumPads" class="note-pad__drums" role="group" aria-label="Drums">
+      <button
+        v-for="midi in drumPads"
+        :key="midi"
+        type="button"
+        class="note-pad__drum"
+        :class="{ 'is-current': beatDrums.has(midi) }"
+        :aria-pressed="beatDrums.has(midi)"
+        :data-drum="midi"
+        @click="toggleDrumAtCursor(midi)"
+      >
+        <span class="note-pad__drum-label">{{ drumLabel(midi) }}</span>
+        <span class="note-pad__drum-name">{{ drumName(midi) }}</span>
+      </button>
+    </div>
+    <div v-if="!isDrumTrack" class="note-pad__mode" role="group" aria-label="Fret input">
+      <button type="button" :class="{ 'is-current': !useFretboard }" :aria-pressed="!useFretboard" @click="Settings.touchFretboard = false">Frets</button>
+      <button type="button" :class="{ 'is-current': useFretboard }" :aria-pressed="useFretboard" @click="Settings.touchFretboard = true">Fretboard</button>
+    </div>
+    <Fretboard
+      v-if="!isDrumTrack && useFretboard"
+      id="touchFretboard"
+      class="note-pad__fretboard"
+      input
+      :num-strings="numStrings"
+      :capo="capo"
+      :marks="beatMarks"
+      :selected-string="currentSelection?.stringIndex ?? null"
+      :focus-neck-fret="focusNeckFret"
+      @pick="placeOnString"
+    />
+    <div v-else-if="!isDrumTrack" class="note-pad__frets" role="group" aria-label="Fret">
       <button
         v-for="fret in visibleFrets"
         :key="fret"
@@ -46,7 +71,7 @@
         :data-fret="fret"
         @click="placeFret(fret)"
       >{{ fret }}</button>
-      <button type="button" class="note-pad__fret note-pad__page" :aria-label="highFrets ? 'Frets 0 to 13' : 'Frets 12 to 24'" @click="highFrets = !highFrets">
+      <button type="button" class="note-pad__fret note-pad__page" :aria-label="highFrets ? 'Show frets 0–13' : 'Show frets 12–24'" @click="highFrets = !highFrets">
         {{ highFrets ? '0–13' : '12–24' }}
       </button>
     </div>
@@ -60,9 +85,9 @@
         :aria-label="length.label"
         :data-length="length.code"
         @click="setLength(length.code)"
-      ><span class="note-pad__glyph">{{ length.glyph }}</span></button>
+      ><AppIcon :name="length.icon" :size="26" /></button>
       <button type="button" :class="{ 'is-current': isDotted }" aria-label="Dotted" @click="toggleDot">
-        <span class="note-pad__glyph">♩.</span>
+        <AppIcon name="dotted" :size="26" />
       </button>
     </div>
   </section>
@@ -71,8 +96,9 @@
 <script setup lang="ts">
 import { selectionState } from '../../stores/selectionState'
 import { computed, onMounted, ref } from 'vue'
-import { deleteSelectedNotes, hasExplicitNoteSelection, moveSelection, placeNote } from '../../services/editor/noteEntry'
-import { noteToDrum } from '../../services/audio/drumKit'
+import { deleteSelectedNotes, hasExplicitNoteSelection, moveSelection, placeNote, placeNoteOnString } from '../../services/editor/noteEntry'
+import { toggleDrumAtCursor } from '../../services/editor/drumTracks'
+import { drumLabel, drumName } from '../../utils/drumMap'
 import { useUndoRedo } from '../../composables/useUndoRedo'
 import { useSongData } from '../../composables/useSongData'
 import { useTabSelection } from '../../composables/useTabSelection'
@@ -81,14 +107,21 @@ import { noteLengthSpecialSelect } from '../../services/editor/durationModifierC
 import { setCompactEditing } from '../../stores/layoutModeState'
 import { typedEventBus } from '../../utils/typedEventBus'
 import type { NoteLengthCode } from '../../types/tab'
+import { formatCursorPosition } from '../../utils/positionLabel'
+import Settings from '../../stores/settingsState'
+import type { FretboardMark } from '../../utils/fretboard'
+import Fretboard from '../Fretboard.vue'
+import AppIcon from '../AppIcon.vue'
+import type { IconName } from '../../assets/icons/icons'
 
-const LENGTHS: { code: NoteLengthCode, glyph: string, label: string }[] = [
-  { code: 'w', glyph: '𝅝', label: 'Whole note' },
-  { code: 'h', glyph: '𝅗𝅥', label: 'Half note' },
-  { code: 'q', glyph: '♩', label: 'Quarter note' },
-  { code: 'e', glyph: '♪', label: 'Eighth note' },
-  { code: 's', glyph: '𝅘𝅥𝅯', label: 'Sixteenth note' },
-  { code: 't', glyph: '𝅘𝅥𝅰', label: 'Thirty-second note' },
+// Icons, not Unicode note glyphs: those fall back to colour emoji fonts on some systems.
+const LENGTHS: { code: NoteLengthCode, icon: IconName, label: string }[] = [
+  { code: 'w', icon: 'note-whole', label: 'Whole note' },
+  { code: 'h', icon: 'note-half', label: 'Half note' },
+  { code: 'q', icon: 'note-quarter', label: 'Quarter note' },
+  { code: 'e', icon: 'note-eighth', label: 'Eighth note' },
+  { code: 's', icon: 'note-16th', label: 'Sixteenth note' },
+  { code: 't', icon: 'note-32nd', label: 'Thirty-second note' },
 ]
 const LOW_FRETS = Array.from({ length: 14 }, (_, fret) => fret)
 const HIGH_FRETS = Array.from({ length: 13 }, (_, index) => index + 12)
@@ -103,9 +136,6 @@ const isDrumTrack = computed(() => {
   const trackId = currentSelection.value?.trackId ?? reactiveSongData.currentTrackId ?? 0
   return reactiveSongData.playBackInstrument?.[trackId]?.instrument === 'drums'
 })
-const drumPieces = [...noteToDrum.entries()]
-  .map(([note, info]) => ({ note, name: `${info[0]} (${note})` }))
-  .sort((a, b) => a.note - b.note)
 
 const currentBeat = computed(() => {
   const selection = currentSelection.value
@@ -120,19 +150,48 @@ const currentFret = computed(() => {
 const currentLength = computed(() => (currentBeat.value?.duration ?? '').charAt(0))
 const isDotted = computed(() => currentBeat.value?.dotted === true)
 
+/** The drum track's lines, top first, and the drums hit on the cursor's beat. */
+const drumPads = computed(() => [...(currentTrack.value?.drumMap ?? [])].reverse())
+const beatDrums = computed(() => new Set(Array.from(currentBeat.value?.notes ?? [], (note) => note?.fret)))
+
+const useFretboard = computed(() => Settings.touchFretboard)
+const currentTrack = computed(() => {
+  const trackId = currentSelection.value?.trackId ?? reactiveSongData.currentTrackId ?? 0
+  return reactiveSongData.tracks?.[trackId]
+})
+const numStrings = computed(() => currentTrack.value?.numStrings ?? 6)
+const capo = computed(() => Math.max(0, currentTrack.value?.capo ?? 0))
+
+/** The notes of the beat at the cursor, on the neck (tab fret + capo). */
+const beatMarks = computed<FretboardMark[]>(() => {
+  const notes = currentBeat.value?.notes ?? []
+  const cursorString = currentSelection.value?.stringIndex
+  const marks: FretboardMark[] = []
+  Array.from(notes, (note, string) => {
+    if (note != null && note.fret >= 0) marks.push({ string, neckFret: note.fret + capo.value, current: string === cursorString })
+  })
+  return marks
+})
+const focusNeckFret = computed(() => (currentFret.value == null ? null : currentFret.value + capo.value))
+
 const positionLabel = computed(() => {
   const selection = currentSelection.value
   if (!selection) return 'Tap a string in the tab'
   const numStrings = reactiveSongData.tracks?.[selection.trackId]?.numStrings ?? 6
-  // String 1 is the highest string, as on the tab and in the tuning dialog.
-  const stringNumber = numStrings - selection.stringIndex
-  return `Bar ${selection.blockId + 1} · Beat ${selection.beatIndex + 1} · String ${stringNumber}`
+  return formatCursorPosition(
+    { blockId: selection.blockId, beatId: selection.beatIndex, string: selection.stringIndex },
+    numStrings,
+  )
 })
 
 function placeFret(fret: number): void {
   if (!hasExplicitNoteSelection() || Number.isNaN(fret)) return
   const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor
   placeNote(trackId, blockId, voiceId, beatId, string, fret)
+}
+
+function placeOnString(string: number, fret: number): void {
+  placeNoteOnString(string, fret)
 }
 
 function move(direction: 'left' | 'right' | 'up' | 'down'): void {
@@ -185,7 +244,8 @@ onMounted(() => {
   background: var(--color-accent-soft);
 }
 
-.note-pad svg {
+/* The pad's own line icons; AppIcon draws itself. */
+.note-pad svg:not(.app-icon) {
   width: 22px;
   height: 22px;
   fill: none;
@@ -245,6 +305,34 @@ onMounted(() => {
   margin-top: 6px;
 }
 
+.note-pad__mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--color-surface-raised);
+}
+
+.note-pad .note-pad__mode button {
+  min-height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+}
+
+.note-pad .note-pad__mode button.is-current {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+.note-pad__fretboard {
+  margin-top: 6px;
+}
+
 .note-pad__fret {
   font-size: 18px !important;
   font-variant-numeric: tabular-nums;
@@ -260,27 +348,33 @@ onMounted(() => {
   color: var(--color-on-accent);
 }
 
-.note-pad__glyph {
-  font-family: 'Bravura', 'Noto Music', 'Segoe UI Symbol', serif;
-  font-size: 22px;
-  line-height: 1;
-}
-
 .note-pad__drums {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
   margin-top: 6px;
 }
 
-.note-pad__drums select {
-  flex: 1;
-  min-height: 44px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 0 8px;
-  background: var(--color-surface-raised);
-  color: inherit;
-  font: inherit;
+.note-pad__drum {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  min-height: 48px;
+}
+
+.note-pad__drum-label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.note-pad__drum-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 </style>

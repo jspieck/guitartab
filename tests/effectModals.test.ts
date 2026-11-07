@@ -17,10 +17,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 const at = { trackId: 0, blockId: 1, voiceId: 0, beatId: 0 }
 
 describe('edit dialogs (EditModalHandler)', () => {

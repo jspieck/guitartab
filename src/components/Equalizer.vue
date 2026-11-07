@@ -1,5 +1,5 @@
 <template>
-    <BaseModal :modal-id="MODALS.EQUALIZER.id">
+    <BaseModal :modal-id="DIALOGS.EQUALIZER.id">
         <template #title>Master Equalizer</template>
         <div class="ap-root eq">
             <div class="ap-toolbar">
@@ -80,14 +80,13 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import './audio/audioPlugin.css';
-import { MODALS } from '../services/dialogs/modalTypes';
-import { audioGraph } from '../services/audio/audioGraph';
-import { modalManager } from '../services/dialogs/modalManager';
+import { DIALOGS } from '../services/dialogs/dialogs';
 import {
-    EqualizerModalHandler, EQ_BAND_COLORS, EQ_MAX_GAIN, EQ_MIN_FREQ, EQ_MAX_FREQ, EQ_Q_RANGE,
-    createDefaultEqBands, eqTypeUsesGain,
-} from '../services/dialogs/equalizerModalHandler';
-import { useModalOpen } from '../composables/useModalOpen';
+    EQ_BAND_COLORS, EQ_MAX_GAIN, EQ_MIN_FREQ, EQ_MAX_FREQ, EQ_Q_RANGE,
+    createDefaultEqBands, eqTypeUsesGain, masterEqualizer,
+} from '../services/audio/masterEqualizer';
+import { EqualizerGraph } from './audio/equalizerGraph';
+import { isDialogOpen } from '../stores/dialogState';
 
 const FILTER_TYPES: { value: BiquadFilterType, label: string }[] = [
     { value: 'peaking', label: 'Bell' },
@@ -99,13 +98,13 @@ const FILTER_TYPES: { value: BiquadFilterType, label: string }[] = [
     { value: 'notch', label: 'Notch' },
 ];
 
-const handler = modalManager.getHandler(MODALS.EQUALIZER.id) as EqualizerModalHandler;
+const handler = new EqualizerGraph();
 const bands = handler.bands;
 const selected = computed(() => handler.selectedBand.value);
 const defaults = createDefaultEqBands();
 const isFlat = computed(() => handler.isFlat());
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const isOpen = useModalOpen(MODALS.EQUALIZER.id);
+const isOpen = computed(() => isDialogOpen(DIALOGS.EQUALIZER.id));
 
 let dragging = -1;
 
@@ -164,16 +163,19 @@ function onHandleWheel(event: WheelEvent, index: number) {
 }
 
 onMounted(() => {
-    // Usually a no-op: createBusses() already built and wired the nodes for this context.
-    handler.setAudioContext(audioGraph.context);
     if (canvasRef.value) handler.attachCanvas(canvasRef.value);
 });
 
-onUnmounted(() => handler.detachCanvas());
-
-watch(isOpen, (open) => {
-    if (open) handler.redraw();
+onUnmounted(() => {
+    handler.detachCanvas();
+    masterEqualizer.spectrumListener = null;
 });
+
+// The meters loop hands over the master spectrum while this panel is open.
+watch(isOpen, (open) => {
+    masterEqualizer.spectrumListener = open ? (data) => handler.drawSpectrum(data) : null;
+    if (open) handler.redraw();
+}, { immediate: true });
 watch(selected, () => handler.redraw());
 </script>
 

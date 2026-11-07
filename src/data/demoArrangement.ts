@@ -1,15 +1,29 @@
-import Song, {
-  type Beat,
-  type BeatEffects,
-  type Chord,
-  type Grace,
-  type MeasureMetaInfo,
-  type Note,
-  type Track,
-} from '../stores/song'
+import { type Beat, type Grace, type Note } from '../stores/song'
 import type { GpifSong } from '../services/gpifImport'
-import type { NoteLengthCode } from '../types/tab'
-import { drumLine } from '../utils/drumLines'
+import {
+  assembleSong,
+  b,
+  BASS,
+  CRASH,
+  d,
+  diagramOf,
+  type DrumHit,
+  effects,
+  g,
+  GUITAR,
+  HAT,
+  KICK,
+  type NoteSpec,
+  OPEN_HAT,
+  plainBars,
+  RIDE,
+  type Shape,
+  SNARE,
+  STICK,
+  TOM_HIGH,
+  TOM_LOW,
+  track,
+} from './songBuilder'
 
 /**
  * "Open Road": the multi-track demo song first-time visitors see. Written for this
@@ -26,72 +40,11 @@ import { drumLine } from '../utils/drumLines'
  * Drum notes use the General MIDI drum note as their fret.
  */
 
-const GUITAR = [40, 45, 50, 55, 59, 64]
-const BASS = [28, 33, 38, 43]
-const DRUM_SLOTS = 6
 const BARS = 14
-
-/** [string, fret, extra note properties] */
-type NoteSpec = [number, number, Partial<Note>?]
-
-function beat(
-  duration: NoteLengthCode,
-  stringCount: number,
-  notes: NoteSpec[],
-  extra: Partial<Beat> = {},
-): Beat {
-  const beatData = Song.defaultMeasure()
-  beatData.notes = new Array(stringCount).fill(null)
-  for (const [string, fret, more] of notes) {
-    beatData.notes[string] = { ...Song.defaultNote(), string, fret, ...more }
-  }
-  beatData.duration = notes.length > 0 ? duration : `${duration}r`
-  beatData.tuplet = null
-  Object.assign(beatData, extra)
-  // Every beat gets its own effects object, so editing one stroke doesn't change the others.
-  const stroke = extra.effects?.stroke
-  beatData.effects = {
-    ...Song.defaultMeasureEffects(),
-    ...extra.effects,
-    ...(stroke ? { stroke: { ...stroke } } : {}),
-  }
-  return beatData
-}
-
-const g = (duration: NoteLengthCode, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
-  beat(duration, GUITAR.length, notes, extra)
-const b = (duration: NoteLengthCode, notes: NoteSpec[] = [], extra: Partial<Beat> = {}) =>
-  beat(duration, BASS.length, notes, extra)
-
-function effects(more: Partial<BeatEffects>): Partial<Beat> {
-  return { effects: { ...Song.defaultMeasureEffects(), ...more } }
-}
-
-type DrumHit = number | [number, Partial<Note>]
-
-/** A drum hit: General MIDI drum notes (optionally with note effects), each on its line. */
-function d(duration: NoteLengthCode, hits: DrumHit[] = [], extra: Partial<Beat> = {}): Beat {
-  const notes = hits.map((hit) => {
-    const [midi, more] = typeof hit === 'number' ? [hit, undefined] : hit
-    return [drumLine(midi), midi, more] as NoteSpec
-  })
-  if (new Set(notes.map(([slot]) => slot)).size !== notes.length) {
-    throw new Error(`Two drums share a line: ${hits.join(', ')}`)
-  }
-  return beat(duration, DRUM_SLOTS, notes, extra)
-}
-
-/** A voice the app fills with rests on load. */
-function emptyVoice(stringCount: number): Beat[] {
-  const rest = beat('w', stringCount, [])
-  rest.empty = true
-  return [rest]
-}
 
 // ---------------------------------------------------------------------------
 // Chords: shapes by string (0 = low E), and diagrams (frets highest string first, -1 muted)
 
-type Shape = Record<number, number>
 const SHAPES: Record<string, Shape> = {
   Am: { 1: 0, 2: 2, 3: 2, 4: 1, 5: 0 },
   Fmaj7: { 0: 1, 2: 3, 3: 2, 4: 1, 5: 0 },
@@ -102,11 +55,7 @@ const SHAPES: Record<string, Shape> = {
   E: { 0: 0, 1: 2, 2: 2, 3: 1, 4: 0, 5: 0 },
 }
 
-function diagram(name: string): Chord {
-  const shape = SHAPES[name]
-  const frets = [5, 4, 3, 2, 1, 0].map((string) => shape[string] ?? -1)
-  return { ...Song.defaultChord(), name, capo: 0, frets, fingers: frets.map(() => 0), display: true }
-}
+const diagram = (name: string) => diagramOf(name, SHAPES[name])
 
 function strum(name: string, extra: Partial<Note> = {}): NoteSpec[] {
   return Object.entries(SHAPES[name]).map(([string, fret]) => [Number(string), fret, extra])
@@ -359,15 +308,6 @@ const bass: Beat[][] = [
 // ---------------------------------------------------------------------------
 // Drums (General MIDI)
 
-const KICK = 36
-const SNARE = 38
-const STICK = 37
-const HAT = 42
-const OPEN_HAT = 46
-const CRASH = 49
-const RIDE = 51
-const TOM_HIGH = 48
-const TOM_LOW = 45
 const ghostSnare: DrumHit = [SNARE, { ghost: true }]
 const accentCrash: DrumHit = [CRASH, { accentuated: true }]
 
@@ -439,11 +379,8 @@ const drums: Beat[][] = [
 
 // ---------------------------------------------------------------------------
 
-function bars(): MeasureMetaInfo[] {
-  return Array.from({ length: BARS }, (_, i) => {
-    const meta = Song.defaultMeasureMeta()
-    meta.keySignature = 0
-    meta.timeMeterPresent = i === 0
+function bars() {
+  return plainBars(BARS, (meta, i) => {
     if (i === 0) {
       meta.bpm = 112
       meta.marker = { text: 'Intro', color: { red: 40, green: 120, blue: 200 } }
@@ -462,30 +399,7 @@ function bars(): MeasureMetaInfo[] {
       meta.marker = { text: 'Outro', color: { red: 90, green: 90, blue: 90 } }
       meta.bpm = 100
     }
-    return meta
   })
-}
-
-function track(
-  name: string,
-  strings: number[],
-  program: number,
-  channel: number,
-  color: Track['color'],
-): Track {
-  return {
-    ...Song.defaultTrack(),
-    name,
-    strings: [...strings],
-    numStrings: strings.length,
-    capo: 0,
-    volume: 127,
-    balance: 63,
-    color,
-    channel: { index: channel, effectChannel: channel },
-    program,
-    primaryChannel: channel,
-  }
 }
 
 /** The demo as song data, ready for `applyGpifSong`. */
@@ -494,33 +408,20 @@ export function buildDemoArrangement(): GpifSong {
     track('Acoustic Guitar', GUITAR, 24, 0, { red: 60, green: 140, blue: 90 }),
     track('Lead Guitar', GUITAR, 29, 1, { red: 220, green: 60, blue: 60 }),
     track('Bass', BASS, 33, 2, { red: 70, green: 90, blue: 200 }),
-    track('Drums', new Array(DRUM_SLOTS).fill(0), 0, 9, { red: 120, green: 120, blue: 120 }),
+    track('Drums', new Array(6).fill(0), 0, 9, { red: 120, green: 120, blue: 120 }),
   ]
-  const parts = [rhythm, lead, bass, drums]
-  const measures = parts.map((part, t) => part.map((voice) => [voice, emptyVoice(tracks[t].numStrings)]))
-  const chords = parts.map((part) => {
-    const map = new Map<string, Chord>()
-    for (const voice of part) for (const one of voice) if (one.chord) map.set(one.chord.name, one.chord)
-    return map
-  })
-  return {
-    description: {
+  return assembleSong(
+    {
       title: 'Open Road',
       subtitle: 'GuitarTab demo song',
       artist: 'GuitarTab',
-      album: '',
       author: 'Demo',
       music: 'GuitarTab',
-      copyright: '',
-      writer: '',
       instructions: 'Press Play. Switch tracks in the sequencer at the bottom.',
-      comments: [],
-      wordsAndMusic: '',
     },
-    bpm: 112,
-    measureMeta: bars(),
+    112,
+    bars(),
     tracks,
-    chords,
-    measures,
-  }
+    [rhythm, lead, bass, drums],
+  )
 }

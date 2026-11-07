@@ -27,9 +27,9 @@ describe('typedEventBus.onAll', () => {
     const handler = vi.fn()
 
     typedEventBus.onAll(handler)
-    typedEventBus.emit('render.all')
+    typedEventBus.emit('ui.disablePageMode')
 
     expect(handler).toHaveBeenCalledTimes(1)
-    expect(handler).toHaveBeenCalledWith('render.all', undefined)
+    expect(handler).toHaveBeenCalledWith('ui.disablePageMode', undefined)
   })
 })

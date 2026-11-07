@@ -11,8 +11,24 @@ import Song, {
   type TremoloBar,
 } from '../stores/song'
 import { IMPORT_LIMITS, ImportError } from './importErrors'
+import { warnImport } from './importWarnings'
+import { shortenPickupBar } from './import/pickupBar'
 import { assignDrumLines } from '../utils/drumLines'
+import { isDirectionJump, isDirectionTarget } from '../utils/directions'
 import type { NoteLengthCode } from '../types/tab'
+import {
+  applyLyricLines,
+  barsHaveLyrics,
+  MAX_LYRIC_VERSES,
+  setBeatLyric,
+  type LyricLine,
+} from '../utils/lyrics'
+import { ampFromToneNames } from './audio/ampModel'
+import type { TrackAmp } from '../types/song'
+import { setClefFrom, type Clef } from '../utils/clefs'
+import type { GpifSong } from './import/songData'
+
+export type { GpifSong } from './import/songData'
 
 /**
  * Reads GPIF, the XML score format of Guitar Pro 6 (.gpx) and 7/8 (.gp), into song data.
@@ -74,15 +90,6 @@ export const GP6_DRUM_ELEMENTS: Record<number, number[]> = {
   15: [52],
 }
 
-export interface GpifSong {
-  description: SongDescription
-  bpm: number
-  measureMeta: MeasureMetaInfo[]
-  tracks: Track[]
-  chords: Map<string, Chord>[]
-  measures: Beat[][][][]
-}
-
 interface Rhythm {
   duration: NoteLengthCode
   dots: number
@@ -111,6 +118,9 @@ interface GpifBeat {
   pop: boolean
   stroke: Stroke | null
   tremoloBar: TremoloBar | null
+  /** Syllable per verse (GP7 stores them on the beat), else null. */
+  lyrics: string[] | null
+  slashed: boolean
 }
 
 interface Staff {
@@ -124,6 +134,10 @@ interface Staff {
   chordsById: Map<string, Chord>
   /** MIDI note per GP7 drum articulation index. */
   drumArticulations: number[]
+  /** The track's lyric lines (on its first staff only). */
+  lyricLines: LyricLine[]
+  /** From the track's sound and effect names; null when nothing sounds distorted. */
+  amp: TrackAmp | null
 }
 
 // ---------------------------------------------------------------------------
@@ -233,9 +247,45 @@ function readChords(props: Map<string, Element>, stringCount: number): Map<strin
   return chords
 }
 
+/** Track lyrics: up to five lines, each text with the bar (0-based) it starts at. */
+function readLyricLines(trackNode: Element): LyricLine[] {
+  return (
+    childElements(child(trackNode, 'Lyrics'), 'Line')
+      .slice(0, MAX_LYRIC_VERSES)
+      // Not trimmed: leading spaces skip notes at the start bar.
+      .map((line) => ({
+        text: child(line, 'Text')?.textContent ?? '',
+        startBar: int(text(line, 'Offset'), 0),
+      }))
+  )
+}
+
 function readTuning(props: Map<string, Element>): number[] | null {
   const pitches = idList(text(props.get('Tuning'), 'Pitches')).map((pitch) => int(pitch, -1))
   return pitches.length > 0 && pitches.every((pitch) => pitch >= 0 && pitch < 128) ? pitches : null
+}
+
+/**
+ * Names that describe a track's tone: GP7's sound name, label and path ("Stringed/Electric
+ * Guitars/Distortion Guitar"), and the ids and names of the RSE effect chain (amps, pedals) in
+ * GP6 and GP7.
+ */
+function toneNames(trackNode: Element): string[] {
+  const names: string[] = []
+  for (const sound of childElements(child(trackNode, 'Sounds'), 'Sound')) {
+    for (const field of ['Name', 'Label', 'Path']) names.push(text(sound, field) ?? '')
+  }
+  for (const rse of Array.from(trackNode.getElementsByTagName('RSE'))) {
+    for (const effect of Array.from(rse.getElementsByTagName('Effect')))
+      names.push(effect.getAttribute('id') ?? '')
+    for (const chain of Array.from(rse.getElementsByTagName('EffectChain')))
+      names.push(text(chain, 'Name') ?? '')
+  }
+  return names
+}
+
+function toneAmp(trackNode: Element, isDrums: boolean): TrackAmp | null {
+  return isDrums ? null : ampFromToneNames(toneNames(trackNode))
 }
 
 function readStaves(trackNode: Element): Staff[] {
@@ -277,6 +327,8 @@ function readStaves(trackNode: Element): Staff[] {
         ? [trackProps, trackProps]
         : [trackProps]
 
+  const lyricLines = readLyricLines(trackNode)
+  const amp = toneAmp(trackNode, isDrums)
   return staffProps.map((props, index) => {
     const tuning =
       readTuning(props) ?? readTuning(trackProps) ?? (isDrums ? new Array(6).fill(0) : GUITAR_TUNING)
@@ -294,6 +346,8 @@ function readStaves(trackNode: Element): Staff[] {
       color,
       chordsById: chords,
       drumArticulations,
+      lyricLines: index === 0 ? lyricLines : [],
+      amp,
     }
   })
 }
@@ -311,6 +365,8 @@ function toTrack(staff: Staff): Track {
     channel: { index: staff.channel, effectChannel: staff.channel },
     program: staff.program,
     primaryChannel: staff.channel,
+    // copied: a piano's two staves share it
+    ...(staff.amp ? { amp: { ...staff.amp } } : {}),
   }
 }
 
@@ -332,7 +388,9 @@ function readMasterBars(gpif: Element): { meta: MeasureMetaInfo[]; barIds: strin
     bar.denominator = [1, 2, 4, 8, 16, 32].includes(denominator) ? denominator : 4
     bar.timeMeterPresent =
       previous == null || previous.numerator !== bar.numerator || previous.denominator !== bar.denominator
-    bar.keySignature = int(text(child(node, 'Key'), 'AccidentalCount'), 0)
+    const key = child(node, 'Key')
+    bar.keySignature = Math.max(-7, Math.min(7, int(text(key, 'AccidentalCount'), 0)))
+    if (text(key, 'Mode') === 'Minor') bar.keyMinor = true
 
     const repeat = child(node, 'Repeat')
     bar.repeatOpen = repeat?.getAttribute('start') === 'true'
@@ -349,11 +407,23 @@ function readMasterBars(gpif: Element): { meta: MeasureMetaInfo[]; barIds: strin
     const section = child(node, 'Section')
     const sectionText = text(section, 'Text') || text(section, 'Letter')
     if (sectionText) bar.marker = { text: sectionText, color: { red: 255, green: 0, blue: 0 } }
+    readDirections(child(node, 'Directions'), bar)
 
     meta.push(bar)
     barIds.push(idList(text(node, 'Bars')))
   })
   return { meta, barIds }
+}
+
+/** `<Directions><Target>Segno</Target><Jump>DaSegnoAlCoda</Jump></Directions>` (GP7+). */
+function readDirections(directions: Element | null, bar: MeasureMetaInfo): void {
+  if (directions == null) return
+  const targets = childElements(directions, 'Target').map((node) => node.textContent?.trim() ?? '')
+  const jumps = childElements(directions, 'Jump').map((node) => node.textContent?.trim() ?? '')
+  const knownTargets = targets.filter(isDirectionTarget)
+  const knownJumps = jumps.filter(isDirectionJump)
+  if (knownTargets.length > 0) bar.directionTargets = knownTargets
+  if (knownJumps.length > 0) bar.directionJumps = knownJumps
 }
 
 /** Quarter-note BPM of a tempo automation's "<value> <unit>". */
@@ -420,6 +490,12 @@ function readCurve(
     .map((point) => ({ position: Math.min(CURVE_END, point.position), value: scale(point.value) }))
 }
 
+/** GP7 beat lyrics: one `<Line>` per verse. */
+function readBeatLyrics(node: Element): string[] | null {
+  const lines = childElements(child(node, 'Lyrics'), 'Line')
+  return lines.length > 0 ? lines.map((line) => line.textContent?.trim() ?? '') : null
+}
+
 function readBeat(node: Element, rhythms: Map<string, Rhythm>): GpifBeat {
   const props = properties(node)
   const rhythm = rhythms.get(child(node, 'Rhythm')?.getAttribute('ref') ?? '') ?? {
@@ -450,6 +526,8 @@ function readBeat(node: Element, rhythms: Map<string, Rhythm>): GpifBeat {
           (point) => ({ ...point, vibrato: 0 }),
         )
       : null,
+    lyrics: readBeatLyrics(node),
+    slashed: child(node, 'Slashed') != null,
   }
 }
 
@@ -655,6 +733,7 @@ function buildVoice(beatIds: string[], voiceIndex: number, context: BuildContext
       beat.dynamic = context.lastDynamic[voiceIndex]
     }
     if (gpBeat.text) beat.text = gpBeat.text
+    if (gpBeat.slashed) beat.slash = true
     const chord = gpBeat.chordId != null ? context.staff.chordsById.get(gpBeat.chordId) : undefined
     if (chord) beat.chord = { ...chord, frets: [...chord.frets], fingers: [...chord.fingers] }
     beat.effects.fadeIn = gpBeat.fadeIn
@@ -662,9 +741,35 @@ function buildVoice(beatIds: string[], voiceIndex: number, context: BuildContext
     beat.effects.pop = gpBeat.pop
     if (gpBeat.stroke) beat.effects.stroke = gpBeat.stroke
     if (gpBeat.tremoloBar) beat.effects.tremoloBar = gpBeat.tremoloBar
+    gpBeat.lyrics
+      ?.slice(0, MAX_LYRIC_VERSES)
+      .forEach((syllable, verse) => setBeatLyric(beat, verse, syllable))
     out.push(beat)
   }
   return out
+}
+
+/** GPIF `<Clef>` (+ `<Ottavia>`) → clef; null for the neutral (drum) clef or unknown values. */
+function clefFromGpif(sign: string | null, ottavia: string | null): Clef | null {
+  switch (sign) {
+    case 'G2':
+      return ottavia === '8vb' ? 'treble8vb' : 'treble'
+    case 'F4':
+      return 'bass'
+    case 'C3':
+      return 'alto'
+    case 'C4':
+      return 'tenor'
+    default:
+      return null
+  }
+}
+
+/** The bar clefs as changes: kept only where they differ from the clef before (or the instrument's). */
+function withClefs(track: Track, barClefs: Record<number, Clef>, isDrums: boolean): Track {
+  if (isDrums) return track
+  for (const [bar, clef] of Object.entries(barClefs)) setClefFrom(track, Number(bar), clef)
+  return track
 }
 
 /** A voice the app fills with rests on load (`writeNoteInfoToBeat`). */
@@ -704,11 +809,14 @@ export function parseGpif(xml: string, format: string): GpifSong {
   const notes = new Map<string, GpifNote>()
   for (const [id, node] of byId(gpif, 'Notes', 'Note')) notes.set(id, readNote(node))
 
+  const clefs: Array<Record<number, Clef>> = staves.map(() => ({}))
   const measures: Beat[][][][] = staves.map((staff) => {
     const context: BuildContext = { beats, notes, staff, lastDynamic: new Array(MAX_VOICES).fill('mf') }
     const staffIndex = staves.indexOf(staff)
-    return meta.map((_, barIndex) => {
+    const staffBars = meta.map((_, barIndex) => {
       const bar = bars.get(barIds[barIndex][staffIndex] ?? '')
+      const clef = clefFromGpif(text(bar, 'Clef'), text(bar, 'Ottavia'))
+      if (clef != null) clefs[staffIndex][barIndex] = clef
       const voiceIds = idList(text(bar, 'Voices'))
       const block: Beat[][] = []
       for (let v = 0; v < MAX_VOICES; v += 1) {
@@ -716,33 +824,27 @@ export function parseGpif(xml: string, format: string): GpifSong {
         const built = voice ? buildVoice(idList(text(voice, 'Beats')), v, context) : []
         block.push(built.length > 0 ? built : emptyVoice(staff.tuning.length))
       }
+      // Guitar Pro has four voices, the tab two.
+      for (const id of voiceIds.slice(MAX_VOICES))
+        for (const beatId of idList(text(voices.get(id), 'Beats')))
+          warnImport('extraVoiceNotes', beats.get(beatId)?.noteIds.length ?? 0)
       return block
     })
+    // GP6 keeps lyrics on the track only; GP7 also on the beats, which then win.
+    if (!barsHaveLyrics(staffBars)) applyLyricLines(staffBars, staff.lyricLines)
+    return staffBars
   })
+  // Guitar Pro writes a pickup as a full first bar with its notes at the end.
+  if (child(child(gpif, 'MasterTrack'), 'Anacrusis') != null) shortenPickupBar(meta, measures)
 
   return {
     description: readDescription(child(gpif, 'Score')),
     bpm,
     measureMeta: meta,
-    tracks: staves.map(toTrack),
+    tracks: staves.map((staff, staffIndex) => withClefs(toTrack(staff), clefs[staffIndex], staff.isDrums)),
     chords: staves.map(
       (staff) => new Map([...staff.chordsById.values()].map((chord) => [chord.name, chord])),
     ),
     measures,
   }
-}
-
-/** Replaces the current song with a parsed GPIF score. */
-export function applyGpifSong(song: GpifSong): void {
-  Song.songDescription = song.description
-  Song.measureMeta = song.measureMeta
-  Song.numMeasures = song.measureMeta.length
-  Song.tracks = song.tracks
-  Song.chordsMap = song.chords
-  for (const track of song.tracks) {
-    const channel = Song.allChannels[track.channel.index]
-    if (channel) channel.cInstrument = track.program
-  }
-  Song.measures = song.measures
-  Song.setTempo(song.bpm)
 }

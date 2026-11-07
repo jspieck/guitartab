@@ -1,7 +1,7 @@
 .autosave-banner {
   position: fixed;
   /* Below the toolbar, so no editor controls are covered. */
-  top: 84px;
+  top: 108px;
   max-width: calc(100vw - 32px);
   white-space: nowrap;
   left: 50%;
@@ -36,4 +36,34 @@
 .svg-icon-source {
   position: absolute;
   margin-left: -100%;
+}
+
+/* Read by screen readers, not shown (the live region in App.vue, hidden labels). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
+ * Reduced motion everywhere: transitions and animations end at once (also the playhead's
+ * glide, an inline transition, which a stylesheet !important overrides). Scrolling is
+ * handled in utils/smoothScroll.ts.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
 }

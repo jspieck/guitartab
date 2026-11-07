@@ -7,17 +7,23 @@
     <ol v-if="layoutModeState.compact" class="first-run-hint__steps">
       <li><strong>Listen.</strong> Tap play; slow it down with the % menu.</li>
       <li><strong>Enter notes.</strong> Tap the pencil, then a string in the tab, then a fret.</li>
-      <li><strong>Your own tabs.</strong> Pinch to zoom; open Guitar Pro, MIDI or .gt files from the ⋯ menu.</li>
+      <li><strong>Your own tabs.</strong> Pinch to zoom; open Guitar Pro, MusicXML, MIDI or .gt files from the ⋯ menu.</li>
+      <li><strong>More music.</strong> Classical guitar pieces to hear and play along under Example songs.</li>
     </ol>
     <ol v-else class="first-run-hint__steps">
       <li><strong>Enter notes.</strong> Click a line in the tab, then type a fret number.</li>
       <li><strong>Listen.</strong> Press <kbd>Space</kbd> or the play button.</li>
-      <li><strong>Bring your own tab.</strong> Open a Guitar Pro, MIDI or .gt file with the folder button.</li>
+      <li><strong>Bring your own tab.</strong> Open a Guitar Pro, MusicXML, MIDI or .gt file with the folder button.</li>
+      <li><strong>More music.</strong> Classical guitar pieces to hear and play along under Example songs.</li>
     </ol>
     <div class="first-run-hint__footer">
       <button v-if="!layoutModeState.compact" type="button" class="first-run-hint__link" @click="showShortcuts">All shortcuts <kbd>?</kbd></button>
       <span v-else />
-      <button type="button" class="autosave-banner__action" @click="dismissFirstRunHint">Got it</button>
+      <span class="first-run-hint__actions">
+        <button id="firstRunExampleSongs" type="button" class="autosave-banner__action autosave-banner__action--muted"
+          @click="showExampleSongs">Example songs</button>
+        <button type="button" class="autosave-banner__action" @click="dismissFirstRunHint">Got it</button>
+      </span>
     </div>
   </aside>
 </template>
@@ -26,6 +32,12 @@
 import { dismissFirstRunHint } from '../stores/firstRunHintState'
 import { toggleShortcutsHelp } from '../stores/shortcutsHelpState'
 import { layoutModeState } from '../stores/layoutModeState'
+import { toolbarAction } from '../services/editor/toolbarActions'
+
+function showExampleSongs(): void {
+  dismissFirstRunHint()
+  toolbarAction('exampleSongs').run()
+}
 
 function showShortcuts(): void {
   dismissFirstRunHint()
@@ -84,6 +96,11 @@ function showShortcuts(): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.first-run-hint__actions {
+  display: flex;
+  gap: 6px;
 }
 
 .first-run-hint__link {

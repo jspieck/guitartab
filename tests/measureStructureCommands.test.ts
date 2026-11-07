@@ -125,4 +125,10 @@ describe('measureStructureCommands', () => {
     expect(tabLayout.measureOffset[1][0][0]).toBe(20)
     expect(initTrackPlayback).toHaveBeenCalledWith(1)
   })
+
+  it('createNewTrack stores the instrument as the track program (it wins over the channel)', () => {
+    createNewTrack(1, { name: 'Violin', channel: 40, numStrings: 6, strings: [40, 45, 50, 55, 59, 64] })
+    expect(Song.tracks[1].program).toBe(40)
+    expect(Song.tracks[1].primaryChannel).toBe(Song.tracks[1].channel.index)
+  })
 })

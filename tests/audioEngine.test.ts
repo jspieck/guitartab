@@ -76,18 +76,18 @@ vi.mock('../src/services/audio/effects', () => {
     },
   }
 })
-vi.mock('../src/services/dialogs/modalManager', () => ({
-  modalManager: {
-    getHandler: (name: string) => ({
-      attach: (node: FakeNode) => audio.log.add(`${name}.attach(${node.id})`),
-      setAudioContext: () => audio.log.add(`${name}.setAudioContext()`),
-      insertBetween: (from: FakeNode, to: FakeNode) => {
-        audio.log.add(`${name}.insertBetween(${from.id}, ${to.id})`)
-        from.connect(to)
-      },
-      drawSpectrum: () => {},
-    }),
-    isModalOpen: () => false,
+// The master EQ and compressor only log how the graph wires them.
+vi.mock('../src/services/audio/masterCompressor', () => ({
+  masterCompressor: { attach: (node: FakeNode) => audio.log.add(`masterCompressor.attach(${node.id})`) },
+}))
+vi.mock('../src/services/audio/masterEqualizer', () => ({
+  masterEqualizer: {
+    setAudioContext: () => audio.log.add('masterEqualizer.setAudioContext()'),
+    insertBetween: (from: FakeNode, to: FakeNode) => {
+      audio.log.add(`masterEqualizer.insertBetween(${from.id}, ${to.id})`)
+      from.connect(to)
+    },
+    spectrumListener: null,
   },
 }))
 
@@ -178,6 +178,8 @@ describe('audio engine notes', () => {
     ],
     ['dead', () => player.playFret(0, 0, 0, 3, 1, 1, 0.5, beat(), note({ dead: true }), 'guitar', null)],
     ['slap', () => player.playFret(0, 0, 0, 3, 1, 1, 0.5, beat(), note({ slap: true }), 'guitar', null)],
+    // short and percussive: cut to 0.12 s, accented attack, soft body, quick fade
+    ['ghost', () => player.playFret(0, 0, 0, 3, 0.6, 1, 0.5, beat(), note({ ghost: true }), 'guitar', null)],
     [
       'harmonic',
       () => player.playFret(0, 0, 0, 3, 1, 1, 0.5, beat(), note({ artificialStyle: 0 }), 'guitar', null),
@@ -282,9 +284,9 @@ describe('audio engine notes', () => {
   })
 
   it('converts a SoundFont sample to floats once per key', () => {
-    const first = synth.noteOn(25, 64, 100, 0)!
-    const again = synth.noteOn(25, 64, 100, 0)!
-    const drum = synth.noteOn(9, 38, 100, 9)!
+    const [first] = synth.noteOn(25, 64, 100, 0)!
+    const [again] = synth.noteOn(25, 64, 100, 0)!
+    const [drum] = synth.noteOn(9, 38, 100, 9)!
     expect(again.buffer).toBe(first.buffer)
     const data = Array.from((first.buffer as AudioBuffer).getChannelData(0))
     expect({ length: data.length, sum: Number(data.reduce((a, b) => a + Math.abs(b), 0).toFixed(6)) })
@@ -297,12 +299,28 @@ describe('audio engine notes', () => {
     expect({ ...first, buffer: undefined }).toMatchInlineSnapshot(`
       {
         "buffer": undefined,
+        "chorusSend": 0,
+        "exclusiveClass": 0,
+        "filterFc": 13500,
+        "filterQ": 0,
+        "gain": 1,
         "loop": true,
         "loopEnd": 0.0022675736961451248,
         "loopStart": 0,
-        "playBackRate": 0.7491535384383405,
+        "modAttack": 0.0009765625,
+        "modDecay": 0.0009765625,
+        "modEnvToFilterFc": 0,
+        "modEnvToPitch": 0,
+        "modHold": 0.0009765625,
+        "modLfo": null,
+        "modSustain": 0,
+        "pan": 0,
+        "playBackRate": 0.7491535384383408,
+        "reverbSend": 0,
+        "vibLfo": null,
         "volAttack": 0.0009765625,
-        "volDecay": 0.001953125,
+        "volDecay": 0.0009765625,
+        "volHold": 0.0009765625,
         "volRelease": 0.0009765625,
         "volSustain": 0,
       }

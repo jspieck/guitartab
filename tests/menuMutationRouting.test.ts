@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { MODALS } from '../src/services/dialogs/modalTypes'
+import { describe, expect, it } from 'vitest'
+import { DIALOGS } from '../src/services/dialogs/dialogs'
 import {
   applyTimeMeterToFollowingBlocks,
   findMenuEffectGroup,
@@ -10,24 +10,6 @@ import {
   type NoteEffectSelection,
 } from '../src/services/menuMutationRouting'
 import type { Beat, MeasureMeta, Note } from '../src/types/tab'
-
-vi.mock('../src/services/dialogs/modalTypes', () => ({
-  MODALS: {
-    TEXT: { id: 'TEXT' },
-    ADD_CHORD: { id: 'ADD_CHORD' },
-    MARKER: { id: 'MARKER' },
-    REPEAT_ALTERNATIVE: { id: 'REPEAT_ALTERNATIVE' },
-    REPETITION: { id: 'REPETITION' },
-    TIME_METER: { id: 'TIME_METER' },
-    TEMPO: { id: 'TEMPO' },
-    BEND: { id: 'BEND' },
-    ARTIFICIAL: { id: 'ARTIFICIAL' },
-    TREMOLO_BAR: { id: 'TREMOLO_BAR' },
-    TREMOLO_PICKING: { id: 'TREMOLO_PICKING' },
-    GRACE: { id: 'GRACE' },
-    STROKE: { id: 'STROKE' },
-  },
-}))
 
 function createBeat(overrides: Partial<Beat> = {}): Beat {
   return {
@@ -153,7 +135,7 @@ describe('menuMutationRouting', () => {
     })
     const revertRequest = resolveNotationModalRequest('addMarker', true, context)
 
-    expect(markerRequest?.modal.id).toBe(MODALS.MARKER.id)
+    expect(markerRequest?.modal.id).toBe(DIALOGS.MARKER.id)
     expect(markerRequest?.params).toMatchObject({ trackId: 0, blockId: 2, voiceId: 0 })
     expect(textRequest).toBeNull()
     expect(revertRequest).toBeNull()
@@ -166,7 +148,7 @@ describe('menuMutationRouting', () => {
     const skippedRequest = resolveNoteEffectModalRequest('bend', true, false, selection)
     const revertRequest = resolveNoteEffectModalRequest('bend', false, true, selection)
 
-    expect(bendRequest?.modal.id).toBe(MODALS.BEND.id)
+    expect(bendRequest?.modal.id).toBe(DIALOGS.BEND.id)
     expect(bendRequest?.params).toMatchObject({
       blocks: [1],
       isVariableSet: false,

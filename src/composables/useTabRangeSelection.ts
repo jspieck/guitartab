@@ -1,18 +1,30 @@
 import { ref, unref, type Ref } from 'vue'
-import { applyRangeAsLoop, clearRange, startRange, extendRange } from '../services/editor/rangeSelection'
+import {
+  applyRangeAsLoop,
+  clearRange,
+  currentLoopInterval,
+  startRange,
+  extendRange,
+} from '../services/editor/rangeSelection'
 import type { RenderedTabRow, TabSelectionData } from '../types/tab'
 import { resolveTabPointerPosition, TAB_CONSTANTS } from '../utils/tabLayout'
+import { barOtherVoiceNotes } from '../utils/measureBeatLayout'
+import { otherVoiceNoteAt } from '../utils/otherVoiceNotes'
 import { usePlaybackEngine } from './usePlaybackEngine'
 
 const DRAG_THRESHOLD_PX = 8
 
-type ResolvedPointer = NonNullable<ReturnType<typeof resolveTabPointerPosition>>
+type ResolvedPointer = NonNullable<ReturnType<typeof resolveTabPointerPosition>> & {
+  trackId: number
+  voiceId: number
+}
 
 interface TabRangeSelectionOptions {
   svgRoot: Ref<SVGSVGElement | null>
   tabRows: Ref<RenderedTabRow[]>
-  trackId: number
-  voiceId: number
+  /** The shown track and voice (the props change when another track is shown). */
+  trackId: () => number
+  voiceId: () => number
   rowHeight: number | Ref<number>
   rowYOffsetAdjust?: number | Ref<number>
   getMeasureContentPadding: (blockId: number) => number
@@ -28,13 +40,13 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
   let dragSessionActive = false
   const playbackEngine = usePlaybackEngine()
 
-  function resolvePointer(event: MouseEvent) {
+  function resolvePointer(event: MouseEvent): ResolvedPointer | null {
     const svgElement = options.svgRoot.value
     if (!svgElement) {
       return null
     }
 
-    return resolveTabPointerPosition(
+    const resolved = resolveTabPointerPosition(
       event,
       svgElement,
       options.tabRows.value,
@@ -42,9 +54,33 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
       TAB_CONSTANTS.STRING_SPACING,
       options.getMeasureContentPadding,
       unref(options.rowYOffsetAdjust) ?? 0,
-      options.trackId,
-      options.voiceId,
+      options.trackId(),
+      options.voiceId(),
     )
+    if (!resolved) return null
+    // in the score view every row has its own track
+    return {
+      ...resolved,
+      trackId: resolved.row.trackId ?? options.trackId(),
+      voiceId: resolved.row.voiceId ?? options.voiceId(),
+    }
+  }
+
+  /**
+   * A click on a faintly drawn note of the other voice edits that voice there; otherwise the
+   * beat of the shown voice under the pointer.
+   */
+  function clickedBeat(resolved: ResolvedPointer, stringIndex: number): TabSelectionData {
+    const { trackId, voiceId, blockId } = resolved
+    const beats = resolved.row.measures[blockId - resolved.row.startBlockId]?.data ?? []
+    const faint = otherVoiceNoteAt(
+      barOtherVoiceNotes(trackId, voiceId, blockId, beats),
+      resolved.barX,
+      stringIndex,
+    )
+    return faint != null
+      ? { trackId, voiceId: voiceId === 0 ? 1 : 0, blockId, beatIndex: faint.beatIndex, stringIndex }
+      : { trackId, voiceId, blockId, beatIndex: resolved.beatIndex, stringIndex }
   }
 
   function cleanupWindowListeners(): void {
@@ -62,19 +98,20 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
     const deltaY = Math.abs(event.clientY - pointerStartClientY)
     if (!isDraggingRange.value && (deltaX > DRAG_THRESHOLD_PX || deltaY > DRAG_THRESHOLD_PX)) {
       isDraggingRange.value = true
-      startRange(options.trackId, pointerStart.blockId, options.voiceId, pointerStart.beatIndex)
+      startRange(pointerStart.trackId, pointerStart.blockId, pointerStart.voiceId, pointerStart.beatIndex)
     }
 
     if (!isDraggingRange.value) {
       return
     }
 
+    // a range stays in the track it started in
     const current = resolvePointer(event)
-    if (!current) {
+    if (!current || current.trackId !== pointerStart.trackId) {
       return
     }
 
-    extendRange(options.trackId, current.blockId, options.voiceId, current.beatIndex)
+    extendRange(current.trackId, current.blockId, current.voiceId, current.beatIndex)
   }
 
   function handleWindowMouseUp(event: MouseEvent): void {
@@ -84,26 +121,21 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
 
     if (isDraggingRange.value) {
       const current = resolvePointer(event)
-      if (current) {
-        extendRange(options.trackId, current.blockId, options.voiceId, current.beatIndex)
+      if (current && current.trackId === pointerStart?.trackId) {
+        extendRange(current.trackId, current.blockId, current.voiceId, current.beatIndex)
       }
       // The selected range is also the playback loop (as when dragging in the sequencer).
       applyRangeAsLoop()
     } else if (pointerStart) {
-      options.onSingleSelect({
-        trackId: options.trackId,
-        voiceId: options.voiceId,
-        blockId: pointerStart.blockId,
-        beatIndex: pointerStart.beatIndex,
-        stringIndex: pointerStart.stringIndex,
-      })
+      const selection = clickedBeat(pointerStart, pointerStart.stringIndex)
+      options.onSingleSelect(selection)
       // A click while the song plays moves playback there.
       if (playbackEngine.getPlayingState()) {
         void playbackEngine.jumpToBeat(
-          options.trackId,
-          pointerStart.blockId,
-          options.voiceId,
-          pointerStart.beatIndex,
+          selection.trackId,
+          selection.blockId,
+          selection.voiceId,
+          selection.beatIndex,
         )
       }
     }
@@ -122,6 +154,15 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
     if (!resolved) {
       return
     }
+    if (event.shiftKey) {
+      if (resolved.trackId !== options.trackId()) return
+      // Shift+click extends the range from the cursor (or the range's anchor) to here.
+      // The selection commands are the lazy `editing-tools` chunk.
+      void import('../services/editor/selectionCommands').then((tools) =>
+        tools.extendSelectionTo(resolved.blockId, resolved.beatIndex, stringIndex),
+      )
+      return
+    }
 
     pointerStart = {
       ...resolved,
@@ -136,6 +177,25 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
     window.addEventListener('mouseup', handleWindowMouseUp)
   }
 
+  /**
+   * A right-click on a string: selects that beat first (keeping a range the click is inside, so
+   * the note menu acts on the range) and returns whether something was hit.
+   */
+  function selectForContextMenu(event: MouseEvent, stringIndex: number): boolean {
+    const resolved = resolvePointer(event)
+    if (!resolved) return false
+    const range = currentLoopInterval()
+    const inRange =
+      range != null &&
+      range.trackId === resolved.trackId &&
+      compareBeat(resolved.blockId, resolved.beatIndex, range.startBlock, range.startBeat) >= 0 &&
+      compareBeat(resolved.blockId, resolved.beatIndex, range.endBlock, range.endBeat) <= 0
+    if (!inRange) {
+      options.onSingleSelect(clickedBeat(resolved, stringIndex))
+    }
+    return true
+  }
+
   function clearRangeSelection(): void {
     clearRange()
   }
@@ -143,6 +203,11 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
   return {
     isDraggingRange,
     handleStringPointerDown,
+    selectForContextMenu,
     clearRangeSelection,
   }
+}
+
+function compareBeat(blockA: number, beatA: number, blockB: number, beatB: number): number {
+  return blockA !== blockB ? blockA - blockB : beatA - beatB
 }

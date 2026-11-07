@@ -10,18 +10,30 @@ import {
 import { selectionState } from '../../stores/selectionState'
 import Settings from '../../stores/settingsState'
 import { tabLayout } from '../../stores/tabLayoutState'
-import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
+import {
+  beatNoteOffset,
+  getMeasureBeatNoteX,
+  getMeasureBeatWidth,
+  getMeasureBeatX,
+} from '../../utils/measureBeatLayout'
+import { otherVoiceBeatXs } from '../../utils/otherVoiceNotes'
 import { scrollToSvgBlock } from '../editor/navigationController'
 import renderBridge from '../editor/renderBridge'
 import { CLASSICAL_CLEF_GUTTER } from '../editor/tabLayoutMetrics'
 import playback from '../playback'
+import { keyChanges, keyFifths, vexFlowKey } from '../../utils/keySignature'
+import { BarAccidentals, spellPitch, vexFlowKeyOf, type SpelledPitch } from '../../utils/pitchSpelling'
+import { clefChangesAt, vexFlowClef } from '../../utils/clefs'
+import { hiddenBars, multiRestRuns } from '../../utils/multiRests'
 import {
   blockFingerprint,
   clefOf,
   durationToVexFlow,
+  isDrumTrack,
   largestBeatWidth,
-  pitchToVexFlow,
+  otherVoiceOf,
   staffExtents,
+  voiceHasNotes,
 } from './vexflowNotes'
 
 /**
@@ -62,6 +74,9 @@ class ClassicalNotation {
   /** per bar: the VexFlow notes alone */
   allVoices: Vex.Flow.StaveNote[][] = []
 
+  /** per bar: the voice that isn't edited, when it has notes there (drawn on the same staff) */
+  otherVoices: (Vex.Flow.StaveNote[] | null)[] = []
+
   /** Per-block content fingerprint of the last conversion. */
   blockFingerprints: string[] = []
 
@@ -91,7 +106,7 @@ class ClassicalNotation {
       if (notes != null && notes.length > 0) {
         beatWidthByBlock[blockId] = this.blockBeatWidths[blockId] ?? largestBeatWidth(blockId, notes)
       }
-      staffExtentsByBlock[blockId] = staffExtents([notes ?? []])
+      staffExtentsByBlock[blockId] = staffExtents([notes ?? [], this.otherVoices[blockId] ?? []])
     }
     return publishClassicalLayoutMetrics({ beatWidthByBlock, staffExtentsByBlock })
   }
@@ -102,7 +117,13 @@ class ClassicalNotation {
    */
   computeVexFlowDataStructures(trackId: number, voiceId: number): void {
     const track = Song.tracks[trackId]
-    const scope = JSON.stringify([trackId, voiceId, toRaw(track.strings), track.numStrings, clefOf(trackId)])
+    const scope = JSON.stringify([
+      trackId,
+      voiceId,
+      toRaw(track.strings),
+      track.numStrings,
+      isDrumTrack(trackId),
+    ])
     if (scope !== this.conversionScope) {
       this.conversionScope = scope
       this.blockFingerprints = []
@@ -123,6 +144,7 @@ class ClassicalNotation {
     }
     this.allNotes.length = numBlocks
     this.allVoices.length = numBlocks
+    this.otherVoices.length = numBlocks
     this.blockFingerprints.length = numBlocks
     this.blockBeatWidths.length = numBlocks
   }
@@ -137,9 +159,24 @@ class ClassicalNotation {
   }
 
   convertBlockToNotation(trackId: number, blockId: number, voiceId: number): void {
-    const converted = Song.measures[trackId][blockId][voiceId].map((beat) => convertBeat(trackId, beat))
+    const otherBeats = Song.measures[trackId][blockId][otherVoiceOf(voiceId)]
+    const twoVoices = voiceHasNotes(otherBeats)
+    const fifths = drumsOrKey(trackId, blockId)
+    // With two voices on one staff, voice 1 has its stems up and voice 2 down.
+    const accidentals = new BarAccidentals(fifths)
+    const clef = vexFlowClef(clefOf(trackId, blockId)).name
+    const converted = Song.measures[trackId][blockId][voiceId].map((beat) =>
+      convertBeat(trackId, beat, accidentals, fifths, clef, twoVoices ? stemOf(voiceId) : undefined),
+    )
     this.allNotes[blockId] = converted
     this.allVoices[blockId] = converted.map((entry) => entry.note)
+    const otherAccidentals = new BarAccidentals(fifths)
+    this.otherVoices[blockId] = twoVoices
+      ? otherBeats.map(
+          (beat) =>
+            convertBeat(trackId, beat, otherAccidentals, fifths, clef, stemOf(otherVoiceOf(voiceId))).note,
+        )
+      : null
     this.blockBeatWidths[blockId] = largestBeatWidth(blockId, this.allVoices[blockId])
     setClassicalBeatWidth(blockId, this.blockBeatWidths[blockId])
   }
@@ -176,15 +213,23 @@ class ClassicalNotation {
       staveY,
       CLEF_STAVE_WIDTH,
     )
-    clefStave.addClef(clefOf(Song.currentTrackId))
+    const rowClef = vexFlowClef(clefOf(trackId, start))
+    clefStave.addClef(rowClef.name, 'default', rowClef.annotation)
     clefStave.setEndBarType(Vex.Flow.Barline.type.NONE)
     clefStave.setContext(context).draw()
 
+    const multiRests = Settings.multiBarRests
+      ? multiRestRuns(Song.measures[trackId], Song.measureMeta, Song.tracks[trackId], isDrumTrack(trackId))
+      : new Map<number, number>()
+    const hidden = hiddenBars(multiRests)
     let fallbackX = firstX
     for (let blockId = start; blockId < end; blockId += 1) {
+      // bars inside a multi-bar rest take no room in the tab layout
+      if (hidden.has(blockId)) continue
       const xPos = measureX(trackId, voiceId, blockId, fallbackX)
       const width = measureWidth(trackId, voiceId, blockId)
-      this.drawStave(trackId, voiceId, blockId, xPos, staveY, width, blockId === start, context)
+      const rest = multiRests.get(blockId)
+      this.drawStave(trackId, voiceId, blockId, xPos, staveY, width, blockId === start, context, rest)
       fallbackX = xPos + width
     }
     this.drawTies(trackId, voiceId, rowId, context)
@@ -209,7 +254,7 @@ class ClassicalNotation {
 
   /**
    * Draws one measure. Note heads are centred on the tab digit centres
-   * (`beatX + beatWidth / 2`, as `TabNote` renders them) so both systems align.
+   * (`getMeasureBeatNoteX`, as `TabNote` renders them) so both systems align.
    */
   private drawStave(
     trackId: number,
@@ -220,22 +265,34 @@ class ClassicalNotation {
     width: number,
     isFirstInRow: boolean,
     context: IRenderContext,
+    multiRest?: number,
   ): void {
     const notes = this.allVoices[blockId] ?? []
     const meta = Song.measureMeta[blockId]
     const stave = new Vex.Flow.Stave(CLASSICAL_CLEF_GUTTER + xPos, yPos, width)
+    // a clef change inside the row (the row's clef sits in the gutter); room: keySignatureRoom
+    if (!isFirstInRow && clefChangesAt(Song.tracks[trackId], blockId, isDrumTrack(trackId))) {
+      const clef = vexFlowClef(clefOf(trackId, blockId))
+      stave.addClef(clef.name, 'small', clef.annotation)
+    }
+    this.addKeySignature(trackId, blockId, isFirstInRow, stave)
     if (meta.repeatOpen) stave.setBegBarType(Vex.Flow.Barline.type.REPEAT_BEGIN)
     if (meta.repeatClose != null) stave.setEndBarType(Vex.Flow.Barline.type.REPEAT_END)
     // The clef segment already opened the system; avoid a barline right after it.
     if (isFirstInRow && !meta.repeatOpen) stave.setBegBarType(Vex.Flow.Barline.type.NONE)
     stave.setContext(context).draw()
+    if (multiRest != null) {
+      drawMultiRest(multiRest, stave, context)
+      return
+    }
     if (notes.length === 0) return
 
     const voice = new Vex.Flow.Voice({ num_beats: meta.numerator, beat_value: meta.denominator })
     voice.setStrict(false)
     voice.addTickables(notes)
-    // Beams first, so beamed notes do not also draw flags.
-    const beams = Vex.Flow.Beam.generateBeams(notes)
+    const other = this.otherVoices[blockId]
+    // Beams first, so beamed notes do not also draw flags (and keep the voice's stem direction).
+    const beams = Vex.Flow.Beam.generateBeams(notes, { maintain_stem_directions: other != null } as object)
     new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 0)
     // Voice.setStave does not reach the notes; their absolute X needs the stave.
     voice.setStave(stave)
@@ -244,10 +301,7 @@ class ClassicalNotation {
     const beats = Song.measures[trackId][blockId][voiceId]
     notes.forEach((note, beatId) => {
       const target =
-        CLASSICAL_CLEF_GUTTER +
-        xPos +
-        getMeasureBeatX(trackId, voiceId, blockId, beatId, beats) +
-        getMeasureBeatWidth(trackId, voiceId, blockId, beatId, beats) / 2
+        CLASSICAL_CLEF_GUTTER + xPos + getMeasureBeatNoteX(trackId, voiceId, blockId, beatId, beats)
       const current = (note.getNoteHeadBeginX() + note.getNoteHeadEndX()) / 2
       const tickContext = note.getTickContext()
       tickContext.setX(tickContext.getX() + target - current)
@@ -256,6 +310,78 @@ class ClassicalNotation {
     beams.forEach((beam: Vex.Flow.Beam) => beam.postFormat())
     voice.draw(context, stave)
     beams.forEach((beam: Vex.Flow.Beam) => beam.setContext(context).draw())
+    if (other != null) this.drawOtherVoice(trackId, voiceId, blockId, xPos, stave, other, context)
+  }
+
+  /**
+   * The key signature at the start of a row, of the song and where it changes (with naturals
+   * cancelling the old one). The tab layout reserves its room (`keySignatureRoom`).
+   */
+  private addKeySignature(
+    trackId: number,
+    blockId: number,
+    isFirstInRow: boolean,
+    stave: Vex.Flow.Stave,
+  ): void {
+    if (isDrumTrack(trackId)) return
+    const meta = Song.measureMeta[blockId]
+    const previous = Song.measureMeta[blockId - 1]
+    const changes = blockId > 0 && keyChanges(meta, previous)
+    if (!isFirstInRow && !changes) return
+    if (keyFifths(meta) === 0 && !changes) return
+    const keyStave = stave as unknown as {
+      addKeySignature(spec: string, cancelSpec?: string): unknown
+    }
+    keyStave.addKeySignature(vexFlowKey(meta), changes ? vexFlowKey(previous) : undefined)
+  }
+
+  /**
+   * The voice that isn't edited, in its own colour (as in the tab). Its beats are placed by
+   * time in the edited voice's layout; its rests are left out, they would sit on the other
+   * voice's notes.
+   */
+  private drawOtherVoice(
+    trackId: number,
+    voiceId: number,
+    blockId: number,
+    xPos: number,
+    stave: Vex.Flow.Stave,
+    notes: Vex.Flow.StaveNote[],
+    context: IRenderContext,
+  ): void {
+    const meta = Song.measureMeta[blockId]
+    const voice = new Vex.Flow.Voice({ num_beats: meta.numerator, beat_value: meta.denominator })
+    voice.setStrict(false)
+    voice.addTickables(notes)
+    const beams = Vex.Flow.Beam.generateBeams(notes, { maintain_stem_directions: true } as object)
+    new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 0)
+    voice.setStave(stave)
+    notes.forEach((note) => note.setStave(stave))
+
+    const beats = Song.measures[trackId][blockId][voiceId]
+    const boxes = beats.map((beat, beatId) => {
+      const left = getMeasureBeatX(trackId, voiceId, blockId, beatId, beats)
+      const width = getMeasureBeatWidth(trackId, voiceId, blockId, beatId, beats)
+      return { left, width, noteX: left + beatNoteOffset(beat, width) }
+    })
+    const xs = otherVoiceBeatXs(beats, boxes, Song.measures[trackId][blockId][otherVoiceOf(voiceId)])
+    notes.forEach((note, i) => {
+      const current = (note.getNoteHeadBeginX() + note.getNoteHeadEndX()) / 2
+      const tickContext = note.getTickContext()
+      tickContext.setX(tickContext.getX() + CLASSICAL_CLEF_GUTTER + xPos + (xs[i] ?? 0) - current)
+    })
+
+    beams.forEach((beam: Vex.Flow.Beam) => beam.postFormat())
+    // (VexFlow 4's SVG context; the installed 1.2 types don't know groups)
+    const groups = context as unknown as { openGroup(cls: string): unknown; closeGroup(): void }
+    groups.openGroup(otherVoiceOf(voiceId) === 1 ? 'other-voice other-voice--voice2' : 'other-voice')
+    notes.forEach((note) => {
+      if (note.isRest()) return
+      note.setContext(context)
+      note.draw()
+    })
+    beams.forEach((beam: Vex.Flow.Beam) => beam.setContext(context).draw())
+    groups.closeGroup()
   }
 
   private rowNotes(trackId: number, voiceId: number, rowId: number): ConvertedBeat[] {
@@ -320,8 +446,46 @@ function measureX(trackId: number, voiceId: number, blockId: number, fallbackX: 
   return blockLayout != null && Number.isFinite(blockLayout.xOffset) ? blockLayout.xOffset : fallbackX
 }
 
-/** One beat as a VexFlow note: its pitches (lowest first, each once), accidentals, grace notes and dots. */
-function convertBeat(trackId: number, beat: Beat): ConvertedBeat {
+/** The H-bar and count of a multi-bar rest (VexFlow 4; the installed 1.2 types don't know it). */
+function drawMultiRest(count: number, stave: Vex.Flow.Stave, context: IRenderContext): void {
+  const MultiMeasureRest = (
+    Vex.Flow as unknown as {
+      MultiMeasureRest: new (
+        count: number,
+        options: object,
+      ) => { setStave(stave: Vex.Flow.Stave): { setContext(context: IRenderContext): { draw(): void } } }
+    }
+  ).MultiMeasureRest
+  new MultiMeasureRest(count, { show_number: true }).setStave(stave).setContext(context).draw()
+}
+
+/** The bar's key; drums have none. */
+function drumsOrKey(trackId: number, blockId: number): number {
+  return isDrumTrack(trackId) ? 0 : keyFifths(Song.measureMeta[blockId])
+}
+
+/** Guitar music is written an octave above it sounds (MIDI 40, the low E2, is written E3). */
+function writtenPitch(height: number, fifths: number): SpelledPitch {
+  const pitch = spellPitch(height, fifths)
+  return { ...pitch, octave: pitch.octave + 1 }
+}
+
+function stemOf(voiceId: number): number {
+  return voiceId === 0 ? Vex.Flow.Stem.UP : Vex.Flow.Stem.DOWN
+}
+
+/**
+ * One beat as a VexFlow note: its pitches (lowest first, each once), accidentals, grace notes
+ * and dots. `stemDirection` fixes the stem (two voices on the staff); otherwise VexFlow picks it.
+ */
+function convertBeat(
+  trackId: number,
+  beat: Beat,
+  accidentals: BarAccidentals,
+  fifths: number,
+  clef: string,
+  stemDirection?: number,
+): ConvertedBeat {
   const track = Song.tracks[trackId]
   const pitches: { height: number; note: Note; string: number }[] = []
   const seen = new Set<number>()
@@ -342,23 +506,29 @@ function convertBeat(trackId: number, beat: Beat): ConvertedBeat {
     }
   }
   pitches.sort((a, b) => a.height - b.height)
+  if (beat.slash) return slashBeat(beat, pitches, clef, stemDirection)
 
-  const keys = pitches.map((pitch) => pitchToVexFlow(pitch.height))
+  const spelled = pitches.map((pitch) => writtenPitch(pitch.height, fifths))
+  // dead notes get an X head, as in the tab
+  const keys = spelled.map((pitch, index) => `${vexFlowKeyOf(pitch)}${pitches[index].note.dead ? '/x2' : ''}`)
   // rests need a pitch placeholder but keep the rest duration suffix
   if (keys.length === 0) keys.push('b/4')
   const staveNote = new Vex.Flow.StaveNote({
-    clef: clefOf(trackId),
+    clef,
     keys,
     duration: durationToVexFlow(beat),
-    auto_stem: true,
+    ...(stemDirection != null ? { stem_direction: stemDirection } : { auto_stem: true }),
   })
-  keys.forEach((key, index) => {
-    if (key.includes('#')) staveNote.addModifier(new Vex.Flow.Accidental('#'), index)
+  keys.forEach((_key, index) => {
+    const pitch = spelled[index]
+    const sign = pitch != null ? accidentals.sign(pitch, pitches[index].note.tied === true) : null
+    if (sign != null) staveNote.addModifier(new Vex.Flow.Accidental(sign), index)
+    if (pitches[index]?.note.ghost) addParentheses(staveNote, index)
     const grace = pitches[index]?.note.graceObj
     const string = pitches[index]?.string ?? -1
     if (grace != null && string >= 0) {
       const graceNote = new Vex.Flow.GraceNote({
-        keys: [pitchToVexFlow(track.strings[string] + grace.fret)],
+        keys: [vexFlowKeyOf(writtenPitch(track.strings[string] + grace.fret, fifths))],
         duration: GRACE_DURATIONS[grace.duration] ?? '16',
       })
       staveNote.addModifier(new Vex.Flow.GraceNoteGroup([graceNote]), index)
@@ -373,6 +543,40 @@ function convertBeat(trackId: number, beat: Beat): ConvertedBeat {
     strings: pitches.map((pitch) => pitch.string),
     measure: beat,
   }
+}
+
+/** Ghost notes: the note head in parentheses (VexFlow 4; the installed 1.2 types don't know them). */
+function addParentheses(note: Vex.Flow.StaveNote, index: number): void {
+  const flow = Vex.Flow as unknown as {
+    Parenthesis: new (position: number) => Vex.Flow.Modifier
+    ModifierPosition?: { LEFT: number; RIGHT: number }
+  }
+  const position = flow.ModifierPosition ?? { LEFT: 1, RIGHT: 2 }
+  note.addModifier(new flow.Parenthesis(position.LEFT), index)
+  note.addModifier(new flow.Parenthesis(position.RIGHT), index)
+}
+
+/** The pitch on the staff's middle line, where slashes sit. */
+const MIDDLE_LINE: Record<string, string> = { treble: 'b/4', bass: 'd/3', alto: 'c/4', tenor: 'a/3' }
+
+/** A slashed beat: one slash head on the middle line with the beat's rhythm (its notes still sound). */
+function slashBeat(
+  beat: Beat,
+  pitches: { note: Note; string: number }[],
+  clef: string,
+  stemDirection?: number,
+): ConvertedBeat {
+  const duration = durationToVexFlow(beat).replace(/r$/, '')
+  const staveNote = new Vex.Flow.StaveNote({
+    clef,
+    keys: [MIDDLE_LINE[clef] ?? 'b/4'],
+    duration: `${duration}s`,
+    ...(stemDirection != null ? { stem_direction: stemDirection } : { auto_stem: true }),
+  })
+  const dots = beat.dotted ? 1 : beat.doubleDotted ? 2 : 0
+  for (let i = 0; i < dots; i += 1) Dot.buildAndAttach([staveNote], { all: true })
+  // ties need a key per string; a slash has one, so the beat ties nothing on the staff
+  return { note: staveNote, tied: [false], strings: [pitches[0]?.string ?? -1], measure: beat }
 }
 
 export type { ClassicalNotation }

@@ -13,10 +13,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 function barLength64ths(trackId: number, blockId: number, voiceId = 0): number {
   return Song.measures[trackId][blockId][voiceId].reduce(
     (sum, beat) => sum + Duration.getDurationOfNote(beat, false),
@@ -55,6 +51,34 @@ describe('track loading', () => {
     Song.tracks[0].program = 0
     Song.tracks[0].primaryChannel = 9
     expect(playbackInstrumentFor(0)).toMatchObject({ instrument: 'drums', volume: 100 })
+  })
+
+  it('playbackInstrumentFor takes a GP3–5 track (program -1) from its channel', () => {
+    Song.allChannels[2] = {
+      cInstrument: 33,
+      volume: 80,
+      balance: 64,
+      chorus: 0,
+      reverb: 0,
+      phaser: 0,
+      tremolo: 0,
+    }
+    Song.allChannels[9] = {
+      cInstrument: 0,
+      volume: 90,
+      balance: 64,
+      chorus: 0,
+      reverb: 0,
+      phaser: 0,
+      tremolo: 0,
+    }
+    Song.tracks[0].program = -1
+    Song.tracks[0].primaryChannel = -1
+    Song.tracks[0].channel = { index: 2, effectChannel: 3 }
+    expect(playbackInstrumentFor(0)).toMatchObject({ instrument: 'bass', volume: 80 })
+
+    Song.tracks[0].channel = { index: 9, effectChannel: 9 }
+    expect(playbackInstrumentFor(0)).toMatchObject({ instrument: 'drums', volume: 90 })
   })
 
   it('fitBarsToTimeSignature cuts and fills bars up to the next change', () => {

@@ -222,7 +222,7 @@ export class FakeAudioContext {
     return new FakeNode(
       this.log,
       'source',
-      { playbackRate: 1 },
+      { playbackRate: 1, detune: 0 },
       { buffer: null, loop: false, loopStart: 0, loopEnd: 0 },
     )
   }
@@ -232,7 +232,7 @@ export class FakeAudioContext {
   }
 
   createBiquadFilter(): FakeNode {
-    return new FakeNode(this.log, 'biquad', { frequency: 350, Q: 1, gain: 0 }, { type: 'lowpass' })
+    return new FakeNode(this.log, 'biquad', { frequency: 350, Q: 1, gain: 0, detune: 0 }, { type: 'lowpass' })
   }
 
   createConvolver(): FakeNode {

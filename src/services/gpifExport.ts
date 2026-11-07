@@ -1,5 +1,8 @@
 import type { Beat, Chord, MeasureMetaInfo, Note, SongDescription, Track } from '../stores/song'
+import { keyFifths } from '../utils/keySignature'
 import { GP6_DRUM_ELEMENTS } from './gpifImport'
+import { barsHaveLyrics, collectLyricLines, MAX_LYRIC_VERSES } from '../utils/lyrics'
+import { clefAt, type StaffClef } from '../utils/clefs'
 
 /**
  * Writes a song as GPIF, the XML inside Guitar Pro 6 (.gpx) and 7/8 (.gp) files, in the
@@ -318,7 +321,7 @@ function voiceXml(
           `${beat.text ? `<FreeText>${cdata(beat.text)}</FreeText>` : ''}` +
           `${tremolo && TREMOLO_PICKING[tremolo] ? `<Tremolo>${TREMOLO_PICKING[tremolo]}</Tremolo>` : ''}` +
           `${beat.effects?.fadeIn ? '<Fadding>FadeIn</Fadding>' : ''}` +
-          `<Rhythm ref="${rhythm}"/>${noteIds.length > 0 ? `<Notes>${noteIds.join(' ')}</Notes>` : ''}` +
+          `<Rhythm ref="${rhythm}"/>${beat.slash ? '<Slashed/>' : ''}${noteIds.length > 0 ? `<Notes>${noteIds.join(' ')}</Notes>` : ''}` +
           `${beatProperties(beat)}</Beat>`,
       ),
     )
@@ -362,7 +365,17 @@ function instrumentRef(track: Track): string {
   return `e-gtr${strings}`
 }
 
-function trackXml(track: Track, id: number, chords: Chord[]): string {
+/** The track's lyrics as Guitar Pro lyric lines (text + start bar), the way GP6 stores them. */
+function lyricsXml(bars: Beat[][][]): string {
+  if (!barsHaveLyrics(bars)) return ''
+  const lines = collectLyricLines(bars)
+  const xml = Array.from({ length: MAX_LYRIC_VERSES }, (_, i) => lines[i] ?? { startBar: 0, text: '' })
+    .map((line) => `<Line><Text>${cdata(line.text)}</Text><Offset>${line.startBar}</Offset></Line>`)
+    .join('')
+  return `<Lyrics dispatched="true">${xml}</Lyrics>`
+}
+
+function trackXml(track: Track, id: number, chords: Chord[], bars: Beat[][][]): string {
   const drums = isDrumTrack(track)
   const channel = drums ? DRUM_CHANNEL : Math.max(0, track.channel?.index ?? track.primaryChannel ?? 0)
   const r = track.color?.red ?? 220
@@ -382,13 +395,36 @@ function trackXml(track: Track, id: number, chords: Chord[]): string {
     `<GeneralMidi table="Instrument"><Program>${Math.max(0, track.program)}</Program><Port>0</Port>` +
     `<PrimaryChannel>${channel}</PrimaryChannel><SecondaryChannel>${drums ? DRUM_CHANNEL : channel}</SecondaryChannel>` +
     '<ForeOneChannelPerString>false</ForeOneChannelPerString></GeneralMidi>' +
-    `<Properties>${tuning}${property('CapoFret', `<Fret>${Math.max(0, track.capo)}</Fret>`)}${diagrams}</Properties></Track>`
+    `<Properties>${tuning}${property('CapoFret', `<Fret>${Math.max(0, track.capo)}</Fret>`)}${diagrams}</Properties>` +
+    `${lyricsXml(bars)}</Track>`
   )
 }
 
-function clefOf(track: Track): string {
-  if (isDrumTrack(track)) return 'Neutral'
-  return Math.min(...track.strings) < 36 ? 'F4' : 'G2'
+/** Clef → GPIF `<Clef>` and `<Ottavia>` elements. */
+function gpifClefXml(clef: StaffClef): string {
+  switch (clef) {
+    case 'percussion':
+      return '<Clef>Neutral</Clef>'
+    case 'treble8vb':
+      return '<Clef>G2</Clef><Ottavia>8vb</Ottavia>'
+    case 'bass':
+      return '<Clef>F4</Clef>'
+    case 'alto':
+      return '<Clef>C3</Clef>'
+    case 'tenor':
+      return '<Clef>C4</Clef>'
+    default:
+      return '<Clef>G2</Clef>'
+  }
+}
+
+/** The bar's `<Clef>`: the track's clef change in effect there, else by the instrument's range. */
+function clefXml(track: Track, barIndex: number): string {
+  const drums = isDrumTrack(track)
+  const changed = Object.keys(track.clefs ?? {}).some((bar) => Number(bar) <= barIndex)
+  if (changed && !drums) return gpifClefXml(clefAt(track, barIndex, false))
+  if (drums) return '<Clef>Neutral</Clef>'
+  return Math.min(...track.strings) < 36 ? '<Clef>F4</Clef>' : '<Clef>G2</Clef>'
 }
 
 function endings(mask: number): string {
@@ -409,9 +445,14 @@ function masterBarXml(meta: MeasureMetaInfo, barIds: number[]): string {
   const section = meta.marker?.text
     ? `<Section><Letter>${cdata('')}</Letter><Text>${cdata(meta.marker.text)}</Text></Section>`
     : ''
+  const signs = [
+    ...(meta.directionTargets ?? []).map((target) => `<Target>${target}</Target>`),
+    ...(meta.directionJumps ?? []).map((jump) => `<Jump>${jump}</Jump>`),
+  ]
+  const directions = signs.length > 0 ? `<Directions>${signs.join('')}</Directions>` : ''
   return (
-    `<MasterBar><Key><AccidentalCount>0</AccidentalCount><Mode>Major</Mode></Key>` +
-    `<Time>${meta.numerator}/${meta.denominator}</Time>${repeat}${alternate}${section}<Bars>${barIds.join(' ')}</Bars></MasterBar>`
+    `<MasterBar><Key><AccidentalCount>${keyFifths(meta)}</AccidentalCount><Mode>${meta.keyMinor ? 'Minor' : 'Major'}</Mode></Key>` +
+    `<Time>${meta.numerator}/${meta.denominator}</Time>${repeat}${alternate}${section}${directions}<Bars>${barIds.join(' ')}</Bars></MasterBar>`
   )
 }
 
@@ -463,7 +504,7 @@ export function buildGpif(source: GpifSource): string {
       barIdsPerMasterBar[barIndex].push(
         builder.add(
           'bars',
-          (id) => `<Bar id="${id}"><Clef>${clefOf(track)}</Clef><Voices>${voices.join(' ')}</Voices></Bar>`,
+          (id) => `<Bar id="${id}">${clefXml(track, barIndex)}<Voices>${voices.join(' ')}</Voices></Bar>`,
         ),
       )
     })
@@ -480,7 +521,7 @@ export function buildGpif(source: GpifSource): string {
     '<?xml version="1.0" encoding="utf-8"?>\n' +
     `<GPIF><GPVersion>6.0</GPVersion><GPRevision required="6000" recommended="6000">6000</GPRevision>${score}` +
     `<MasterTrack><Tracks>${tracks.map((_, i) => i).join(' ')}</Tracks><Automations>${tempoAutomations(measureMeta)}</Automations></MasterTrack>` +
-    `<Tracks>${tracks.map((track, i) => trackXml(track, i, chordsPerTrack[i])).join('')}</Tracks>` +
+    `<Tracks>${tracks.map((track, i) => trackXml(track, i, chordsPerTrack[i], measures[i] ?? [])).join('')}</Tracks>` +
     `<MasterBars>${measureMeta.map((meta, i) => masterBarXml(meta, barIdsPerMasterBar[i])).join('')}</MasterBars>` +
     `<Bars>${builder.bars.join('')}</Bars><Voices>${builder.voices.join('')}</Voices>` +
     `<Beats>${builder.beats.join('')}</Beats><Notes>${builder.notes.join('')}</Notes>` +

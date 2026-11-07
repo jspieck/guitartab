@@ -66,6 +66,10 @@ export type TabChordData = SongChord
 export interface RenderedMeasureData {
   data: TabBeat[]
   width: number
+  /** Multi-bar rest: this bar stands for this many empty bars (`utils/multiRests.ts`). */
+  multiRest?: number
+  /** Inside a multi-bar rest after its first bar: takes no room and isn't drawn. */
+  hidden?: boolean
 }
 
 export interface RenderedTabRow {
@@ -81,6 +85,13 @@ export interface RenderedTabRow {
   height?: number
   /** Vertical lane layout of the row (see `utils/tabRowLanes`). */
   lanes?: RowLanes
+  /** Score view: the track and voice this row belongs to (else the view's own). */
+  trackId?: number
+  voiceId?: number
+  /** Score view: a staff below a system's top one (no bar numbers, tempo or markers). */
+  lowerStaff?: boolean
+  /** The row starts after the label gutter: TAB on the first row, drum line names on every row. */
+  labelGutter?: boolean
 }
 
 export interface TabSelectionData {

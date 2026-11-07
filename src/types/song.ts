@@ -1,4 +1,5 @@
 import type { BeatDuration } from './tab'
+import type { Clef } from '../utils/clefs'
 
 /**
  * The song data model: `Song.measures[track][block][voice][beat]` holds `Beat`s; bar
@@ -65,6 +66,30 @@ export interface Track {
   program: number
   primaryChannel: number
   letItRing: boolean
+  /** Amp and cabinet simulation; absent = the default for the program (`services/audio/ampModel.ts`). */
+  amp?: TrackAmp
+  /**
+   * Clef changes of the classical staff: bar index → the clef from that bar on; absent = the
+   * instrument's clef everywhere (`utils/clefs.ts`).
+   */
+  clefs?: Record<number, Clef>
+  /**
+   * Drum tracks: the General MIDI drum of each tab line, bottom line first (one string per
+   * drum; a note's fret is its drum). Absent on other tracks (`utils/drumMap.ts`).
+   */
+  drumMap?: number[]
+}
+
+/** Cabinet of the amp simulation: no cabinet (raw amp), an open 1×12, a 2×12 or a closed 4×12. */
+export type AmpCabinet = 'none' | 'small' | 'medium' | 'large'
+
+export interface TrackAmp {
+  enabled: boolean
+  /** 0–1 */
+  drive: number
+  /** 0 (dark) – 1 (bright) */
+  tone: number
+  cabinet: AmpCabinet
 }
 
 export interface BendPoint {
@@ -146,6 +171,26 @@ export interface Marker {
   color: { red: number; green: number; blue: number }
 }
 
+/** A sign a jump goes to (names as in Guitar Pro's GPIF). */
+export type DirectionTarget = 'Segno' | 'SegnoSegno' | 'Coda' | 'DoubleCoda' | 'Fine'
+
+/** A jump instruction: D.C./D.S. (al Coda, al Fine) and "To Coda" (`DaCoda`). */
+export type DirectionJump =
+  | 'DaCapo'
+  | 'DaCapoAlCoda'
+  | 'DaCapoAlDoubleCoda'
+  | 'DaCapoAlFine'
+  | 'DaSegno'
+  | 'DaSegnoAlCoda'
+  | 'DaSegnoAlDoubleCoda'
+  | 'DaSegnoAlFine'
+  | 'DaSegnoSegno'
+  | 'DaSegnoSegnoAlCoda'
+  | 'DaSegnoSegnoAlDoubleCoda'
+  | 'DaSegnoSegnoAlFine'
+  | 'DaCoda'
+  | 'DaDoubleCoda'
+
 export interface Stroke {
   strokeLength: number
   strokeType: 'up' | 'down'
@@ -175,9 +220,16 @@ export interface Beat {
   doubleDotted: boolean
   /** Beat text annotation; absent when the beat has none. */
   text?: string
+  /**
+   * Lyric syllable per verse (index = verse, `''` = none in that verse); absent when the
+   * beat has none. A trailing `-` joins the syllable to the next one (utils/lyrics.ts).
+   */
+  lyrics?: string[]
   dynamicPresent: boolean
   /** Chord diagram/name above the beat; absent when the beat has none. */
   chord?: Chord
+  /** Slash notation: the beat shows only its rhythm (a slash on the middle line); absent = normal. */
+  slash?: boolean
   empty: boolean
   keySignature: string
   noteIds: number[]
@@ -206,7 +258,18 @@ export interface MeasureMetaInfo {
   repeatAlternative?: number
   /** Rehearsal marker; absent when the bar has none. */
   marker?: Marker
+  /** Segno, coda and fine signs on the bar (jump targets); absent when none. */
+  directionTargets?: DirectionTarget[]
+  /** D.C., D.S. and "To Coda" at the end of the bar; absent when none. */
+  directionJumps?: DirectionJump[]
+  /**
+   * The key in effect in this bar, as fifths: 0 = C / A minor, 2 = D (two sharps), -3 = E♭
+   * (three flats); −7…7. Every bar carries it, like the time signature; a change is where it
+   * differs from the bar before.
+   */
   keySignature: number
+  /** The key is minor (A minor rather than C for 0); absent for major. */
+  keyMinor?: boolean
   automations: Automation[]
 }
 

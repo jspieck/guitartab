@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.ARTIFICIAL.id">
+  <BaseModal :modal-id="DIALOGS.ARTIFICIAL.id">
     <template #title>Harmonic</template>
     <div class="modal-stack">
       <div class="modal-field">
@@ -25,9 +25,9 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 import type { ArtificialModalHandler } from '../services/dialogs/effectModals'
 
-const handler = modalManager.getHandler<InstanceType<typeof ArtificialModalHandler>>(MODALS.ARTIFICIAL.id)
+const handler = getDialogHandler<InstanceType<typeof ArtificialModalHandler>>(DIALOGS.ARTIFICIAL.id)
 </script>

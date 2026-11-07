@@ -27,6 +27,7 @@ import type {
 } from '../../types/tab'
 import renderBridge, { type RenderTrackLayoutState } from './renderBridge'
 import { computeTrackLayout } from './measureLayoutEngine'
+import { computeScoreLayout, scoreTrackIds } from './scoreLayout'
 
 export interface SongSnapshot {
   measures: SongBeat[][][][]
@@ -256,6 +257,8 @@ const editorCore = {
     measures: Array<TabBeat[][] | undefined>,
     options: ModernLayoutOptions,
   ): RenderedTabRow[] {
+    const score = scoreTrackIds()
+    if (score != null) return computeScoreLayout(score, trackId, voiceId, options)
     return computeTrackLayout(trackId, voiceId, measures, options).rows
   },
 

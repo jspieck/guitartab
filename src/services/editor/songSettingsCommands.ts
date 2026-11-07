@@ -2,6 +2,7 @@ import Song from '../../stores/song'
 import { audioGraph } from '../audio/audioGraph'
 import type { Chord } from '../../types/tab'
 import type { PlayBackInstrument, Track } from '../../stores/song'
+import type { TrackAmp } from '../../types/song'
 import { cloneData, executeCommand, setValue, syncInto, trackScoped, type EditCommand } from './editCommands'
 import { requestChordDiagramsRender } from './renderCommands'
 import { clampTempo } from '../../utils/tempo'
@@ -28,10 +29,7 @@ export function previewTrackVolume(trackId: number, volume: number): void {
   if (instrument) {
     instrument.volume = volume
   }
-  const bus = audioGraph.busses[trackId]
-  if (bus?.volume) {
-    bus.volume.gain.value = volume / 100.0
-  }
+  audioGraph.busses[trackId]?.setVolume(volume / 100.0)
 }
 
 /** A track's mixer volume (0–127). */
@@ -44,6 +42,36 @@ export function setTrackVolume(trackId: number, volume: number, before?: number)
       set: (value, currentTrackId) => previewTrackVolume(currentTrackId ?? trackId, value),
     },
     volume,
+    before,
+  )
+}
+
+/** Live change of a track's amp (null: back to the program's default), without an undo entry. */
+export function previewTrackAmp(trackId: number, amp: TrackAmp | null): void {
+  const track = Song.tracks[trackId]
+  if (track == null) return
+  if (amp) track.amp = { ...amp }
+  else delete track.amp
+  audioGraph.applyTrackAmp(trackId)
+}
+
+/**
+ * A track's amp and cabinet settings. The amp panel previews every knob move and records once
+ * when it closes, passing what the track had when it opened as `before`.
+ */
+export function setTrackAmp(
+  trackId: number,
+  amp: TrackAmp | null,
+  before?: TrackAmp | null,
+): EditCommand | null {
+  return setValue(
+    {
+      label: 'Amp settings',
+      trackId,
+      get: (currentTrackId) => cloneData(Song.tracks[currentTrackId ?? trackId]?.amp ?? null),
+      set: (value, currentTrackId) => previewTrackAmp(currentTrackId ?? trackId, value),
+    },
+    amp,
     before,
   )
 }

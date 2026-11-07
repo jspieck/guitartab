@@ -13,7 +13,7 @@ interface UseOverlaySelectionOptions {
   voiceId: number
   rowId: number
   rowData: ComputedRef<Pick<RenderedTabRow, 'startBlockId' | 'measures'>>
-  isFirstRow: ComputedRef<boolean>
+  labelGutter: ComputedRef<boolean>
   numStrings: ComputedRef<number>
   getMeasureContentPadding: (blockId: number) => number
 }
@@ -38,7 +38,7 @@ export function useOverlaySelection(options: UseOverlaySelectionOptions) {
       options.voiceId,
       options.rowId,
       options.rowData.value,
-      options.isFirstRow.value,
+      options.labelGutter.value,
       range,
       beatCountInEndBlock,
       options.getMeasureContentPadding,

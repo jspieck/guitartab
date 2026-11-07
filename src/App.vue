@@ -10,8 +10,16 @@
     </svg>
     <CompactBar v-if="layoutModeState.compact" />
     <div class="entry-content">
-      <Menu ref="menu"/>
-      <div id="mainContent" class="mainWrapper" ref="mainContent" tabindex="0" @click="focusMainContent">
+      <!-- The desktop toolbar; phones have CompactBar instead and don't mount it. -->
+      <Menu v-if="!layoutModeState.compact" />
+      <!-- Shared by the toolbar's and the phone menu's "Open file". -->
+      <input :id="SONG_FILE_INPUT_ID" type="file" accept=".gp,.gpx,.gp5,.gp4,.gp3,.musicxml,.mxl,.xml,.mid,.midi,.gt" hidden
+        @change="handleFileSelect" />
+      <!-- Right-click, Shift+F10 or long-press on a note; a sheet on phones. -->
+      <NoteMenu v-if="noteMenuState.open" :is-pressed="toolbar.isPressed" :is-disabled="toolbar.isDisabled" />
+      <BigBeatDisplay v-if="practiceState.bigBeat" />
+      <div id="mainContent" class="mainWrapper" ref="mainContent" role="main" aria-label="Tablature" tabindex="0" @click="focusMainContent">
+        <h1 class="visually-hidden">GuitarTab</h1>
         <div id="completeTab" :class="completeTabClass" :style="completeTabStyle">
           <GuitarTabView
             :track-id="currentTrackId"
@@ -25,7 +33,7 @@
       </div>
     </div>
     <TouchNotePad v-if="layoutModeState.editing" />
-    <div class="bottomBars">
+    <div class="bottomBars" role="region" aria-label="Effects and tracks">
       <EffectsBar :track-id="currentTrackId" />
       <Sequencer/>
     </div>
@@ -53,6 +61,9 @@
       </div>
     </Transition>
 
+    <!-- Spoken by screen readers: cursor moves, edits, undo (stores/announcerState.ts). -->
+    <div id="screenReaderAnnouncer" class="visually-hidden" aria-live="polite" aria-atomic="true">{{ announcerState.text }}</div>
+
     <div v-if="autosavePrompt" id="autosaveBanner" class="autosave-banner">
       <span>{{ autosavePrompt }}</span>
       <button type="button" class="autosave-banner__action" @click="restoreAutosaveDraft">Restore</button>
@@ -61,6 +72,7 @@
     <!-- Loaded on first open; it is not needed at startup. -->
     <AutosaveDraftsPanel v-if="draftsPanelState.open" />
     <HelpOverlays v-if="shortcutsHelpState.open || firstRunHintState.open" />
+    <LyricsEntryField v-if="lyricsEntryState.active" />
     
     <svg id="svg-source" class="svg-icon-source" height="0" version="1.1" xmlns="http://www.w3.org/2000/svg"
       xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -70,52 +82,78 @@
       </g>
     </svg>
 
-    <div class="mask" role="dialog"></div>
+    <div class="mask" aria-hidden="true"></div>
 
-    <ModalsContainer 
-      :trackId="currentTrackId" 
-      :voiceId="currentVoiceId" 
-      :blockId="currentBlockId" 
-    />
+    <!-- Mounted with the first dialog that opens (stores/dialogState). -->
+    <ModalsContainer v-if="dialogState.mounted.length > 0" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import Menu from './components/Menu.vue'
 import AppIcon from './components/AppIcon.vue'
 import GuitarTabView from './components/tab/GuitarTabView.vue'
+// Not lazy: the keys typed right after L would reach the sheet before a lazy field mounts.
+import LyricsEntryField from './components/tab/LyricsEntryField.vue'
 import { startUp } from './services/startup'
+import { watchTheme } from './services/theme'
 import { useSongData } from './composables/useSongData'
 import { useEditorScopeState } from './stores/editorScopeState'
 import { useTabViewport } from './composables/useTabViewport'
 import {
+  confirmReplaceUnsavedSong,
   dismissRecoverableDraft,
   getRecoverableDraft,
   restoreAutosave,
   setupAutosaveListeners,
   teardownAutosaveListeners,
 } from './services/songAutosave'
+import { watchPracticeMemory } from './services/practiceMemory'
+import { practiceState } from './stores/practiceState'
 import { draftsPanelState } from './stores/draftsPanelState'
 import { notificationState, runNotificationAction, showNotification } from './stores/notificationState'
 import { shortcutsHelpState } from './stores/shortcutsHelpState'
 import { firstRunHintState } from './stores/firstRunHintState'
+import { lyricsEntryState } from './stores/lyricsEntryState'
 import { layoutModeState, sheetFitMode, watchViewportLayout } from './stores/layoutModeState'
+import { dialogState } from './stores/dialogState'
+import { noteInputState } from './stores/noteInputState'
+import { noteMenuState } from './stores/toolbarUiState'
+import { announcerState } from './stores/announcerState'
+import { openSongFile } from './services/songImport'
+import { SONG_FILE_INPUT_ID } from './services/editor/toolbarActions'
+import { useToolbarState } from './composables/useToolbarState'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
 const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
 const Sequencer = defineAsyncComponent(() => import('./components/Sequencer.vue'))
 const ModalsContainer = defineAsyncComponent(() => import('./components/ModalsContainer.vue'))
+const BigBeatDisplay = defineAsyncComponent(() => import('./components/BigBeatDisplay.vue'))
 const AutosaveDraftsPanel = defineAsyncComponent(() => import('./components/AutosaveDraftsPanel.vue'))
 const HelpOverlays = defineAsyncComponent(() => import('./components/HelpOverlays.vue'))
 const CompactBar = defineAsyncComponent(() => import('./components/compact/CompactBar.vue'))
 const TouchNotePad = defineAsyncComponent(() => import('./components/compact/TouchNotePad.vue'))
+// Only needed once someone right-clicks a note.
+const NoteMenu = defineAsyncComponent(() => import('./components/toolbar/NoteMenu.vue'))
+const toolbar = useToolbarState(toRef(noteInputState, 'tuplet'))
+
+function handleFileSelect(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  // Asked after picking, so the question can name the file.
+  if (files && files.length > 0 && confirmReplaceUnsavedSong(files[0].name)) {
+    openSongFile(files)
+  }
+  // Reset the input so the same file can be selected again
+  input.value = ''
+}
 
 useSongData()
+watchTheme()
 const { currentTrackId, currentVoiceId } = useEditorScopeState()
 
 const mainContent = ref<HTMLElement | null>(null)
-const currentBlockId = ref(0)
 const autosavePrompt = ref<string | null>(null)
 const pendingAutosaveBytes = ref<Uint8Array | null>(null)
 
@@ -175,6 +213,7 @@ onMounted(() => {
   startUp()
   // After startUp, so the initial (empty or demo) song is the clean baseline.
   setupAutosaveListeners()
+  watchPracticeMemory()
   void checkForAutosaveDraft()
   // Shared links (?song=…); the loader is only fetched when there is one.
   if (new URLSearchParams(window.location.search).has('song')) {

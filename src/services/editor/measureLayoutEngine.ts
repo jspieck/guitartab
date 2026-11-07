@@ -1,4 +1,5 @@
-import { BAR_LEFT_PADDING, barLeftOffset } from '../../utils/measureBeatLayout'
+import { toRaw } from 'vue'
+import { BAR_LEFT_PADDING, barLeftOffset, keySignatureRoom } from '../../utils/measureBeatLayout'
 import { groupMeasureBeats } from './beatGrouping'
 import Duration from '../../utils/duration'
 import Song from '../../stores/song'
@@ -19,6 +20,10 @@ import {
   getClassicalRowGeometry,
 } from '../../stores/classicalNotationLayoutState'
 import { computeRowLanes, type LaneBlockInput, type RowLanes } from '../../utils/tabRowLanes'
+import { estimateLyricWidth } from '../../utils/lyrics'
+import { tabStemsGoUp } from '../../utils/otherVoiceNotes'
+import { hiddenBars, multiRestRuns } from '../../utils/multiRests'
+import { computeScoreLayout, scoreTrackIds } from './scoreLayout'
 import { CLASSICAL_ROW_GAP, CLASSICAL_ROW_SEPARATION, TAB_ROW_GAP } from './tabLayoutMetrics'
 
 export interface MeasureLayoutOptions {
@@ -78,8 +83,9 @@ function getBeatRenderPositions(
   voiceId: number,
   beats: TabBeat[],
   minOffset: number,
+  rowStart: boolean,
 ): number[] {
-  const leftOffset = barLeftOffset(blockId)
+  const leftOffset = barLeftOffset(blockId, rowStart)
   const safeMinOffset = Number.isFinite(minOffset) && minOffset > 0 ? minOffset : TAB_CONSTANTS.BEAT_WIDTH
   const moveHelper = Song.measureMoveHelper?.[trackId]?.[blockId]?.[voiceId]
 
@@ -147,6 +153,48 @@ function computeBlockWidth(trackId: number, blockId: number, voiceId: number): B
 
 const previousLanes = new Map<string, { json: string; lanes: RowLanes }>()
 
+/** Room for the H-bar of a multi-bar rest, besides the bar's own padding. */
+const MULTI_REST_WIDTH = 110
+/** Beat spacing inside bars hidden by a multi-bar rest: their beats sit on the bar line. */
+const HIDDEN_BAR_OFFSET = 0.001
+
+/**
+ * A bar's width in its row and its spacing per sixteenth: its own width plus its share of the
+ * row's spare room; a multi-bar rest spreads its rests over the whole H-bar; a bar hidden in
+ * one takes no room.
+ */
+function barSpacing(
+  widthInfo: BlockWidthInfo,
+  bar: { displayWidth: number; extraWidth: number; isHidden: boolean; isMultiRest: boolean },
+): { width: number; minOffset: number } {
+  if (bar.isHidden) return { width: 0, minOffset: HIDDEN_BAR_OFFSET }
+  const rawMinOffset =
+    Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
+      ? widthInfo.minOffset
+      : TAB_CONSTANTS.BEAT_WIDTH
+  const num16ths = Math.max(1, widthInfo.num16ths || 0)
+  const width = bar.displayWidth + bar.extraWidth
+  const minOffset = bar.isMultiRest
+    ? Math.max(rawMinOffset, (width - widthInfo.padding) / num16ths)
+    : rawMinOffset + bar.extraWidth / num16ths
+  return { width, minOffset }
+}
+
+/** Drum tracks name their lines at the start of every row (`utils/drumMap.ts`). */
+export function isDrumLayout(trackId: number): boolean {
+  return Song.playBackInstrument[trackId]?.instrument === 'drums'
+}
+
+/** The multi-bar rests of a track (empty when the view option is off), keyed for comparison. */
+function currentMultiRests(trackId: number, measures: Array<TabBeat[][] | undefined>) {
+  if (!Settings.multiBarRests) return { runs: new Map<number, number>(), key: '' }
+  const runs = multiRestRuns(measures, Song.measureMeta, Song.tracks[trackId], isDrumLayout(trackId))
+  return { runs, key: JSON.stringify([...runs]) }
+}
+
+/** Per track and voice: the multi-bar rests of the last layout (an edit that changes them lays out again). */
+const layoutMultiRests = new Map<string, string>()
+
 /**
  * Lanes are passed to every measure of a row as a prop. Returning the previous
  * object when nothing changed keeps edits from re-rendering untouched measures.
@@ -161,12 +209,72 @@ function reuseUnchangedLanes(key: string, lanes: RowLanes): RowLanes {
   return lanes
 }
 
-export function computeTrackLayout(
+/** A staff of a score system: the shared bar widths, and whether it is below the top staff. */
+export interface ScoreStaff {
+  widths: number[]
+  lower: boolean
+  row?: { lowerStaff: true }
+}
+
+/** Bars `start`..`end - 1` in one row; `reached` is the room they take before spreading the rest. */
+export interface RowSpan {
+  start: number
+  end: number
+  reached: number
+}
+
+function shownBarCount(start: number, end: number, hidden: Set<number>): number {
+  let count = 0
+  for (let blockId = start; blockId < end; blockId += 1) if (!hidden.has(blockId)) count += 1
+  return count
+}
+
+/**
+ * Breaks bars into rows by the room each takes (`widths`); a multi-bar rest stays in one row.
+ * The first row starts after the label gutter, and so does every row with `labelEveryRow`.
+ */
+export function breakIntoRows(
+  widths: number[],
+  hidden: Set<number>,
+  availableWidth: number,
+  labelEveryRow = false,
+): RowSpan[] {
+  const spans: RowSpan[] = []
+  let start = 0
+  let reached = TAB_CONSTANTS.TAB_LABEL_WIDTH
+  for (let blockId = 0; blockId < widths.length; blockId += 1) {
+    if (reached + widths[blockId] > availableWidth && blockId > start && !hidden.has(blockId)) {
+      spans.push({ start, end: blockId, reached })
+      start = blockId
+      reached = rowStartRoom(blockId) + (labelEveryRow ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0)
+    }
+    reached += widths[blockId]
+  }
+  spans.push({ start, end: widths.length, reached })
+  return spans
+}
+
+/**
+ * One track's layout in the making: its bars measured (`displayWidths`), then laid out row by
+ * row with `layoutRow` at a given top, and stored with `finish`. A single track breaks its own
+ * rows; the score view (`scoreLayout.ts`) gives every shown track the same rows and bar widths.
+ */
+export interface TrackLayoutPass {
+  displayWidths: number[]
+  hidden: Set<number>
+  /** Lays out one row from `top` and returns its bottom; `staff`: its place in a score system. */
+  layoutRow(span: RowSpan, top: number, staff?: ScoreStaff): number
+  finish(): MeasureLayoutResult
+}
+
+export function beginTrackLayout(
   trackId: number,
   voiceId: number,
   measures: Array<TabBeat[][] | undefined>,
   options: MeasureLayoutOptions,
-): MeasureLayoutResult {
+  inScore = false,
+  labelEveryRow = isDrumLayout(trackId),
+): TrackLayoutPass {
   const rows: RenderedTabRow[] = []
   const state = createRenderTrackLayoutState({
     availableWidth: options.availableWidth,
@@ -180,55 +288,62 @@ export function computeTrackLayout(
   const blockToRow: Array<{ rowId: number; numInRow: number }> = []
   const measureOffsets: number[] = []
 
-  if (measures.length === 0) {
-    state.numRows = 0
-    syncTabLayoutArrays(
-      trackId,
-      voiceId,
-      blocksPerRow,
-      finalBlockWidths,
-      blockToRow,
-      measureOffsets,
-      allWidths,
-      0,
-    )
-    renderBridge.setTrackLayout(trackId, voiceId, state)
-    return { rows, state, allWidths }
+  const availableWidth = options.availableWidth
+  // the score view shows tab staves only, bar by bar
+  const multiRests = inScore
+    ? { runs: new Map<number, number>(), key: '' }
+    : currentMultiRests(trackId, measures)
+  layoutMultiRests.set(`${trackId}:${voiceId}`, multiRests.key)
+  const hidden = hiddenBars(multiRests.runs)
+  /** What a bar takes in its row: its minimum width, a multi-bar rest's, or nothing when hidden. */
+  const displayWidths: number[] = []
+  const numStrings = Song.tracks[trackId]?.numStrings ?? 6
+  const classicalActive = !inScore && classicalNotationLayoutState.active
+  const rowOwner = inScore ? { trackId, voiceId } : {}
+
+  for (let blockId = 0; blockId < measures.length; blockId += 1) {
+    allWidths[blockId] = computeBlockWidth(trackId, blockId, voiceId)
+    const ownMinWidth =
+      Number.isFinite(allWidths[blockId].minWidth) && allWidths[blockId].minWidth > 0
+        ? allWidths[blockId].minWidth
+        : TAB_CONSTANTS.MEASURE_WIDTH
+    displayWidths[blockId] = hidden.has(blockId)
+      ? 0
+      : multiRests.runs.has(blockId)
+        ? allWidths[blockId].padding + MULTI_REST_WIDTH
+        : ownMinWidth
   }
 
-  const availableWidth = options.availableWidth
-  const numStrings = Song.tracks[trackId]?.numStrings ?? 6
-  const classicalActive = classicalNotationLayoutState.active
-  const rowGap = classicalActive ? CLASSICAL_ROW_SEPARATION : TAB_ROW_GAP
-  let nextRowTop = options.headerHeight
-  let rowId = 0
-  let groupStartIndex = 0
-  let reachedWidth = 0
-
-  const assignRow = (groupStart: number, groupEnd: number, rowReachedWidth: number) => {
-    const diff = availableWidth - rowReachedWidth
-    const numMeasures = groupEnd - groupStart
-    const extraWidth = numMeasures > 0 ? Math.floor(diff / numMeasures) : 0
+  const layoutRow = (
+    { start: groupStart, end: groupEnd, reached }: RowSpan,
+    top: number,
+    staff?: ScoreStaff,
+  ) => {
+    const { widths: sharedWidths, lower, row: staffRow }: Partial<ScoreStaff> = staff ?? {}
+    // bar-level annotations (tempo, markers, signs, voltas) belong to a system's top staff
+    const metaOf = (blockId: number) => (lower ? undefined : toRaw(Song.measureMeta[blockId]))
+    const rowId = rows.length
+    const numMeasures = shownBarCount(groupStart, groupEnd, hidden)
+    const extraWidth = numMeasures > 0 ? Math.floor((availableWidth - reached) / numMeasures) : 0
 
     blocksPerRow[rowId] = { start: groupStart, end: groupEnd }
 
-    let xOffset = rowId === 0 ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
+    const labelGutter = rowId === 0 || labelEveryRow
+    let xOffset = labelGutter ? TAB_CONSTANTS.TAB_LABEL_WIDTH : 0
     const rowMeasures: RenderedTabRow['measures'] = []
     const laneBlocks: LaneBlockInput[] = []
 
     for (let blockId = groupStart; blockId < groupEnd; blockId += 1) {
-      const widthInfo = allWidths[blockId]
-      const rawMinWidth =
-        Number.isFinite(widthInfo.minWidth) && widthInfo.minWidth > 0
-          ? widthInfo.minWidth
-          : TAB_CONSTANTS.MEASURE_WIDTH
-      const rawMinOffset =
-        Number.isFinite(widthInfo.minOffset) && widthInfo.minOffset > 0
-          ? widthInfo.minOffset
-          : TAB_CONSTANTS.BEAT_WIDTH
-      const num16ths = Math.max(1, widthInfo.num16ths || 0)
-      const finalWidth = rawMinWidth + extraWidth
-      const minOffset = rawMinOffset + extraWidth / num16ths
+      const rowStart = blockId === groupStart
+      const isHidden = hidden.has(blockId)
+      const restCount = multiRests.runs.get(blockId)
+      const { width: finalWidth, minOffset } = barSpacing(allWidths[blockId], {
+        displayWidth: (sharedWidths ?? displayWidths)[blockId] + (rowStart ? rowStartRoom(blockId) : 0),
+        extraWidth,
+        isHidden,
+        // in the score a bar may be wider than its own notes need: they spread over it
+        isMultiRest: restCount != null || sharedWidths != null,
+      })
 
       finalBlockWidths[blockId] = finalWidth
       measureOffsets[blockId] = minOffset
@@ -236,7 +351,9 @@ export function computeTrackLayout(
       const numInRow = blockId - groupStart
       blockToRow[blockId] = { rowId, numInRow }
 
+      // the rows hand the bar on to its components (reactive); the layout itself reads it raw
       const voiceMeasures = (measures[blockId]?.[voiceId] || []) as TabBeat[]
+      const rawBeats = toRaw(voiceMeasures)
       const blockLayout: RenderBlockLayout = {
         xOffset,
         rowId,
@@ -244,14 +361,19 @@ export function computeTrackLayout(
         width: finalWidth,
         minOffset,
         pageId: 0,
-        beatPositions: getBeatRenderPositions(trackId, blockId, voiceId, voiceMeasures, minOffset),
+        beatPositions: getBeatRenderPositions(trackId, blockId, voiceId, rawBeats, minOffset, rowStart),
       }
       state.blockLayouts[blockId] = blockLayout
 
       laneBlocks.push({
         blockId,
-        meta: Song.measureMeta[blockId],
-        beats: voiceMeasures.map((beat, beatIndex) => ({
+        stemsUp: tabStemsGoUp(
+          Settings.tabRhythmOnStems,
+          voiceId,
+          toRaw(measures[blockId]?.[voiceId === 0 ? 1 : 0]),
+        ),
+        meta: metaOf(blockId),
+        beats: rawBeats.map((beat, beatIndex) => ({
           beat,
           centerX:
             xOffset +
@@ -264,6 +386,8 @@ export function computeTrackLayout(
       rowMeasures.push({
         data: voiceMeasures,
         width: finalWidth,
+        ...(restCount != null ? { multiRest: restCount } : {}),
+        ...(isHidden ? { hidden: true } : {}),
       })
     }
 
@@ -272,13 +396,11 @@ export function computeTrackLayout(
       `${trackId}:${voiceId}:${rowId}`,
       computeRowLanes({ blocks: laneBlocks, numStrings, stringSpacing: TAB_CONSTANTS.STRING_SPACING }),
     )
-    const top = nextRowTop
     const yOffset = top + lanes.overBarHeight
     let bottom = yOffset + lanes.bodyHeight
     if (classicalActive) {
       bottom += CLASSICAL_ROW_GAP + getClassicalRowGeometry(groupStart, groupEnd).height
     }
-    nextRowTop = bottom + rowGap
 
     state.rowLayouts[rowId] = { yOffset, height: bottom - yOffset, top }
     rows.push({
@@ -290,47 +412,51 @@ export function computeTrackLayout(
       top,
       height: bottom - top,
       lanes,
+      labelGutter,
+      ...rowOwner,
+      ...staffRow,
     })
-
-    rowId += 1
+    return bottom
   }
 
-  for (let blockId = 0; blockId < measures.length; blockId += 1) {
-    if (blockId === 0) {
-      reachedWidth = TAB_CONSTANTS.TAB_LABEL_WIDTH
-    }
-
-    allWidths[blockId] = computeBlockWidth(trackId, blockId, voiceId)
-    const blockMinWidth =
-      Number.isFinite(allWidths[blockId].minWidth) && allWidths[blockId].minWidth > 0
-        ? allWidths[blockId].minWidth
-        : TAB_CONSTANTS.MEASURE_WIDTH
-
-    if (reachedWidth + blockMinWidth > availableWidth && blockId > groupStartIndex) {
-      assignRow(groupStartIndex, blockId, reachedWidth)
-      groupStartIndex = blockId
-      reachedWidth = 0
-    }
-
-    reachedWidth += blockMinWidth
+  const finish = (): MeasureLayoutResult => {
+    state.numRows = rows.length
+    syncTabLayoutArrays(
+      trackId,
+      voiceId,
+      blocksPerRow,
+      finalBlockWidths,
+      blockToRow,
+      measureOffsets,
+      allWidths,
+      rows.length,
+    )
+    renderBridge.setTrackLayout(trackId, voiceId, state)
+    return { rows, state, allWidths }
   }
 
-  assignRow(groupStartIndex, measures.length, reachedWidth)
+  return { displayWidths, hidden, layoutRow, finish }
+}
 
-  state.numRows = rows.length
-  syncTabLayoutArrays(
-    trackId,
-    voiceId,
-    blocksPerRow,
-    finalBlockWidths,
-    blockToRow,
-    measureOffsets,
-    allWidths,
-    rows.length,
-  )
-  renderBridge.setTrackLayout(trackId, voiceId, state)
-
-  return { rows, state, allWidths }
+export function computeTrackLayout(
+  trackId: number,
+  voiceId: number,
+  measures: Array<TabBeat[][] | undefined>,
+  options: MeasureLayoutOptions,
+): MeasureLayoutResult {
+  const pass = beginTrackLayout(trackId, voiceId, measures, options)
+  if (measures.length === 0) return pass.finish()
+  const rowGap = classicalNotationLayoutState.active ? CLASSICAL_ROW_SEPARATION : TAB_ROW_GAP
+  let top = options.headerHeight
+  for (const span of breakIntoRows(
+    pass.displayWidths,
+    pass.hidden,
+    options.availableWidth,
+    isDrumLayout(trackId),
+  )) {
+    top = pass.layoutRow(span, top) + rowGap
+  }
+  return pass.finish()
 }
 
 export function computeTrackLayoutFromSong(
@@ -338,6 +464,13 @@ export function computeTrackLayoutFromSong(
   voiceId: number,
   options: MeasureLayoutOptions,
 ): MeasureLayoutResult {
+  // in the score view a track is laid out together with the others shown
+  const score = scoreTrackIds()
+  if (score?.includes(trackId)) {
+    const rows = computeScoreLayout(score, Song.currentTrackId, Song.currentVoiceId, options)
+    const state = getTrackRenderLayout(trackId, voiceId) ?? createRenderTrackLayoutState(options)
+    return { rows: rows.filter((row) => row.trackId === trackId), state, allWidths: [] }
+  }
   return computeTrackLayout(trackId, voiceId, Song.measures[trackId] || [], options)
 }
 
@@ -352,8 +485,23 @@ export function recomputeTrackLayoutFromSong(
 }
 
 /** Minimum width of a bar: padding for repeat/tempo/time signature plus a width per sixteenth. */
+/** Space between neighbouring lyric syllables (and room for the hyphen). */
+const LYRIC_GAP = 10
+
+/** The offset per sixteenth that leaves room for the beat's widest syllable. */
+function lyricOffset(beat: TabBeat, beatIn16ths: number): number {
+  const widest = Math.max(0, ...(beat.lyrics ?? []).map(estimateLyricWidth))
+  return widest > 0 ? (widest + LYRIC_GAP) / beatIn16ths : 0
+}
+
+/** What a bar needs more when it opens a row: the key signature repeated there. */
+function rowStartRoom(blockId: number): number {
+  return keySignatureRoom(blockId, true) - keySignatureRoom(blockId, false)
+}
+
 export function computeBarWidth(trackId: number, blockId: number, voiceId: number) {
-  let padding = BAR_LEFT_PADDING * 2
+  // key signatures of the song's start and of key changes (row starts: `rowStartRoom`)
+  let padding = BAR_LEFT_PADDING * 2 + keySignatureRoom(blockId, false)
   if (Song.measureMeta[blockId].repeatOpen) {
     padding += 20
   }
@@ -377,7 +525,8 @@ export function computeBarWidth(trackId: number, blockId: number, voiceId: numbe
   const BASIC_OFFSET = 20
   let minOffsetPerNote = 25
   let numOf16th = 0
-  const block = Song.measures[trackId][blockId][voiceId]
+  // a bulk read inside the layout's computed, untracked (the layout re-runs on every edit)
+  const block = toRaw(Song.measures[trackId][blockId][voiceId])
 
   for (let beatId = 0, n = block.length; beatId < n; beatId += 1) {
     // check beat effects
@@ -390,6 +539,7 @@ export function computeBarWidth(trackId: number, blockId: number, voiceId: numbe
         minOffsetPerNote = Math.max(minOffsetPerNote, BASIC_OFFSET + 5)
       }
     }
+    minOffsetPerNote = Math.max(minOffsetPerNote, lyricOffset(beat, beatIn16ths))
     // check note effects
     if (beat.notes != null) {
       for (let string = 0, w = beat.notes.length; string < w; string += 1) {
@@ -423,6 +573,21 @@ export function barWidthChangesRows(trackId: number, blockId: number, voiceId: n
     classicalNotation.convertBlockToNotation(trackId, blockId, voiceId)
   }
   if (!tabLayout.allWidths[blockId]) {
+    return true
+  }
+  // in the score a bar's width also depends on the other tracks: compare the rows
+  if (scoreTrackIds() != null) {
+    const before = JSON.stringify(tabLayout.blocksPerRow[trackId]?.[voiceId])
+    recomputeTrackLayoutFromSong(trackId, voiceId, getAvailableRowWidth())
+    return before !== JSON.stringify(tabLayout.blocksPerRow[trackId]?.[voiceId])
+  }
+  // an edit that fills an empty bar (or empties one) changes the multi-bar rests
+  const layoutKey = `${trackId}:${voiceId}`
+  if (
+    Settings.multiBarRests &&
+    currentMultiRests(trackId, Song.measures[trackId] ?? []).key !== layoutMultiRests.get(layoutKey)
+  ) {
+    recomputeTrackLayoutFromSong(trackId, voiceId, getAvailableRowWidth())
     return true
   }
   let completeRerenderNecessary =

@@ -3,8 +3,8 @@ import { waitForEditorShell } from './helpers'
 
 async function openModal(page: Page, id: string): Promise<void> {
   await page.evaluate(async (modalId) => {
-    const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
-    modalManager.toggleModal(modalId, modalId)
+    const { DIALOGS, toggleDialog } = await import('/src/services/dialogs/dialogs.ts')
+    await toggleDialog(Object.values(DIALOGS).find((dialog) => dialog.id === modalId)!)
   }, id)
   await expect(page.locator(`#${id}`)).toHaveClass(/active/)
 }
@@ -18,10 +18,8 @@ test.describe('studio panels', () => {
   test('equalizer edits the filters that are wired into the master chain', async ({ page }) => {
     // Remember the nodes createBusses() wired in at startup.
     await page.evaluate(async () => {
-      const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
-      ;(window as unknown as { __eqNodes: unknown[] }).__eqNodes = [
-        ...modalManager.getHandler('equalizerModal').equalizerNodes,
-      ]
+      const { masterEqualizer } = await import('/src/services/audio/masterEqualizer.ts')
+      ;(window as unknown as { __eqNodes: unknown[] }).__eqNodes = [...masterEqualizer.equalizerNodes]
     })
     await openModal(page, 'equalizerModal')
 
@@ -30,8 +28,7 @@ test.describe('studio panels', () => {
     await page.keyboard.press('PageUp')
 
     const state = await page.evaluate(async () => {
-      const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
-      const handler = modalManager.getHandler('equalizerModal')
+      const { masterEqualizer: handler } = await import('/src/services/audio/masterEqualizer.ts')
       const before = (window as unknown as { __eqNodes: BiquadFilterNode[] }).__eqNodes
       return {
         sameNodes:
@@ -46,10 +43,10 @@ test.describe('studio panels', () => {
 
   test('a +12 dB bell boosts a 1 kHz tone by about 12 dB', async ({ page }) => {
     const boostDb = await page.evaluate(async () => {
-      const { EqualizerModalHandler } = await import('/src/services/dialogs/equalizerModalHandler.ts')
+      const { MasterEqualizer } = await import('/src/services/audio/masterEqualizer.ts')
       const render = async (gain: number) => {
         const ctx = new OfflineAudioContext(1, 48000, 48000)
-        const eq = new EqualizerModalHandler()
+        const eq = new MasterEqualizer()
         eq.setAudioContext(ctx as unknown as AudioContext)
         eq.bands.value.forEach((_, index) => eq.setBand(index, { type: 'peaking', gain: 0, enabled: true }))
         eq.setBand(1, { type: 'peaking', frequency: 1000, gain, q: 1 })

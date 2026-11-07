@@ -13,7 +13,7 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
     const { default: editorCore } = await import('/src/services/editor/editorCore.ts')
     const { tupletState } = await import('/src/stores/tupletState.ts')
     const { notifySongDataChanged } = await import('/src/services/appEvents.ts')
-    const { default: typedEventBus } = await import('/src/utils/typedEventBus.ts')
+    const { requestFullRender } = await import('/src/services/editor/renderCommands.ts')
 
     type AnyRecord = Record<string, any>
     const TRACK = 0
@@ -132,6 +132,8 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
     note(3, 7, 2, 2, { tied: true })
     Object.assign(beat(3, 5), chord('G', [3, 0, 0, 0, 2, 3]))
     Object.assign(beat(3, 6), { dynamicPresent: true, dynamic: 'ff' })
+    // The triplet took three eighths' beats for two eighths' time: the bar ends with an eighth rest.
+    Song.measures[TRACK][3][VOICE].push({ ...Song.defaultMeasure(), duration: 'er', notes: [] })
 
     // Measure 4/5: a second alternative ending, back-to-back markers and tempo, more text.
     meta(4, {
@@ -149,6 +151,6 @@ export async function loadEffectsShowcase(page: Page): Promise<void> {
     Object.assign(beat(5, 7), { dynamicPresent: true, dynamic: 'ppp' })
 
     notifySongDataChanged()
-    typedEventBus.emit('render.all')
+    requestFullRender()
   })
 }

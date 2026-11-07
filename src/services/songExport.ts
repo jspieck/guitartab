@@ -1,15 +1,20 @@
 import { toRaw } from 'vue'
+import type { ExportFormat } from '../utils/exportFormats'
 import Song from '../stores/song'
 import { currentSongAsGp5 } from './gp5Export'
 import { serializeSongToGtBytes } from '../utils/gtSerialization'
+import { currentPracticeMemory } from './practiceMemory'
 import { buildMusicXml, musicXmlFileName } from './musicXmlExport'
 import { buildGpif } from './gpifExport'
-import { buildGpxFile } from './gpxWriter'
+import { buildGpFile, buildGpxFile } from './gpxWriter'
 import { markSongSaved } from './songAutosave'
 import { showUserError } from './userNotifications'
+import { trackProgram } from '../utils/trackProgram'
+import { buildMidiFile, midiFileName } from './midiExport'
 
-/** Download formats offered in the toolbar. Loaded on demand, so none of this is in the startup bundle. */
-export type ExportFormat = 'gt' | 'gp5' | 'gpx' | 'musicxml'
+// Download formats offered in the toolbar (utils/exportFormats.ts). Loaded on demand, so none
+// of this is in the startup bundle.
+export type { ExportFormat }
 
 function baseName(): string {
   const title = Song.songDescription.title.replace(/[\\/:*?"<>|]+/g, '').trim()
@@ -29,9 +34,11 @@ function download(data: BlobPart, fileName: string, type: string): void {
 }
 
 function songSource() {
+  const channels = toRaw(Song.allChannels)
   return {
     description: toRaw(Song.songDescription),
-    tracks: toRaw(Song.tracks),
+    // The exporters read `track.program`; Guitar Pro 3–5 tracks keep theirs on the channel.
+    tracks: toRaw(Song.tracks).map((track) => ({ ...track, program: trackProgram(track, channels) })),
     measureMeta: toRaw(Song.measureMeta),
     measures: toRaw(Song.measures),
   }
@@ -42,6 +49,20 @@ export function songAsGpx(): Uint8Array {
   return buildGpxFile(buildGpif(songSource()))
 }
 
+/** The current song as a Guitar Pro 7/8 .gp file. */
+export function songAsGp(): Uint8Array {
+  return buildGpFile(buildGpif(songSource()))
+}
+
+/** The current song as a Standard MIDI File; `unrollRepeats` plays repeats and jumps out. */
+export function songAsMidi(unrollRepeats: boolean): Uint8Array {
+  const mixer = toRaw(Song.playBackInstrument)
+  return buildMidiFile(
+    { ...songSource(), title: Song.songDescription.title, mixer: Song.tracks.map((_, i) => mixer[i]) },
+    { unrollRepeats },
+  )
+}
+
 /** The current song as MusicXML text. */
 export function songAsMusicXml(): string {
   return buildMusicXml(songSource())
@@ -50,10 +71,18 @@ export function songAsMusicXml(): string {
 export function exportSong(format: ExportFormat): void {
   try {
     if (format === 'gt') {
-      download(serializeSongToGtBytes(), `${baseName()}.gt`, 'application/octet-stream')
+      download(
+        serializeSongToGtBytes(currentPracticeMemory()),
+        `${baseName()}.gt`,
+        'application/octet-stream',
+      )
       markSongSaved()
     } else if (format === 'gp5') {
       download(currentSongAsGp5(), `${baseName()}.gp5`, 'application/octet-stream')
+    } else if (format === 'midi' || format === 'midi-bars') {
+      download(songAsMidi(format === 'midi'), midiFileName(Song.songDescription.title), 'audio/midi')
+    } else if (format === 'gp') {
+      download(songAsGp(), `${baseName()}.gp`, 'application/octet-stream')
     } else if (format === 'gpx') {
       download(songAsGpx(), `${baseName()}.gpx`, 'application/octet-stream')
     } else {

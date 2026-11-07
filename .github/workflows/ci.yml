@@ -34,6 +34,11 @@ jobs:
       # `npm run build:check` without its second typecheck.
       - name: Build and bundle budgets
         run: npx vite build && npm run check:bundle
+      # First load of the built app (vite preview): time to editor ready, JS before it, longest task.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Startup budget
+        run: npx playwright test -c playwright.startup.config.ts
 
   e2e:
     name: Playwright (desktop + phone)

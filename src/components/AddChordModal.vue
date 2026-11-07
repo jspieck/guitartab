@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.ADD_CHORD.id">
+  <BaseModal :modal-id="DIALOGS.ADD_CHORD.id">
     <template #title>Chord</template>
     <div class="modal-stack chord-modal">
       <div class="modal-section chord-diagram-section">
@@ -97,15 +97,15 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
-import { MODALS } from "../services/dialogs/modalTypes";
+import { DIALOGS } from "../services/dialogs/dialogs"
 import { AddChordModalHandler } from "../services/dialogs/addChordModalHandler";
-import { modalManager } from "../services/dialogs/modalManager";
+import { getDialogHandler } from "../services/dialogs/dialogHandlers";
 import SubmitButton from "./SubmitButton.vue";
 
 const chordNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'H'];
 const stringNotes = ['E', 'A', 'D', 'G', 'H', 'E'];
 
-const handler = modalManager.getHandler(MODALS.ADD_CHORD.id) as AddChordModalHandler;
+const handler = getDialogHandler<AddChordModalHandler>(DIALOGS.ADD_CHORD.id);
 
 const handleChordClick = (e: MouseEvent) => {
   handler.handleChordClick(e);

@@ -9,9 +9,9 @@ const gpif = readShowcaseGpif()
 async function importAndSummarize(page: Page, fileName: string, bytes: Uint8Array) {
   return page.evaluate(
     async ({ fileName, bytes }) => {
-      const { importSongBytes } = await import('/src/services/songImport.ts')
+      const { importSongFile } = await import('/src/services/songImport.ts')
       const { default: Song } = await import('/src/stores/song.ts')
-      importSongBytes(fileName, new Uint8Array(bytes))
+      await importSongFile(fileName, new Uint8Array(bytes), { quiet: true })
 
       const guitar = Song.measures[0]
       const drums = Song.measures[1]
@@ -224,9 +224,9 @@ test.describe('Guitar Pro 6/7/8 import', () => {
       )
     const before = await fingerprint()
     await page.evaluate(async () => {
-      const { importSongBytes } = await import('/src/services/songImport.ts')
+      const { importSongFile } = await import('/src/services/songImport.ts')
       const { currentSongAsGp5 } = await import('/src/services/gp5Export.ts')
-      importSongBytes('roundtrip.gp5', currentSongAsGp5())
+      await importSongFile('roundtrip.gp5', currentSongAsGp5(), { quiet: true })
     })
     expect(await fingerprint()).toEqual(before)
   })
@@ -235,12 +235,12 @@ test.describe('Guitar Pro 6/7/8 import', () => {
     await waitForEditorShell(page)
     const result = await page.evaluate(
       async (bytes) => {
-        const { importSongBytes } = await import('/src/services/songImport.ts')
+        const { importSongFile } = await import('/src/services/songImport.ts')
         const { serializeSongContent } = await import('/src/utils/gtSerialization.ts')
         const before = serializeSongContent()
         let error = ''
         try {
-          importSongBytes('broken.gp', new Uint8Array(bytes))
+          await importSongFile('broken.gp', new Uint8Array(bytes), { quiet: true })
         } catch (caught) {
           error = (caught as Error).name
         }

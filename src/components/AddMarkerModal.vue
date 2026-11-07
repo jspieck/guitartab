@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.MARKER.id">
+  <BaseModal :modal-id="DIALOGS.MARKER.id">
     <template #title>Marker</template>
     <div class="modal-stack">
       <div class="modal-field-grid">
@@ -21,14 +21,14 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import Picker from 'vanilla-picker'
+import type Picker from 'vanilla-picker'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 import type { MarkerModalHandler } from '../services/dialogs/effectModals'
 
-const handler = modalManager.getHandler<InstanceType<typeof MarkerModalHandler>>(MODALS.MARKER.id)
+const handler = getDialogHandler<InstanceType<typeof MarkerModalHandler>>(DIALOGS.MARKER.id)
 const colorPickerRef = ref<HTMLElement | null>(null)
 let picker: Picker | null = null
 
@@ -37,7 +37,9 @@ function colorString(): string {
   return `rgb(${red},${green},${blue})`
 }
 
-onMounted(() => {
+// The dialogs mount after startup; the picker library loads with them, not with the app.
+onMounted(async () => {
+  const { default: Picker } = await import('vanilla-picker')
   if (!colorPickerRef.value) return
   picker = new Picker({ parent: colorPickerRef.value, color: colorString(), popup: false })
   picker.onChange = (color: { rgba: number[] }) => {

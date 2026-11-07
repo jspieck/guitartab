@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modalId="MODALS.INFO.id">
+  <BaseModal :modal-id="DIALOGS.INFO.id" resize="x">
     <template #title>Track Info</template>
       <div class="modal-stack">
         <div class="modal-section">
@@ -33,12 +33,12 @@
 <script setup lang="ts">
 import { reactive } from "vue";
 import BaseModal from "./BaseModal.vue";
-import { modalManager } from "../services/dialogs/modalManager";
+import { getDialogHandler } from "../services/dialogs/dialogHandlers";
 import { InfoModalHandler } from "../services/dialogs/infoModalHandler";
-import { MODALS } from "../services/dialogs/modalTypes";
+import { DIALOGS } from "../services/dialogs/dialogs"
 import SubmitButton from "./SubmitButton.vue";
 
-const handler = modalManager.getHandler<InfoModalHandler>(MODALS.INFO.id);
+const handler = getDialogHandler<InfoModalHandler>(DIALOGS.INFO.id);
 const infoData = reactive(handler.getInfoData());
 
 type InfoFieldName = keyof typeof infoData;

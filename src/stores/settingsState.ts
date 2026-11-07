@@ -12,6 +12,19 @@ export interface AppSettings {
   masterVolume: number
   scrollingEnabled: boolean
   sequencerTrackColor: boolean
+  /** Phone note pad: enter frets on the fretboard instead of the number grid. */
+  touchFretboard: boolean
+  /** Tab: a tied note shows its fret in parentheses (Guitar Pro style) instead of only the tie arc. */
+  tiedNotesInParentheses: boolean
+  /**
+   * Tab rhythm: stems hang from the notes' digits (voice 1 stems up when the bar has a second
+   * voice) instead of standing in the band below the strings.
+   */
+  tabRhythmOnStems: boolean
+  /** Runs of empty bars are drawn as one bar with a multi-bar rest (view only). */
+  multiBarRests: boolean
+  /** Score view: the chosen tracks stacked per system (`services/editor/scoreLayout.ts`). */
+  scoreView: boolean
   /** Runtime only, not persisted. */
   songPlaying: boolean
 }
@@ -26,6 +39,11 @@ const DEFAULTS: AppSettings = {
   masterVolume: 0.8,
   scrollingEnabled: true,
   sequencerTrackColor: false,
+  touchFretboard: false,
+  tiedNotesInParentheses: false,
+  tabRhythmOnStems: false,
+  multiBarRests: false,
+  scoreView: false,
   songPlaying: false,
 }
 
@@ -37,6 +55,11 @@ const PERSISTED_KEYS: PersistedSettingKey[] = [
   'masterVolume',
   'scrollingEnabled',
   'sequencerTrackColor',
+  'touchFretboard',
+  'tiedNotesInParentheses',
+  'tabRhythmOnStems',
+  'multiBarRests',
+  'scoreView',
 ]
 
 /** Comparing note positions (in whole notes) with floating-point sums. */

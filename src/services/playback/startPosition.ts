@@ -1,5 +1,5 @@
 import Song from '../../stores/song'
-import { publishPlaybackPosition } from '../editor/playbackEngineBridge'
+import { publishPlaybackPosition } from '../../stores/playbackTransportState'
 import { ticksBefore } from './songCursor'
 
 /** Where Play starts: a bar and the ticks (whole = 64) into it. Moved by clicks and the cursor. */

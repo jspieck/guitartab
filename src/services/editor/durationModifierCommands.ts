@@ -8,9 +8,10 @@ import Song from '../../stores/song'
 import { recordBarEdit } from './editCommands'
 import { classicalNotation } from '../notation/classicalNotationAdapter'
 import type { Beat } from '../../types/tab'
-import { requestDurationRender } from './renderCommands'
-import { typedEventBus } from '../../utils/typedEventBus'
+import { requestBlocksRender, requestDurationRender } from './renderCommands'
 import { noteLengthOf } from '../../utils/durationUtils'
+import type { Dots } from '../../utils/durationReplacer'
+import editorCore from './editorCore'
 
 export function toggleBeatDotModifier(
   beat: Beat,
@@ -81,6 +82,7 @@ export function finalizeSpecialDurationChange(
   beatId: number,
   string: number,
   previousDuration: number,
+  previousDots?: Dots,
 ): void {
   const newDuration = Duration.getDurationOfNote(beat, true)
   if (previousDuration !== newDuration) {
@@ -93,6 +95,7 @@ export function finalizeSpecialDurationChange(
       newDuration,
       previousDuration,
       beat.duration,
+      previousDots,
     )
     requestDurationRender(trackId, blockId, voiceId)
     classicalNotation.updateVexFlowBlock(trackId, voiceId, blockId)
@@ -185,7 +188,7 @@ export function processTiedButtonPress(
   for (let bId = tiedTarget.blockId; bId <= blockId; bId += 1) {
     blocks.push(bId)
   }
-  typedEventBus.emit('render.blocks', { trackId, blockIds: blocks, voiceId })
+  requestBlocksRender(trackId, blocks, voiceId)
 }
 
 export function processSpecialSelect(
@@ -222,10 +225,20 @@ export function processSpecialSelect(
         return false
       }
 
+      const previousDots = { dotted: beat.dotted, doubleDotted: beat.doubleDotted }
       if (!toggleBeatDotModifier(beat, trackId, blockId, voiceId, beatId, string, previousDuration, id)) {
         return false
       }
-      finalizeSpecialDurationChange(beat, trackId, blockId, voiceId, beatId, string, previousDuration)
+      finalizeSpecialDurationChange(
+        beat,
+        trackId,
+        blockId,
+        voiceId,
+        beatId,
+        string,
+        previousDuration,
+        previousDots,
+      )
       return true
     })
   })
@@ -236,6 +249,14 @@ const SPECIAL_LABELS: Record<string, string> = {
   tied: 'Tie',
   dotted: 'Dot',
   doubleDotted: 'Double dot',
+}
+
+/** The note a tie at the cursor connects to: its own target, or the previous note on the string. */
+export function tieTargetAtCursor(): { blockId: number; beatId: number } | null {
+  const { trackId, blockId, voiceId, beatId, string } = selectionState.cursor
+  const note = editorCore.getNote(trackId, blockId, voiceId, beatId, string)
+  if (note?.tied) return note.tiedTo ?? null
+  return editorCore.findPreviousNoteOnString(trackId, blockId, voiceId, beatId, string)
 }
 
 export function noteLengthSpecialSelect(

@@ -9,6 +9,7 @@
       aria-labelledby="shortcutsHelpTitle"
       tabindex="-1"
       @keydown.esc.stop="closeShortcutsHelp"
+      @keydown.tab="keepTabInside"
     >
       <div class="shortcuts-help__header">
         <h2 id="shortcutsHelpTitle" class="shortcuts-help__title">Keyboard shortcuts</h2>
@@ -43,6 +44,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { displayKeys, groupShortcuts, isMacPlatform } from '../utils/keyboardShortcuts'
 import { closeShortcutsHelp } from '../stores/shortcutsHelpState'
+import { wrapTabFocus } from '../services/a11y/focusable'
 
 const groups = groupShortcuts()
 const mac = isMacPlatform()
@@ -53,6 +55,11 @@ onMounted(() => {
   previousFocus = document.activeElement as HTMLElement | null
   dialogRef.value?.focus()
 })
+
+// A modal sheet over a backdrop: Tab stays inside until it closes.
+function keepTabInside(event: KeyboardEvent) {
+  if (dialogRef.value && wrapTabFocus(dialogRef.value, event.shiftKey)) event.preventDefault()
+}
 
 onBeforeUnmount(() => {
   previousFocus?.focus?.()

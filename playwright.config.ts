@@ -31,7 +31,8 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /\.mobile\.spec\.ts$/,
+      // *.prod.spec.ts measure the production build (playwright.startup.config.ts).
+      testIgnore: [/\.mobile\.spec\.ts$/, /\.prod\.spec\.ts$/],
     },
     {
       // Phone layout (touch, mobile user agent); runs only the *.mobile.spec.ts files.

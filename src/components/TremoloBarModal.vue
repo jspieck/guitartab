@@ -1,13 +1,14 @@
 <template>
-  <BaseModal :modal-id="MODALS.TREMOLO_BAR.id">
+  <BaseModal :modal-id="DIALOGS.TREMOLO_BAR.id">
     <template #title>Tremolo bar</template>
     <div class="modal-stack">
       <div class="tremolo-editor-container modal-surface-block">
         <svg
-          ref="tremoloEditorRef"
+          class="graph-editor"
+          viewBox="0 0 300 300"
           width="300"
           height="300"
-          @mousedown="handleMouseDown"
+          @pointerdown="handlePointerDown"
         >
           <!-- Static grid owned by Vue (no createElementNS) -->
           <g class="tremolo-grid" pointer-events="none">
@@ -48,7 +49,23 @@
               class="gridLine"
             />
           </g>
-          <g ref="pointsLayerRef" class="tremolo-points" />
+          <g class="tremolo-points">
+            <path
+              v-for="(line, index) in connections"
+              :key="`l-${index}`"
+              class="pointConnectionLine"
+              :d="line"
+              style="stroke: var(--editor-point); stroke-width: 2; fill: none"
+            />
+            <circle
+              v-for="point in points"
+              :key="point.column"
+              :cx="point.x"
+              :cy="point.y"
+              r="7"
+              style="fill: var(--editor-point); stroke: none"
+            />
+          </g>
         </svg>
       </div>
       <div class="modal-field">
@@ -56,8 +73,8 @@
         <div class="select">
           <select
             id="tremoloSelection"
-            v-model="selectedPreset"
-            @change="(e: Event) => handler.applyTremoloPreset(Number((e.target as HTMLSelectElement).value))"
+            :value="handler.editor.preset"
+            @change="handler.applyPreset(Number(($event.target as HTMLSelectElement).value))"
           >
             <option value="0">Dive</option>
             <option value="1">Dip</option>
@@ -70,31 +87,35 @@
         </div>
       </div>
       <div class="modal-submit-row">
-        <SubmitButton button-id="tremoloSelectButton" />
+        <SubmitButton button-id="tremoloSelectButton" @submit-info="handler.apply()" />
       </div>
     </div>
   </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { TremoloBarModalHandler } from '../services/dialogs/tremoloBarModalHandler'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
+import {
+  TREMOLO_COLUMNS,
+  TREMOLO_ROWS,
+  type TremoloBarModalHandler,
+} from '../services/dialogs/tremoloBarModalHandler'
+import { svgPointFromEvent } from '../utils/svgPoint'
 
-const tremoloEditorRef = ref<SVGElement | null>(null)
-const pointsLayerRef = ref<SVGGElement | null>(null)
-const selectedPreset = ref('0')
-const handler = modalManager.getHandler(MODALS.TREMOLO_BAR.id) as TremoloBarModalHandler
+const handler = getDialogHandler<TremoloBarModalHandler>(DIALOGS.TREMOLO_BAR.id)
 
 const padding = 20
 const editorSize = 300
-const columnCount = 12
-const rowCount = 24
+const columnCount = TREMOLO_COLUMNS
+const rowCount = TREMOLO_ROWS
 const gridWidth = editorSize - 2 * padding
 const gridHeight = editorSize - 2 * padding
+const columnWidth = gridWidth / columnCount
+const rowHeight = gridHeight / rowCount
 
 const axisLabels = computed(() => [
   { text: '+16', y: padding },
@@ -103,17 +124,28 @@ const axisLabels = computed(() => [
   { text: '-8', y: gridHeight + padding },
 ])
 
-function handleMouseDown(event: MouseEvent) {
-  if (tremoloEditorRef.value) {
-    handler.handleMouseDown(event, tremoloEditorRef.value)
-  }
-}
+const points = computed(() =>
+  handler.editor.points.flatMap((rowsUp, column) =>
+    rowsUp == null ? [] : [{ column, x: padding + column * columnWidth, y: padding + (rowCount - rowsUp) * rowHeight }],
+  ),
+)
 
-onMounted(() => {
-  if (tremoloEditorRef.value && pointsLayerRef.value) {
-    handler.initializeTremoloEditor(tremoloEditorRef.value, pointsLayerRef.value)
-  }
-})
+const connections = computed(() =>
+  points.value.slice(1).map((point, index) => {
+    const previous = points.value[index]
+    return `M${previous.x} ${previous.y}L${point.x} ${point.y}`
+  }),
+)
+
+/** A click or tap on the editor; positions in viewBox units, as it scales down on a phone. */
+function handlePointerDown(event: PointerEvent) {
+  if (event.button !== 0) return
+  event.preventDefault()
+  const point = svgPointFromEvent(event.currentTarget as SVGSVGElement, event, editorSize, editorSize)
+  const x = Math.min(Math.max(point.x - padding, 0), gridWidth)
+  const y = Math.min(Math.max(point.y - padding, 0), gridHeight)
+  handler.togglePoint(Math.round(x / columnWidth), rowCount - Math.round(y / rowHeight))
+}
 </script>
 
 <style scoped>
@@ -121,5 +153,13 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   padding: 8px;
+}
+
+/* Scales down to the dialog's width on a phone; a finger places points instead of scrolling. */
+.graph-editor {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  touch-action: none;
 }
 </style>

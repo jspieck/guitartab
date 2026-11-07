@@ -118,6 +118,24 @@ const OPTIONAL_EFFECTS: Partial<Record<string, OptionalEffect>> = {
       delete meta.marker
     },
   },
+  addDirection: {
+    get: (_beat, _note, meta) =>
+      meta.directionTargets || meta.directionJumps
+        ? { targets: meta.directionTargets, jumps: meta.directionJumps }
+        : undefined,
+    set: (_beat, _note, meta, value) => {
+      const { targets, jumps } = value as {
+        targets?: MeasureMeta['directionTargets']
+        jumps?: MeasureMeta['directionJumps']
+      }
+      if (targets) meta.directionTargets = [...targets]
+      if (jumps) meta.directionJumps = [...jumps]
+    },
+    remove: (_beat, _note, meta) => {
+      delete meta.directionTargets
+      delete meta.directionJumps
+    },
+  },
   repeatAlternative: {
     get: (_beat, _note, meta) => meta.repeatAlternative,
     set: (_beat, _note, meta, value) => {

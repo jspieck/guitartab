@@ -1,5 +1,5 @@
 <template>
-    <BaseModal :modal-id="MODALS.COMPRESSOR.id">
+    <BaseModal :modal-id="DIALOGS.COMPRESSOR.id">
         <template #title>Master Compressor</template>
         <div class="ap-root comp" :class="{ 'comp-bypassed': bypass }">
             <div class="ap-toolbar">
@@ -77,13 +77,12 @@ import { computed, ref } from 'vue';
 import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import './audio/audioPlugin.css';
-import { MODALS } from '../services/dialogs/modalTypes';
-import { modalManager } from '../services/dialogs/modalManager';
+import { DIALOGS } from '../services/dialogs/dialogs';
 import { audioGraph } from '../services/audio/audioGraph';
 import {
-    COMPRESSOR_PRESETS, COMPRESSOR_RANGES, CompressorModalHandler, compressorCurve,
-} from '../services/dialogs/compressorModalHandler';
-import { useAnimationLoop, useModalOpen } from '../composables/useModalOpen';
+    COMPRESSOR_PRESETS, COMPRESSOR_RANGES, compressorCurve, masterCompressor,
+} from '../services/audio/masterCompressor';
+import { useAnimationLoop, useDialogOpen } from '../composables/useDialogOpen';
 
 const CURVE = 200;
 const MIN_DB = -60;
@@ -92,7 +91,7 @@ const GR_RANGE = 24;
 const DEFAULTS = COMPRESSOR_PRESETS[0].settings;
 const PEAK_FALL_DB_PER_FRAME = 0.5;
 
-const handler = modalManager.getHandler(MODALS.COMPRESSOR.id) as CompressorModalHandler;
+const handler = masterCompressor;
 const settings = handler.settings;
 const bypass = computed(() => handler.bypass.value);
 const presetName = computed(() => handler.matchingPreset());
@@ -175,7 +174,7 @@ function readPeakDb(): number {
     return peak > 0 ? 20 * Math.log10(peak) : MIN_DB;
 }
 
-const isOpen = useModalOpen(MODALS.COMPRESSOR.id);
+const isOpen = useDialogOpen(DIALOGS.COMPRESSOR.id);
 useAnimationLoop(isOpen, () => {
     const peak = readPeakDb();
     // Instant attack, slow fall, so peaks stay readable.

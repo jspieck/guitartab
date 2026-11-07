@@ -6,6 +6,7 @@ import Song, {
   type SongDescription,
   type Track,
 } from '../../../stores/song'
+import { applyLyricLines, type LyricLine } from '../../../utils/lyrics'
 
 /** A song as read from a Guitar Pro 3–5 file, before it is put into `Song`. */
 export interface GuitarProSong {
@@ -17,6 +18,8 @@ export interface GuitarProSong {
   /** The file's 64 MIDI channels. */
   channels: Channel[]
   measures: Beat[][][][]
+  /** Lyrics as read (GP4/GP5): the track index (-1 = none) and five verse lines; placed on the beats by `placeGuitarProLyrics`. */
+  lyrics?: { track: number; lines: LyricLine[] }
 }
 
 export function emptyGuitarProSong(): GuitarProSong {
@@ -46,6 +49,14 @@ export function emptyGuitarProSong(): GuitarProSong {
 /** Adds a chord to a track's chord library (shown in the chord diagrams). */
 export function addChord(song: GuitarProSong, trackId: number, chord: Chord): void {
   ;(song.chords[trackId] ??= new Map()).set(chord.name, { ...chord, display: true })
+}
+
+/** Puts the file's lyric lines onto the lyric track's beats (first voice); the lines are dropped then. */
+export function placeGuitarProLyrics(song: GuitarProSong): void {
+  const { track, lines } = song.lyrics ?? { track: -1, lines: [] }
+  const bars = song.measures[track]
+  if (bars != null) applyLyricLines(bars, lines)
+  delete song.lyrics
 }
 
 /** Replaces the current song with `song`. */

@@ -41,10 +41,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 const tabDurationHost = {
   isNotePlaceable: vi.fn(() => true),
   // Stands in for changeBeatDuration (durationEditing.ts): writes the new length into the beat.

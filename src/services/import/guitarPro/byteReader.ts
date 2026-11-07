@@ -43,6 +43,14 @@ export class ByteReader {
     return byte
   }
 
+  /** Signed 16-bit little-endian integer. */
+  readShort(): number {
+    const b0 = this.readUnsignedByte()
+    const b1 = this.readUnsignedByte()
+    const value = (b1 << 8) | b0
+    return value > 0x7fff ? value - 0x10000 : value
+  }
+
   /** Signed 32-bit little-endian integer. */
   readInt(): number {
     const b0 = this.readByte()
@@ -77,8 +85,8 @@ export class ByteReader {
     }
     this.ensureAvailable(Math.max(0, length))
     const bytes: number[] = []
-    for (let i = 0; i < length; i += 1) bytes.push(this.readByte())
-    return utf8ToString(bytes)
+    for (let i = 0; i < length; i += 1) bytes.push(this.readUnsignedByte())
+    return decodeText(bytes)
   }
 
   /** int (length + 1), byte (length), text. */
@@ -102,35 +110,18 @@ export class ByteReader {
   }
 }
 
-/** Decodes UTF-8 up to three-byte sequences (what Guitar Pro writes); other bytes are dropped. */
-function utf8ToString(bytes: number[]): string {
-  let out = ''
-  let i = 0
-  while (i < bytes.length) {
-    const c = bytes[i]
-    i += 1
-    switch (c >> 4) {
-      case 0:
-      case 1:
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-      case 6:
-      case 7:
-        out += String.fromCharCode(c)
-        break
-      case 12:
-      case 13:
-        out += String.fromCharCode(((c & 0x1f) << 6) | (bytes[i] & 0x3f))
-        i += 1
-        break
-      case 14:
-        out += String.fromCharCode(((c & 0x0f) << 12) | ((bytes[i] & 0x3f) << 6) | (bytes[i + 1] & 0x3f))
-        i += 2
-        break
-      default:
-    }
+const utf8 = new TextDecoder('utf-8', { fatal: true })
+const windows1252 = new TextDecoder('windows-1252')
+
+/**
+ * Text as UTF-8 (what this app's GP5 export writes), else Windows-1252 (what Guitar Pro
+ * itself writes). Bytes used to be read signed, which dropped every non-ASCII character.
+ */
+function decodeText(bytes: number[]): string {
+  const data = Uint8Array.from(bytes)
+  try {
+    return utf8.decode(data)
+  } catch {
+    return windows1252.decode(data)
   }
-  return out
 }

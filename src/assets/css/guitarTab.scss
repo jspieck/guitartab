@@ -78,7 +78,8 @@ body{
     flex-grow: 1;
     position: relative;
 	display: flex;
-    flex-direction: row;
+    /* The toolbar on top, the sheet below it. */
+    flex-direction: column;
     position: relative;
 }
 #svgTestArea{
@@ -124,7 +125,7 @@ body{
         }
         span{
             padding: 5px;
-            background: var(--gray-50);
+            background: var(--color-hover);
         }
         span.sp2{
             background: var(--green-300);
@@ -251,62 +252,10 @@ body{
     }
 }
 
-#trackCapsule{
-    position: fixed;
-    z-index: 99;
-    display: inline-block;
-    /* position: absolute; */
-    right: 30px;
-    top: 20px;
-}
 
-#tabBar{
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -ms-flex-wrap: nowrap;
-    flex-wrap: nowrap;
-    -webkit-box-pack: justify;
-    -ms-flex-pack: justify;
-    min-height: 30px;
-    position: relative;
-    height: 28px;
-    line-height: 28px;
-    z-index: 5;
-}
 
-#completeBar{
-    border: 1px solid var(--gray-150);
-    /* background-image: -webkit-linear-gradient(right, color-mix(in srgb, var(--red-100) 20%, transparent), color-mix(in srgb, var(--red-100) 23%, transparent)) !important; */
-    box-shadow: 0 1px 2px color-mix(in srgb, var(--gray-200) 30%, transparent), 0 0 20px color-mix(in srgb, var(--gray-300) 10%, transparent) inset;
-    /*background: color-mix(in srgb, var(--gray-0) 92%, transparent);*/
-    background: var(--gray-0);
-    position: absolute;
-    z-index: 200;
-}
 
-.tabBarElemSelected{
-    border-top: 2px solid var(--blue-600) !important;
-    color: var(--blue-300) !important;
-    color: var(--blue-600) !important;
-}
 
-.tabBarElem{
-    cursor: pointer;
-    margin: 0 15px;
-    display:inline-block;
-    color: var(--gray-500);
-    color: var(--gray-950);
-    font-size: 14px;
-    border-top: 2px solid var(--gray-0);
-    transition: all 200ms ease-in-out;
-
-    &:hover, &:active{
-        border-top: 2px solid var(--blue-600);
-        color: var(--blue-300);
-        color: var(--blue-600);
-    }
-}
 .hideChord{
     opacity:0.2;
 }
@@ -335,17 +284,6 @@ body {
     color: var(--indigo-700);
 }
 
-#trackSign{
-    float: right;
-    width: 50px;
-    height: 50px;
-    background: none;
-    border-radius: 50px;
-}
-#trackSign img{
-    padding: 7px;
-    padding-top: 3px;
-}
 
 @-webkit-keyframes check {
   0% {
@@ -377,15 +315,21 @@ body {
 }
 #drumInfoModal.modal{
     width: 560px;
-    max-width: min(560px, calc(100vw - 32px)) !important;
+    max-width: min(560px, calc(100vw - 32px));
 }
-#drumInfoFooter{
+#drumGridModal.modal{
+    width: 650px;
+    max-width: calc(100vw - 32px);
+}
+#drumInfoFooter, #drumGridFooter{
     cursor:pointer;
 }
 #notificationEmblem{
     position: fixed;
-    right: 100px;
-    top: 29px;
+    /* Under the two toolbar bars, left of the track's instrument sign. */
+    z-index: 1100;
+    right: 84px;
+    top: 108px;
     padding: 3px 6px;
     font-size: 13px;
     vertical-align: middle;
@@ -484,7 +428,7 @@ body {
 }
 #completeTab{
     position: relative;
-    margin-top: 90px;
+    margin-top: 24px;
 }
 .svgPage{
     background-color: var(--gray-0);
@@ -494,18 +438,6 @@ body {
 
 #graceSelect label{
     display: block;
-}
-#infoModal{
-    width: min(560px, calc(100vw - 32px));
-
-    label{
-        display: block;
-    }
-    input{
-        width: 100%;
-        height: 26px;
-        margin-bottom: 10px;
-    }
 }
 
 #songCommentsInput{
@@ -526,81 +458,6 @@ body {
     cursor: pointer;
 	z-index: 4;
 }
-#content .playChange{
-    width: 20px;
-    height: 28px;
-    opacity: 1;
-    color: var(--color-text);
-    line-height: 12px;
-    border-radius: 0;
-    padding: 4px;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
-    background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
-}
-#content #oneMeasureBack{
-    margin: 2px;
-    border-radius: 10px 0 0 10px;
-    grid-column: 1;
-    grid-row: 1;
-}
-#content #oneMeasureForward{
-    margin: 2px;
-    border-radius: 0 10px 10px 0px;
-    grid-column: 2;
-    grid-row: 1;
-}
-#content button.playStart{
-    vertical-align: top;
-    margin: 2px;
-    width: 28px;
-    /* margin-bottom: 7px; */
-    /* margin-top: 17px; */
-    height: 28px;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
-    background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
-    background-image: -moz-linear-gradient(top, var(--gray-50), var(--gray-150));
-    background-image: -ms-linear-gradient(top, var(--gray-50), var(--gray-150));
-    background-image: -o-linear-gradient(top, var(--gray-50), var(--gray-150));
-    /* border-radius: 20px; */
-    text-align: center;
-    /* border: 1px solid var(--gray-150); */
-    cursor: pointer;
-    padding: 6px;
-    padding-left: 7px;
-    float: left;
-    grid-column: 1/2;
-    grid-row: 1;
-    border-right: 1px solid color-mix(in srgb, var(--gray-550) 8%, transparent);
-    border-left: 1px solid color-mix(in srgb, var(--gray-550) 8%, transparent);
-    z-index: 2;
-}
-#content button.playStart:hover, #content button.playChange:hover, #content #stopButton:hover{
-	background: var(--gray-0);
-	background-image: -webkit-linear-gradient(top, var(--blue-100), var(--gray-400));
-
-	/*    transform: rotate(360deg);*/
-    background: var(--red-500);
-    background-image: linear-gradient(to top, var(--gray-250) 0%, var(--gray-250) 1%, var(--gray-100) 31%, var(--gray-100) 75%, var(--gray-150) 100%);
-    transition-duration: 1s;
-}
-#content #recordButton:hover{
-    background: var(--red-300);
-}
-#content #playMusicImg{
-	display: block;
-}
-#content #pauseMusicImg{
-	display: none;
-}
-#content button.classicalButton, button.classicalButton{
-    width: 28px;
-    height: 28px;
-    background: var(--gray-0);
-    border-radius: 30px;
-    background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
-    cursor: pointer;
-    margin: 7px 9px;
-}
 .deleteButton{
     outline: 0;
     padding: 10px;
@@ -612,18 +469,12 @@ body {
     width: 49%;
     cursor: pointer;
 }
-#classicalToggleButton.classicalBack {
-    background: var(--red-200) !important;
-}
 .shiftPiano{
     height: 0px !important;
     width: 35px !important;
     margin-left: calc(100% - 35px);
 }
 #content .shiftPiano #pianoList{
-    display: none;
-}
-#content .shiftPiano .guitar-neck{
     display: none;
 }
 #content .shiftPiano #effectBarLayout{
@@ -653,13 +504,6 @@ body {
 }
 #tabTitle:hover, #tabAuthor:hover, #tuningTitle:hover, #capoTitle:hover, .bpmMeter:hover, .chordDiagram:hover, #trackTitle:hover{
     filter: url(#solid)
-}
-.statusBarSelected{
-    display: inline-block !important;
-}
-.statusBar{
-    display:none;
-    border-top: 1px solid var(--gray-150);
 }
 #tabArea{
 	position:relative;
@@ -703,92 +547,10 @@ body {
     text-align: center;
     margin-right: 5px;
 }
-#content button{
+/* Flat buttons in the app chrome; dialog buttons keep their own borders and focus rings. */
+#content button:not(.modal button){
 	border: none;
 	cursor: pointer;
-}
-#content .checkBoxBar{
-	display: inline-block;
-	margin-left: 15px;
-}
-.tabArea:focus {outline:0;}
-#content button:focus {outline:0;}
-#content button.pressed{
-	/*background-image: -webkit-linear-gradient(top, var(--red-100), var(--red-500)) !important;*/
-	    background: var(--red-200) !important;
-}
-#content button.checkBoxNote:hover {
-    background-image: -webkit-linear-gradient(top, var(--gray-200), var(--gray-150));
-    background: var(--gray-150);
-}
-#content button.checkBoxNote{
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	vertical-align: top;
-	margin-right:10px;
-    width: 28px;
-    height: 28px;
-	background-image: -webkit-gradient(linear, left top, left bottom, from(var(--gray-50)), to(var(--gray-150)));
-	background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));
-	background-image: -moz-linear-gradient(top, var(--gray-50), var(--gray-150));
-	background-image: -ms-linear-gradient(top, var(--gray-50), var(--gray-150));
-	background-image: -o-linear-gradient(top, var(--gray-50), var(--gray-150));
-	/*box-shadow: 2px 2px 5px 0px var(--gray-350);*/
-	border-radius: 20px;
-	text-align: center;
-	line-height: 1;
-    padding: 0;
-    margin: 4px;
-    box-sizing: border-box;
-}
-#content button.checkBoxNote > :is(img, svg) {
-    display: block;
-    margin: 0;
-    object-fit: contain;
-    pointer-events: none;
-    flex-shrink: 0;
-}
-#content button.checkBoxNote > .noteImg {
-    width: 12px;
-    height: 20px;
-}
-#content #statusBar2 button.checkBoxNote > :is(img, svg),
-#content #statusBar4 button.checkBoxNote > :is(img, svg),
-#content #statusBar5 button.checkBoxNote > :is(img, svg),
-#content button.checkBoxNote.playButton > :is(img, svg) {
-    width: 20px;
-    height: 20px;
-}
-#content #statusBar1 button.checkBoxNote:not(.playButton) > :is(img, svg):not(.noteImg) {
-    width: 20px;
-    height: 20px;
-}
-#content #statusBar2 button.checkBoxNote,
-#content #statusBar4 button.checkBoxNote,
-#content #statusBar5 button.checkBoxNote {
-    padding: 0;
-}
-#content .checkBoxDov{
-    display:inline-block;
-    position:relative;
-}
-#content .checkBoxDov:hover #tupletDropDown{
-    display: block;
-}
-#tupletDropDown{
-    display: none;
-    position: absolute;
-    top: 30px;
-    left: 0px;
-    outline: none;
-    border-radius: 20px;
-}
-#tupletDropDown option{
-    width:20px;
-}
-#content button:disabled{
-    opacity: 0.1;
 }
 #loadingWheel{
     display: none;
@@ -803,17 +565,6 @@ body {
     background: color-mix(in srgb, var(--gray-0) 63%, transparent);
 }
 
-#content button.playButton{
-	padding: 6px;
-	text-align: center;
-}
-#content button.shortcutsHelpButton {
-	font: 600 17px/1 'Source Sans Pro', sans-serif;
-	color: inherit;
-}
-#content button.playButton:hover, #content button.playButton:hover, #content .classicalButton:hover {
-    background: var(--gray-150);
-}
 /*MODAL EFFECT*/
 .show {
   position: absolute;
@@ -914,7 +665,7 @@ body {
     display: grid;
     gap: 12px;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal){
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)){
     min-width: 300px;
     max-width: min(420px, calc(100vw - 32px));
     max-height: 78vh;
@@ -924,7 +675,7 @@ body {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBar{
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalTopBar{
     min-height: 44px;
     height: auto;
     line-height: normal;
@@ -938,7 +689,7 @@ body {
     width: 100%;
     box-sizing: border-box;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalTopBarLabel{
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalTopBarLabel{
     min-height: 44px;
     padding: 0;
     flex: 1;
@@ -949,7 +700,7 @@ body {
     font-weight: 600;
     letter-spacing: 0;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody{
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalBody{
     gap: 0;
     padding: 16px;
     max-height: calc(78vh - 44px);
@@ -957,7 +708,7 @@ body {
     overflow-x: hidden;
     align-content: start;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal_close {
     position: relative;
     top: auto;
     right: auto;
@@ -968,16 +719,16 @@ body {
     border-radius: 8px;
     transition: background-color 0.15s ease;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal_close:hover {
     background: var(--color-hover);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close .icon {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal_close .icon {
     fill: var(--color-text-muted);
     stroke: var(--color-text-muted);
     width: 14px;
     height: 14px;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal_close:hover .icon {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal_close:hover .icon {
     fill: var(--color-text-secondary);
     stroke: var(--color-text-secondary);
 }
@@ -1020,7 +771,7 @@ body {
 }
 .modal-field label,
 .modal-field-label,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) label {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) label {
     color: var(--color-text-muted);
     font-size: 13px;
     font-weight: 500;
@@ -1031,9 +782,9 @@ body {
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
 .modal-field textarea,
 .modal-field .select,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select,
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea,
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select,
 .modal-surface-block {
     width: 100%;
     min-width: 0;
@@ -1044,8 +795,8 @@ body {
 }
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
 .modal-field textarea,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox),
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea {
     margin: 0;
     padding: 0 var(--control-padding-x);
     font: inherit;
@@ -1055,21 +806,21 @@ body {
     box-sizing: border-box;
 }
 .modal-field input:not([type=checkbox]):not(.styled-checkbox),
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input:not([type=checkbox]):not(.styled-checkbox) {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not(.styled-checkbox) {
     height: var(--control-height);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) input::placeholder,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea::placeholder {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input::placeholder,
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea::placeholder {
     color: var(--color-text-faint);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea {
     min-height: var(--textarea-min-height);
     padding-top: 8px;
     padding-bottom: 8px;
     resize: vertical;
     line-height: 1.45;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select {
     position: relative;
     display: block;
     height: var(--control-height);
@@ -1077,7 +828,7 @@ body {
     background: var(--color-field);
     overflow: hidden;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select select {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select select {
     appearance: none;
     -webkit-appearance: none;
     width: 100%;
@@ -1092,15 +843,15 @@ body {
     line-height: var(--control-height);
     cursor: pointer;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select__arrow {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select__arrow {
     top: 50%;
     transform: translateY(-50%);
     right: 11px;
     border-width: 5px 4px 0 4px;
     border-color: var(--color-text-muted) transparent transparent transparent;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:hover,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .select:focus-within {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select:hover,
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select:focus-within {
     color: inherit;
     background: var(--color-hover);
     border-color: var(--color-border-strong);
@@ -1215,16 +966,16 @@ body {
 }
 .modal-submit-row .selectButton,
 .modal-submit-row .modal-primary-button,
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .selectButton {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .selectButton {
     margin-top: 0;
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .checkmark {
     width: 34px;
     height: 34px;
     background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
     box-shadow: 0 10px 18px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
-.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .checkmark__circle {
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .checkmark__circle {
     stroke: color-mix(in srgb, var(--gray-0) 30%, transparent);
 }
 .modal-checkbox-list {
@@ -1301,16 +1052,9 @@ body {
 #addGraceModal .modalBody, #addStrokeModal .modalBody, #bpmModal .modalBody{
     padding-bottom: 16px;
 }
-#infoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) {
+#infoModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) {
     width: min(640px, calc(100vw - 32px));
     max-width: min(640px, calc(100vw - 32px));
-}
-#infoModal .modalBody,
-#instrumentSettingsModal .modalBody {
-    padding-bottom: 14px;
-}
-#infoModal .modalBody {
-    gap: 8px;
 }
 #infoModal .modal-section {
     padding: 9px;
@@ -1318,21 +1062,18 @@ body {
 #infoModal .modal-field-grid.two-column {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-#infoModal textarea {
-    min-height: 60px;
+#instrumentSettingsModal,
+#chordManagerModal {
+    /* As wide as the shared dialog maximum (their wider widths never applied before). */
+    width: min(420px, calc(100vw - 32px));
 }
 #instrumentSettingsModal {
-    width: min(520px, calc(100vw - 32px));
-    max-width: min(520px, calc(100vw - 32px));
-    overflow: visible !important;
+    overflow: visible;
 }
 #instrumentSettingsModal .modalBody {
     gap: 0;
     padding: 16px;
-    overflow: visible !important;
-}
-#instrumentSettingsModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody {
-    overflow: visible !important;
+    overflow: visible;
 }
 #instrumentSettingsModal .picker_wrapper.popup {
     z-index: 10001;
@@ -1365,6 +1106,28 @@ body {
 #instrumentSettingsModal .jscolor {
     border: none;
 }
+body.modal-resizing {
+    user-select: none;
+}
+/* Add/change instrument: resizable (modalManager); the card grid reflows with it. */
+#addTrackModal {
+    width: 640px;
+    max-width: calc(100vw - 32px);
+}
+#addTrackModal .modalBody {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 8px;
+    /* The picker scrolls its own list, under a fixed search field. */
+    overflow: hidden;
+}
+#addTrackModal[data-resized] .modalBody {
+    max-height: calc(100% - 45px);
+    height: calc(100% - 45px);
+    box-sizing: border-box;
+}
+#addTrackModal[data-resized] .instrumentPicker {
+    height: 100%;
+}
 .classical-notation-layer {
     position: absolute;
     top: 0;
@@ -1373,22 +1136,54 @@ body {
     overflow: visible;
     z-index: 2;
 }
-#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody,
-#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modalBody {
+/* VexFlow paints black notes and grey staff lines (attributes, or nothing inherited from the svg);
+   take the tab's colours instead, so dark mode reads too. The voice-2 rule below is more specific. */
+.vexFlowRow svg {
+    color: var(--tab-primary);
+    fill: currentColor;
+    stroke: currentColor;
+    [fill]:not([fill="none"]) {
+        fill: currentColor;
+    }
+    [stroke]:not([stroke="none"]) {
+        stroke: currentColor;
+    }
+    .vf-stave {
+        color: var(--tab-staff);
+    }
+}
+/* The voice that isn't edited (classicalNotation.drawOtherVoice): voice 2 in its tab colour, voice 1 faint. */
+.classical-notation-layer .vf-other-voice {
+    opacity: 0.5;
+}
+.classical-notation-layer .other-voice--voice2 {
+    opacity: 1;
+    /* VexFlow leaves most paths unpainted, inheriting from the svg; "none" attributes stay. */
+    fill: var(--tab-voice2);
+    stroke: var(--tab-voice2);
+    [fill]:not([fill="none"]) {
+        fill: var(--tab-voice2);
+    }
+    [stroke]:not([stroke="none"]) {
+        stroke: var(--tab-voice2);
+    }
+}
+#tempoModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalBody,
+#textModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalBody {
     gap: 6px;
     padding: 10px;
 }
-#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal-submit-row,
-#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal-submit-row {
+#tempoModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal-submit-row,
+#textModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal-submit-row {
     padding-top: 0;
 }
-#tempoModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) .modal-inline-display {
+#tempoModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modal-inline-display {
     min-height: 44px;
     padding: 6px 10px;
     font-size: 22px;
     letter-spacing: 0.02em;
 }
-#textModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal) textarea {
+#textModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea {
     min-height: 44px;
     padding: 6px 10px;
 }
@@ -1619,34 +1414,6 @@ body {
   border-top-color: var(--gray-300);
 }
 /*Separator*/
-.or-spacer-vertical {
-  display: inline-block;
-  position: relative;
-  vertical-align: top;
-}
-.or-spacer-vertical .inner {
-    overflow: hidden;
-   width: 10px;
-   height: 30px;
-}
-.or-spacer-vertical.left .inner:after {
-  content: '';
-  display: block;
-  margin-left: -20px;
-  width: 20px;
-  height: 100%;
-  border-radius: 12px / 125px;
-  box-shadow: 0 0 2px var(--blue-800);
-}
-.or-spacer-vertical.right .inner:before {
-  content: '';
-  display: block;
-  margin-left: 20px;
-  width: 20px;
-  height: 100%;
-  border-radius: 12px / 125px;
-  box-shadow: 0 0 2px var(--blue-800);
-}
 /*Add Tracks*/
 .addTrackIcon{
     /*background: color-mix(in srgb, var(--blue-900) 93%, transparent);*/
@@ -1694,13 +1461,6 @@ body {
   border-style: solid;
   border-color: var(--blue-300) transparent;
 }
-.instrumentContainer{
-    height: 450px;
-    width: 450px;
-    padding: 15px;
-    border-radius: 10px;
-    overflow-y: auto;
-}
 .harmonicSelect{
     width: 220px;
 }
@@ -1731,27 +1491,66 @@ body {
 
 @include meta.load-css('./piano');
 
-@include meta.load-css('./guitar');
 
 #addChordModal label{
     display: block;
 }
 
+/* Print (services/printView.ts): the A4 pages of #printView alone. */
+#printView {
+  display: none;
+}
 @media print {
-  body * {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body.printing > *:not(#printView) {
+    display: none !important;
+  }
+  body.printing #printView {
+    display: block;
+    background: var(--color-surface);
+  }
+  .print-page {
+    display: flex;
+    flex-direction: column;
+    height: 272mm;
+    break-after: page;
+    break-inside: avoid;
+  }
+  .print-page:last-child {
+    break-after: auto;
+  }
+  .print-page__header {
+    margin-bottom: 3mm;
+    font: 9pt 'Source Sans Pro', sans-serif;
+    color: var(--color-text-muted);
+  }
+  .print-page__tab {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 255mm;
+  }
+  .print-page__footer {
+    margin-top: auto;
+    text-align: center;
+    font: 9pt 'Source Sans Pro', sans-serif;
+    color: var(--color-text-muted);
+  }
+  /* Ctrl+P without the Print entry: the tab alone, as before */
+  body:not(.printing) * {
     visibility: hidden;
   }
-  #completeTab * {
+  body:not(.printing) #completeTab * {
     visibility: visible;
-    width:100%;
+    width: 100%;
   }
-  #completeTab {
+  body:not(.printing) #completeTab {
     position: absolute;
     left: 0;
     top: 0;
-  }
-  #trackCapsule{
-      display: none;
   }
 }
 #content #completeTab.pdfrender{
@@ -1866,7 +1665,7 @@ button[data-tooltip] {
       display: block;
     }
 }
-#mixerModal.modal:not(#compressorModal):not(#equalizerModal):not(#guitarModal):not(#pianoModal):not(#mixerModal){
+#mixerModal.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)){
     position: fixed;
     z-index: 200;
     top: 200px;
@@ -2057,31 +1856,6 @@ transform-origin: 11px center 0px;
 
 @include meta.load-css('sequencer');
 
-/*#content button#guitarEyeToggle{
-	background: var(--wood-200);
-	background-image: linear-gradient(to top, color-mix(in srgb, var(--wood-400) 69%, transparent) 0%, color-mix(in srgb, var(--wood-300) 69%, transparent) 100%);
-}
-#content button#pianoEyeToggle, #content button#guitarEyeToggle{
-	background-image: linear-gradient(to top, var(--red-300) 0%, var(--wood-500) 100%);
-    background: var(--gray-500);
-}*/
-#content button#pianoEyeToggle:hover, #content button#guitarEyeToggle:hover{
-    background: var(--gray-150);
-}
-.instrumentListDelete{
-	width: 30px;
-    height: 30px;
-    padding: 5px;
-    background: color-mix(in srgb, var(--red-500) 90%, transparent);
-	display:none;
-}
-.instrumentChange{
-	width: 30px;
-    height: 30px;
-    padding: 5px;
-	background: color-mix(in srgb, var(--blue-400) 66%, transparent);
-	display:none;
-}
 #sequencerEdit{
     width: 30px;
     height: 30px;
@@ -2289,7 +2063,7 @@ document, img {
     user-drag: none;
 }
 
-.unselectable, #sequencerSideBar .label, #sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument {
+.unselectable, #sequencerSideBar .label, #sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument, #sequencerAmpInstrument {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -2298,35 +2072,21 @@ document, img {
   cursor:default;
 }
 
-#sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument{
-	width: 30px;
+/* Column titles over the track rows' knobs (icon 30 px + name 78 px, then 30 px per knob). */
+#sequencerPanInstrument, #sequencerRevInstrument, #sequencerChoInstrument, #sequencerAmpInstrument{
+    position: absolute;
+    top: 0;
+    width: 30px;
     height: 30px;
-    float: right;
-    color: var(--gray-1000);
+    color: var(--color-text-muted);
     text-align: center;
-    font-size: 12px;
+    font-size: 10px;
     line-height: 30px;
-	display:none;
 }
-#voiceLabel{
-    padding: 7px;
-    font-size: 13px;
-}
-.voiceButton, #pageLayoutToggle{
-    width: 28px;
-    margin: 5px 8px;
-    height: 28px;
-    background: var(--gray-0);
-    color: var(--gray-0);
-    cursor: pointer;
-    border-radius: 30px;
-    opacity: 0.2;
-}
-#pageLayoutToggle{
-    background: var(--gray-800);
-    overflow: hidden;
-    opacity: 0.7;
-}
+#sequencerPanInstrument{ left: 108px; }
+#sequencerRevInstrument{ left: 138px; }
+#sequencerChoInstrument{ left: 168px; }
+#sequencerAmpInstrument{ left: 198px; }
 #chordOverviewContainer{
     /*height: 150px;*/
     min-height: 150px;
@@ -2365,10 +2125,6 @@ document, img {
     display: inline-block;
     margin-right: 15px;
 }
-#chordManagerModal{
-    width: min(580px, calc(100vw - 32px));
-    max-width: min(580px, calc(100vw - 32px));
-}
 #chordManagerModal .modal-submit-row {
     border-top: none;
     padding-top: 4px;
@@ -2401,14 +2157,6 @@ document, img {
 }
 .voiceSelected{
 	opacity: 1;
-}
-#voice0{
-	/*background-image: linear-gradient(to right, var(--viz-pink) 0%, var(--viz-pink) 19%, var(--red-300) 60%, var(--viz-orange) 100%);*/
-    background-color: var(--red-300);
-}
-#voice1{
-	/*background-image: linear-gradient(to top, var(--blue-500) 0%, var(--viz-cyan) 100%);*/
-    background: var(--blue-400);
 }
 .isTooBright{
 	background: var(--gray-550);
@@ -2487,96 +2235,10 @@ document, img {
     fill:var(--gray-1000);
     font-size:18px;
 }
-#content #recordButton{
-    opacity: 1.0;
-    position: absolute;
-    left: 42px;
-    width: 26px;
-    height: 26px;
-    background: var(--viz-pink);
-    background: var(--red-400);
-    grid-column: 2;
-    grid-row: 2;
-    margin: 6px;
-    margin-left: 0px;
-    display: inline-block;
-
-    &.prepareRecording{
-        background: var(--red-400);
-    }
-    &.recording{
-        background: var(--gray-0);
-        border: 1px solid var(--gray-150);
-        &:after {
-            background: var(--red-400);
-        	animation: pulse 1.25s infinite cubic-bezier(0.66, 0, 0, 1);
-        	animation: pulse 1.25s infinite;
-        }
-    }
-    &:after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        /* border: 1px solid var(--gray-300); */
-        background: var(--red-400);
-        background-size: 100px 100px;
-        opacity: 0.9;
-    }
-}
 
 @keyframes pulse {to {box-shadow: 0 0 0 8px color-mix(in srgb, var(--red-500) 80%, transparent);}}
 
-#content #stopButton{
-    opacity: 1.0;
-    position: absolute;
-    left: 1px;
-    width: 26px;
-    height: 26px;
-    background: var(--gray-100);
-    grid-column: 1;
-    grid-row: 2;
-    margin: 6px;
-    margin-left: 10px;
-    display: inline-block;
-}
-#content #stopButton:after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 10px;
-    height: 10px;
-	background: var(--blue-400);
-    background-size: 100px 100px;
-    opacity: 0.9;
-}
-#content #tempoMeter{
-    width: 30px;
-    line-height: 25px;
-    height: 25px;
-    margin: 10px;
-    padding: 1px;
-    font-size: 14px;
-    margin: 7px;
-    /* border-radius: 4px; */
-    text-align: center;
-    /* border-bottom: 1px solid var(--blue-500); */
-    cursor: n-resize;
-    /*background-image: -webkit-linear-gradient(top, var(--gray-50), var(--gray-150));*/
-    margin-top: -10px;
-}
-.bpmSidebarLabel{
-    font-size: 10px;
-    padding: 0px 13px;
-}
 #tempoModal #tempoMeterModal{
-	font-size: 18px;
 	width: auto;
     min-width: 58px;
     height: auto;
@@ -2619,26 +2281,11 @@ document, img {
         margin: 0;
     }
     .select select{
-    	display: block;
-        width: 100%;
-        height: 100%;
-        box-sizing: border-box;
-        margin-bottom: 0;
-    }
-    .select .select__arrow{
-        top: 50%;
-        right: 12px;
-        transform: translateY(-50%);
-        border-width: 6px 3px 0 3px;
+        display: block;
     }
 }
 #instrumentSettingsModal #instrumentNameInput {
     width: 100%;
-}
-
-#addChordModal .modalBody {
-    gap: 8px;
-    padding-bottom: 12px;
 }
 
 #addChordModal .modal-section {
@@ -2683,12 +2330,6 @@ svg text {
     margin-bottom: 50px;
     will-change: transform;
 }
-#content button.dynamicNote{
-	font-family: notesFont;
-	padding:3px;
-	font-size: 20px;
-	line-height: 30px !important;
-}
 #playBackBarSvg{
     pointer-events: none;
     position: absolute;
@@ -2708,7 +2349,8 @@ svg text {
 .vexFlowRow svg{
     overflow: visible;
 }
-.modalBody label{
+/* Older dialogs; :where keeps it below the shared dialog field styles. */
+:where(.modalBody) label{
     font-size: 12px;
 }
 input, textarea, input[type="number"]{
@@ -2746,30 +2388,8 @@ input:focus, textarea:focus{
     border: 1px solid var(--gray-0);
     margin-right: 10px;
 }
-#content #heavyAccentuated{
-    padding: 1px 6px;
-}
 img{
     vertical-align: sub;
-}
-#content #accentuated{
-    padding: 5px 2px 2px 5px;
-}
-#content #ghost,
-#content #fadeIn,
-#content #pop,
-#content #slap,
-#content #tap,
-#content #stacatto,
-#content #dead,
-#content #pullDown,
-#content #slide {
-    padding: 0;
-}
-#content .noteImg{
-    width: 12px;
-    height: 20px;
-    margin: 0;
 }
 /*TABLE*/
 table{
@@ -2810,6 +2430,17 @@ table{
 }
 #footerFiller{
     flex-grow:1;
+    min-width: 0;
+}
+/* What the hovered control does (stores/footerHintState.ts). */
+#footerHint{
+    display: block;
+    padding: 0 10px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    color: var(--color-text-muted);
 }
 .footerBlock{
     height: 100%;
@@ -2847,62 +2478,14 @@ table{
 }
 
 /*Optional Styles*/
-.tabBarElem{
-    /*font-family: "Roboto";*/
-    text-transform: uppercase;
-    color: var(--gray-550);
-}
 /*.modal label {
     font-family: "Roboto";
     text-transform: uppercase;
     color: var(--gray-800);
 }*/
-#tabBar, #songPlayArea, #sideBarButtons{
-    background: var(--gray-50);
-}
-.tabBarElem{
-    border-top: 2px solid var(--gray-50);
-}
-.statusBar{
-    background: var(--gray-200);
-}
-#songPlayArea{
-    background: linear-gradient(180deg, var(--gray-50) 45%, var(--gray-200) 45%);
-}
-#content #oneMeasureForward {
-    background: none;
-}
-#content #oneMeasureBack {
-    background: none;
-}
-#content button.playStart{
-    background: none;
-    color: var(--color-text);
-}
-#tabBar {
-    height: 31px;
-    border-right: 1px solid var(--gray-150);
-}
-#completeBar{
-    border: none;
-    box-shadow: none;
-}
-#content button.playStart:hover{
-    background: var(--gray-200);
-}
 /*.modal{
     background-color: var(--gray-200);
 }*/
-.or-spacer-vertical.left .inner:after {
-    box-shadow: 0 0 2px var(--gray-450);
-}
-#trackSign{
-    background: var(--gray-0);
-}
-.bottomStatusBar{
-    height: 37px;
-    background: var(--gray-200);
-}
 .vexFlowRow{
     position:absolute;
     overflow: visible;
@@ -2911,33 +2494,8 @@ table{
     overflow: visible;
     display: block;
 }
-#content button.checkBoxNote{
-    background: none;
-}
-#content button.classicalButton, #classicalToggle, button.classicalButton{
-    background: none;
-}
-.instrumentListDelete {
-    background: none;
-}
-.instrumentChange {
-    background: none;
-}
 div.knob {
     background: none;
-}
-#content #stopButton {
-    background: none;
-}
-#content #recordButton{
-    background: none;
-}
-#content #recordButton.prepareRecording {
-    background: var(--red-200);
-}
-#statusBars{
-    display:inline-block;
-    margin-left: 79px;
 }
 svg text{
     font-size: "10px";
@@ -2954,12 +2512,6 @@ svg text{
     stroke: var(--editor-cell-border);
     stroke-width: 1;
     fill: var(--editor-bg);
-}
-#content button.playing #playMusicImg{
-	display: none;
-}
-#content button.playing #pauseMusicImg{
-	display: block;
 }
 .clickMarkerPath{
     stroke: var(--red-700);
@@ -3014,15 +2566,8 @@ svg.svgPage .blockNumber{
     #sequencerBar{
         zoom: 0.9;
     }
-    #completeBar {
-        zoom: 0.9;
-        height: 68px;
-    }
     #footerBar{
         zoom:0.9;
-    }
-    #sideBarButtons {
-        zoom: 0.9;
     }
     @media only screen and (max-width: 1070px) {
         .piano ul li {
@@ -3047,13 +2592,6 @@ svg.svgPage .blockNumber{
     #sequencerBar{
         zoom: 0.8;
     }
-    #completeBar {
-        zoom: 0.8;
-        height: 67px;
-    }
-    #sideBarButtons {
-        zoom: 0.8;
-    }
     #footerBar{
         zoom:0.8;
     }
@@ -3064,7 +2602,10 @@ svg.svgPage .blockNumber{
         }
     }
 }
-:focus {
+/* Focus rings only for keyboard focus; the tab view takes focus itself and shows a cursor instead. */
+:focus:not(:focus-visible),
+#mainContent:focus,
+.tab-svg:focus {
     outline: none;
 }
 #content{
@@ -3080,32 +2621,6 @@ body {
 }
 
 /* ---- Shell polish: toolbar palette and footer ------------------------- */
-#completeBar{
-    overflow: hidden;
-    border-right: 1px solid var(--gray-200);
-    border-bottom: 1px solid var(--gray-200);
-    border-bottom-right-radius: 10px;
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--gray-900) 6%, transparent);
-}
-#tabBar{
-    background: var(--gray-0);
-    border-right: none;
-}
-.bottomStatusBar{
-    background: var(--gray-50);
-    border-top: 1px solid var(--gray-150);
-}
-.tabBarElem{
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--gray-500);
-    border-top-color: transparent;
-    transition: color 0.12s ease;
-}
-.tabBarElem:hover{
-    color: var(--gray-800);
-}
 #footerBar{
     height: 24px;
     line-height: 24px;
@@ -3134,7 +2649,7 @@ body {
     outline-offset: -2px;
 }
 .footerLabel{
-    color: var(--color-text-faint);
+    color: var(--color-text-muted);
     margin-right: 4px;
 }
 #midiLabel #isMidiActive{

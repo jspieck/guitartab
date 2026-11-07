@@ -32,10 +32,6 @@ vi.mock('../src/services/audio/metronome', () => ({ metronome: { playClick: vi.f
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 type SongModule = typeof import('../src/stores/song')
 
 let playback: (typeof import('../src/services/playback'))['default']

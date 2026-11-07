@@ -19,8 +19,27 @@ export class ImportError extends Error {
   }
 }
 
-export const SUPPORTED_IMPORT_FORMATS = ['gp3', 'gp4', 'gp5', 'gpx', 'gp', 'mid', 'gt'] as const
+export const SUPPORTED_IMPORT_FORMATS = [
+  'gp3',
+  'gp4',
+  'gp5',
+  'gpx',
+  'gp',
+  'mid',
+  'midi',
+  'gt',
+  'musicxml',
+  'mxl',
+  'xml',
+] as const
 export type ImportFormat = (typeof SUPPORTED_IMPORT_FORMATS)[number]
+
+/** MusicXML (plain or compressed): its reader is a lazy chunk, loaded by `importSongFile`. */
+export const MUSICXML_FORMATS: readonly ImportFormat[] = ['musicxml', 'mxl', 'xml']
+/** Guitar Pro 3–8: their readers are a lazy chunk too (`import/guitarProReaders.ts`). */
+export const GUITAR_PRO_FORMATS: readonly ImportFormat[] = ['gp3', 'gp4', 'gp5', 'gpx', 'gp']
+/** MIDI files: their reader is a lazy chunk too. */
+export const MIDI_FORMATS: readonly ImportFormat[] = ['mid', 'midi']
 
 export function importFormatOf(fileName: string): ImportFormat | null {
   const ending = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()

@@ -1,9 +1,9 @@
 import { redrawTrack } from './layoutInvalidation'
 import Song from '../../stores/song'
 import { notifySongDataChanged } from '../appEvents'
-import { typedEventBus } from '../../utils/typedEventBus'
 import { getNumChordDiagramRows } from './tabLayoutMetrics'
 import { getTrackRenderLayout } from '../../stores/tabRenderLayout'
+import { requestChordDiagramsRender } from './renderCommands'
 
 let cachedNumChordDiagramRows = -1
 
@@ -26,5 +26,5 @@ export function resetChordDiagramRowCache(): void {
 }
 
 export function requestChordDiagramRefresh(): void {
-  typedEventBus.emit('render.chordDiagrams')
+  requestChordDiagramsRender()
 }

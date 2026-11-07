@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.CHORD_MANAGER.id">
+  <BaseModal :modal-id="DIALOGS.CHORD_MANAGER.id" resize="x">
     <template #title>Chord Manager</template>
     <div class="modal-stack chord-manager-modal">
       <div class="chord-manager-header">
@@ -84,12 +84,14 @@
 </template>
 
 <script setup lang="ts">
+import { renderVersionState } from '../stores/renderVersionState'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
 import ChordThumbnail from './ChordThumbnail.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
+import { toggleDialog } from '../services/dialogs/dialogs'
 import type { PlainModalHandler } from '../services/dialogs/baseModalHandler'
 import { Song } from '../stores/song'
 import { notifySongDataChanged } from '../services/appEvents'
@@ -97,7 +99,7 @@ import { typedEventBus } from '../utils/typedEventBus'
 import { deleteLibraryChord, toggleLibraryChordDisplay } from '../services/editor/songSettingsCommands'
 import type { Chord } from '../types/tab'
 
-const handler = modalManager.getHandler<PlainModalHandler<{ trackId: number }>>(MODALS.CHORD_MANAGER.id)
+const handler = getDialogHandler<PlainModalHandler<{ trackId: number }>>(DIALOGS.CHORD_MANAGER.id)
 const managedTrackId = () => handler.params.value?.trackId ?? 0
 // Opening the manager (for this or another track) shows that track's chords.
 watch(handler.params, () => reloadChords())
@@ -116,7 +118,7 @@ function notifyChordChange() {
 }
 
 function editChord(name: string, chord: Chord) {
-  modalManager.toggleByModal(MODALS.ADD_CHORD, {
+  toggleDialog(DIALOGS.ADD_CHORD, {
     trackId: managedTrackId(),
     existingChord: { ...chord, name },
   })
@@ -135,7 +137,7 @@ function toggleChordVisibility(name: string) {
 }
 
 function addNewChord() {
-  modalManager.toggleByModal(MODALS.ADD_CHORD, {
+  toggleDialog(DIALOGS.ADD_CHORD, {
     trackId: managedTrackId(),
   })
 }
@@ -148,12 +150,13 @@ function handleSubmit() {
 onMounted(() => {
   reloadChords()
   typedEventBus.on('song-data-changed', reloadChords)
-  typedEventBus.on('render.chordDiagrams', reloadChords)
 })
+
+// Chord library edits (requestChordDiagramsRender) bump this counter.
+watch(() => renderVersionState.chords, reloadChords)
 
 onUnmounted(() => {
   typedEventBus.off('song-data-changed', reloadChords)
-  typedEventBus.off('render.chordDiagrams', reloadChords)
 })
 </script>
 

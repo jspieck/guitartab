@@ -1,4 +1,4 @@
-import { MODALS, type ModalDefinition } from './dialogs/modalTypes'
+import { DIALOGS, type DialogDefinition } from './dialogs/dialogs'
 import type { Beat, MeasureMeta, Note } from '../types/tab'
 import { beatHasText } from './songMigrations'
 
@@ -14,7 +14,7 @@ const DYNAMIC_VALUE_BY_ID: Record<string, string> = {
 }
 
 interface ModalRequest {
-  modal: ModalDefinition
+  modal: DialogDefinition
   params: Record<string, unknown>
 }
 
@@ -50,25 +50,29 @@ const NOTATION_MODAL_BUILDERS: Partial<
   Record<string, (context: NotationModalContext) => ModalRequest | null>
 > = {
   addText: ({ trackId, blockId, voiceId, beatId, beat }) =>
-    beatHasText(beat) ? null : { modal: MODALS.TEXT, params: { trackId, blockId, voiceId, beatId, beat } },
+    beatHasText(beat) ? null : { modal: DIALOGS.TEXT, params: { trackId, blockId, voiceId, beatId, beat } },
   addChord: ({ trackId, blockId, voiceId, beatId, beat }) =>
-    beat.chord != null ? null : { modal: MODALS.ADD_CHORD, params: { trackId, blockId, voiceId, beatId } },
+    beat.chord != null ? null : { modal: DIALOGS.ADD_CHORD, params: { trackId, blockId, voiceId, beatId } },
   addMarker: ({ trackId, blockId, voiceId, measureMeta }) =>
-    measureMeta.marker != null ? null : { modal: MODALS.MARKER, params: { trackId, blockId, voiceId } },
+    measureMeta.marker != null ? null : { modal: DIALOGS.MARKER, params: { trackId, blockId, voiceId } },
+  addDirection: ({ trackId, blockId, voiceId, measureMeta }) =>
+    measureMeta.directionTargets != null || measureMeta.directionJumps != null
+      ? null
+      : { modal: DIALOGS.DIRECTION, params: { trackId, blockId, voiceId } },
   repeatAlternative: ({ trackId, blockId, voiceId, measureMeta }) =>
     measureMeta.repeatAlternative != null
       ? null
-      : { modal: MODALS.REPEAT_ALTERNATIVE, params: { trackId, blockId, voiceId } },
+      : { modal: DIALOGS.REPEAT_ALTERNATIVE, params: { trackId, blockId, voiceId } },
   closeBar: ({ trackId, blockId, voiceId, measureMeta }) =>
     measureMeta.repeatClose != null
       ? null
-      : { modal: MODALS.REPETITION, params: { trackId, blockId, voiceId, isRepetition: true } },
+      : { modal: DIALOGS.REPETITION, params: { trackId, blockId, voiceId, isRepetition: true } },
   timeMeter: ({ trackId, blockId, voiceId, measureMeta }) =>
     blockId !== 0 && measureMeta.timeMeterPresent
       ? null
-      : { modal: MODALS.TIME_METER, params: { trackId, blockId, voiceId } },
+      : { modal: DIALOGS.TIME_METER, params: { trackId, blockId, voiceId } },
   bpmMeter: ({ trackId, blockId, voiceId, measureMeta }) =>
-    measureMeta.bpm != null ? null : { modal: MODALS.TEMPO, params: { trackId, blockId, voiceId } },
+    measureMeta.bpm != null ? null : { modal: DIALOGS.TEMPO, params: { trackId, blockId, voiceId } },
 }
 
 type NoteEffectModalBuilder = (
@@ -78,27 +82,27 @@ type NoteEffectModalBuilder = (
 
 const NOTE_EFFECT_MODAL_BUILDERS: Partial<Record<string, NoteEffectModalBuilder>> = {
   bend: (selection, isVariableSet) => ({
-    modal: MODALS.BEND,
+    modal: DIALOGS.BEND,
     params: { ...selection, isVariableSet },
   }),
   artificial: (selection) => ({
-    modal: MODALS.ARTIFICIAL,
+    modal: DIALOGS.ARTIFICIAL,
     params: { ...selection },
   }),
   tremoloBar: (selection, isVariableSet) => ({
-    modal: MODALS.TREMOLO_BAR,
+    modal: DIALOGS.TREMOLO_BAR,
     params: { ...selection, isVariableSet },
   }),
   tremoloPicking: (selection, isVariableSet) => ({
-    modal: MODALS.TREMOLO_PICKING,
+    modal: DIALOGS.TREMOLO_PICKING,
     params: { ...selection, isVariableSet },
   }),
   grace: (selection) => ({
-    modal: MODALS.GRACE,
+    modal: DIALOGS.GRACE,
     params: { ...selection },
   }),
   stroke: (selection) => ({
-    modal: MODALS.STROKE,
+    modal: DIALOGS.STROKE,
     params: { ...selection },
   }),
 }

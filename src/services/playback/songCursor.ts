@@ -1,7 +1,15 @@
 import type { Beat, Interval, MeasureMetaInfo } from '../../stores/song'
 import { EPSILON } from '../../stores/settingsState'
 import Duration from '../../utils/duration'
-import { resolveNextBlockAfterCurrent } from '../playbackLoopController'
+import {
+  nextPlayedBar,
+  playOrderContext,
+  skipAlternative,
+  startOfPlayOrder,
+  type PlayedBar,
+  type PlayOrderBar,
+  type PlayOrderContext,
+} from './playOrder'
 
 /**
  * The song cursor: which bar plays after which (repeats, voltas, the loop interval) and
@@ -60,76 +68,47 @@ export function nextBeatRef(
   return { blockId, beatId: beatId + 1 }
 }
 
-/** Fret of the next beat's note on `string` (where a slide goes), or null when there is none. */
-export function nextFretOnString(
-  song: PlaybackSong,
-  trackId: number,
-  blockId: number,
-  voiceId: number,
-  beatId: number,
-  string: number,
-): number | null {
-  const next = nextBeatRef(song, trackId, blockId, voiceId, beatId)
-  if (next == null) return null
-  return song.measures[trackId][next.blockId]?.[voiceId]?.[next.beatId]?.notes?.[string]?.fret ?? null
-}
-
-/** For each bar with a repeat sign: the bar its repeat jumps back to (the last repeat open before it). */
-export function repeatJumpBackPositions(measureMeta: MeasureMetaInfo[]): number[] {
-  const positions: number[] = []
-  let lastRepeatOpen = 0
-  measureMeta.forEach((meta, blockId) => {
-    if (meta.repeatOpen) lastRepeatOpen = blockId
-    if (meta.repeatClose != null) positions[blockId] = lastRepeatOpen
-  })
-  return positions
-}
-
 const SEQUENCE_SIZE = 15
 
 /**
  * The bars in playing order, from the bar playing now on: a ring buffer that is filled a few
- * bars ahead (`precompute`), following repeats, voltas and the loop interval. Indexes only
- * grow, one per bar played (or jumped to).
+ * bars ahead (`precompute`) with the steps of the play order (repeats, voltas, D.C./D.S.,
+ * `playOrder.ts`), plus the loop interval: after the loop's end bar comes its start bar.
+ * Indexes only grow, one per bar played (or jumped to).
  */
 export class BarSequence {
-  private readonly bars: { blockId: number; playingIteration: number }[] = []
+  private readonly bars: PlayedBar[] = []
+
+  private context: PlayOrderContext = playOrderContext([])
 
   /** The last index filled in. */
   filledUntil = 0
 
-  reset(): void {
+  /** Starts over on a song's bars (call when playback starts: the song may have changed). */
+  reset(bars: readonly PlayOrderBar[] = this.context.bars): void {
     this.bars.length = 0
     this.filledUntil = 0
+    this.context = playOrderContext(bars)
   }
 
   blockAt(index: number): number {
     return this.bars[index % SEQUENCE_SIZE].blockId
   }
 
-  iterationAt(index: number): number {
-    return this.bars[index % SEQUENCE_SIZE].playingIteration
-  }
-
-  set(index: number, blockId: number, playingIteration: number): void {
-    this.bars[index % SEQUENCE_SIZE] = { blockId, playingIteration }
+  /** Playback continues at a bar as if it had started there (first pass, no jump taken). */
+  set(index: number, blockId: number): void {
+    this.bars[index % SEQUENCE_SIZE] = startOfPlayOrder(blockId)
   }
 
   /** Fills in the `count` bars after `index`. */
-  precompute(
-    index: number,
-    count: number,
-    loop: Interval | null,
-    measureMeta: MeasureMetaInfo[],
-    jumpBackPositions: number[],
-  ): void {
-    let blockId = this.blockAt(index)
-    let iteration = this.iterationAt(index)
+  precompute(index: number, count: number, loop: Interval | null): void {
+    let current = this.bars[index % SEQUENCE_SIZE]
     for (let i = 1; i <= count; i += 1) {
-      const next = resolveNextBlockAfterCurrent(blockId, iteration, loop, measureMeta, jumpBackPositions)
-      blockId = next.nextBlock
-      iteration = next.playingIteration
-      this.set(index + i, blockId, iteration)
+      current =
+        loop != null && current.blockId === loop.endBlock
+          ? { ...current, blockId: skipAlternative(this.context.bars, loop.startBlock, current.pass) }
+          : nextPlayedBar(this.context, current)
+      this.bars[(index + i) % SEQUENCE_SIZE] = current
     }
     this.filledUntil = index + count
   }

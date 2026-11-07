@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.REPEAT_ALTERNATIVE.id">
+  <BaseModal :modal-id="DIALOGS.REPEAT_ALTERNATIVE.id">
     <template #title>Repeat Alternative</template>
     <div class="modal-stack">
       <p class="modal-body-text">Check all suitable endings.</p>
@@ -24,12 +24,12 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 import type { RepeatAlternativeModalHandler } from '../services/dialogs/effectModals'
 
-const handler = modalManager.getHandler<InstanceType<typeof RepeatAlternativeModalHandler>>(
-  MODALS.REPEAT_ALTERNATIVE.id,
+const handler = getDialogHandler<InstanceType<typeof RepeatAlternativeModalHandler>>(
+  DIALOGS.REPEAT_ALTERNATIVE.id,
 )
 </script>
 

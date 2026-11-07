@@ -101,8 +101,8 @@ test.describe('MusicXML export', () => {
     await waitForEditorShell(page)
     await page.evaluate(
       async (bytes) => {
-        const { importSongBytes } = await import('/src/services/songImport.ts')
-        importSongBytes('showcase.gp', new Uint8Array(bytes))
+        const { importSongFile } = await import('/src/services/songImport.ts')
+        await importSongFile('showcase.gp', new Uint8Array(bytes), { quiet: true })
       },
       Array.from(buildGpArchive(readShowcaseGpif())),
     )
@@ -120,8 +120,8 @@ test.describe('MusicXML export', () => {
     await waitForEditorShell(page)
     await page.evaluate(
       async (bytes) => {
-        const { importSongBytes } = await import('/src/services/songImport.ts')
-        importSongBytes('showcase.gp5', new Uint8Array(bytes))
+        const { importSongFile } = await import('/src/services/songImport.ts')
+        await importSongFile('showcase.gp5', new Uint8Array(bytes), { quiet: true })
       },
       Array.from(readFileSync('e2e/fixtures/files/showcase.gp5')),
     )
@@ -130,6 +130,40 @@ test.describe('MusicXML export', () => {
       problems: [],
       sameNoteCount: true,
       samePitches: true,
+    })
+  })
+
+  test('a GP5 track keeps its channel instrument in MusicXML and GPX', async ({ page }) => {
+    await waitForEditorShell(page)
+    const result = await page.evaluate(
+      async (bytes) => {
+        const { importSongFile } = await import('/src/services/songImport.ts')
+        const { songAsGpx, songAsMusicXml } = await import('/src/services/songExport.ts')
+        const { default: Song } = await import('/src/stores/song.ts')
+        await importSongFile('showcase.gp5', new Uint8Array(bytes), { quiet: true })
+        // GP5 tracks have no program of their own (-1); the guitar is on channel 1, program 24.
+        const before = {
+          program: Song.tracks[0].program,
+          channel: Song.allChannels[Song.tracks[0].channel.index].cInstrument,
+        }
+        const xml = new DOMParser().parseFromString(songAsMusicXml(), 'application/xml')
+        const midiProgram = Number(xml.querySelector('midi-program')?.textContent)
+        await importSongFile('showcase.gpx', songAsGpx(), { quiet: true })
+        return {
+          before,
+          midiProgram,
+          gpxProgram: Song.tracks[0].program,
+          instrument: Song.playBackInstrument[0].instrument,
+        }
+      },
+      Array.from(readFileSync('e2e/fixtures/files/showcase.gp5')),
+    )
+    // MusicXML counts programs from 1.
+    expect(result).toEqual({
+      before: { program: -1, channel: 24 },
+      midiProgram: 25,
+      gpxProgram: 24,
+      instrument: 'guitar',
     })
   })
 

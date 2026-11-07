@@ -14,6 +14,7 @@ import {
   ensureClassicalPreparedWhenActive,
   prepareClassicalLayoutMetrics,
 } from './classicalNotationLifecycle'
+import { requestFullRender } from '../editor/renderCommands'
 
 interface LoadedClassicalNotation {
   toggleClassicalVisibility(): void
@@ -154,7 +155,7 @@ function invalidateClassicalConsumers(): void {
   invalidateClassicalStructures()
   notifySongDataChanged()
   typedEventBus.emit('classical-notation-changed')
-  typedEventBus.emit('render.all')
+  requestFullRender()
 }
 
 const classicalNotation: ClassicalNotationAdapter = {

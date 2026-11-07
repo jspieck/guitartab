@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { zipSync } from 'fflate'
+import { unzipSync, zipSync } from 'fflate'
 import {
   decompressBcfz,
   detectGpContainer,
@@ -8,6 +8,7 @@ import {
 } from '../src/services/gpContainers'
 import { ImportError } from '../src/services/importErrors'
 import { buildBcfs } from '../e2e/fixtures/gpFiles'
+import { buildGpFile, buildStoredZip, crc32 } from '../src/services/gpxWriter'
 
 const encoder = new TextEncoder()
 
@@ -95,6 +96,24 @@ describe('Guitar Pro containers', () => {
     expect(extractGpifXml(compressBcfz(bcfs), 'gpx')).toBe(score)
     const gp = zipSync({ VERSION: encoder.encode('7.0'), 'Content/score.gpif': encoder.encode(score) })
     expect(extractGpifXml(gp, 'gp')).toBe(score)
+  })
+
+  it('writes .gp archives as Guitar Pro 7 does: VERSION and Content/score.gpif', () => {
+    const file = buildGpFile(score)
+    expect(detectGpContainer(file)).toBe('zip')
+    const entries = unzipSync(file)
+    expect(Object.keys(entries).sort()).toEqual(['Content/score.gpif', 'VERSION'])
+    expect(new TextDecoder().decode(entries.VERSION)).toBe('7.0')
+    expect(extractGpifXml(file, 'gp')).toBe(score)
+  })
+
+  it('writes stored ZIP entries any ZIP reader accepts, with correct checksums', () => {
+    const data = encoder.encode('ä'.repeat(3000))
+    const zip = buildStoredZip({ 'a/b.txt': data, empty: new Uint8Array(0) })
+    expect(crc32(encoder.encode('123456789'))).toBe(0xcbf43926) // the standard check value
+    const entries = unzipSync(zip)
+    expect(Array.from(entries['a/b.txt'])).toEqual(Array.from(data))
+    expect(entries.empty.length).toBe(0)
   })
 
   it('fails with an ImportError for damaged or unrelated data', () => {

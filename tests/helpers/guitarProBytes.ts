@@ -2,9 +2,8 @@
  * Builds small Guitar Pro 3 / 4 files byte by byte, laid out the way the
  * importers read them (there are no GP3/GP4 sample files in the repo). The
  * song: one 6-string track, two bars, with a time signature, repeat, marker,
- * chord, text, stroke, bend, grace note, slide, palm mute (GP4), tie,
- * triplets,
- * rests and a tempo change, so most branches of the readers are used.
+ * chord, text, stroke, bend, grace note, slide, palm mute and harmonic (GP4),
+ * tie, triplets, a dynamic, a key change, rests and a tempo change, so most branches of the readers are used.
  */
 class Bytes {
   readonly data: number[] = []
@@ -72,9 +71,11 @@ function header(b: Bytes, version: Version): void {
   b.int(1).sizedString('A comment')
   b.byte(0) // triplet feel
   if (version === 4) {
-    b.int(0) // lyric track
-    b.int(1).intString('la la')
-    for (let i = 0; i < 4; i += 1) b.int(0).intString('')
+    b.int(1) // lyric track (1-based)
+    // verse 1 from bar 1 (hyphen, comment, a skipped note), verse 2 from bar 2
+    b.int(1).intString('[Verse] Hel-lo world  yeah')
+    b.int(2).intString('la la')
+    for (let i = 0; i < 3; i += 1) b.int(1).intString('')
   }
   b.int(132) // tempo
   if (version === 4)
@@ -92,8 +93,11 @@ function header(b: Bytes, version: Version): void {
     .byte(4)
     .sizedString('Intro')
     .color(255, 0, 0)
-  // bar 2: repeat close (twice)
-  b.byte(0x08).byte(2)
+  // bar 2: repeat close (twice), key change to B minor (two sharps)
+  b.byte(0x08 | 0x40)
+    .byte(2)
+    .byte(2)
+    .byte(1)
   // track
   b.byte(0).fixedString('Guitar', 40)
   b.int(6)
@@ -110,14 +114,15 @@ function note(
   b: Bytes,
   version: Version,
   fret: number,
-  opts: { tied?: boolean; effects?: boolean } = {},
+  opts: { tied?: boolean; effects?: boolean; dynamic?: number } = {},
 ): void {
-  b.byte(0x20 | (opts.effects ? 0x08 : 0)) // flags: type + fret, effects
+  b.byte(0x20 | (opts.effects ? 0x08 : 0) | (opts.dynamic != null ? 0x10 : 0)) // flags: type + fret, effects, dynamic
   b.byte(opts.tied ? 0x02 : 0x01)
+  if (opts.dynamic != null) b.byte(opts.dynamic)
   b.byte(fret)
   if (!opts.effects) return
   if (version === 4) {
-    b.byte(0x01 | 0x10).byte(0x08 | 0x02) // flags1: bend, grace; flags2: slide, palm mute
+    b.byte(0x01 | 0x10).byte(0x08 | 0x02 | 0x10) // flags1: bend, grace; flags2: slide, palm mute, harmonic
   } else {
     b.byte(0x01 | 0x10 | 0x04) // bend, grace, slide
   }
@@ -125,7 +130,7 @@ function note(
   b.byte(1).int(100).int(2).int(0).int(0).byte(0).int(60).int(100).byte(0)
   // grace: fret, dynamic, transition, duration
   b.byte(5).byte(6).byte(0).byte(2)
-  if (version === 4) b.byte(1) // slide type
+  if (version === 4) b.byte(1).byte(17) // slide type; artificial harmonic (GP4: one byte, 17 = +7 frets)
 }
 
 function measures(b: Bytes, version: Version): void {
@@ -149,12 +154,12 @@ function measures(b: Bytes, version: Version): void {
 
   // bar 2 (3/4): triplet eighths, then a half note with a tempo change
   b.int(4)
-  for (const fret of [5, 7, 8]) {
+  for (const [i, fret] of [5, 7, 8].entries()) {
     b.byte(0x20)
       .byte(1)
       .int(3)
       .byte(1 << 2) // eighth triplet, string 3
-    note(b, version, fret)
+    note(b, version, fret, { dynamic: i === 0 ? 7 : undefined }) // the first one ff
   }
   b.byte(0x10).byte(0xff) // half note (-1) with a mix change
   b.byte(0xff) // instrument

@@ -15,8 +15,8 @@
     --ap-grid: color-mix(in srgb, var(--gray-0) 6%, transparent);
     --ap-grid-strong: color-mix(in srgb, var(--gray-0) 13%, transparent);
     --ap-text: var(--gray-150);
-    --ap-muted: var(--gray-450);
-    --ap-faint: var(--gray-550);
+    --ap-muted: var(--gray-400);
+    --ap-faint: var(--gray-450); /* 4.5:1 on the panel, also for the small scale labels */
     --ap-accent: var(--blue-400);
     --ap-amber: var(--amber-400);
     --ap-red: var(--red-400);

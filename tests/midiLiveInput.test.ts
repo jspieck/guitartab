@@ -5,10 +5,6 @@ vi.mock('../src/services/audio/audioGraph', () =>
   import('./helpers/legacyMocks').then((m) => m.audioGraphModule),
 )
 vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((m) => m.playbackModule))
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 const GUITAR = [40, 45, 50, 55, 59, 64]
 
 describe('arrangeOnStrings', () => {

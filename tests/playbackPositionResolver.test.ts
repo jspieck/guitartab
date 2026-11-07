@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../src/services/editor/renderBridge', () => ({
   default: {
-    getPositionInRow: () => 100,
+    getPlayheadXInRow: () => 100,
   },
 }))
 

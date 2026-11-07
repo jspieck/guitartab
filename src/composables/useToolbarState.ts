@@ -3,7 +3,11 @@ import { rangeHasNotes as rangeContainsNotes } from '../services/editor/rangeSel
 import editorCore from '../services/editor/editorCore'
 import { selectionState } from '../stores/selectionState'
 import { songDataVersion } from '../stores/songState'
-import { deriveMenuSelectionState, MENU_NOTE_EFFECT_BUTTON_IDS } from '../utils/menuUiState'
+import {
+  deriveMenuSelectionState,
+  MENU_DYNAMIC_BUTTON_IDS,
+  MENU_NOTE_EFFECT_BUTTON_IDS,
+} from '../utils/menuUiState'
 import { noteLengthOf } from '../utils/durationUtils'
 import { noteInputState } from '../stores/noteInputState'
 
@@ -36,6 +40,7 @@ export function useToolbarState(selectedTuplet: Ref<string>) {
     // A range without notes: note effects have nothing to act on.
     if (hasRange && !rangeHasNotes) {
       MENU_NOTE_EFFECT_BUTTON_IDS.forEach((id) => disabled.add(id))
+      MENU_DYNAMIC_BUTTON_IDS.forEach((id) => disabled.add(id))
     }
     return {
       pressed: new Set(state.pressedButtonIds),

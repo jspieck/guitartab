@@ -11,8 +11,9 @@ async function importFile(page: Page, name: string): Promise<void> {
   const bytes = Array.from(readFileSync(`${FILES}/${name}`))
   await page.evaluate(
     async ({ fileName, data }) => {
-      const { importSongBytes } = await import('/src/services/songImport.ts')
-      importSongBytes(fileName, new Uint8Array(data))
+      // importSongFile loads the lazy readers (MIDI, MusicXML) first.
+      const { importSongFile } = await import('/src/services/songImport.ts')
+      await importSongFile(fileName, new Uint8Array(data))
     },
     { fileName: name, data: bytes },
   )

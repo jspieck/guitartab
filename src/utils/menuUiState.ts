@@ -19,6 +19,7 @@ export const MENU_EFFECT_GROUPS = [
   ['addChord'],
   ['addText'],
   ['addMarker'],
+  ['addDirection'],
   ['repeatAlternative'],
   ['pppDynamic', 'ppDynamic', 'pDynamic', 'mpDynamic', 'mfDynamic', 'fDynamic', 'ffDynamic', 'fffDynamic'],
   ['openBar'],
@@ -50,6 +51,18 @@ export const MENU_NOTE_EFFECT_BUTTON_IDS = [
   'tremoloPicking',
   'stroke',
   'letRing',
+] as const
+
+/** Dynamics mark notes; with no note to mark they are disabled like the note effects. */
+export const MENU_DYNAMIC_BUTTON_IDS = [
+  'pppDynamic',
+  'ppDynamic',
+  'pDynamic',
+  'mpDynamic',
+  'mfDynamic',
+  'fDynamic',
+  'ffDynamic',
+  'fffDynamic',
 ] as const
 
 /** Note effects stored as plain booleans. Data-carrying ones live in menuEffectMutations. */
@@ -177,6 +190,8 @@ function collectPressedBeatButtons(beat: Beat, pressedButtonIds: Set<string>): v
 
 function collectPressedMeasureButtons(measureMeta: MeasureMeta, pressedButtonIds: Set<string>): void {
   if (measureMeta.marker != null) pressedButtonIds.add('addMarker')
+  if (measureMeta.directionTargets != null || measureMeta.directionJumps != null)
+    pressedButtonIds.add('addDirection')
   if (measureMeta.repeatAlternative != null) pressedButtonIds.add('repeatAlternative')
   if (measureMeta.repeatClose != null) pressedButtonIds.add('closeBar')
   if (measureMeta.repeatOpen) pressedButtonIds.add('openBar')
@@ -195,6 +210,7 @@ function collectDisabledButtons(
     MENU_NOTE_EFFECT_BUTTON_IDS.forEach((buttonId) => {
       disabledButtonIds.add(buttonId)
     })
+    MENU_DYNAMIC_BUTTON_IDS.forEach((buttonId) => disabledButtonIds.add(buttonId))
   }
 
   if (!note?.tied && !options.canTie) {

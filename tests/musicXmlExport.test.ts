@@ -192,6 +192,40 @@ function voiceTotals(xml: string): number[][][] {
   )
 }
 
+describe('MusicXML lyrics', () => {
+  it('writes a lyric per verse on the first note of a beat, with syllabic across words and rests', () => {
+    const source: MusicXmlSource = {
+      description,
+      tracks: [track('Guitar')],
+      measureMeta: [meta(4, 4)],
+      measures: [
+        [
+          [
+            [
+              beat('q', { 0: note(3), 1: note(5) }, { lyrics: ['Hel-', 'One'] }),
+              beat('q'),
+              beat('q', { 0: note(3) }, { lyrics: ['lo'] }),
+              beat('q', { 0: note(3) }, { lyrics: ['you & me'] }),
+            ],
+          ],
+        ],
+      ],
+    }
+    const xml = buildMusicXml(source)
+    const lyrics = [
+      ...xml.matchAll(/<lyric number="(\d)"><syllabic>(\w+)<\/syllabic><text>([^<]*)<\/text><\/lyric>/g),
+    ]
+    expect(lyrics.map((m) => m.slice(1).join(' '))).toEqual([
+      '1 begin Hel',
+      '2 single One',
+      '1 end lo',
+      '1 single you &amp; me',
+    ])
+    // Once per beat, on its first (highest) note.
+    expect(xml.split('<lyric ').length - 1).toBe(4)
+  })
+})
+
 describe('MusicXML export', () => {
   it('computes beat lengths like the editor (dots, double dots, tuplets)', () => {
     expect(beatDivisions(beat('q'))).toBe(QUARTER)
@@ -260,8 +294,30 @@ describe('MusicXML export', () => {
       '<unpitched><display-step>C</display-step><display-octave>2</display-octave></unpitched>',
     )
     expect(xml).toContain('<midi-channel>10</midi-channel>')
+    // Each drum sound is an instrument with its exact MIDI note (the hi-hat's F♯ has no display-alter).
+    expect(xml).toContain(
+      '<midi-instrument id="P2-D42"><midi-channel>10</midi-channel><midi-unpitched>43</midi-unpitched>',
+    )
+    expect(xml).toContain('<instrument id="P2-D42"/>')
     // Tempo and rehearsal marks appear once, not per part.
     expect(xml.match(/<rehearsal>/g)).toHaveLength(1)
+  })
+
+  it('writes navigation signs with their playback meaning, once', () => {
+    const song = source()
+    song.measureMeta[0].directionTargets = ['Segno']
+    song.measureMeta[1].directionTargets = ['Coda', 'Fine']
+    song.measureMeta[1].directionJumps = ['DaSegnoAlCoda', 'DaCoda']
+    const xml = buildMusicXml(song)
+    expect(xml).toContain('<direction-type><segno/></direction-type><sound segno="segno"/>')
+    expect(xml).toContain('<direction-type><coda/></direction-type><sound coda="coda"/>')
+    expect(xml).toContain('<words>Fine</words></direction-type><sound fine="yes"/>')
+    expect(xml).toContain('<words>D.S. al Coda</words></direction-type><sound dalsegno="segno"/>')
+    expect(xml).toContain('<words>To Coda</words></direction-type><sound tocoda="coda"/>')
+    expect(xml.match(/<segno\/>/g)).toHaveLength(1)
+    // the jump comes after the bar's notes
+    const bar2 = xml.split('<measure number="2">')[1].split('</measure>')[0]
+    expect(bar2.lastIndexOf('<note')).toBeLessThan(bar2.indexOf('D.S. al Coda'))
   })
 
   it('escapes text and names the file after the title', () => {

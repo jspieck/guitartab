@@ -3,25 +3,30 @@ import LZString from 'lz-string'
 import Song from '../stores/song'
 import { FIRST_DRUM_NOTE, noteToDrum } from './audio/drumKit'
 import { audioGraph } from './audio/audioGraph'
-import { parseMidiFile } from './import/midiFile'
 import Duration from '../utils/duration'
 import { setLoadingWheelVisible } from '../utils/editorUi'
-import { serializeSongContent } from '../utils/gtSerialization'
+import { practicePartOf, serializeSongContent } from '../utils/gtSerialization'
+import { recallPractice } from './practiceMemory'
 import { notifySongDataChanged } from './appEvents'
 import { undoHistory } from './editor/editCommands'
 import { loadSongIntoEditor, resetEditorState } from './editor/trackLoading'
-import { extractGpifXml } from './gpContainers'
-import { applyGpifSong, parseGpif, type GpifSong } from './gpifImport'
-import { ByteReader } from './import/guitarPro/byteReader'
-import { applyGuitarProSong, parseGuitarPro } from './import/guitarPro'
-import { ImportError, importFormatOf, type ImportFormat } from './importErrors'
-import { applyImportedSong, buildSongFromMidi } from './midiImport'
+import { applyGpifSong, type GpifSong } from './import/songData'
+import {
+  GUITAR_PRO_FORMATS,
+  ImportError,
+  importFormatOf,
+  MIDI_FORMATS,
+  MUSICXML_FORMATS,
+  type ImportFormat,
+} from './importErrors'
+import { collectImportWarnings, describeImportWarnings } from './importWarnings'
+import type { ImportedSong } from './midiImport'
 import { markSongSaved } from './songAutosave'
 import { migrateMeasureMeta, migrateSongMeasures } from './songMigrations'
-import { showUserError } from './userNotifications'
+import { showUserError, showUserMessage } from './userNotifications'
 
 /**
- * Opening songs: every format (Guitar Pro 3–8, MIDI, .gt) goes through
+ * Opening songs: every format (Guitar Pro 3–8, MIDI, MusicXML, .gt) goes through
  * `importSongBytes`, which puts the previous song back when a file can't be read.
  */
 
@@ -33,14 +38,16 @@ export function openSongFile(files: FileList | null): void {
     return
   }
   if (importFormatOf(file.name) == null) {
-    showUserError('Unsupported file type. Open a Guitar Pro (.gp, .gpx, .gp5, .gp4, .gp3), .mid or .gt file.')
+    showUserError(
+      'Unsupported file type. Open a Guitar Pro (.gp, .gpx, .gp5, .gp4, .gp3), MusicXML (.musicxml, .mxl), .mid or .gt file.',
+    )
     return
   }
   setLoadingWheelVisible(true)
   const reader = new FileReader()
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
-      importSongBytes(file.name, new Uint8Array(reader.result as ArrayBuffer))
+      await importSongFile(file.name, new Uint8Array(reader.result as ArrayBuffer))
     } catch (error) {
       console.error('Import failed', error)
       showUserError(
@@ -64,12 +71,60 @@ export function loadGtBytes(bytes: Uint8Array): void {
   importSongBytes('song.gt', bytes)
 }
 
+type GuitarProReaders = typeof import('./import/guitarProReaders')
+
+/** Readers kept out of the startup bundle; `importSongFile` loads the one a file needs. */
+export interface LazyReaders {
+  guitarPro?: GuitarProReaders
+  musicXml?: (bytes: Uint8Array, format: string) => GpifSong
+  midi?: (bytes: Uint8Array, fileName: string) => ImportedSong
+  applyMidi?: (song: ImportedSong) => void
+}
+
+/**
+ * Like `importSongBytes`, for any format: loads a lazy reader first when the file needs one,
+ * and tells the user in one banner what the file held that the tab couldn't take.
+ * Returns those warnings (`quiet` leaves the banner to the caller).
+ */
+export async function importSongFile(
+  fileName: string,
+  bytes: Uint8Array,
+  { quiet = false }: { quiet?: boolean } = {},
+): Promise<string[]> {
+  const warnings = importSongBytes(fileName, bytes, await lazyReadersFor(fileName))
+  if (warnings.length > 0 && !quiet) showUserMessage(describeImportWarnings(warnings))
+  return warnings
+}
+
+async function lazyReadersFor(fileName: string): Promise<LazyReaders> {
+  const format = importFormatOf(fileName)
+  if (format != null && GUITAR_PRO_FORMATS.includes(format)) {
+    return { guitarPro: await import('./import/guitarProReaders') }
+  }
+  if (format != null && MUSICXML_FORMATS.includes(format)) {
+    const { parseMusicXmlBytes } = await import('./musicXmlImport')
+    return { musicXml: parseMusicXmlBytes }
+  }
+  if (format != null && MIDI_FORMATS.includes(format)) {
+    const [{ parseMidiFile }, { applyImportedSong, buildSongFromMidi }] = await Promise.all([
+      import('./import/midiFile'),
+      import('./midiImport'),
+    ])
+    return {
+      midi: (data, name) => buildSongFromMidi(parseMidiFile(data), name),
+      applyMidi: applyImportedSong,
+    }
+  }
+  return {}
+}
+
 /**
  * Replaces the current song with the one in `bytes`. Throws an ImportError
  * (and puts the previous song back) when the file can't be read, so a bad
- * file never leaves a half-loaded song behind.
+ * file never leaves a half-loaded song behind. Returns what the readers had
+ * to leave out (`importWarnings.ts`), as short phrases.
  */
-export function importSongBytes(fileName: string, bytes: Uint8Array): void {
+export function importSongBytes(fileName: string, bytes: Uint8Array, readers: LazyReaders = {}): string[] {
   const format = importFormatOf(fileName)
   if (format == null) {
     const ending = fileName.substring(fileName.lastIndexOf('.') + 1)
@@ -82,32 +137,50 @@ export function importSongBytes(fileName: string, bytes: Uint8Array): void {
     allChannels: Song.allChannels.map((channel) => ({ ...channel })),
     bpm: Song.bpm,
   }
-  const reader = new ByteReader(bytes, format)
+  // How far a binary (GP3/4/5) reader got, for the error.
+  const progress = { reader: null as { position: number } | null }
   try {
-    parseSong(format, bytes, fileName, reader)
+    return collectImportWarnings(() => parseSong(format, bytes, fileName, progress, readers))
   } catch (error) {
     restoreAfterFailedImport(backup)
     if (error instanceof ImportError) throw error
     const detail = error instanceof Error ? error.message : String(error)
     throw new ImportError(`This doesn't look like a valid .${format} file (${detail}).`, format, {
-      offset: reader.position,
+      offset: progress.reader?.position ?? 0,
       cause: error,
     })
   }
 }
 
-function parseSong(format: ImportFormat, bytes: Uint8Array, fileName: string, reader: ByteReader): void {
+function parseSong(
+  format: ImportFormat,
+  bytes: Uint8Array,
+  fileName: string,
+  progress: { reader: { position: number } | null },
+  readers: LazyReaders,
+): void {
   if (format === 'gt') {
     applyGtContent(decompressGt(bytes), { fromFile: true })
     return
   }
-  if (format === 'gp3' || format === 'gp4' || format === 'gp5') {
-    applyGuitarProSong(parseGuitarPro(format, bytes, reader))
-  } else if (format === 'mid') {
-    applyImportedSong(buildSongFromMidi(parseMidiFile(bytes), fileName))
-  } else {
-    // .gpx and .gp hold the same GPIF XML; only the container differs.
-    applyGpifSong(parseGpif(extractGpifXml(bytes, format), format))
+  if (GUITAR_PRO_FORMATS.includes(format)) {
+    const gp = readers.guitarPro
+    if (gp == null) throw new ImportError('The Guitar Pro reader is not loaded.', format)
+    if (format === 'gp3' || format === 'gp4' || format === 'gp5') {
+      const reader = new gp.ByteReader(bytes, format)
+      progress.reader = reader
+      gp.applyGuitarProSong(gp.parseGuitarPro(format, bytes, reader))
+    } else {
+      // .gpx and .gp hold the same GPIF XML; only the container differs.
+      applyGpifSong(gp.parseGpif(gp.extractGpifXml(bytes, format), format))
+    }
+  } else if (MIDI_FORMATS.includes(format)) {
+    if (readers.midi == null || readers.applyMidi == null)
+      throw new ImportError('The MIDI reader is not loaded.', format)
+    readers.applyMidi(readers.midi(bytes, fileName))
+  } else if (MUSICXML_FORMATS.includes(format)) {
+    if (readers.musicXml == null) throw new ImportError('The MusicXML reader is not loaded.', format)
+    applyGpifSong(readers.musicXml(bytes, format))
   }
   if (!Array.isArray(Song.measures[0]) || Song.measures[0].length === 0) {
     throw new ImportError('The file contains no bars.', format)
@@ -143,6 +216,7 @@ export function applyGtContent(text: string, { fromFile }: { fromFile: boolean }
   loadSongIntoEditor(0)
   Song.playBackInstrument = JSON.parse(parts[4])
   applyDrumMap(JSON.parse(parts[5]))
+  recallPractice(practicePartOf(text))
   if (fromFile) {
     undoHistory.clear()
     markSongSaved()
@@ -160,6 +234,7 @@ function finishLoading(): void {
   resetEditorState()
   completeLoadedSong()
   loadSongIntoEditor(0)
+  recallPractice()
   undoHistory.clear()
   markSongSaved()
   notifySongDataChanged()

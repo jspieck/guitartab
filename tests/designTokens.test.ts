@@ -12,9 +12,14 @@ const TOKENS_FILE = 'src/assets/css/tokens.css'
 // Literals that are not theme colours, each with the reason.
 const ALLOWED: Array<{ file: string; line: RegExp; reason: string }> = [
   {
-    file: 'src/services/dialogs/equalizerModalHandler.ts',
+    file: 'src/components/audio/equalizerGraph.ts',
     line: /./,
     reason: 'canvas drawing of the always-dark studio panel; band colours get alpha suffixes appended',
+  },
+  {
+    file: 'src/services/audio/masterEqualizer.ts',
+    line: /EQ_BAND_COLORS =/,
+    reason: 'band colours of the always-dark studio panel (alpha suffixes are appended)',
   },
   {
     file: 'src/components/Sequencer.vue',
@@ -22,6 +27,11 @@ const ALLOWED: Array<{ file: string; line: RegExp; reason: string }> = [
     reason: 'track colours are song data',
   },
   { file: 'src/services/pdfExport.ts', line: /'#ffffff'/, reason: 'exported pages are white paper' },
+  {
+    file: 'src/services/pdfExport.ts',
+    line: /PAGE_NUMBER_COLOR = '#595959'/,
+    reason: 'page numbers on the white paper',
+  },
   { file: 'src/services/tabExportSvg.ts', line: /'#ffffff'/, reason: 'exported pages are white paper' },
   {
     file: 'src/services/notation/classicalNotation.ts',

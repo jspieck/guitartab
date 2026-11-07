@@ -1,4 +1,5 @@
 import Song from '../../stores/song'
+import type { Dots } from '../../utils/durationReplacer'
 import { tupletState } from '../../stores/tupletState'
 import { selectionState } from '../../stores/selectionState'
 import { noteInputState } from '../../stores/noteInputState'
@@ -334,6 +335,7 @@ export function changeBeatDuration(
   newDuration: number,
   previousDuration: number,
   noteLength: BeatDuration,
+  previousDots?: Dots,
 ): { applied: boolean; rescale: boolean } {
   const blockObj = Song.measures[trackId][blockId][voiceId]
   const isTuplet = blockObj[beatId].tuplet != null
@@ -341,7 +343,15 @@ export function changeBeatDuration(
   if (!isTuplet) {
     // Delegate to DurationReplacer for clean, tested logic
     const numStrings = Song.tracks[trackId].numStrings
-    const result = changeBeatDurationViaReplacer(trackId, blockId, voiceId, beatId, numStrings, noteLength)
+    const result = changeBeatDurationViaReplacer(
+      trackId,
+      blockId,
+      voiceId,
+      beatId,
+      numStrings,
+      noteLength,
+      previousDots,
+    )
     if (!result.success) {
       showNotification('Not enough space in the bar.', 'error')
       return { applied: false, rescale: false }

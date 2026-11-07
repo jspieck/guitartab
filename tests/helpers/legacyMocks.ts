@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 
 /**
  * Stand-ins for legacy singletons that need a real browser (Web Audio, the playback worker,
- * modal DOM, the app shell). Tests that import code depending on them opt in per file:
+ * the app shell). Tests that import code depending on them opt in per file:
  *
  *   vi.mock('../src/services/audio/audioGraph', () => import('./helpers/legacyMocks').then((m) => m.audioGraphModule))
  *
@@ -33,6 +33,9 @@ const playbackStub = {
   stop: vi.fn(),
   adaptToLoopChange: vi.fn(),
   jumpToPosition: vi.fn(),
+  // Loading a song (trackLoading.ts) rewinds and follows the shown track.
+  resetPosition: vi.fn(),
+  followTrackChange: vi.fn(),
 }
 
 export const playbackModule = {
@@ -44,16 +47,5 @@ export const liveInputModule = {
   default: {
     isRecording: false,
     writeRecordedNotes: vi.fn(),
-  },
-}
-
-export const modalManagerModule = {
-  modalManager: {
-    toggleByModal: vi.fn(),
-    toggleModal: vi.fn(),
-    getHandler: vi.fn(),
-    isAnyModalOpen: vi.fn(() => false),
-    displayModal: vi.fn(),
-    closeModal: vi.fn(),
   },
 }

@@ -1,13 +1,16 @@
-import { fillMeasure } from './barFilling'
+import { barTicks, fillMeasure } from './barFilling'
 import { redrawTrack } from './layoutInvalidation'
 import Song, { type Beat } from '../../stores/song'
 import { EPSILON } from '../../stores/settingsState'
 import type { RangeEndpoint } from '../../stores/selectionState'
 import Duration from '../../utils/duration'
 import { isRestDuration, restOf } from '../../utils/durationUtils'
-import { cloneData, recordBarEdit } from './editCommands'
+import { cloneData, editTransaction, recordBarEdit } from './editCommands'
 import { requestDurationRender } from './renderCommands'
-import { orderedRange } from './rangeSelection'
+import { applyRangeAsLoop, clearRange, currentLoopInterval, orderedRange } from './rangeSelection'
+import { selectionState } from '../../stores/selectionState'
+import { insertBars } from './measureStructureCommands'
+import { deleteSelectedNotes, makeRestAtCursor } from './noteEntry'
 import { showUserError } from '../userNotifications'
 
 /**
@@ -24,10 +27,17 @@ export function clipboardBeats(): readonly Beat[] {
   return copiedBeats
 }
 
-export function copyRange(): void {
+/** The range, or just the cursor's beat when nothing is selected. */
+function copySpan(): [RangeEndpoint, RangeEndpoint] {
   const range = orderedRange()
-  if (range == null) return
-  const [start, end] = range
+  if (range != null) return range
+  const here = { ...selectionState.cursor, abstractTimePos: 0 }
+  return [here, here]
+}
+
+/** Copies the range (or the beat at the cursor), effects, lyrics and all. */
+export function copyRange(): void {
+  const [start, end] = copySpan()
   const { trackId, voiceId } = end
   const beats: Beat[] = []
   for (let blockId = start.blockId; blockId <= end.blockId; blockId += 1) {
@@ -114,10 +124,37 @@ function insertRests(bar: Beat[], at: number, ticks: number): void {
   })
 }
 
-export function pasteRange(): void {
+/** Copies, then clears the notes (the beats stay, as rests). */
+export function cutRange(): void {
+  copyRange()
+  if (orderedRange() == null) {
+    makeRestAtCursor()
+    return
+  }
+  if (currentLoopInterval() == null) applyRangeAsLoop()
+  deleteSelectedNotes()
+}
+
+/** Where a paste goes: the range, or from the cursor to the end of the track. */
+function pasteSpan(): [RangeEndpoint, RangeEndpoint] {
   const range = orderedRange()
-  if (range == null || copiedBeats.length === 0) return
-  const [start, end] = range
+  if (range != null) return range
+  const { trackId, voiceId } = selectionState.cursor
+  const lastBlock = Song.measures[trackId].length - 1
+  const end = {
+    trackId,
+    voiceId,
+    blockId: lastBlock,
+    beatId: Song.measures[trackId][lastBlock][voiceId].length - 1,
+    abstractTimePos: 1,
+  }
+  return [{ ...selectionState.cursor, abstractTimePos: 0 }, end]
+}
+
+/** Pastes over the range, or from the cursor on, replacing what is there. */
+export function pasteRange(): void {
+  if (copiedBeats.length === 0) return
+  const [start, end] = pasteSpan()
   const trackId = Song.currentTrackId
   const voiceId = Song.currentVoiceId
   const source = copiedBeats
@@ -175,4 +212,18 @@ export function pasteRange(): void {
     }
   })
   redrawTrack(trackId, voiceId)
+}
+
+/** Pastes as new bars, inserted before the cursor's bar; the song after them moves back. */
+export function pasteAsNewBars(): void {
+  if (copiedBeats.length === 0) return
+  const at = selectionState.cursor.blockId
+  const ticks = copiedBeats.reduce((sum, beat) => sum + ticksOf(beat), 0)
+  const count = Math.max(1, Math.ceil((ticks - EPSILON) / barTicks(at)))
+  editTransaction('Paste as new bars', () => {
+    insertBars(at, count)
+    clearRange()
+    Object.assign(selectionState.cursor, { blockId: at, beatId: 0 })
+    pasteRange()
+  })
 }

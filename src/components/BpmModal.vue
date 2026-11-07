@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.TEMPO.id">
+  <BaseModal :modal-id="DIALOGS.TEMPO.id">
     <template #title>Tempo</template>
     <div class="modal-stack modal-stack-compact">
       <div class="modal-field modal-field-compact">
@@ -22,12 +22,12 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 import type { TempoModalHandler } from '../services/dialogs/effectModals'
 import { TEMPO_MAX, TEMPO_MIN, clampTempo } from '../utils/tempo'
 
-const handler = modalManager.getHandler<InstanceType<typeof TempoModalHandler>>(MODALS.TEMPO.id)
+const handler = getDialogHandler<InstanceType<typeof TempoModalHandler>>(DIALOGS.TEMPO.id)
 
 /** Dragging the number up or down changes the tempo by one BPM per pixel. */
 function startDrag(event: PointerEvent) {

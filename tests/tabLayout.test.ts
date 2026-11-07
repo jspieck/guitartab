@@ -10,10 +10,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 const { getBlockRenderLayout } = vi.hoisted(() => ({
   getBlockRenderLayout: vi.fn(),
 }))
@@ -91,7 +87,7 @@ describe('tabLayout', () => {
       () => 10,
     )
 
-    expect(position).toEqual({
+    expect(position).toMatchObject({
       measureIndex: 0,
       blockId: 0,
       beatIndex: 1,
@@ -152,7 +148,7 @@ describe('tabLayout', () => {
       0,
     )
 
-    expect(position).toEqual({
+    expect(position).toMatchObject({
       measureIndex: 0,
       blockId: 0,
       beatIndex: 2,

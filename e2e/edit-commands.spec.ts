@@ -27,8 +27,9 @@ test('removing beat text with the toolbar button can be undone with Ctrl+Z', asy
     Song.measures[trackId][blockId][voiceId][beatId].text = 'Intro'
   })
 
-  // The button sits in a toolbar group that may be collapsed; click it through the DOM.
-  await page.evaluate(() => (document.getElementById('addText') as HTMLButtonElement).click())
+  // The Text tab of the edit bar holds the button.
+  await page.locator('#barButton5').click()
+  await page.locator('#addText').click()
   expect(await cursorBeatText(page)).toBeNull()
 
   await page.keyboard.press('Control+z')

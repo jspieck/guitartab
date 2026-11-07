@@ -1,7 +1,8 @@
 import { tabLayout } from '../../stores/tabLayoutState'
-import { barLeftOffset } from '../../utils/measureBeatLayout'
+import { barLeftOffset, getMeasureBeatWidth } from '../../utils/measureBeatLayout'
+import Duration from '../../utils/duration'
 import Song from '../../stores/song'
-import Settings from '../../stores/settingsState'
+import Settings, { EPSILON } from '../../stores/settingsState'
 import { audioGraph } from '../audio/audioGraph'
 import renderBridge from './renderBridge'
 import {
@@ -97,6 +98,11 @@ export function movePlayBackBarToPosInBlock(
   }
 
   const pageId = blockLayout.pageId
+  const beatX = playheadXAtTicks(trackId, voiceId, blockId, posInBlock)
+  if (beatX != null) {
+    movePlayBackBarToXPos(trackId, blockId, voiceId, pageId, beatX, timing)
+    return
+  }
   const leftOffset = barLeftOffset(blockId)
   let xPos = renderBridge.getBlockX(trackId, voiceId, blockId) + leftOffset + 5
 
@@ -106,6 +112,25 @@ export function movePlayBackBarToPosInBlock(
 
   xPos += (blockWidth - leftOffset) * posPercentage
   movePlayBackBarToXPos(trackId, blockId, voiceId, pageId, xPos, timing)
+}
+
+/**
+ * The playhead at a time in a bar: on the digits of the beat starting there, or that far
+ * into the beat (as the glide while playing moves). Null when the bar has no beats.
+ */
+function playheadXAtTicks(trackId: number, voiceId: number, blockId: number, ticks: number): number | null {
+  const beats = Song.measures[trackId]?.[blockId]?.[voiceId] ?? []
+  let start = 0
+  for (let beatId = 0; beatId < beats.length; beatId += 1) {
+    const length = Duration.getDurationOfNote(beats[beatId], false)
+    if (ticks < start + length - EPSILON || beatId === beats.length - 1) {
+      const x = renderBridge.getPlayheadXInRow(trackId, voiceId, blockId, beatId)
+      const width = getMeasureBeatWidth(trackId, voiceId, blockId, beatId, beats)
+      return x + (length > 0 ? width * Math.min(1, Math.max(0, (ticks - start) / length)) : 0)
+    }
+    start += length
+  }
+  return null
 }
 
 export function movePlayBackBarToBeat(
@@ -120,7 +145,7 @@ export function movePlayBackBarToBeat(
   }
 
   const pageId = renderBridge.getBlockLayout(trackId, voiceId, blockId)?.pageId ?? 0
-  const xPos = renderBridge.getPositionInRow(trackId, voiceId, blockId, beatId) + 5
+  const xPos = renderBridge.getPlayheadXInRow(trackId, voiceId, blockId, beatId)
   movePlayBackBarToXPos(trackId, blockId, voiceId, pageId, xPos, timing)
 }
 

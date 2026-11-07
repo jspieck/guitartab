@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :modal-id="MODALS.REPETITION.id">
+  <BaseModal :modal-id="DIALOGS.REPETITION.id">
     <template #title>Number Repetitions</template>
     <div class="modal-stack">
       <div class="modal-field">
@@ -16,9 +16,9 @@
 <script setup lang="ts">
 import BaseModal from './BaseModal.vue'
 import SubmitButton from './SubmitButton.vue'
-import { MODALS } from '../services/dialogs/modalTypes'
-import { modalManager } from '../services/dialogs/modalManager'
+import { DIALOGS } from '../services/dialogs/dialogs'
+import { getDialogHandler } from '../services/dialogs/dialogHandlers'
 import type { RepetitionModalHandler } from '../services/dialogs/effectModals'
 
-const handler = modalManager.getHandler<InstanceType<typeof RepetitionModalHandler>>(MODALS.REPETITION.id)
+const handler = getDialogHandler<InstanceType<typeof RepetitionModalHandler>>(DIALOGS.REPETITION.id)
 </script>

@@ -32,9 +32,9 @@ export async function toggleClassicalNotation(page: Page): Promise<void> {
   await classicalToggle.click()
 }
 
-/** Append empty measures via the Measure toolbar so the song spans many rows. */
+/** Append empty measures via the Bar tab of the edit bar so the song spans many rows. */
 export async function growSong(page: Page, extraMeasures = 80): Promise<void> {
-  await page.getByText('Measure', { exact: true }).first().click()
+  await page.locator('#barButton4').click()
   const addMeasure = page.locator('#addMeasure')
   for (let index = 0; index < extraMeasures; index += 1) {
     await addMeasure.click()
@@ -42,4 +42,10 @@ export async function growSong(page: Page, extraMeasures = 80): Promise<void> {
   await expect
     .poll(async () => Number(await page.locator('.tab-svg').getAttribute('height')))
     .toBeGreaterThan(2500)
+}
+
+/** Switches a tab view option (tied parentheses, rhythm on stems, multi-bar rests) in its toolbar menu. */
+export async function toggleTabView(page: Page, actionId: string): Promise<void> {
+  await page.locator('#tabViewMenuButton').click()
+  await page.locator(`#${actionId}-menuitem`).click()
 }

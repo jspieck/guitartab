@@ -86,8 +86,8 @@ function trackVolume(trackId: number): number {
     return Song.playBackInstrument[trackId]?.volume ?? 60;
 }
 
-// 'faderId' 0 is the master fader; tracks are 1-based here.
-const props = defineProps<{ faderId: number }>();
+// 'faderId' 0 is the master fader; tracks are 1-based here. `label` names the slider for screen readers.
+const props = defineProps<{ faderId: number; label?: string }>();
 
 const volumeCanvasRef = ref<HTMLCanvasElement | null>(null);
 const volumeSliderContainerRef = ref<HTMLElement | null>(null);
@@ -117,6 +117,16 @@ onMounted(() => {
     } else {
         console.error('Could not find .volume div for slider creation in Fader.vue');
     }
+});
+
+// The slider is created by script; keep its name in step with the track name.
+watch(() => props.label, (label) => {
+    const slider = volumeSliderContainerRef.value?.querySelector('input');
+    if (slider) slider.setAttribute('aria-label', label ?? 'Volume');
+}, { flush: 'post' });
+
+onMounted(() => {
+    volumeSliderContainerRef.value?.querySelector('input')?.setAttribute('aria-label', props.label ?? 'Volume');
 });
 
 // Sequencer registers each fader's canvas as a volume meter (stores/sequencerState.ts).

@@ -1,17 +1,20 @@
 import { createMeasures } from './measureStructureCommands'
-import { fillMeasures } from './barFilling'
+import { fillMeasures, padBarWithRests } from './barFilling'
 import { redrawTrack } from './layoutInvalidation'
 import { tupletState } from '../../stores/tupletState'
 import { selectionState } from '../../stores/selectionState'
 import Song, { type PlayBackInstrument } from '../../stores/song'
 import { clearRange } from './rangeSelection'
 import playback from '../playback'
-import { instrumentIconSrc, numToInstr } from '../../data/instrumentData'
+import { numToInstr } from '../../data/instrumentData'
 import { audioGraph } from '../audio/audioGraph'
 import { setSequencerIndicator } from '../../stores/sequencerState'
-import { modalManager } from '../dialogs/modalManager'
+import { hideAllDialogs } from '../../stores/dialogState'
 import { notifySongDataChanged } from '../appEvents'
-import { setTrackSignIcon } from '../../utils/editorUi'
+import { typedEventBus } from '../../utils/typedEventBus'
+import { beatAtSameTime } from '../../utils/otherVoiceNotes'
+import { resetScoreTracks } from '../../stores/scoreViewState'
+import { normalizeDrumTrack } from './drumTracks'
 
 /** Stops playback and puts cursor, selection and track back to the start. */
 export function resetEditorState(): void {
@@ -45,7 +48,8 @@ export function fillTimeSignatures(): void {
 /** Playback settings for a track, from its program (GPIF/MIDI) or its GP channel. */
 export function playbackInstrumentFor(trackId: number): PlayBackInstrument {
   const track = Song.tracks[trackId]
-  const fromProgram = track.program != null
+  // GP3–5 tracks have no program of their own (-1): their instrument is on the channel.
+  const fromProgram = track.program != null && track.program >= 0
   const channel = fromProgram ? null : Song.allChannels[track.channel.index]
   const program = fromProgram ? track.program : channel?.cInstrument
   const channelIndex = fromProgram ? track.primaryChannel : track.channel.index
@@ -68,9 +72,10 @@ export function playbackInstrumentFor(trackId: number): PlayBackInstrument {
   return instrument
 }
 
-/** Sets up a track's playback settings and audio bus. */
+/** Sets up a track's playback settings and audio bus; a drum track gets a line per drum. */
 export function initTrackPlayback(trackId: number): void {
   Song.playBackInstrument[trackId] = playbackInstrumentFor(trackId)
+  normalizeDrumTrack(trackId)
   audioGraph.updateBusses(Song.playBackInstrument)
   notifySongDataChanged()
 }
@@ -78,6 +83,7 @@ export function initTrackPlayback(trackId: number): void {
 /** Shows a freshly loaded (or created) song in the editor, starting on `trackId`. */
 export function loadSongIntoEditor(trackId: number): void {
   resetEditorState()
+  resetScoreTracks()
   Song.currentTrackId = trackId
   Song.measureMoveHelper = Song.measures.map((bars) => bars.map((voices) => voices.map(() => [])))
   for (let track = 0; track < Song.measures.length; track += 1) {
@@ -87,15 +93,18 @@ export function loadSongIntoEditor(trackId: number): void {
     }
   }
   fillTimeSignatures()
+  // Short bars (from other programs) get rests at the end, so they play and print full length.
+  Song.measures.forEach((bars, track) =>
+    bars.forEach((voices, block) => voices.forEach((_, voice) => padBarWithRests(track, block, voice))),
+  )
   for (let track = 0; track < Song.tracks.length; track += 1) {
     initTrackPlayback(track)
   }
 
   selectionState.cursor = { trackId: 0, blockId: 0, beatId: 0, voiceId: 0, string: 0 }
   redrawTrack(trackId, 0)
-  setTrackSignIcon(instrumentIconSrc(Song.playBackInstrument[trackId].instrument))
   setSequencerIndicator(0, 0)
-  modalManager.closeAllModals()
+  hideAllDialogs()
   notifySongDataChanged()
 }
 
@@ -113,14 +122,20 @@ export function switchTrack(
     callback?.()
     return
   }
+  const cursor = selectionState.cursor
+  const from = Song.measures[cursor.trackId]?.[cursor.blockId]?.[cursor.voiceId]
+  const to = Song.measures[trackId]?.[cursor.blockId]?.[voiceId]
   Song.currentTrackId = trackId
   Song.currentVoiceId = voiceId
   clearRange()
-  setTrackSignIcon(instrumentIconSrc(Song.playBackInstrument[trackId].instrument))
   playback.followTrackChange()
-  // The cursor's beat or string may not exist on the new track.
-  selectionState.cursor.beatId = 0
-  selectionState.cursor.string = 0
+  // The cursor keeps its time in the bar; its string may not exist on another track.
+  cursor.beatId = from != null && to != null ? beatAtSameTime(from, cursor.beatId, to) : 0
+  if (cursor.trackId !== trackId) cursor.string = 0
+  cursor.trackId = trackId
+  cursor.voiceId = voiceId
   redrawTrack(trackId, voiceId, callback)
   notifySongDataChanged()
+  // the tab view draws the cursor in the voice it is in
+  typedEventBus.emit('navigation.setClickedPos', { ...cursor })
 }

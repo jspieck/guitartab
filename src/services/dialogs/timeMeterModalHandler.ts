@@ -1,11 +1,12 @@
 import { redrawTrack } from '../editor/layoutInvalidation'
-import { BaseModalHandler, ModalState } from './baseModalHandler'
+import { reactive } from 'vue'
+import { BaseModalHandler } from './baseModalHandler'
 import { Song } from '../../stores/song'
 import { recordBarEdit } from '../editor/editCommands'
-import { MODALS } from './modalTypes'
+import { DIALOGS } from './dialogs'
 import { fitBarsToTimeSignature } from '../editor/timeSignatureCommands'
 
-interface TimeMeterModalState extends ModalState {
+interface TimeMeterModalState {
   numerator: number
   denominator: number
   trackId: number
@@ -16,20 +17,20 @@ interface TimeMeterModalState extends ModalState {
 export class TimeMeterModalHandler extends BaseModalHandler {
   readonly modalType = 'TimeMeterModal' as const
 
+  private readonly modalState: TimeMeterModalState = reactive({
+    numerator: 4,
+    denominator: 4,
+    trackId: 0,
+    blockId: 0,
+    voiceId: 0,
+  })
+
   constructor() {
-    super(MODALS.TIME_METER.id, MODALS.TIME_METER.name)
-    this.modalState = {
-      ...this.modalState,
-      numerator: 4,
-      denominator: 4,
-      trackId: 0,
-      blockId: 0,
-      voiceId: 0,
-    } as TimeMeterModalState
+    super(DIALOGS.TIME_METER.id, DIALOGS.TIME_METER.name)
   }
 
   public getModalState(): TimeMeterModalState {
-    return this.modalState as TimeMeterModalState
+    return this.modalState
   }
 
   public updateNumerator(value: number): void {
@@ -103,9 +104,5 @@ export class TimeMeterModalHandler extends BaseModalHandler {
 
     redrawTrack(Song.currentTrackId, Song.currentVoiceId)
     return applied
-  }
-
-  setupModalContent() {
-    this.setTimeMeterState()
   }
 }

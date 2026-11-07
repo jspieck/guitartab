@@ -72,4 +72,10 @@ describe('dynamicsCommands', () => {
     expect(recordBarEdit).toHaveBeenCalledTimes(1)
     expect(requestOverBarRender).toHaveBeenCalledWith(0, 0, 0)
   })
+
+  it('does nothing on a rest (no notes selected) instead of throwing', () => {
+    expect(() => processDynamicSelect({ notes: [], blocks: [0] }, 'pDynamic', false)).not.toThrow()
+    expect(recordBarEdit).not.toHaveBeenCalled()
+    expect(requestOverBarRender).not.toHaveBeenCalled()
+  })
 })

@@ -1,6 +1,6 @@
 import { stringLine } from './tabStrings'
 import type { Grace, TabBeat, TabNoteData } from '../types/tab'
-import { getMeasureBeatWidth, getMeasureBeatX } from './measureBeatLayout'
+import { getMeasureBeatNoteX, getMeasureBeatWidth, getMeasureBeatX } from './measureBeatLayout'
 import {
   beatKey,
   getArticulationTokens,
@@ -14,6 +14,7 @@ import {
   type RowLanes,
 } from './tabRowLanes'
 import { beatHasText } from '../services/songMigrations'
+import { beatLyric, estimateLyricWidth, lyricDisplayText, lyricJoinsNext } from './lyrics'
 
 interface BendPoint {
   bendPosition?: number
@@ -98,6 +99,16 @@ export interface BeatAnnotation {
   beatIndex: number
 }
 
+/** A lyric syllable, centred under its note; `hyphenX` places the joining hyphen. */
+export interface LyricAnnotation {
+  text: string
+  x: number
+  y: number
+  verse: number
+  beatIndex: number
+  hyphenX: number | null
+}
+
 export interface StrokeEffect {
   path: string
   arrowPath: string
@@ -155,6 +166,7 @@ export interface TabEffectCollections {
   graceNotes: GraceNoteEffect[]
   beatTexts: BeatAnnotation[]
   dynamics: BeatAnnotation[]
+  lyrics: LyricAnnotation[]
   strokes: StrokeEffect[]
 }
 
@@ -168,6 +180,10 @@ function getBeatX(input: TabEffectsInput, beatIndex: number): number {
 
 function getBeatWidth(input: TabEffectsInput, beatIndex: number): number {
   return getMeasureBeatWidth(input.trackId, input.voiceId, input.blockId, beatIndex, input.measureData)
+}
+
+function getBeatNoteX(input: TabEffectsInput, beatIndex: number): number {
+  return getMeasureBeatNoteX(input.trackId, input.voiceId, input.blockId, beatIndex, input.measureData)
 }
 
 const NOTE_TEXT_BASELINE_OFFSET = 6
@@ -185,16 +201,21 @@ function getLane(input: TabEffectsInput, lane: AboveLaneId | BelowLaneId): LaneB
   if (fromRow) {
     return fromRow
   }
-  if (lane === 'tuplet' || lane === 'dynamic') {
+  if (lane === 'tuplet' || lane === 'dynamic' || lane === 'lyrics') {
     const top = (input.numStrings - 1) * input.stringSpacing + RHYTHM_BAND_HEIGHT
-    return { top: lane === 'tuplet' ? top : top + LANE_HEIGHTS.tuplet, height: LANE_HEIGHTS[lane] }
+    const offset = {
+      tuplet: 0,
+      dynamic: LANE_HEIGHTS.tuplet,
+      lyrics: LANE_HEIGHTS.tuplet + LANE_HEIGHTS.dynamic,
+    }
+    return { top: top + offset[lane], height: LANE_HEIGHTS[lane] }
   }
   const height = LANE_HEIGHTS[lane]
   return { top: -MEASURE_NUMBER_STRIP - height, height }
 }
 
 function getNoteCenter(context: BeatEffectContext): number {
-  return context.beatX + context.beatWidth / 2
+  return getBeatNoteX(context.input, context.beatIndex)
 }
 
 /** Approximate half width of a fret label at 16px (digits are ~8.5px wide). */
@@ -264,6 +285,7 @@ function createEmptyEffectCollections(): TabEffectCollections {
     graceNotes: [],
     beatTexts: [],
     dynamics: [],
+    lyrics: [],
     strokes: [],
   }
 }
@@ -318,8 +340,7 @@ function collectSlideEffect(context: NoteEffectContext, slides: SlideEffect[]): 
   let endX = startX + Math.min(context.beatWidth * 0.6, 25)
   if (nextBeat) {
     // Stop before the next beat's digit on this string.
-    const nextCenter =
-      getBeatX(context.input, context.beatIndex + 1) + getBeatWidth(context.input, context.beatIndex + 1) / 2
+    const nextCenter = getBeatNoteX(context.input, context.beatIndex + 1)
     endX = Math.min(endX, nextCenter - getDigitHalfWidth(nextNote) - 2)
   }
   // Sliding up to a higher fret is drawn rising ("/"), sliding down falling ("\").
@@ -381,10 +402,8 @@ function collectTieEffect(context: NoteEffectContext, ties: ArcEffect[]): void {
     return
   }
 
-  const prevBeatX = getBeatX(context.input, context.beatIndex - 1)
-  const prevBeatWidth = getBeatWidth(context.input, context.beatIndex - 1)
-  const startX = prevBeatX + prevBeatWidth / 2 + 8
-  const endX = context.beatX + context.beatWidth / 2 - 5
+  const startX = getBeatNoteX(context.input, context.beatIndex - 1) + 8
+  const endX = getBeatNoteX(context.input, context.beatIndex) - 5
   const curveY = context.yPos + 8
   const curveHeight = 5
 
@@ -400,10 +419,8 @@ function collectPullDownEffect(context: NoteEffectContext, pullDowns: ArcEffect[
     return
   }
 
-  const nextBeatX = getBeatX(context.input, context.beatIndex + 1)
-  const nextBeatWidth = getBeatWidth(context.input, context.beatIndex + 1)
-  const startX = context.beatX + context.beatWidth / 2 + 8
-  const endX = nextBeatX + nextBeatWidth / 2 - 5
+  const startX = getBeatNoteX(context.input, context.beatIndex) + 8
+  const endX = getBeatNoteX(context.input, context.beatIndex + 1) - 5
   const curveY = context.yPos - 12
   const curveHeight = 6
 
@@ -628,6 +645,39 @@ function collectBeatAnnotations(context: BeatEffectContext, collections: TabEffe
   }
 }
 
+/** Lyric syllables, one line per verse; a joined syllable gets a hyphen towards the next one. */
+function collectLyrics(context: BeatEffectContext, lyrics: LyricAnnotation[]): void {
+  const syllables = context.beat?.lyrics
+  if (!syllables) return
+  const lane = getLane(context.input, 'lyrics')
+  const centerX = getNoteCenter(context)
+  const beats = context.input.measureData
+  syllables.forEach((syllable, verse) => {
+    if (syllable === '') return
+    let hyphenX: number | null = null
+    if (lyricJoinsNext(syllable)) {
+      const right = centerX + estimateLyricWidth(syllable) / 2
+      const next = beats.findIndex(
+        (beat, index) => index > context.beatIndex && beatLyric(beat, verse) !== '',
+      )
+      if (next >= 0) {
+        const nextCenter = getBeatNoteX(context.input, next)
+        hyphenX = (right + nextCenter - estimateLyricWidth(beatLyric(beats[next], verse)) / 2) / 2
+      } else {
+        hyphenX = right + 5
+      }
+    }
+    lyrics.push({
+      text: lyricDisplayText(syllable),
+      x: centerX,
+      y: lane.top + (verse + 1) * LANE_HEIGHTS.lyrics - 4,
+      verse,
+      beatIndex: context.beatIndex,
+      hyphenX,
+    })
+  })
+}
+
 /** Brush stroke: vertical arrow left of the chord, pointing in the strum direction on the page. */
 function collectStrokeEffect(context: BeatEffectContext, strokes: StrokeEffect[]): void {
   const effects = context.beat?.effects as { stroke?: { strokeType?: string } } | undefined
@@ -663,6 +713,7 @@ function collectBeatLevelEffects(context: BeatEffectContext, collections: TabEff
   collectRunEffect(context, 'palmMute', collections.runs)
   collectRunEffect(context, 'letRing', collections.runs)
   collectBeatAnnotations(context, collections)
+  collectLyrics(context, collections.lyrics)
   collectStrokeEffect(context, collections.strokes)
 }
 

@@ -6,6 +6,7 @@ import {
   type ClassicalStaffExtents,
 } from '../../stores/classicalNotationLayoutState'
 import { tupletState } from '../../stores/tupletState'
+import { clefAt, type StaffClef } from '../../utils/clefs'
 
 /**
  * The pure parts of classical notation: tab beats as VexFlow durations and keys, the clef of
@@ -18,8 +19,6 @@ const STEM_EXTENT = 40
 /** Half height of a note head incl. accidental glyphs. */
 const NOTE_HEAD_EXTENT = 8
 
-const NOTE_NAMES = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b']
-
 const VEXFLOW_DURATIONS: Record<string, string> = {
   w: 'w',
   h: 'h',
@@ -28,14 +27,6 @@ const VEXFLOW_DURATIONS: Record<string, string> = {
   s: '16',
   t: '32',
   z: '64',
-}
-
-/**
- * A MIDI pitch as a VexFlow key. Guitar music is written an octave above it sounds, so
- * MIDI 40 (the low E, E2) is written `e/3`.
- */
-export function pitchToVexFlow(height: number): string {
-  return `${NOTE_NAMES[height % 12]}/${Math.floor(height / 12)}`
 }
 
 /** A beat's length as a VexFlow duration ('qd', '8r', …). */
@@ -55,10 +46,27 @@ export function durationToVexFlow(beat: Beat): string {
   return `${value}${dots}${isRest ? 'r' : ''}`
 }
 
-/** Treble for guitars, bass for four- and five-string basses, percussion for drums. */
-export function clefOf(trackId: number): string {
-  if (Song.playBackInstrument[trackId]?.instrument === 'drums') return 'percussion'
-  return Song.tracks[trackId].numStrings > 5 ? 'treble' : 'bass'
+/** The voice that isn't being edited (songs have two). */
+export function otherVoiceOf(voiceId: number): number {
+  return voiceId === 0 ? 1 : 0
+}
+
+/** Whether a voice has notes in a bar (an unused voice is all rests or marked empty). */
+export function voiceHasNotes(beats: readonly Beat[] | undefined): boolean {
+  return (beats ?? []).some((beat) => !beat.empty && (beat.notes ?? []).some((note) => note != null))
+}
+
+/** Whether the track is drawn on a percussion staff. */
+export function isDrumTrack(trackId: number): boolean {
+  return Song.playBackInstrument[trackId]?.instrument === 'drums'
+}
+
+/**
+ * The staff's clef in a bar: the track's clef changes, else treble for guitars, bass for four-
+ * and five-string basses, percussion for drums (`utils/clefs.ts`).
+ */
+export function clefOf(trackId: number, blockId = 0): StaffClef {
+  return clefAt(Song.tracks[trackId], blockId, isDrumTrack(trackId))
 }
 
 /**
@@ -69,10 +77,16 @@ export function blockFingerprint(trackId: number, blockId: number, voiceId: numb
   try {
     const meta = Song.measureMeta[blockId]
     const beats = toRaw(Song.measures[trackId][blockId][voiceId])
-    const tuplets = beats.map((beat) =>
+    // the other voice is drawn on the same staff
+    const otherBeats = toRaw(Song.measures[trackId][blockId][otherVoiceOf(voiceId)] ?? [])
+    const tuplets = [...beats, ...otherBeats].map((beat) =>
       beat.tuplet != null ? tupletState.groups[beat.tupletId]?.originalDuration : null,
     )
-    return JSON.stringify([meta?.numerator, meta?.denominator, beats, tuplets])
+    // the key spells the notes; the key before it decides the cancelling naturals
+    const keys = [meta?.keySignature, meta?.keyMinor, Song.measureMeta[blockId - 1]?.keySignature]
+    // the clef places the note heads
+    const clef = clefOf(trackId, blockId)
+    return JSON.stringify([meta?.numerator, meta?.denominator, keys, clef, beats, otherBeats, tuplets])
   } catch {
     return null
   }

@@ -1,8 +1,9 @@
 import { computed, ref, toRaw } from 'vue'
 import Song, { type Beat, type MeasureMetaInfo } from '../../stores/song'
 import { notifySongDataChanged } from '../appEvents'
-import { requestBlocksRender } from './renderCommands'
+import { invalidateBars } from '../../stores/renderVersionState'
 import { RevertStack } from './revertStack'
+import { announce } from '../../stores/announcerState'
 
 /**
  * One undoable edit. `apply` (re)does it, `invert` undoes it; both must be
@@ -56,6 +57,7 @@ export const undoHistory = {
       historyChanged()
       command.invert()
       commandChanged(command)
+      announce(`Undo: ${command.label}`)
     }
   },
   redo(): void {
@@ -64,6 +66,7 @@ export const undoHistory = {
       historyChanged()
       command.apply()
       commandChanged(command)
+      announce(`Redo: ${command.label}`)
     }
   },
   clear(): void {
@@ -203,6 +206,18 @@ function restoreCells(
   }
 }
 
+/** Bumps the render version of every bar the cells cover (bar settings: in the shown track). */
+function invalidateCells(voices: readonly VoiceCell[], metas: readonly MetaCell[]): void {
+  const barsByTrack = new Map<number, Set<number>>()
+  const add = (trackId: number, blockId: number) => {
+    if (!barsByTrack.has(trackId)) barsByTrack.set(trackId, new Set())
+    barsByTrack.get(trackId)!.add(blockId)
+  }
+  for (const cell of voices) add(cell.trackId, cell.blockId)
+  for (const cell of metas) add(Song.currentTrackId, cell.blockId)
+  for (const [trackId, blockIds] of barsByTrack) invalidateBars(trackId, blockIds)
+}
+
 function sameData(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right)
 }
@@ -249,6 +264,7 @@ class BarTransaction {
       return null
     }
     const hooks = this.hooks
+    invalidateCells(voices, metas)
     return {
       label: this.label,
       apply() {
@@ -260,10 +276,7 @@ class BarTransaction {
         for (const command of [...subCommands].reverse()) command.invert()
       },
       afterChange() {
-        const blockIds = [...new Set([...metas, ...voices].map((cell) => cell.blockId))]
-        if (blockIds.length > 0) {
-          requestBlocksRender(Song.currentTrackId, blockIds, Song.currentVoiceId)
-        }
+        invalidateCells(voices, metas)
         for (const hook of hooks) hook()
         for (const command of subCommands) command.afterChange?.()
       },

@@ -26,11 +26,13 @@
       </button>
       <button
         id="compactMoreButton"
+        ref="moreButtonRef"
         type="button"
         class="compact-bar__button"
         aria-label="More"
+        aria-haspopup="menu"
         :aria-expanded="moreOpen"
-        @click="moreOpen = !moreOpen"
+        @click="toggleMore"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
       </button>
@@ -44,7 +46,10 @@
         id="compactPlay"
         type="button"
         class="compact-bar__button compact-bar__play"
-        :aria-label="playbackTransportState.isPlaying ? 'Pause' : 'Play'"
+        :class="{ 'is-loading': soundFontLoading != null, 'is-waiting': soundFontState.playWhenReady }"
+        :style="soundFontLoading != null ? { '--load-progress': soundFontProgress() ?? 0 } : undefined"
+        :aria-label="playbackTransportState.isPlaying ? 'Pause' : soundFontLoading ?? 'Play'"
+        :aria-pressed="soundFontState.playWhenReady || undefined"
         @pointerenter="preload()"
         @click="togglePlay()"
       >
@@ -74,21 +79,49 @@
       </button>
     </div>
 
-    <div v-if="moreOpen" class="compact-bar__menu" role="menu" @keydown.esc="moreOpen = false">
-      <button type="button" role="menuitem" @click="openFile">Open file…</button>
-      <button type="button" role="menuitem" @click="zoomBy(0.15)">Larger tab</button>
-      <button type="button" role="menuitem" @click="zoomBy(-0.15)">Smaller tab</button>
-      <button type="button" role="menuitem" @click="useDesktopLayout">Desktop layout</button>
-    </div>
+    <!-- Teleported so it isn't clipped and stacks above the tab and the note pad. -->
+    <Teleport to="body">
+      <div v-if="moreOpen" id="compactMoreMenu" ref="menuRef" class="compact-menu" role="menu" aria-label="More" @keydown="onMenuKeydown">
+        <button type="button" role="menuitem" @click="run(openFile)">Open file…</button>
+        <button type="button" role="menuitem" @click="run(() => toolbarAction('exampleSongs').run())">Example songs…</button>
+        <div class="compact-menu__tempo" role="group" aria-label="Song tempo">
+          <span class="compact-menu__label">Tempo</span>
+          <button type="button" role="menuitem" aria-label="Slower" @click="nudgeTempo(-5)">−</button>
+          <span id="compactTempo" class="compact-menu__value">♩ {{ currentTempo }}</span>
+          <button type="button" role="menuitem" aria-label="Faster" @click="nudgeTempo(5)">+</button>
+        </div>
+        <div class="compact-menu__heading" role="presentation">Track</div>
+        <button type="button" role="menuitem" @click="run(() => openTrackSettings(currentTrackId))">Track settings and tuning…</button>
+        <button type="button" role="menuitem" @click="run(() => openChangeInstrument(currentTrackId))">Change instrument…</button>
+        <button type="button" role="menuitem" @click="run(openAddTrack)">Add track…</button>
+        <button type="button" role="menuitem" class="compact-menu__danger" @click="run(() => requestDeleteTrack(currentTrackId))">Delete track…</button>
+        <div class="compact-menu__heading" role="presentation">View</div>
+        <button type="button" role="menuitem" @click="zoomBy(0.15)">Larger tab</button>
+        <button type="button" role="menuitem" @click="zoomBy(-0.15)">Smaller tab</button>
+        <button type="button" role="menuitem" @click="run(useDesktopLayout)">Desktop layout</button>
+      </div>
+    </Teleport>
   </header>
 </template>
 
 <script setup lang="ts">
 import { selectionState } from '../../stores/selectionState'
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import Song from '../../stores/song'
+import { useTempoState } from '../../stores/tempoState'
+import { setSongTempo } from '../../services/editor/songSettingsCommands'
+import { toolbarAction } from '../../services/editor/toolbarActions'
+import {
+  openAddTrack,
+  openChangeInstrument,
+  openTrackSettings,
+  requestDeleteTrack,
+} from '../../services/editor/trackActions'
+import { focusMenuItem } from '../toolbar/menuKeyboard'
 import playback from '../../services/playback'
 import Settings from '../../stores/settingsState'
 import { playbackTransportState } from '../../stores/playbackTransportState'
+import { soundFontLoadingLabel, soundFontProgress, soundFontState } from '../../stores/soundFontState'
 import { usePlaybackEngine } from '../../composables/usePlaybackEngine'
 import { useSongData } from '../../composables/useSongData'
 import { changeTrackWithLoading, focusEditorPosition } from '../../services/editorNavigation'
@@ -100,7 +133,11 @@ const SPEEDS = [0.5, 0.6, 0.75, 0.9, 1, 1.25, 1.5]
 
 const { reactiveSongData } = useSongData()
 const { togglePlay, stepBackward, stepForward, preload } = usePlaybackEngine()
+const soundFontLoading = computed(() => soundFontLoadingLabel())
 const moreOpen = ref(false)
+const moreButtonRef = ref<HTMLElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
+const { currentTempo } = useTempoState()
 
 const title = computed(() => reactiveSongData.songDescription?.title || 'Untitled')
 const tracks = computed(() => reactiveSongData.tracks ?? [])
@@ -128,10 +165,50 @@ function setSpeed(rate: number): void {
   setPlaybackRate(rate)
 }
 
-function openFile(): void {
+async function toggleMore(): Promise<void> {
+  moreOpen.value = !moreOpen.value
+  if (!moreOpen.value) return
+  await nextTick()
+  focusMenuItem(menuRef.value, 'first')
+}
+
+function closeMore({ focusButton = false } = {}): void {
   moreOpen.value = false
+  if (focusButton) moreButtonRef.value?.focus()
+}
+
+/** Menu entries that open something close the menu first. */
+function run(action: () => void): void {
+  closeMore()
+  action()
+}
+
+function onMenuKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeMore({ focusButton: true })
+  } else if (focusMenuItem(menuRef.value, event.key)) {
+    event.preventDefault()
+  }
+}
+
+/** A tap outside closes it (the More button toggles it itself). */
+function onPointerDown(event: PointerEvent): void {
+  const target = event.target as Node
+  if (moreOpen.value && !menuRef.value?.contains(target) && !moreButtonRef.value?.contains(target)) closeMore()
+}
+
+onMounted(() => document.addEventListener('pointerdown', onPointerDown))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onPointerDown))
+
+function nudgeTempo(step: number): void {
+  // One undo step per tap; setSongTempo clamps to the allowed range.
+  setSongTempo(Song.bpm + step)
+}
+
+function openFile(): void {
   // The desktop toolbar owns the file input; it stays mounted (hidden) in the compact layout.
-  document.getElementById('openFile')?.click()
+  toolbarAction('openFile').run()
 }
 
 function zoomBy(step: number): void {
@@ -140,7 +217,6 @@ function zoomBy(step: number): void {
 }
 
 function useDesktopLayout(): void {
-  moreOpen.value = false
   setCompactLayout(false)
 }
 </script>
@@ -249,21 +325,61 @@ function useDesktopLayout(): void {
   fill: currentColor;
 }
 
-.compact-bar__menu {
+/* SoundFont still downloading: a progress bar along the bottom (see toolbar.css for the desktop ring) */
+.compact-bar__play.is-loading {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.compact-bar__play.is-loading::after {
   position: absolute;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--load-progress, 0) * 100%);
+  height: 4px;
+  background: var(--color-accent);
+  content: '';
+}
+
+.compact-bar__play.is-waiting {
+  animation: play-waiting 1.2s ease-in-out infinite;
+}
+
+@keyframes play-waiting {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compact-bar__play.is-waiting {
+    animation: none;
+  }
+}
+
+.compact-menu {
+  position: fixed;
+  z-index: 1000;
   top: 52px;
   right: 10px;
   display: flex;
   flex-direction: column;
-  min-width: 180px;
+  min-width: 240px;
+  max-height: calc(100vh - 64px);
   padding: 6px;
+  overflow-y: auto;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface-raised);
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-shadow) 18%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  box-shadow: var(--shadow-popover);
 }
 
-.compact-bar__menu button {
+.compact-menu button {
   min-height: 44px;
   padding: 0 12px;
   border: 0;
@@ -274,15 +390,46 @@ function useDesktopLayout(): void {
   text-align: left;
 }
 
-.compact-bar__menu button:active {
+.compact-menu button:active,
+.compact-menu button:focus-visible {
   background: var(--color-accent-soft);
+  outline: none;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+.compact-menu__heading {
+  padding: 10px 12px 2px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.compact-menu__tempo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 12px;
+}
+
+.compact-menu__label {
+  flex: 1;
+}
+
+.compact-menu .compact-menu__tempo button {
+  width: 44px;
+  padding: 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.compact-menu__value {
+  min-width: 56px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.compact-menu .compact-menu__danger {
+  color: var(--color-danger);
 }
 </style>

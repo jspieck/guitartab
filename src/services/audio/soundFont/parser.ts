@@ -85,7 +85,10 @@ export interface SoundFontData {
   instrumentModulators: GeneratorEntry[]
   instrumentGenerators: GeneratorEntry[]
   sampleHeaders: SampleHeader[]
-  samples: Int16Array[]
+  /** PCM per sample header (an SF3 sample is empty until decoded) */
+  samples: (Int16Array | Float32Array)[]
+  /** SF3: the Ogg Vorbis bytes of each compressed sample (null for PCM ones) */
+  compressed: (Uint8Array | null)[]
 }
 
 /** SoundFont 2.04, section 8.1.2; null marks unused operator numbers. */
@@ -253,20 +256,44 @@ export function upsampleToMinimumRate(
   return { sample: output, multiply }
 }
 
+/** sampleType bit of SF3 (MuseScore's SoundFont 3): the sample is an Ogg Vorbis stream */
+export const COMPRESSED_SAMPLE = 0x10
+
 function readSamples(
   data: Uint8Array,
   chunk: RiffChunk,
   samplingData: RiffChunk,
-): { sampleHeaders: SampleHeader[]; samples: Int16Array[] } {
+): Pick<SoundFontData, 'sampleHeaders' | 'samples' | 'compressed'> {
   expectType(chunk, 'shdr')
   const sampleHeaders: SampleHeader[] = []
-  const samples: Int16Array[] = []
+  const samples: (Int16Array | Float32Array)[] = []
+  const compressed: (Uint8Array | null)[] = []
   for (let ip = chunk.offset, end = chunk.offset + chunk.size; ip < end; ip += 46) {
     const start = u32(data, ip + 20)
     const sampleEnd = u32(data, ip + 24)
-    let startLoop = u32(data, ip + 28) - start
-    let endLoop = u32(data, ip + 32) - start
-    let sampleRate = u32(data, ip + 36)
+    const sampleType = u16(data, ip + 44)
+    const header: SampleHeader = {
+      sampleName: name20(data, ip),
+      startLoop: u32(data, ip + 28) - start,
+      endLoop: u32(data, ip + 32) - start,
+      sampleRate: u32(data, ip + 36),
+      originalPitch: data[ip + 40],
+      pitchCorrection: (data[ip + 41] << 24) >> 24,
+      sampleLink: u16(data, ip + 42),
+      sampleType,
+    }
+    sampleHeaders.push(header)
+    if (sampleType & COMPRESSED_SAMPLE) {
+      // SF3: start/end are byte offsets of the Ogg stream; the loop points already count
+      // decoded frames from the sample's start. Decoded later (`decodeCompressedSamples`).
+      header.startLoop = u32(data, ip + 28)
+      header.endLoop = u32(data, ip + 32)
+      compressed.push(data.slice(samplingData.offset + start, samplingData.offset + sampleEnd))
+      samples.push(new Int16Array(0))
+      continue
+    }
+    compressed.push(null)
+    let { startLoop, endLoop, sampleRate } = header
     // copied, so the sample doesn't keep the whole file alive
     let sample = new Int16Array(
       new Uint8Array(data.subarray(samplingData.offset + start * 2, samplingData.offset + sampleEnd * 2))
@@ -280,18 +307,9 @@ function readSamples(
       endLoop *= adjusted.multiply
     }
     samples.push(sample)
-    sampleHeaders.push({
-      sampleName: name20(data, ip),
-      startLoop,
-      endLoop,
-      sampleRate,
-      originalPitch: data[ip + 40],
-      pitchCorrection: (data[ip + 41] << 24) >> 24,
-      sampleLink: u16(data, ip + 42),
-      sampleType: u16(data, ip + 44),
-    })
+    Object.assign(header, { startLoop, endLoop, sampleRate })
   }
-  return { sampleHeaders, samples }
+  return { sampleHeaders, samples, compressed }
 }
 
 export function parseSoundFont(input: Uint8Array): SoundFontData {

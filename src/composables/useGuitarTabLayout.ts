@@ -1,10 +1,11 @@
-import { computed, type Ref } from 'vue'
+import { computed } from 'vue'
 import { useSongData } from './useSongData'
 import editorCore from '../services/editor/editorCore'
 import { classicalNotationLayoutState } from '../stores/classicalNotationLayoutState'
 import type { RenderedTabRow } from '../types/tab'
 import { getPageMargins } from '../utils/tabLayout'
 import { getTabRowContentHeight } from '../services/editor/tabLayoutMetrics'
+import { renderVersionState } from '../stores/renderVersionState'
 
 interface GuitarTabLayoutProps {
   trackId: number
@@ -15,7 +16,7 @@ interface GuitarTabLayoutProps {
 
 const HEADER_HEIGHT = 80
 
-export function useGuitarTabLayout(props: Readonly<GuitarTabLayoutProps>, renderVersion: Ref<number>) {
+export function useGuitarTabLayout(props: Readonly<GuitarTabLayoutProps>) {
   const { reactiveSongData, songDataVersion, syncSongData } = useSongData()
 
   const margins = computed(() => getPageMargins(props.width, props.height))
@@ -32,7 +33,8 @@ export function useGuitarTabLayout(props: Readonly<GuitarTabLayoutProps>, render
   const rowHeight = computed(() => getTabRowContentHeight(props.trackId))
 
   const tabRows = computed<RenderedTabRow[]>(() => {
-    void renderVersion.value
+    // Edits bump these (stores/renderVersionState.ts); reading them makes the layout re-run.
+    void renderVersionState.song
     void songDataVersion.value
 
     if (classicalNotationLayoutState.active) {

@@ -1,7 +1,14 @@
 import { loadGtBytes } from './songImport'
 import { undoHistory } from './editor/editCommands'
 import Song from '../stores/song'
-import { compressGtContent, serializeSongContent } from '../utils/gtSerialization'
+import {
+  compressGtContent,
+  decompressGtContent,
+  hasSongContent,
+  serializeSongContent,
+  withPracticePart,
+} from '../utils/gtSerialization'
+import { currentPracticeMemory } from './practiceMemory'
 import { typedEventBus } from '../utils/typedEventBus'
 
 /**
@@ -234,7 +241,8 @@ export async function flushAutosave(): Promise<void> {
     id: `autosave-${savedAt}-${snapshotCounter}`,
     savedAt,
     title: readTitle(),
-    bytes: compressGtContent(content),
+    // with the speed and loop, which restoring the draft brings back
+    bytes: compressGtContent(withPracticePart(content, currentPracticeMemory())),
   })
   const overflow = (await store.list()).slice(MAX_SNAPSHOTS)
   if (overflow.length > 0) {
@@ -269,7 +277,8 @@ export async function getRecoverableDraft(): Promise<AutosaveSnapshot | null> {
   if (!latest || latest.savedAt <= startupCleanAt) {
     return null
   }
-  if (compressGtContent(dependencies().readContent()).join() === latest.bytes.join()) {
+  const draft = decompressGtContent(latest.bytes)
+  if (draft != null && hasSongContent(draft, dependencies().readContent())) {
     return null
   }
   return latest

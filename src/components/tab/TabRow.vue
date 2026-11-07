@@ -1,5 +1,5 @@
 <template>
-  <g class="tab-row" :data-row-id="rowData.id" :transform="`translate(0, ${yOffset})`">
+  <g class="tab-row" :data-row-id="rowData.id" :data-track-id="trackId" :transform="`translate(0, ${yOffset})`">
     <!-- Guitar strings background -->
     <g class="strings">
       <line
@@ -28,8 +28,23 @@
       />
     </g>
     
+    <!-- Drum tracks: each line's drum, on every row (utils/drumMap.ts) -->
+    <g v-if="drumLines" class="drum-line-labels" pointer-events="none">
+      <text
+        v-for="(midi, line) in drumLines"
+        :key="`drum-label-${line}`"
+        x="15"
+        :y="stringLine(line, numStrings) * stringSpacing + 3"
+        font-family="Source Sans Pro"
+        font-size="9px"
+        font-weight="600"
+        text-anchor="middle"
+        class="drum-line-label"
+      >{{ drumLabel(midi) }}</text>
+    </g>
+
     <!-- TAB label for first row -->
-    <g v-if="isFirstRow" class="tab-label">
+    <g v-else-if="labelGutter && rowData.id === 0" class="tab-label">
       <text x="15" :y="stringSpacing * 1.5" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">T</text>
       <text x="15" :y="stringSpacing * 3.0" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">A</text>
       <text x="15" :y="stringSpacing * 4.5" font-family="Source Sans Pro" font-size="16px" class="tab-label-text" text-anchor="middle">B</text>
@@ -47,16 +62,33 @@
     </g>
 
     <!-- Selection indicator -->
-    <g v-if="selectionRenderPoint" class="selection-indicator" pointer-events="none">
+    <g
+      v-if="selectionRenderPoint"
+      class="selection-indicator"
+      :class="{ 'selection-indicator--voice2': voiceId === 1 }"
+      :data-voice="voiceId + 1"
+      pointer-events="none"
+      :data-lyrics-dy="lyricsLineTop - selectionRenderPoint.y"
+    >
       <rect
         :x="selectionRenderPoint.x - 10"
         :y="selectionRenderPoint.y - 8"
         width="20"
         height="16"
-        style="fill: var(--tab-cursor); stroke: var(--tab-cursor-border)"
         stroke-width="1"
         rx="2"
+        class="selection-cursor"
       />
+      <!-- voice 2: the cursor says so (the tab draws it in its own colour) -->
+      <text
+        v-if="voiceId === 1"
+        :x="selectionRenderPoint.x + 12"
+        :y="selectionRenderPoint.y - 6"
+        font-family="Source Sans Pro"
+        font-size="9px"
+        font-weight="700"
+        class="selection-voice-label"
+      >2</text>
     </g>
 
     <!-- Measures (Notes and Effects) -->
@@ -73,6 +105,10 @@
       :num-strings="numStrings"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
       :lanes="rowData.lanes"
+      :multi-rest="measureObj.multiRest"
+      :hidden="measureObj.hidden"
+      :bar-number="!rowData.lowerStaff"
+      :drums="drumLines != null"
       pointer-events="none"
     />
     
@@ -88,6 +124,7 @@
       :string-spacing="stringSpacing"
       :lanes="rowData.lanes"
       :content-padding="getMeasureContentPadding(rowData.startBlockId + measureIndex)"
+      :annotations="!rowData.lowerStaff"
       pointer-events="none"
     />
 
@@ -102,6 +139,7 @@
         :height="12"
         fill="transparent"
         class="string-click-area"
+        :data-string="stringLine(stringIndex - 1, numStrings)"
         @mousedown="(event: MouseEvent) => handleStringPointerDown(event, stringLine(stringIndex - 1, numStrings))"
         cursor="pointer"
       />
@@ -111,6 +149,8 @@
 
 <script setup lang="ts">
 import { stringLine } from '../../utils/tabStrings'
+import { drumLabel } from '../../utils/drumMap'
+import Song from '../../stores/song'
 import { computed } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
@@ -118,6 +158,8 @@ import { useOverlaySelection } from '../../composables/useOverlaySelection'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { usePlaybackEngine } from '../../composables/usePlaybackEngine'
 import editorCore from '../../services/editor/editorCore'
+import { lyricsEntryState } from '../../stores/lyricsEntryState'
+import { LANE_HEIGHTS } from '../../utils/tabRowLanes'
 import type {
   RenderedTabRow,
   RendererSelectionPosition,
@@ -137,12 +179,12 @@ interface Props {
   svgRoot?: SVGSVGElement | null
   yOffset: number
   width: number
-  isFirstRow?: boolean
+  labelGutter?: boolean
   onStringPointerDown?: (event: MouseEvent, stringIndex: number) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isFirstRow: false,
+  labelGutter: false,
   onStringPointerDown: undefined,
 })
 
@@ -155,6 +197,12 @@ const {
 } = useTabSelection()
 
 const numStrings = computed(() => editorCore.getTrackStringCount(props.trackId))
+
+/** A drum track's map (its line names), or null. */
+const drumLines = computed(() => {
+  if (Song.playBackInstrument[props.trackId]?.instrument !== 'drums') return null
+  return Song.tracks[props.trackId]?.drumMap ?? null
+})
 const playbackEngine = usePlaybackEngine()
 
 function getMeasureMeta(blockId: number): TabMeasureMetaData {
@@ -180,7 +228,7 @@ const { rangeOverlayRect } = useOverlaySelection({
   voiceId: props.voiceId,
   rowId: props.rowData.id,
   rowData: computed(() => props.rowData),
-  isFirstRow: computed(() => props.isFirstRow),
+  labelGutter: computed(() => props.labelGutter),
   numStrings,
   getMeasureContentPadding,
 })
@@ -193,7 +241,7 @@ const selectionRenderPoint = computed(() => {
   return getSelectionRenderPoint(
     props.rowData,
     selectedPosition.value,
-    props.isFirstRow,
+    props.labelGutter,
     stringSpacing,
     getMeasureContentPadding,
     props.trackId,
@@ -241,11 +289,19 @@ const selectedPosition = computed<RendererSelectionPosition | null>({
   },
 })
 
+// Where the lyric field sits (LyricsEntryField.vue): the current verse's line, or the
+// bottom of the row when it has no lyrics yet (the lyrics lane is the lowest one).
+const lyricsLineTop = computed(() => {
+  const lanes = props.rowData.lanes
+  const top = lanes?.below.lyrics?.top ?? lanes?.bodyHeight ?? (numStrings.value - 1) * stringSpacing + 30
+  return top + lyricsEntryState.verse * LANE_HEIGHTS.lyrics
+})
+
 const measureSeparators = computed(() => {
   const separators: Array<{ x: number }> = []
   for (let index = 0; index <= props.rowData.measures.length; index++) {
     separators.push({
-      x: getLayoutMeasureXOffset(props.rowData.measures, index, props.isFirstRow),
+      x: getLayoutMeasureXOffset(props.rowData.measures, index, props.labelGutter),
     })
   }
 
@@ -253,7 +309,7 @@ const measureSeparators = computed(() => {
 })
 
 function getMeasureXOffset(measureIndex: number): number {
-  return getLayoutMeasureXOffset(props.rowData.measures, measureIndex, props.isFirstRow)
+  return getLayoutMeasureXOffset(props.rowData.measures, measureIndex, props.labelGutter)
 }
 
 function handleStringPointerDown(event: MouseEvent, stringIndex: number): void {
@@ -277,7 +333,7 @@ function handleStringClick(event: MouseEvent, stringIndex: number): void {
     event,
     svgElement,
     props.rowData,
-    props.isFirstRow,
+    props.labelGutter,
     getMeasureContentPadding,
     props.trackId,
     props.voiceId,
@@ -306,7 +362,22 @@ function handleStringClick(event: MouseEvent, stringIndex: number): void {
 .tab-separator-line {
   stroke: var(--tab-separator);
 }
+.drum-line-label {
+  fill: var(--tab-secondary);
+}
+
 .tab-label-text {
   fill: var(--tab-primary);
+}
+.selection-cursor {
+  fill: var(--tab-cursor);
+  stroke: var(--tab-cursor-border);
+}
+.selection-indicator--voice2 .selection-cursor {
+  stroke: var(--tab-voice2);
+  stroke-width: 2;
+}
+.selection-voice-label {
+  fill: var(--tab-voice2);
 }
 </style> 

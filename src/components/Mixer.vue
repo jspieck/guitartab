@@ -1,5 +1,5 @@
 <template>
-    <BaseModal :modal-id="MODALS.MIXER.id">
+    <BaseModal :modal-id="DIALOGS.MIXER.id" resize="x">
         <template #title>Drum Mixer</template>
         <div class="ap-root mx">
             <div class="ap-toolbar">
@@ -52,17 +52,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import VerticalFader from './audio/VerticalFader.vue';
 import './audio/audioPlugin.css';
 import { FIRST_DRUM_NOTE, drumSolo, noteToDrum } from '../services/audio/drumKit';
 import { audioGraph } from '../services/audio/audioGraph';
-import { MODALS } from '../services/dialogs/modalTypes';
-import { modalManager } from '../services/dialogs/modalManager';
+import { DIALOGS } from '../services/dialogs/dialogs'
+
 import { formatGainDb, getUsedDrumNotes } from '../services/drumMixer';
-import { useAnimationLoop, useModalOpen } from '../composables/useModalOpen';
+import { useAnimationLoop, useDialogOpen } from '../composables/useDialogOpen';
 
 type DrumGroup = 'kick' | 'snare' | 'tom' | 'hat' | 'cymbal' | 'perc';
 
@@ -103,7 +103,7 @@ const strips = reactive<DrumStrip[]>(Array.from(noteToDrum.entries()).map(([note
 
 const view = ref<'song' | 'kit'>('song');
 const usedNotes = ref<Set<number>>(new Set());
-const isOpen = useModalOpen(MODALS.MIXER.id);
+const isOpen = useDialogOpen(DIALOGS.MIXER.id);
 
 const visibleStrips = computed(() => (view.value === 'kit'
     ? strips
@@ -125,11 +125,6 @@ watch(isOpen, (open) => {
     usedNotes.value = getUsedDrumNotes();
     if (usedNotes.value.size === 0 && view.value === 'song') view.value = 'kit';
 }, { immediate: true });
-
-// The modal is centred for its size when opened; switching views can make it wider.
-watch([isOpen, () => visibleStrips.value.length], ([open]) => {
-    if (open) void nextTick(() => modalManager.keepInViewport(MODALS.MIXER.id));
-});
 
 function drumBus(strip: DrumStrip) {
     return audioGraph.drumBusses[strip.note - FIRST_DRUM_NOTE];

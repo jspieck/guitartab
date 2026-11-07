@@ -1,7 +1,9 @@
+import { reactive } from 'vue'
 import { createMeasures, createNewTrack } from '../editor/measureStructureCommands'
 import { fillMeasures } from '../editor/barFilling'
 import { redrawTrack } from '../editor/layoutInvalidation'
 import { BaseModalHandler } from './baseModalHandler'
+import { DIALOGS } from './dialogs'
 import { Track, Song } from '../../stores/song'
 import { instrumentGroups, instrumentList } from '../../data/instrumentData'
 import { notifySongDataChanged } from '../appEvents'
@@ -15,16 +17,21 @@ interface InstrumentGroup {
 export class AddTrackModalHandler extends BaseModalHandler {
   private numberOfTrackToAdd: number = -1
   private readonly instrumentGroups: InstrumentGroup[]
+  /** What the dialog shows: whether it adds a track or changes one, and that track's instrument. */
+  readonly view = reactive({ changing: false, currentInstrument: '', openCount: 0 })
 
   constructor() {
-    super('addTrackModal', 'New Instrument')
+    super(DIALOGS.ADD_TRACK.id, 'New Instrument')
     this.instrumentGroups = instrumentGroups
   }
 
-  protected setupModalContent(): void {}
-
   openModal(trackNumber?: number) {
     this.numberOfTrackToAdd = trackNumber ?? -1
+    this.view.changing = this.numberOfTrackToAdd >= 0
+    this.view.currentInstrument = this.view.changing
+      ? (Song.playBackInstrument[this.numberOfTrackToAdd]?.instrument ?? '')
+      : ''
+    this.view.openCount += 1
     this.showModal()
   }
 
@@ -90,10 +97,22 @@ export class AddTrackModalHandler extends BaseModalHandler {
     }
 
     // Update track settings
+    // playbackInstrumentFor prefers the track's program over its channel, so it must be the instrument.
     Song.tracks[trackNumber] = {
       ...instrObj,
       channel: { index: channelId, effectChannel: 0 },
       color: { red: 0, blue: 127, green: 0 },
+      program: instrumentChannel,
+      primaryChannel: channelId,
+    }
+
+    // A drum track had a line per drum; the new instrument has six strings.
+    for (const bar of Song.measures[trackNumber] ?? []) {
+      for (const voice of bar) {
+        for (const beat of voice) {
+          if ((beat.notes?.length ?? 0) > instrObj.numStrings) beat.notes.length = instrObj.numStrings
+        }
+      }
     }
 
     // Update playback settings

@@ -15,6 +15,8 @@ export interface PracticeSettings {
   trainerStep: number
   /** Speed at which the trainer stops increasing. */
   trainerTarget: number
+  /** A big beat counter while playing and during the count-in, readable from the instrument. */
+  bigBeat: boolean
 }
 
 export const PLAYBACK_RATE_MIN = 0.25
@@ -29,6 +31,7 @@ const DEFAULTS: PracticeSettings = {
   trainer: false,
   trainerStep: 0.05,
   trainerTarget: 1,
+  bigBeat: false,
 }
 
 export function clampPlaybackRate(rate: number): number {
@@ -51,6 +54,7 @@ function readStored(): PracticeSettings {
       trainer: stored.trainer === true,
       trainerStep: Number(stored.trainerStep) > 0 ? Number(stored.trainerStep) : DEFAULTS.trainerStep,
       trainerTarget: clampPlaybackRate(Number(stored.trainerTarget ?? DEFAULTS.trainerTarget)),
+      bigBeat: stored.bigBeat === true,
     }
   } catch {
     return { ...DEFAULTS }

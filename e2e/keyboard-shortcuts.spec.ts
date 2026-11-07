@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { waitForEditorShell } from './helpers'
+import { waitForEditorShell, waitForSoundFont } from './helpers'
 
 /** Bar 1, beat 1 of the riff as `duration:frets` (string 0 first), plus the cursor. */
 async function readFirstBeats(page: Page) {
@@ -71,6 +71,8 @@ test.describe('keyboard shortcuts', () => {
 
   test('Space plays and pauses, but not while typing in a field', async ({ page }) => {
     await waitForEditorShell(page)
+    // (while the instruments load, Space only arms Play and a second Space disarms it)
+    await waitForSoundFont(page)
     await selectTopStringOfFirstBeat(page)
 
     await page.keyboard.press('Space')
@@ -93,7 +95,8 @@ test.describe('keyboard shortcuts', () => {
 
   test('? and the toolbar button open the shortcut list; Escape closes it', async ({ page }) => {
     await waitForEditorShell(page)
-    await page.locator('#tabBar').click({ position: { x: 600, y: 10 } })
+    // An empty spot of the toolbar: focus leaves the tab view without landing on a field.
+    await page.locator('#statusBars').click({ position: { x: 1000, y: 44 } })
 
     await page.keyboard.press('Shift+Slash')
     const sheet = page.locator('#shortcutsHelp')
@@ -122,7 +125,7 @@ test.describe('first-run hint', () => {
     await waitForEditorShell(page, { demo: 'arrangement' })
     const hint = page.locator('#firstRunHint')
     await expect(hint).toBeVisible()
-    await expect(hint.locator('li')).toHaveCount(3)
+    await expect(hint.locator('li')).toHaveCount(4)
 
     // Still there after a reload, until the user dismisses it.
     await page.reload()

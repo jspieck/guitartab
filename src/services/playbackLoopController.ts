@@ -1,5 +1,5 @@
 /**
- * Pure loop-interval and block-sequence logic extracted from overlay/playback code.
+ * Pure loop-interval logic (the bar order itself is `playback/playOrder.ts`).
  */
 
 export interface LoopOverlayPosition {
@@ -18,12 +18,6 @@ export interface PlaybackLoopInterval {
   endBlock: number
   endBeat: number
   endRatio: number
-}
-
-export interface MeasureMetaSlice {
-  repeatClose?: number
-  repeatAlternative?: number | null
-  repeatOpen?: boolean
 }
 
 export function buildLoopIntervalFromOverlays(
@@ -60,64 +54,6 @@ export function buildLoopIntervalFromOverlays(
     endBeat: end.beatId,
     endRatio: end.abstractTimePos,
   }
-}
-
-export function resolveNextBlockAfterCurrent(
-  currentBlock: number,
-  playingIteration: number,
-  loopInterval: PlaybackLoopInterval | null,
-  measureMeta: MeasureMetaSlice[],
-  jumpBackPositions: Record<number, number | null | undefined>,
-): { nextBlock: number; playingIteration: number } {
-  let nextBlock: number
-  let newPlayingIteration = playingIteration
-
-  if (loopInterval != null && currentBlock === loopInterval.endBlock) {
-    nextBlock = loopInterval.startBlock
-  } else if (
-    measureMeta[currentBlock]?.repeatClose != null &&
-    measureMeta[currentBlock].repeatClose! >= playingIteration
-  ) {
-    nextBlock = jumpBackPositions[currentBlock] ?? 0
-    newPlayingIteration = playingIteration + 1
-  } else {
-    nextBlock = currentBlock + 1
-  }
-
-  nextBlock = applyRepeatAlternativeSkip(nextBlock, newPlayingIteration, measureMeta)
-
-  if (measureMeta[nextBlock]?.repeatOpen && currentBlock < nextBlock) {
-    newPlayingIteration = 1
-  }
-
-  return { nextBlock, playingIteration: newPlayingIteration }
-}
-
-export function applyRepeatAlternativeSkip(
-  nextBlock: number,
-  playingIteration: number,
-  measureMeta: MeasureMetaSlice[],
-): number {
-  if (measureMeta[nextBlock]?.repeatAlternative == null) {
-    return nextBlock
-  }
-
-  const bitP = (measureMeta[nextBlock].repeatAlternative! >> (playingIteration - 1)) & 1
-  if (bitP !== 0) {
-    return nextBlock
-  }
-
-  for (let j = 1; j < 50; j += 1) {
-    if (measureMeta[nextBlock + j] == null) {
-      break
-    }
-    const alternative = measureMeta[nextBlock + j].repeatAlternative
-    if (alternative != null && ((alternative >> (playingIteration - 1)) & 1) === 1) {
-      return nextBlock + j
-    }
-  }
-
-  return nextBlock
 }
 
 export function getEffectiveBlockLengthForLoop(

@@ -30,7 +30,7 @@ async function enterFret(page: Page, fret: string): Promise<void> {
 test.describe('destructive actions', () => {
   test('removing a bar offers Undo, which brings the bar back', async ({ page }) => {
     await waitForEditorShell(page)
-    await page.getByText('Measure', { exact: true }).first().click()
+    await page.locator('#barButton4').click()
     await page.locator('#addMeasure').click()
     const { bars } = await songState(page)
 
@@ -48,7 +48,7 @@ test.describe('destructive actions', () => {
 
   test('the Undo button does nothing once another edit came after the removal', async ({ page }) => {
     await waitForEditorShell(page)
-    await page.getByText('Measure', { exact: true }).first().click()
+    await page.locator('#barButton4').click()
     await page.locator('#addMeasure').click()
     await page.locator('#addMeasure').click()
     const { bars } = await songState(page)

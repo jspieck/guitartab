@@ -21,6 +21,8 @@ export function processDynamicSelect(
   id: string,
   isRevert: boolean | null,
 ): void {
+  // A rest, or a range without notes: dynamics belong to notes, so there is nothing to mark.
+  if (arr.notes.length === 0) return
   const dynamic = getDynamicValue(id)
   const effectGroup = findMenuEffectGroup(id, MENU_EFFECT_GROUPS)
 

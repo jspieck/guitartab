@@ -14,7 +14,7 @@ export function resolveCurrentPlaybackPos(
 
   if (jumpToNewPos) {
     return {
-      currentPos: renderBridge.getPositionInRow(trackId, voiceId, blockId, beatId),
+      currentPos: renderBridge.getPlayheadXInRow(trackId, voiceId, blockId, beatId),
       jumpToNewPos: false,
     }
   }
@@ -23,7 +23,7 @@ export function resolveCurrentPlaybackPos(
     return {
       currentPos: isFinite(lastNextPos)
         ? lastNextPos
-        : renderBridge.getPositionInRow(trackId, voiceId, blockId, beatId),
+        : renderBridge.getPlayheadXInRow(trackId, voiceId, blockId, beatId),
       jumpToNewPos,
     }
   }
@@ -53,11 +53,12 @@ export function resolveNextPlaybackXPos(transition: PlaybackBeatTransition): {
 
   let nextXPos = 0
   if (next.blockId < Song.measures[trackId].length) {
-    nextXPos = renderBridge.getPositionInRow(trackId, voiceId, next.blockId, next.beatId)
+    nextXPos = renderBridge.getPlayheadXInRow(trackId, voiceId, next.blockId, next.beatId)
   }
 
   if (shouldJumpPlaybackWithinRow(transition)) {
-    nextXPos = renderBridge.getPositionInRow(trackId, voiceId, current.blockId, current.beatId)
+    // one beat width on from the current digits: the glide keeps its speed up to the cut
+    nextXPos = renderBridge.getPlayheadXInRow(trackId, voiceId, current.blockId, current.beatId)
     nextXPos +=
       tabLayout.measureOffset[trackId][current.blockId][voiceId] *
       Duration.getDurationWidth(

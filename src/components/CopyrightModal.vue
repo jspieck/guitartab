@@ -1,13 +1,14 @@
 <template>
-  <BaseModal :modal-id="MODALS.COPYRIGHT.id">
+  <BaseModal :modal-id="DIALOGS.COPYRIGHT.id">
     <template #title>Copyright</template>
     <div class="modal-stack copyright-modal">
       <p class="modal-body-text">
-        Copyright 201823 Jan Spieck. The samples used for the instruments come from different sources.
+        Copyright 2018–{{ currentYear }} Jan Spieck. The samples used for the instruments come from different sources.
         If the usage of any sample is against the will of the respective owner, the sample will be removed immediately.
         No copyright infringement is intended.
       </p>
-      <div class="modal-surface-block copyright-table-wrap">
+      <!-- Scrolls on its own, so keyboard users must be able to focus it. -->
+      <div class="modal-surface-block copyright-table-wrap" tabindex="0" role="region" aria-label="Sample sources">
         <table id="sampleSourceList" class="copyright-table">
           <thead>
             <tr>
@@ -107,7 +108,10 @@
 
 <script setup lang="ts">
 import BaseModal from "./BaseModal.vue";
-import { MODALS } from "../services/dialogs/modalTypes";
+import { DIALOGS } from "../services/dialogs/dialogs"
+
+// Read when the dialog mounts, so the range always ends at the current year.
+const currentYear = new Date().getFullYear();
 </script>
 
 <style scoped>

@@ -1,50 +1,33 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   requestBlockRender,
   requestBlocksRender,
   requestChordDiagramsRender,
   requestTrackDeleteRender,
 } from '../src/services/editor/renderCommands'
-import { typedEventBus } from '../src/utils/typedEventBus'
-
-afterEach(() => {
-  typedEventBus.clearAll()
-})
+import { barVersion, renderVersionState } from '../src/stores/renderVersionState'
 
 describe('renderCommands', () => {
-  it('emits typed block render requests', () => {
-    const handler = vi.fn()
-    typedEventBus.on('render.block', handler)
-
+  it('bump the version of the bars they name and of the song', () => {
+    const song = renderVersionState.song
     requestBlockRender(1, 2, 0)
-
-    expect(handler).toHaveBeenCalledWith({ trackId: 1, blockId: 2, voiceId: 0 })
-  })
-
-  it('emits typed multi-block render requests', () => {
-    const handler = vi.fn()
-    typedEventBus.on('render.blocks', handler)
-
+    expect(barVersion(1, 2)).toBe(1)
     requestBlocksRender(1, [2, 3], 0)
-
-    expect(handler).toHaveBeenCalledWith({ trackId: 1, blockIds: [2, 3], voiceId: 0 })
+    expect([barVersion(1, 2), barVersion(1, 3), barVersion(0, 2)]).toEqual([2, 1, 0])
+    expect(renderVersionState.song).toBe(song + 2)
   })
 
-  it('emits chord diagram refresh requests', () => {
-    const handler = vi.fn()
-    typedEventBus.on('render.chordDiagrams', handler)
-
+  it('bump the chord version for chord library changes', () => {
+    const chords = renderVersionState.chords
+    const song = renderVersionState.song
     requestChordDiagramsRender()
-
-    expect(handler).toHaveBeenCalledWith(undefined)
+    expect(renderVersionState.chords).toBe(chords + 1)
+    expect(renderVersionState.song).toBe(song + 1)
   })
 
-  it('emits track delete render requests', () => {
-    const handler = vi.fn()
-    typedEventBus.on('render.deleteTrack', handler)
-
+  it('redraw everything for a deleted track', () => {
+    const song = renderVersionState.song
     requestTrackDeleteRender(2)
-
-    expect(handler).toHaveBeenCalledWith({ trackId: 2 })
+    expect(renderVersionState.song).toBe(song + 1)
   })
 })

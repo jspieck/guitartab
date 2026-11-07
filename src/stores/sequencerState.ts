@@ -2,8 +2,8 @@ import { reactive } from 'vue'
 
 /** State of the sequencer panel (the bar overview under the tab). */
 export const sequencerState = reactive({
-  /** Mixer view (mute, solo, faders) instead of the pan/effect knobs. */
-  editMode: false,
+  /** Mixer view (mute, solo, faders), the default; off shows the pan/effect knobs. */
+  editMode: true,
   /** The bar the playback indicator is on. */
   indicator: { trackId: 0, blockId: 0 },
   /** A bar range dragged in the sequencer; -1 when there is none. */

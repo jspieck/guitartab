@@ -54,6 +54,26 @@ describe('GPIF import', () => {
     })
   })
 
+  it('turns the amp on for distorted GP7 sounds and RSE effect chains, not for clean ones', () => {
+    const gp7 = (path: string, effects = '') =>
+      parseGpif(
+        score({
+          track: `<Sounds><Sound><Name><![CDATA[Sound]]></Name><Path><![CDATA[${path}]]></Path>
+          <MIDI><Program>27</Program></MIDI><RSE><EffectChain>${effects}</EffectChain></RSE></Sound></Sounds>`,
+        }),
+        'gp',
+      ).tracks[0].amp
+    expect(gp7('Stringed/Electric Guitars/Distortion Guitar')).toMatchObject({
+      enabled: true,
+      cabinet: 'large',
+    })
+    expect(gp7('Stringed/Electric Guitars/Clean Guitar', '<Effect id="A05_Crunch"/>')).toMatchObject({
+      enabled: true,
+      cabinet: 'medium',
+    })
+    expect(gp7('Stringed/Electric Guitars/Clean Guitar')).toBeUndefined()
+  })
+
   it('splits GP6 grand-staff instruments into two tracks', () => {
     const xml = score({ track: '<Instrument ref="a-piano-gs"/>' }).replace(
       '<Bars>0</Bars>',

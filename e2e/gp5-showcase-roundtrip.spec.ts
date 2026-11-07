@@ -21,8 +21,8 @@ test('every effect survives a GP5 export and re-import', async ({ page }) => {
   const before = await page.evaluate(songFingerprintSource())
   await page.evaluate(async () => {
     const { currentSongAsGp5 } = await import('/src/services/gp5Export.ts')
-    const { importSongBytes } = await import('/src/services/songImport.ts')
-    importSongBytes('showcase.gp5', currentSongAsGp5())
+    const { importSongFile } = await import('/src/services/songImport.ts')
+    await importSongFile('showcase.gp5', currentSongAsGp5(), { quiet: true })
   })
   const after = await page.evaluate(songFingerprintSource())
   expect(diff(before, after)).toEqual([])

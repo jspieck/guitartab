@@ -108,7 +108,7 @@ describe('deriveMenuSelectionState', () => {
     })
 
     expect(state.disabledButtonIds).toEqual(
-      expect.arrayContaining(['pullDown', 'slide', 'bend', 'tied', 'tuplet']),
+      expect.arrayContaining(['pullDown', 'slide', 'bend', 'tied', 'tuplet', 'pDynamic', 'fffDynamic']),
     )
   })
 })

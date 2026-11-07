@@ -40,7 +40,7 @@ async function compactZoom(page: Page): Promise<number> {
 test.describe('phone layout', () => {
   test('shows the tab full width with one transport bar instead of the desktop chrome', async ({ page }) => {
     await openPhoneLayout(page)
-    for (const desktopOnly of ['#completeBar', '#sideBarButtons', '#sequencerBar', '#footerBar']) {
+    for (const desktopOnly of ['#completeBar', '#sequencerBar', '#footerBar']) {
       await expect(page.locator(desktopOnly)).toBeHidden()
     }
     const width = page.viewportSize()!.width
@@ -88,7 +88,7 @@ test.describe('phone layout', () => {
     await expect(pad.locator('[data-fret="7"]')).toHaveClass(/is-current/)
 
     // High frets are on the second page.
-    await pad.getByRole('button', { name: 'Frets 12 to 24' }).tap()
+    await pad.getByRole('button', { name: 'Show frets 12–24' }).tap()
     await pad.locator('[data-fret="15"]').tap()
     await expect.poll(() => firstBeatFrets(page)).toEqual([0, '-', '-', '-', '-', 15])
 
@@ -104,6 +104,38 @@ test.describe('phone layout', () => {
 
     await pad.getByRole('button', { name: 'Done' }).tap()
     await expect(pad).toHaveCount(0)
+  })
+
+  test('enters notes on the fretboard and remembers the choice', async ({ page }) => {
+    await openPhoneLayout(page)
+    await page.locator('#compactEditToggle').tap()
+    const pad = page.locator('#touchNotePad')
+    await pad.getByRole('button', { name: 'Fretboard', exact: true }).tap()
+    const board = page.locator('#touchFretboard')
+    await expect(board).toBeVisible()
+    await expect(pad.locator('.note-pad__frets')).toHaveCount(0)
+
+    // The top row is the highest string; a tap moves the cursor there and places the fret.
+    await board.getByRole('button', { name: 'String 1, fret 5' }).tap()
+    await expect.poll(() => firstBeatFrets(page)).toEqual([0, '-', '-', '-', '-', 5])
+    await expect(pad.locator('.note-pad__position')).toHaveText('Bar 1 · Beat 1 · String 1')
+    await expect(board.locator('[data-string="5"] .fretboard__mark.is-current')).toHaveText('5')
+
+    // High frets are off screen to the right: the board scrolls sideways.
+    const high = board.getByRole('button', { name: 'String 3, fret 17' })
+    await high.tap()
+    await expect.poll(() => firstBeatFrets(page)).toEqual([0, '-', '-', 17, '-', 5])
+    expect(await board.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+
+    await pad.getByRole('button', { name: 'Undo' }).tap()
+    await expect.poll(() => firstBeatFrets(page)).toEqual([0, '-', '-', '-', '-', 5])
+
+    // The choice is a setting: the pad opens on the fretboard next time.
+    await pad.getByRole('button', { name: 'Done' }).tap()
+    await page.locator('#compactEditToggle').tap()
+    await expect(page.locator('#touchFretboard')).toBeVisible()
+    const stored = await page.evaluate(() => localStorage.getItem('guitartab_touchFretboard'))
+    expect(stored).toBe('true')
   })
 
   test('tapping a string in the tab moves the pad to it', async ({ page }) => {

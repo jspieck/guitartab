@@ -1,4 +1,4 @@
-import Song, { type Interval } from '../../stores/song'
+﻿import Song, { type Interval } from '../../stores/song'
 import { getPlaybackRate, practiceState, setPlaybackRate } from '../../stores/practiceState'
 import Settings, { EPSILON } from '../../stores/settingsState'
 import { clearPlaybackNotes } from '../../stores/soundingNotesState'
@@ -6,12 +6,13 @@ import Duration from '../../utils/duration'
 import { audioGraph } from '../audio/audioGraph'
 import { drawMeters } from '../audio/meters'
 import { metronome } from '../audio/metronome'
+import { queueBeatPulse, resetBeatClock } from '../../stores/beatClockState'
 import { samplePlayer } from '../audio/samplePlayer'
 import {
   publishPlaybackPosition,
   publishPlaybackUiStarted,
   publishPlaybackUiStopped,
-} from '../editor/playbackEngineBridge'
+} from '../../stores/playbackTransportState'
 import * as playbackController from '../editor/playbackController'
 import { currentLoopInterval } from '../editor/rangeSelection'
 import liveInput from '../midi/liveInput'
@@ -29,7 +30,6 @@ import {
   beatsFromPosition,
   firstBeatOfLoop,
   nextBeatFrom,
-  repeatJumpBackPositions,
   ticksBefore,
   type NextBeat,
 } from './songCursor'
@@ -82,8 +82,6 @@ class PlaybackScheduler {
 
   private lastAudioTime = 0
 
-  private jumpBackPositions: number[] = []
-
   /** last metronome click scheduled, as `sequenceIndex * 64 + beat` */
   private lastClickKey = -1
 
@@ -112,7 +110,8 @@ class PlaybackScheduler {
     drawMeters()
 
     this.nextBeats = []
-    this.sequence.reset()
+    resetBeatClock()
+    this.sequence.reset(Song.measureMeta)
     this.lastClickKey = -1
     this.playStartAudioTime = audioGraph.getCurrentTime() + START_LEAD_SECONDS
     if (practiceState.countIn) {
@@ -120,11 +119,10 @@ class PlaybackScheduler {
     }
     this.lastAudioTime = this.playStartAudioTime
     this.nextRecordingFlush = 0
-    this.jumpBackPositions = repeatJumpBackPositions(Song.measureMeta)
 
     this.barIndex = 0
     this.currentBar = startPosition.block
-    this.sequence.set(0, this.currentBar, 1)
+    this.sequence.set(0, this.currentBar)
     this.precompute(0)
     this.startVoicesAt(startPosition.block, startPosition.positionInBlock)
 
@@ -164,7 +162,7 @@ class PlaybackScheduler {
     this.songTime = 0
     this.barIndex += 1
     this.currentBar = blockId
-    this.sequence.set(this.barIndex, blockId, 1)
+    this.sequence.set(this.barIndex, blockId)
     if (Settings.songPlaying) {
       this.precompute(this.barIndex)
       playhead.jumpTo(Song.currentTrackId, blockId, Song.currentVoiceId, beatId)
@@ -197,13 +195,7 @@ class PlaybackScheduler {
   }
 
   private precompute(index: number): void {
-    this.sequence.precompute(
-      index,
-      SEQUENCE_AHEAD,
-      currentLoopInterval(),
-      Song.measureMeta,
-      this.jumpBackPositions,
-    )
+    this.sequence.precompute(index, SEQUENCE_AHEAD, currentLoopInterval())
   }
 
   /** Sets the clock to `ticks` into a bar and every voice to its first beat from there. */
@@ -239,8 +231,10 @@ class PlaybackScheduler {
     if (this.barIndex + 5 > this.sequence.filledUntil) this.precompute(this.barIndex)
     this.scheduleDueBeats(currentTime)
 
-    // metronome (always while recording MIDI, otherwise when enabled)
-    if (practiceState.metronome || liveInput.isRecording) this.scheduleMetronomeClicks(currentTime)
+    // metronome (always while recording MIDI, otherwise when enabled); the beat counter needs the beats too
+    if (practiceState.metronome || liveInput.isRecording || practiceState.bigBeat) {
+      this.scheduleMetronomeClicks(currentTime)
+    }
     if (liveInput.isRecording && this.nextRecordingFlush < this.songTime) {
       this.nextRecordingFlush += RECORDING_FLUSH
       liveInput.writeRecordedNotes()
@@ -350,7 +344,8 @@ class PlaybackScheduler {
         if (sequenceIndex + 5 > this.sequence.filledUntil) this.precompute(sequenceIndex)
       }
     }
-    notePlayback.playBeat(trackId, blockId, voiceId, beatId, duration, start, beat)
+    const following = followingBeat !== -1 ? { blockId: followingBlock, beatId: followingBeat } : null
+    notePlayback.playBeat(trackId, blockId, voiceId, beatId, duration, start, beat, following)
 
     if (Song.currentTrackId === trackId && Song.currentVoiceId === voiceId) {
       playhead.queueBeat({
@@ -398,7 +393,11 @@ class PlaybackScheduler {
         if (tickTime >= horizon) return
         this.lastClickKey = key
         if (tickTime >= this.songTime - EPSILON) {
-          metronome.playClick(currentTime + (tickTime - this.songTime) * spw(bpm), beat === 0)
+          const time = currentTime + (tickTime - this.songTime) * spw(bpm)
+          if (practiceState.metronome || liveInput.isRecording) metronome.playClick(time, beat === 0)
+          if (practiceState.bigBeat) {
+            queueBeatPulse({ time, beat: beat + 1, beats: meta.numerator, blockId, countIn: false })
+          }
         }
       }
       barZero += length
@@ -433,7 +432,10 @@ class PlaybackScheduler {
   private scheduleCountIn(startTime: number): number {
     const { numerator, denominator, bpm } = this.countInBar()
     const { clicks, duration } = computeCountIn(numerator, denominator, bpm, getPlaybackRate(), startTime)
-    clicks.forEach((click) => metronome.playClick(click.time, click.accent))
+    clicks.forEach((click, beat) => {
+      metronome.playClick(click.time, click.accent)
+      queueBeatPulse({ time: click.time, beat: beat + 1, beats: numerator, blockId: -1, countIn: true })
+    })
     return duration
   }
 }

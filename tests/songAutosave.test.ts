@@ -24,10 +24,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 // Vitest runs in node: the module only needs window as an event target.
 const globalWithWindow = globalThis as { window?: EventTarget }
 globalWithWindow.window ??= new EventTarget()

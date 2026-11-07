@@ -1,5 +1,5 @@
 import type { TabBeat } from '../types/tab'
-import { beatHasNotes, getBeamCount, getDurationBeats } from './durationUtils'
+import { beatShowsRhythm, getBeamCount, getDurationBeats } from './durationUtils'
 
 export interface BeamGroupBeat {
   beatIndex: number
@@ -10,7 +10,10 @@ const QUARTER_NOTE_BEATS = 1
 const FLOAT_EPSILON = 0.0001
 
 function isTupletBeat(beat: TabBeat | undefined): boolean {
-  return Boolean(beat && beat.tuplet != null && beat.tupletId != null && beat.tupletId >= 0)
+  // (songs imported before the fix carry `tuplet: 0` on plain beats)
+  return Boolean(
+    beat && beat.tuplet != null && beat.tuplet > 1 && beat.tupletId != null && beat.tupletId >= 0,
+  )
 }
 
 function finalizeGroup(groups: BeamGroupBeat[][], group: BeamGroupBeat[]): BeamGroupBeat[] {
@@ -36,7 +39,7 @@ export function getBeamedBeatGroups(beats: TabBeat[]): BeamGroupBeat[][] {
     }
 
     const beamCount = getBeamCount(beat.duration)
-    const hasNotes = beatHasNotes(beat)
+    const hasNotes = beatShowsRhythm(beat)
 
     if (beamCount === 0 || !hasNotes) {
       currentGroup = finalizeGroup(groups, currentGroup)

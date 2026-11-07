@@ -1,6 +1,8 @@
 import { tabLayout } from '../../stores/tabLayoutState'
 import { beatXInBar } from './beatGrouping'
 import { getBeatPositionInRow } from '../../utils/beatPositionInRow'
+import { beatNoteOffset, getMeasureBeatWidth } from '../../utils/measureBeatLayout'
+import Song from '../../stores/song'
 import { registerPlaybackBarElement } from '../../stores/playbackBarState'
 import {
   clearTrackRenderLayout,
@@ -14,6 +16,9 @@ import {
   type RenderTrackLayoutState,
 } from '../../stores/tabRenderLayout'
 import { getAvailableRowWidth } from '../../utils/tabSheetConstants'
+
+/** The playhead is a 2 px wide rect (GuitarTabView). */
+const PLAYHEAD_WIDTH = 2
 
 function ensureTabLayoutArrays(trackId: number, voiceId: number) {
   if (!tabLayout.blockToRow[trackId]) tabLayout.blockToRow[trackId] = []
@@ -115,6 +120,17 @@ const renderBridge = {
 
     // Fallback: beatXInBar is bar-local; add measure origin for row X.
     return beatXInBar(trackId, blockId, voiceId, beatId) + this.getBlockX(trackId, voiceId, blockId)
+  },
+
+  /**
+   * Where the playhead stands while a beat starts sounding: on its fret digits, which TabNote
+   * draws near the start of the beat's column (`beatNoteOffset`).
+   */
+  getPlayheadXInRow(trackId: number, voiceId: number, blockId: number, beatId: number): number {
+    const beats = Song.measures[trackId]?.[blockId]?.[voiceId] ?? []
+    const width = beats[beatId] != null ? getMeasureBeatWidth(trackId, voiceId, blockId, beatId, beats) : 0
+    const offset = beatNoteOffset(beats[beatId], width)
+    return this.getPositionInRow(trackId, voiceId, blockId, beatId) + offset - PLAYHEAD_WIDTH / 2
   },
 
   setPlaybackBarObject(object: SVGGElement | null) {

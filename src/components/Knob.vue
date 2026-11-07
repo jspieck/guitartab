@@ -1,6 +1,6 @@
 <template>
     <div class="knob-root">
-        <svg :id="id" :data-id="dataId" class="knobRing" @mousedown="knobRotateFunc"
+        <svg :id="id" :data-id="dataId" class="knobRing" @pointerdown="knobRotateFunc"
             :data-angle="startAngle">
             <circle :cx="cx" :cy="cy" :r="radiusInner" stroke="transparent" stroke-width="1" style="fill: var(--gray-700)"></circle>
             <rect :x="cx - 1" :y="pointerY" :width="pointerWidth" :height="pointerHeight" stroke="none"
@@ -34,9 +34,11 @@ const pointerWidth = 2;
 const pointerHeight = 3;
 
 let functionToExecuteOnRotate: (angle: number, dataId: string, targetId: string) => void = () => { };
-let moveFuncTmp: (e: MouseEvent) => void = () => { };
-let mouseUpFuncTmp: (e: MouseEvent) => void = () => { };
-let functionParameters: MouseEvent | null = null;
+let moveFuncTmp: (e: PointerEvent) => void = () => { };
+let mouseUpFuncTmp: (e: PointerEvent) => void = () => { };
+let functionParameters: PointerEvent | null = null;
+/** The knob's svg (the pointer may have gone down on one of its circles). */
+let knobElement: HTMLElement | null = null;
 let previousAngle = 0;
 
 const startAngle = computed(() =>
@@ -67,13 +69,14 @@ const strokeDashOffset = computed(() => {
 
 function removeEventListeners() {
     document.body.classList.remove('disableMouseEffects');
-    document.removeEventListener('mousemove', moveFuncTmp);
-    document.removeEventListener('mouseup', mouseUpFuncTmp);
+    document.removeEventListener('pointermove', moveFuncTmp);
+    document.removeEventListener('pointerup', mouseUpFuncTmp);
+    document.removeEventListener('pointercancel', mouseUpFuncTmp);
 }
 
-function knobRotationHandler(e: MouseEvent) {
-    if (functionParameters != null) {
-        const domTarget: HTMLElement = functionParameters.target as HTMLElement;
+function knobRotationHandler(e: PointerEvent) {
+    if (functionParameters != null && knobElement != null) {
+        const domTarget: HTMLElement = knobElement;
         const dataId = domTarget.getAttribute('data-id')!;
         const initYPos = functionParameters.pageY;
         const mouseYnew = e.pageY;
@@ -94,13 +97,16 @@ function knobRotationHandler(e: MouseEvent) {
 
 function knobRotateFuncInner(
     functionToExecute: (angle: number, dataId: string, targetId: string) => void,
-    functionEvent: MouseEvent,
+    functionEvent: PointerEvent,
 ) {
+    // Pointer events: a finger turns the knob like the mouse (touch-action: none below).
+    functionEvent.preventDefault();
     document.body.classList.add('disableMouseEffects');
     // while mousedown if mousemoves then compare the coordinates and rotate the knob accordingly
     functionToExecuteOnRotate = functionToExecute;
     functionParameters = functionEvent;
-    const target = functionParameters.target as HTMLElement;
+    knobElement = functionEvent.currentTarget as HTMLElement;
+    const target = knobElement;
     const previousAngleStr = target.getAttribute('data-angle');
     if (previousAngleStr == null) {
         previousAngle = 0;
@@ -111,9 +117,17 @@ function knobRotateFuncInner(
     moveFuncTmp = knobRotationHandler;
     mouseUpFuncTmp = removeEventListeners;
 
-    document.addEventListener('mousemove', moveFuncTmp);
-    document.addEventListener('mouseup', mouseUpFuncTmp);
+    document.addEventListener('pointermove', moveFuncTmp);
+    document.addEventListener('pointerup', mouseUpFuncTmp);
+    document.addEventListener('pointercancel', mouseUpFuncTmp);
 }
 
-const knobRotateFunc = (event: MouseEvent) => knobRotateFuncInner(props.rotateFunc, event);
+const knobRotateFunc = (event: PointerEvent) => knobRotateFuncInner(props.rotateFunc, event);
 </script>
+
+<style scoped>
+/* A finger drag turns the knob instead of scrolling the page. */
+.knobRing {
+    touch-action: none;
+}
+</style>

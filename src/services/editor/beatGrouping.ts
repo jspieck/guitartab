@@ -1,3 +1,4 @@
+import { toRaw } from 'vue'
 import { tabLayout } from '../../stores/tabLayoutState'
 import Song, { type Beat } from '../../stores/song'
 import { getBeatRenderPosition } from '../../stores/tabRenderLayout'
@@ -12,7 +13,8 @@ const QUARTER = Duration.getDurationOfType('q')
  * `Song.measureMoveHelper`, which the layout engine reads.
  */
 export function groupMeasureBeats(trackId: number, blockId: number, voiceId: number): Beat[][] {
-  const beats = Song.measures[trackId][blockId][voiceId]
+  // runs inside the layout's computed: a bulk read, untracked (the layout re-runs on every edit)
+  const beats = toRaw(Song.measures[trackId][blockId][voiceId])
   const walk = new BeatWalk(
     beats,
     (((Song.measureMoveHelper[trackId] ??= [])[blockId] ??= [])[voiceId] ??= []),

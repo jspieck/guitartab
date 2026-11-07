@@ -6,7 +6,7 @@ test('GP5 export reads back identically, including tempo, strokes, text and chor
   const result = await page.evaluate(async () => {
     const { default: Song } = await import('/src/stores/song.ts')
     const { currentSongAsGp5 } = await import('/src/services/gp5Export.ts')
-    const { importSongBytes } = await import('/src/services/songImport.ts')
+    const { importSongFile } = await import('/src/services/songImport.ts')
 
     const strummed = Song.measures[0][0][0][0]
     strummed.effects.stroke = { strokeType: 'down', strokeLength: 16 }
@@ -77,7 +77,7 @@ test('GP5 export reads back identically, including tempo, strokes, text and chor
         ]),
       )
     const before = JSON.stringify(fingerprint())
-    importSongBytes('roundtrip.gp5', currentSongAsGp5())
+    await importSongFile('roundtrip.gp5', currentSongAsGp5(), { quiet: true })
     const after = JSON.stringify(fingerprint())
 
     const effects = effectsOf()

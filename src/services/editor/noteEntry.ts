@@ -3,12 +3,17 @@ import Song from '../../stores/song'
 import { selectionState } from '../../stores/selectionState'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { combineFretDigit, maxFretFor, type FretEntry } from '../../utils/keyboardShortcuts'
+import { isRestDuration } from '../../utils/durationUtils'
 import { notifySongDataChanged } from '../appEvents'
 import { audioGraph } from '../audio/audioGraph'
 import { samplePlayer } from '../audio/samplePlayer'
-import { editTransaction } from './editCommands'
+import { editTransaction, recordBarEdit } from './editCommands'
 import { deleteNote, setFret } from './noteCommands'
 import { currentLoopInterval } from './rangeSelection'
+import { requestBlockRender, requestBlocksRender } from './renderCommands'
+import { toggleDrumAtCursor } from './drumTracks'
+import { isDrumTrack } from '../drumMixer'
+import { GM_DRUMS } from '../../utils/drumMap'
 
 /**
  * Note entry at the edit cursor: typing frets, placing a note (it sounds at once), deleting
@@ -62,6 +67,19 @@ export function placeNote(
   )
 }
 
+/**
+ * A tap on the fretboard: moves the cursor to that string of its beat and places the fret
+ * there. False without a note selected or off the track's strings.
+ */
+export function placeNoteOnString(string: number, fret: number): boolean {
+  if (!hasExplicitNoteSelection() || Number.isNaN(fret) || fret < 0) return false
+  const { trackId, blockId, voiceId, beatId } = selectionState.cursor
+  if (string < 0 || string >= Song.tracks[trackId].numStrings) return false
+  typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId, string })
+  placeNote(trackId, blockId, voiceId, beatId, string, fret)
+  return true
+}
+
 /** A typed digit: sets the fret at the cursor. False without a note selected. */
 export function enterFretDigit(digit: number): boolean {
   if (!hasExplicitNoteSelection()) return false
@@ -71,6 +89,11 @@ export function enterFretDigit(digit: number): boolean {
   const maxFret = maxFretFor(Song.playBackInstrument[trackId]?.instrument)
   const fret = combineFretDigit(lastFretEntry, digit, position, now, maxFret)
   lastFretEntry = { position, fret, at: now }
+  if (isDrumTrack(trackId)) {
+    // a drum number goes on its drum's line (one-digit numbers are no drums: wait for the second)
+    if (GM_DRUMS.includes(fret)) fastdom.mutate(() => toggleDrumAtCursor(fret, true))
+    return true
+  }
   fastdom.mutate(() => placeNote(trackId, blockId, voiceId, beatId, string, fret))
   return true
 }
@@ -82,8 +105,7 @@ export function deleteSelectedNotes(): void {
   if (loop == null || loop.trackId !== Song.currentTrackId) {
     if (Song.findBeat({ trackId, blockId, voiceId, beatId }) == null) return
     deleteNote(trackId, blockId, voiceId, beatId, string)
-    typedEventBus.emit('render.block', { trackId, blockId, voiceId })
-    typedEventBus.emit('render.durations', { trackId, blockId, voiceId })
+    requestBlockRender(trackId, blockId, voiceId)
   } else {
     const blockIds: number[] = []
     editTransaction('Delete notes', () => {
@@ -98,10 +120,9 @@ export function deleteSelectedNotes(): void {
           })
         }
         blockIds.push(block)
-        typedEventBus.emit('render.durations', { trackId, blockId: block, voiceId })
       }
     })
-    typedEventBus.emit('render.blocks', { trackId, blockIds, voiceId })
+    requestBlocksRender(trackId, blockIds, voiceId)
   }
   notifySongDataChanged()
 }
@@ -133,4 +154,17 @@ export function moveSelection(direction: 'left' | 'right' | 'up' | 'down'): void
     string += 1
   }
   typedEventBus.emit('navigation.setClickedPos', { trackId, blockId, voiceId, beatId, string })
+}
+
+/** Turns the cursor's beat into a rest of the same length (tied notes after it go too, as with Delete). */
+export function makeRestAtCursor(): boolean {
+  const { trackId, blockId, voiceId, beatId } = selectionState.cursor
+  const beat = Song.findBeat({ trackId, blockId, voiceId, beatId })
+  if (beat == null || isRestDuration(beat.duration)) return false
+  recordBarEdit('Rest', { trackId, blockIds: [blockId] }, () => {
+    beat.notes.forEach((note, string) => {
+      if (note != null) deleteNote(trackId, blockId, voiceId, beatId, string)
+    })
+  })
+  return true
 }

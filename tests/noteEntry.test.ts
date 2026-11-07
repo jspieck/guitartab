@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  */
 
 const played = vi.hoisted(() => [] as unknown[][])
-const modalOpen = vi.hoisted(() => ({ value: false }))
 
 vi.mock('fastdom', () => ({
   default: { mutate: (fn: () => void) => fn(), measure: (fn: () => void) => fn() },
@@ -38,10 +37,6 @@ vi.mock('../src/services/playback', () => {
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () => ({
-  modalManager: { isAnyModalOpen: () => modalOpen.value, getHandler: vi.fn(), isModalOpen: () => false },
-}))
-
 type SongType = (typeof import('../src/stores/song'))['default']
 let Song: SongType
 let selection: typeof import('../src/stores/selectionState')
@@ -54,6 +49,7 @@ let api: {
   placeNote: (blockId: number, beatId: number, string: number, fret: number) => void
   deleteSelectedNotes: () => void
   moveSelection: (direction: 'left' | 'right' | 'up' | 'down') => void
+  placeNoteOnString: (string: number, fret: number) => boolean
   hasExplicitNoteSelection: () => boolean
   keyDown: (event: KeyboardEvent) => void
 }
@@ -75,6 +71,7 @@ beforeEach(async () => {
     placeNote: (blockId, beatId, string, fret) => entry.placeNote(0, blockId, 0, beatId, string, fret),
     deleteSelectedNotes: entry.deleteSelectedNotes,
     moveSelection: entry.moveSelection,
+    placeNoteOnString: entry.placeNoteOnString,
     hasExplicitNoteSelection: entry.hasExplicitNoteSelection,
     keyDown: handleKeyDown,
   }
@@ -83,7 +80,6 @@ beforeEach(async () => {
   range.clearRange()
   played.length = 0
   moves.length = 0
-  modalOpen.value = false
   playback.togglePlayback.mockClear()
   bus.off?.('navigation.setClickedPos')
   bus.on('navigation.setClickedPos', (pos) => {
@@ -161,6 +157,22 @@ describe('note entry', () => {
     }).toMatchSnapshot()
   })
 
+  it('places a fretboard tap on that string of the cursor beat and moves the cursor there', () => {
+    select(0, 1, 0)
+    selection.selectionState.hasExplicitSelection = false
+    expect(api.placeNoteOnString(3, 5)).toBe(false)
+
+    select(0, 1, 0)
+    expect(api.placeNoteOnString(4, 7)).toBe(true)
+    expect(api.placeNoteOnString(9, 7)).toBe(false)
+    expect(api.placeNoteOnString(2, -1)).toBe(false)
+    expect(Song.measures[0][0][0][1].notes[4]?.fret).toBe(7)
+    expect(selection.selectionState.cursor).toMatchObject({ blockId: 0, beatId: 1, string: 4 })
+    expect(moves).toEqual(['0:1:4'])
+    // Sounds at once, like a typed fret: [track, string, fret].
+    expect(played.map((args) => args.slice(0, 3))).toEqual([[0, 4, 7]])
+  })
+
   it('moves across beats, bars and strings and stops at the edges', () => {
     select(0, 0, 0)
     api.moveSelection('left')
@@ -188,7 +200,8 @@ describe('keyboard dispatch', () => {
     expect({ results, moves, bar: frets(0) }).toMatchSnapshot()
   })
 
-  it('ignores keys already handled, typed into fields, or undo while a dialog is open', () => {
+  it('ignores keys already handled, typed into fields, or undo while a dialog is open', async () => {
+    const { showDialog, hideDialog } = await import('../src/stores/dialogState')
     select(0, 0, 1)
     const handled = new KeyboardEvent('keydown', { key: '5', cancelable: true })
     handled.preventDefault()
@@ -197,9 +210,9 @@ describe('keyboard dispatch', () => {
     const typed = key({ key: '6' }, input).taken
     const spaceOnButton = key({ key: ' ', code: 'Space' }, document.createElement('button')).taken
     api.placeNote(0, 0, 1, 2)
-    modalOpen.value = true
+    showDialog('infoModal', 'Info')
     const undoInDialog = key({ key: 'z', code: 'KeyZ', ctrlKey: true }).taken
-    modalOpen.value = false
+    hideDialog('infoModal')
     const undoOutside = key({ key: 'z', code: 'KeyZ', ctrlKey: true }).taken
     expect({ typed, spaceOnButton, undoInDialog, undoOutside, bar: frets(0) }).toMatchSnapshot()
   })

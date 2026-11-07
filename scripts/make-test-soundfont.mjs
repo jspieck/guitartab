@@ -3,7 +3,7 @@
 // CI uses it in place of the real SF2, which is not in the repository (public/audio/README.txt),
 // so the e2e tests that wait for `data-soundfont-ready` can run.
 //
-//   node scripts/make-test-soundfont.mjs [output]   (default: public/audio/Roland SC-55Edited.sf2)
+//   node scripts/make-test-soundfont.mjs [output]   (default: public/audio/GeneralUser-GS.sf2)
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -179,7 +179,7 @@ export function buildTestSoundFont({ sampleRate = SAMPLE_RATE } = {}) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const output = resolve(process.argv[2] ?? 'public/audio/Roland SC-55Edited.sf2')
+  const output = resolve(process.argv[2] ?? 'public/audio/GeneralUser-GS.sf2')
   mkdirSync(dirname(output), { recursive: true })
   const bytes = buildTestSoundFont()
   writeFileSync(output, bytes)

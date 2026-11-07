@@ -1,5 +1,5 @@
 <template>
-    <BaseModal :modal-id="MODALS.PIANO.id">
+    <BaseModal :modal-id="DIALOGS.PIANO.id" resize="x">
         <template #title>Piano</template>
         <div id="piano" class="piano">
             <ul id="pianoList">
@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount } from 'vue';
 import BaseModal from './BaseModal.vue';
-import { MODALS } from '../services/dialogs/modalTypes';
+import { DIALOGS } from '../services/dialogs/dialogs'
 import liveInput from '../services/midi/liveInput';
 import { soundingPitches } from '../stores/soundingNotesState';
 

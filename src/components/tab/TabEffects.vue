@@ -190,6 +190,35 @@
       </text>
     </g>
 
+    <!-- Lyrics (bottom lane) -->
+    <g v-if="lyrics.length > 0" class="lyrics">
+      <template v-for="(lyric, index) in lyrics" :key="`lyric-${index}`">
+        <text
+          :x="lyric.x"
+          :y="lyric.y"
+          font-family="Source Sans Pro"
+          font-size="11px"
+          text-anchor="middle"
+          class="lyric-text"
+          :data-verse="lyric.verse"
+          :data-beat="lyric.beatIndex"
+        >
+          {{ lyric.text }}
+        </text>
+        <text
+          v-if="lyric.hyphenX != null"
+          :x="lyric.hyphenX"
+          :y="lyric.y"
+          font-family="Source Sans Pro"
+          font-size="11px"
+          text-anchor="middle"
+          class="lyric-text"
+        >
+          -
+        </text>
+      </template>
+    </g>
+
     <!-- Brush strokes -->
     <g v-if="strokes.length > 0" class="strokes">
       <g v-for="(stroke, index) in strokes" :key="`stroke-${index}`" class="stroke-mark">
@@ -272,6 +301,7 @@ const textEffects = computed(() => effectCollections.value.textEffects)
 const runs = computed(() => effectCollections.value.runs)
 const beatTexts = computed(() => effectCollections.value.beatTexts)
 const dynamics = computed(() => effectCollections.value.dynamics)
+const lyrics = computed(() => effectCollections.value.lyrics)
 const strokes = computed(() => effectCollections.value.strokes)
 const tremoloPickings = computed(() => effectCollections.value.tremoloPickings)
 const graceNotes = computed(() => effectCollections.value.graceNotes)
@@ -374,6 +404,11 @@ const hasGraceNotes = computed(() => graceNotes.value.length > 0)
 }
 
 .dynamic-text {
+  fill: var(--tab-primary);
+  user-select: none;
+}
+
+.lyric-text {
   fill: var(--tab-primary);
   user-select: none;
 }

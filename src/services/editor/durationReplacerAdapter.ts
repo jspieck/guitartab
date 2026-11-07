@@ -9,7 +9,7 @@
 import type { BeatDuration } from '../../types/tab'
 import { restOf } from '../../utils/durationUtils'
 import Song, { type Beat } from '../../stores/song'
-import { DurationReplacer, type Beat as DurationBeat } from '../../utils/durationReplacer'
+import { DurationReplacer, type Beat as DurationBeat, type Dots } from '../../utils/durationReplacer'
 
 export function measureToBeats(measures: Beat[], numStrings: number): DurationBeat[] {
   return measures.map((m) => ({
@@ -112,12 +112,18 @@ export function changeBeatDurationViaReplacer(
   beatId: number,
   numStrings: number,
   newDurationCode: BeatDuration,
+  previousDots?: Dots,
 ): { success: boolean; rescaleNeeded: boolean } {
   const blockObj = Song.measures[trackId][blockId][voiceId]
   const originalSnapshot = blockObj.map((m) => ({ ...m }))
   const beats = measureToBeats(blockObj, numStrings)
+  // A dot change: the beat already carries its new dots; measure the old length from the old ones.
+  const dots = previousDots
+    ? { dotted: blockObj[beatId].dotted, doubleDotted: blockObj[beatId].doubleDotted }
+    : undefined
+  if (previousDots) Object.assign(beats[beatId], previousDots)
 
-  const result = DurationReplacer.changeDuration(beats, beatId, newDurationCode)
+  const result = DurationReplacer.changeDuration(beats, beatId, newDurationCode, dots)
 
   if (!result.success) {
     return { success: false, rescaleNeeded: false }

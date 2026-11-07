@@ -1,6 +1,4 @@
 import Song from '../../stores/song'
-import { instrumentIconSrc } from '../../data/instrumentData'
-import { setTrackSignIcon } from '../../utils/editorUi'
 import { tupletState } from '../../stores/tupletState'
 import Duration from '../../utils/duration'
 import { noteLengthOf, restOf } from '../../utils/durationUtils'
@@ -85,6 +83,35 @@ export function fillAvailableSpaceWithRests(
   }
 }
 
+/** Length of a bar in ticks (a whole note is 64). */
+export function barTicks(blockId: number): number {
+  return Duration.getDurationOfBar(Song.measureMeta[blockId])
+}
+
+/** Ticks a voice of a bar actually holds. */
+export function voiceTicks(trackId: number, blockId: number, voiceId: number): number {
+  return Song.measures[trackId][blockId][voiceId].reduce(
+    (sum, beat) => sum + Duration.getDurationOfNote(beat, false),
+    0,
+  )
+}
+
+// Below this a gap comes from tuplet rounding, not a missing beat.
+const GAP_TOLERANCE = 0.5
+
+/**
+ * Fills a bar that is too short (imported files, deleted beats) with rests at its end.
+ * Returns whether it added any. Empty placeholder voices and overfull bars are left alone.
+ */
+export function padBarWithRests(trackId: number, blockId: number, voiceId: number): boolean {
+  const bar = Song.measures[trackId]?.[blockId]?.[voiceId]
+  if (bar == null || Song.measureMeta[blockId] == null || bar.some((beat) => beat.empty)) return false
+  const missing = barTicks(blockId) - voiceTicks(trackId, blockId, voiceId)
+  if (missing < GAP_TOLERANCE) return false
+  fillAvailableSpaceWithRests(trackId, blockId, voiceId, bar.length, Math.floor(missing))
+  return true
+}
+
 /** Marks beats without notes as rests, renumbers tuplets and redraws a track (after tuning or string changes). */
 export function refreshTrack(trackId: number) {
   // Set to rest where no notes are available
@@ -120,7 +147,5 @@ export function refreshTrack(trackId: number) {
   // Set default marking
   if (trackId === Song.currentTrackId) {
     redrawTrack(trackId, Song.currentVoiceId, null)
-
-    setTrackSignIcon(instrumentIconSrc(Song.playBackInstrument[trackId].instrument))
   }
 }

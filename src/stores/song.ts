@@ -82,7 +82,8 @@ const songMethods = {
         name: 'Guitar',
         color: { red: 0, blue: 127, green: 0 },
         channel: { index: 0, effectChannel: 0 },
-        program: 0,
+        // The channel's guitar; a program wins over the channel (playbackInstrumentFor), so 0 was a piano.
+        program: 24,
         primaryChannel: 0,
         letItRing: false,
       },
@@ -182,7 +183,7 @@ const songMethods = {
       numerator: 4,
       timeMeterPresent: false,
       repeatOpen: false,
-      keySignature: -1,
+      keySignature: 0,
       automations: [],
     }
   },
@@ -307,6 +308,8 @@ export type {
   TremoloBar,
   Chord,
   Marker,
+  DirectionTarget,
+  DirectionJump,
   Stroke,
   Grace,
   BeatEffects,

@@ -46,6 +46,8 @@ export function startUp(): void {
   if (firstVisit) markFirstVisitComplete()
 
   loadSongIntoEditor(0)
+  // Screen reader announcements of cursor moves; not needed for the first paint.
+  void import('./a11y/cursorAnnouncer').then(({ startCursorAnnouncements }) => startCursorAnnouncements())
   if (firstVisit && !wantsSmallDemo()) {
     startFirstRunHint()
     // The multi-track demo lives in its own chunk, so it costs nothing after the first visit.

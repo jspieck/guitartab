@@ -1,6 +1,6 @@
 /**
- * Writes Guitar Pro 6 .gpx containers (the reader is in `gpContainers.ts`). Only the export
- * code imports this, so it stays out of the startup bundle.
+ * Writes Guitar Pro 6 .gpx and Guitar Pro 7/8 .gp containers (the reader is in
+ * `gpContainers.ts`). Only the export code imports this, so it stays out of the startup bundle.
  */
 
 const SECTOR_SIZE = 0x1000
@@ -139,4 +139,88 @@ export function compressBcfz(data: Uint8Array): Uint8Array {
 /** A Guitar Pro 6 .gpx file holding the given GPIF score. */
 export function buildGpxFile(gpifXml: string): Uint8Array {
   return compressBcfz(buildBcfs({ 'score.gpif': new TextEncoder().encode(gpifXml) }))
+}
+
+let crcTable: Uint32Array | null = null
+
+export function crc32(data: Uint8Array): number {
+  if (crcTable == null) {
+    crcTable = new Uint32Array(256)
+    for (let n = 0; n < 256; n += 1) {
+      let c = n
+      for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+      crcTable[n] = c >>> 0
+    }
+  }
+  let crc = 0xffffffff
+  for (const byte of data) crc = crcTable[(crc ^ byte) & 0xff] ^ (crc >>> 8)
+  return (crc ^ 0xffffffff) >>> 0
+}
+
+/**
+ * A ZIP archive with the files stored, not compressed. (fflate's compressor would have joined
+ * the startup chunk, which shares fflate's module for reading .gp files.)
+ */
+export function buildStoredZip(files: Record<string, Uint8Array>): Uint8Array {
+  const encoder = new TextEncoder()
+  const local: Uint8Array[] = []
+  const central: Uint8Array[] = []
+  let offset = 0
+  for (const [name, data] of Object.entries(files)) {
+    const nameBytes = encoder.encode(name)
+    const crc = crc32(data)
+    const header = new Uint8Array(30 + nameBytes.length)
+    const view = new DataView(header.buffer)
+    view.setUint32(0, 0x04034b50, true) // local file header
+    view.setUint16(4, 20, true) // version needed
+    view.setUint16(6, 0x0800, true) // UTF-8 names
+    view.setUint32(14, crc, true)
+    view.setUint32(18, data.length, true)
+    view.setUint32(22, data.length, true)
+    view.setUint16(26, nameBytes.length, true)
+    header.set(nameBytes, 30)
+    const entry = new Uint8Array(46 + nameBytes.length)
+    const entryView = new DataView(entry.buffer)
+    entryView.setUint32(0, 0x02014b50, true) // central directory header
+    entryView.setUint16(4, 20, true)
+    entryView.setUint16(6, 20, true)
+    entryView.setUint16(8, 0x0800, true)
+    entryView.setUint32(16, crc, true)
+    entryView.setUint32(20, data.length, true)
+    entryView.setUint32(24, data.length, true)
+    entryView.setUint16(28, nameBytes.length, true)
+    entryView.setUint32(42, offset, true)
+    entry.set(nameBytes, 46)
+    local.push(header, data)
+    central.push(entry)
+    offset += header.length + data.length
+  }
+  const centralSize = central.reduce((sum, part) => sum + part.length, 0)
+  const end = new Uint8Array(22)
+  const endView = new DataView(end.buffer)
+  endView.setUint32(0, 0x06054b50, true) // end of central directory
+  endView.setUint16(8, central.length, true)
+  endView.setUint16(10, central.length, true)
+  endView.setUint32(12, centralSize, true)
+  endView.setUint32(16, offset, true)
+  const out = new Uint8Array(offset + centralSize + end.length)
+  let at = 0
+  for (const part of [...local, ...central, end]) {
+    out.set(part, at)
+    at += part.length
+  }
+  return out
+}
+
+/**
+ * A Guitar Pro 7/8 .gp file: a ZIP with the score at `Content/score.gpif` and a `VERSION`
+ * entry, as Guitar Pro writes them. The style sheet and part/layout configuration files
+ * Guitar Pro adds are optional (Guitar Pro falls back to defaults), so they are left out.
+ */
+export function buildGpFile(gpifXml: string): Uint8Array {
+  const encoder = new TextEncoder()
+  return buildStoredZip({
+    VERSION: encoder.encode('7.0'),
+    'Content/score.gpif': encoder.encode(gpifXml),
+  })
 }

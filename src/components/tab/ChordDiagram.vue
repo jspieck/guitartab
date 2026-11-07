@@ -13,92 +13,95 @@
       {{ chordData.name }}
     </text>
     
-    <!-- Chord diagram grid -->
-    <g class="diagram-grid">
-      <!-- Fret lines (horizontal) -->
-      <line
-        v-for="fret in visibleFrets"
-        :key="`fret-${fret}`"
-        :x1="0"
-        :x2="diagramWidth"
-        :y1="(fret - startFret) * fretHeight"
-        :y2="(fret - startFret) * fretHeight"
-        :stroke-width="fret === 0 ? 3 : 1"
-        class="grid-line"
-      />
+    <!-- Only the name when no fingering is known (e.g. a chord symbol from MusicXML). -->
+    <template v-if="hasFingering">
+      <!-- Chord diagram grid -->
+      <g class="diagram-grid">
+        <!-- Fret lines (horizontal) -->
+        <line
+          v-for="fret in visibleFrets"
+          :key="`fret-${fret}`"
+          :x1="0"
+          :x2="diagramWidth"
+          :y1="(fret - startFret) * fretHeight"
+          :y2="(fret - startFret) * fretHeight"
+          :stroke-width="fret === 0 ? 3 : 1"
+          class="grid-line"
+        />
       
-      <!-- String lines (vertical) -->
-      <line
-        v-for="stringIndex in numStrings"
-        :key="`string-${stringIndex}`"
-        :x1="(stringIndex - 1) * stringSpacing"
-        :x2="(stringIndex - 1) * stringSpacing"
-        :y1="0"
-        :y2="diagramHeight"
-        stroke-width="1"
-        class="grid-line"
-      />
-    </g>
+        <!-- String lines (vertical) -->
+        <line
+          v-for="stringIndex in numStrings"
+          :key="`string-${stringIndex}`"
+          :x1="(stringIndex - 1) * stringSpacing"
+          :x2="(stringIndex - 1) * stringSpacing"
+          :y1="0"
+          :y2="diagramHeight"
+          stroke-width="1"
+          class="grid-line"
+        />
+      </g>
     
-    <!-- Finger positions -->
-    <g class="finger-positions">
-      <circle
-        v-for="(position, index) in fingerPositions"
-        :key="`finger-${index}`"
-        :cx="position.x"
-        :cy="position.y"
-        :r="6"
-        stroke-width="1"
-        class="finger-dot"
-      />
+      <!-- Finger positions -->
+      <g class="finger-positions">
+        <circle
+          v-for="(position, index) in fingerPositions"
+          :key="`finger-${index}`"
+          :cx="position.x"
+          :cy="position.y"
+          :r="6"
+          stroke-width="1"
+          class="finger-dot"
+        />
       
-      <!-- Finger numbers -->
-      <template v-for="(position, index) in fingerPositions" :key="`finger-num-${index}`">
+        <!-- Finger numbers -->
+        <template v-for="(position, index) in fingerPositions" :key="`finger-num-${index}`">
+          <text
+            :x="position.x"
+            :y="position.y + 4"
+            font-family="Source Sans Pro"
+            font-size="10px"
+            font-weight="bold"
+            text-anchor="middle"
+            class="finger-number"
+            v-if="position.finger > 0"
+          >
+            {{ position.finger }}
+          </text>
+        </template>
+      </g>
+    
+      <!-- Muted/Open string indicators -->
+      <g class="string-indicators">
         <text
-          :x="position.x"
-          :y="position.y + 4"
+          v-for="(indicator, index) in stringIndicators"
+          :key="`indicator-${index}`"
+          :x="indicator.x"
+          :y="indicator.y"
           font-family="Source Sans Pro"
-          font-size="10px"
+          font-size="12px"
           font-weight="bold"
           text-anchor="middle"
-          class="finger-number"
-          v-if="position.finger > 0"
+          class="string-indicator"
+          :class="{ 'muted-indicator': indicator.type === 'muted', 'open-indicator': indicator.type !== 'muted' }"
         >
-          {{ position.finger }}
+          {{ indicator.symbol }}
         </text>
-      </template>
-    </g>
+      </g>
     
-    <!-- Muted/Open string indicators -->
-    <g class="string-indicators">
+      <!-- Fret number indicator -->
       <text
-        v-for="(indicator, index) in stringIndicators"
-        :key="`indicator-${index}`"
-        :x="indicator.x"
-        :y="indicator.y"
+        v-if="startFret > 0"
+        :x="-10"
+        :y="fretHeight + 4"
         font-family="Source Sans Pro"
-        font-size="12px"
-        font-weight="bold"
+        font-size="10px"
         text-anchor="middle"
-        class="string-indicator"
-        :class="{ 'muted-indicator': indicator.type === 'muted', 'open-indicator': indicator.type !== 'muted' }"
+        class="fret-number"
       >
-        {{ indicator.symbol }}
+        {{ startFret + 1 }}fr
       </text>
-    </g>
-    
-    <!-- Fret number indicator -->
-    <text
-      v-if="startFret > 0"
-      :x="-10"
-      :y="fretHeight + 4"
-      font-family="Source Sans Pro"
-      font-size="10px"
-      text-anchor="middle"
-      class="fret-number"
-    >
-      {{ startFret + 1 }}fr
-    </text>
+    </template>
   </g>
 </template>
 
@@ -131,6 +134,8 @@ const fretHeight = 15
 const diagramWidth = computed(() => (props.numStrings - 1) * stringSpacing)
 const diagramHeight = 4 * fretHeight
 const numFrets = 4
+
+const hasFingering = computed(() => props.chordData.frets.some((fret) => fret >= 0))
 
 // Chord frets are stored highest string first (as Guitar Pro does); a diagram shows the
 // lowest string on the left.

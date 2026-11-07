@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
-  applyRepeatAlternativeSkip,
   buildLoopIntervalFromOverlays,
   didCrossLoopBoundary,
   getEffectiveBlockLengthForLoop,
-  resolveNextBlockAfterCurrent,
   shouldTruncateNoteAtLoopEnd,
 } from '../src/services/playbackLoopController'
 
@@ -64,52 +62,6 @@ describe('playbackLoopController', () => {
     expect(interval.endBlock).toBe(5)
     expect(interval.startRatio).toBe(0)
     expect(interval.endRatio).toBe(1)
-  })
-
-  it('wraps from loop end block to loop start block', () => {
-    const loopInterval = {
-      trackId: 0,
-      startBlock: 2,
-      startBeat: 0,
-      startRatio: 0,
-      endBlock: 5,
-      endBeat: 3,
-      endRatio: 1,
-    }
-
-    const result = resolveNextBlockAfterCurrent(5, 1, loopInterval, [], {})
-
-    expect(result.nextBlock).toBe(2)
-    expect(result.playingIteration).toBe(1)
-  })
-
-  it('uses tab repeat jump when no loop is active', () => {
-    const measureMeta = [
-      {
-        repeatClose: 2,
-      },
-      {},
-      {},
-    ]
-    const result = resolveNextBlockAfterCurrent(0, 1, null, measureMeta, { 0: 0 })
-
-    expect(result.nextBlock).toBe(0)
-    expect(result.playingIteration).toBe(2)
-  })
-
-  it('skips repeat-alternative sections that do not match the iteration', () => {
-    const measureMeta = [{}, { repeatAlternative: 0b10 }, { repeatAlternative: 0b01 }]
-
-    expect(applyRepeatAlternativeSkip(1, 1, measureMeta)).toBe(2)
-  })
-
-  it('plays ordinary bars before an alternative ending instead of jumping to it', () => {
-    // Bars without a volta have no repeatAlternative; they used to default to 0,
-    // which made playback jump straight to the next "1." ending.
-    const measureMeta = [{}, {}, {}, { repeatAlternative: 0b01 }]
-
-    expect(applyRepeatAlternativeSkip(1, 1, measureMeta)).toBe(1)
-    expect(applyRepeatAlternativeSkip(2, 1, measureMeta)).toBe(2)
   })
 
   it('truncates effective block length at the loop end', () => {

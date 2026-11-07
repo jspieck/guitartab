@@ -1,29 +1,67 @@
+import { reactive } from 'vue'
 import { BaseModalHandler } from './baseModalHandler'
 import { Note, Beat } from '../../stores/song'
-import { connectPoints, drawPoint } from '../../utils/svgPrimitives'
-import fastdom from 'fastdom'
 import { toggleNoteEffect } from '../editor/effectToggles'
 import { recordBarEdit } from '../editor/editCommands'
 import { Song } from '../../stores/song'
-import { MODALS } from './modalTypes'
+import { DIALOGS } from './dialogs'
 import { requestBlocksRender } from '../editor/renderCommands'
 
-interface BendEditorProps {
-  HORIZONTAL_STEPS: number
-  VERTICAL_STEPS: number
-  pointsOnLine: ([SVGElement, number, number] | null)[]
-  bendPointsArr: SVGPathElement[]
+/** The bend editor's SVG size in its own units (BendModal.vue's viewBox). */
+export const BEND_EDITOR_WIDTH = 501
+export const BEND_EDITOR_HEIGHT = 200
+export const BEND_PADDING_TOP = 20
+export const BEND_PADDING_LEFT = 25
+/** Grid columns (time) and rows (pitch: 4 rows = a whole tone). */
+export const BEND_COLUMNS = 12
+export const BEND_ROWS = 12
+
+/** Bend shapes as (column, rows up) points: bend, bend/release, bend/release/bend, pre-bend, pre-bend/release. */
+const BEND_PRESETS: { x: number; y: number }[][] = [
+  [
+    { x: 0, y: 0 },
+    { x: 6, y: 4 },
+    { x: 12, y: 4 },
+  ],
+  [
+    { x: 0, y: 0 },
+    { x: 3, y: 4 },
+    { x: 6, y: 4 },
+    { x: 9, y: 0 },
+    { x: 12, y: 0 },
+  ],
+  [
+    { x: 0, y: 0 },
+    { x: 2, y: 4 },
+    { x: 4, y: 4 },
+    { x: 6, y: 0 },
+    { x: 8, y: 0 },
+    { x: 10, y: 4 },
+    { x: 12, y: 4 },
+  ],
+  [
+    { x: 0, y: 4 },
+    { x: 12, y: 4 },
+  ],
+  [
+    { x: 0, y: 4 },
+    { x: 4, y: 4 },
+    { x: 8, y: 0 },
+    { x: 12, y: 0 },
+  ],
+]
+
+interface BendNoteRef {
+  trackId: number
+  blockId: number
+  voiceId: number
+  beatId: number
+  string: number
+  note: Note
 }
 
 interface BendModalParams {
-  notes: {
-    trackId: number
-    blockId: number
-    voiceId: number
-    beatId: number
-    string: number
-    note: Note
-  }[]
+  notes: BendNoteRef[]
   blocks: number[]
   beats: {
     trackId: number
@@ -35,332 +73,77 @@ interface BendModalParams {
   isVariableSet: boolean
 }
 
+/** The bend dialog: one point (rows up) or none per grid column; BendModal.vue draws them. */
 export class BendModalHandler extends BaseModalHandler {
-  private editorProps: BendEditorProps = {
-    HORIZONTAL_STEPS: 12,
-    VERTICAL_STEPS: 12,
-    pointsOnLine: [],
-    bendPointsArr: [],
-  }
-  private mouseOffsetX: number = 0
-  private mouseOffsetY: number = 0
-  private currentNotes?: {
-    notes: {
-      trackId: number
-      blockId: number
-      voiceId: number
-      beatId: number
-      string: number
-      note: Note
-    }[]
-    blocks: number[]
-    beats: {
-      trackId: number
-      blockId: number
-      voiceId: number
-      beatId: number
-      beat: Beat
-    }[]
-  }
-  private isVariableSet: boolean = false
-  private pointsLayer: SVGGElement | null = null
+  readonly editor = reactive({
+    /** Index = column; value = rows up, or null for no point. */
+    points: new Array<number | null>(BEND_COLUMNS + 1).fill(null),
+    preset: 0,
+  })
+
+  private currentNotes: Pick<BendModalParams, 'notes' | 'blocks'> | null = null
+  private isVariableSet = false
 
   constructor() {
-    super(MODALS.BEND.id, MODALS.BEND.name)
-  }
-
-  /** Vue owns the grid; interactive points/lines go in this layer. */
-  setPointsLayer(layer: SVGGElement) {
-    this.pointsLayer = layer
-  }
-
-  private getPointsTarget(): SVGElement {
-    return (
-      this.pointsLayer ??
-      (document.querySelector('#bendEditor .bend-points') as SVGGElement | null) ??
-      (document.getElementById('bendEditor') as unknown as SVGElement)
-    )
+    super(DIALOGS.BEND.id, DIALOGS.BEND.name)
   }
 
   openModal(params: BendModalParams) {
-    this.currentNotes = {
-      notes: params.notes,
-      blocks: params.blocks,
-      beats: params.beats,
-    }
+    this.currentNotes = { notes: params.notes ?? [], blocks: params.blocks ?? [] }
     this.isVariableSet = params.isVariableSet
-
+    const bend = params.notes?.[0]?.note.bendObj
+    this.editor.preset = 0
+    this.setPoints(
+      bend == null
+        ? BEND_PRESETS[0]
+        : bend.map((point) => ({ x: point.bendPosition / 5, y: point.bendValue / 25 })),
+    )
     this.showModal()
   }
 
-  protected setupModalContent(): void {
-    if (!this.currentNotes) return
-
-    const paddingTop = 20
-    const paddingLeft = 25
-    const bendEditorClientWidth = 501
-    const width = bendEditorClientWidth - 2 * paddingLeft
-    const height = 200 - 2 * paddingTop
-
-    this.drawBendEditor(this.currentNotes, paddingTop, paddingLeft, width, height)
-    this.setupBendEditorListeners(paddingTop, paddingLeft, width, height)
-    this.setupBendSelectionListener(paddingTop, paddingLeft, width, height)
-    this.setupBendSelectButton()
+  applyPreset(index: number): void {
+    this.editor.preset = index
+    this.setPoints(BEND_PRESETS[index] ?? BEND_PRESETS[0])
   }
 
-  private setupBendEditorListeners(paddingTop: number, paddingLeft: number, width: number, height: number) {
-    const bendEditor = document.getElementById('bendEditor')!
+  /** A click on the grid at (column, rows up): adds a point there, or removes the same point. */
+  togglePoint(column: number, rowsUp: number): void {
+    if (column < 0 || column > BEND_COLUMNS) return
+    this.editor.points[column] = this.editor.points[column] === rowsUp ? null : rowsUp
+  }
 
-    bendEditor.addEventListener('mousedown', (e) => {
-      fastdom.measure(() => {
-        const t = document.getElementById('bendEditor')!.getBoundingClientRect()
-        this.mouseOffsetX = e.clientX - t.left
-        this.mouseOffsetY = e.clientY - t.top
-      })
-
-      fastdom.mutate(() => {
-        this.handleBendEditorClick(paddingTop, paddingLeft, width, height, bendEditor)
-      })
+  /** Writes the curve to the notes (one undo step) and closes. */
+  apply(): void {
+    const target = this.currentNotes
+    if (target == null || target.notes.length === 0) return
+    const bendObjs = this.bendObjects()
+    const { notes, blocks } = target
+    const blockIds = [...blocks, ...notes.map((note) => note.blockId)]
+    recordBarEdit('Bend', { trackId: notes[0].trackId, blockIds }, () => {
+      toggleNoteEffect(notes, 'bend', this.isVariableSet)
+      for (const { trackId, blockId, voiceId, beatId, string } of notes) {
+        const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string]
+        if (note) note.bendObj = bendObjs.map((point) => ({ ...point }))
+      }
     })
+    requestBlocksRender(notes[0].trackId, blocks, notes[0].voiceId)
+    this.closeModal()
   }
 
-  private handleBendEditorClick(
-    paddingTop: number,
-    paddingLeft: number,
-    width: number,
-    height: number,
-    _bendEditor: HTMLElement,
-  ) {
-    const xPos = Math.min(Math.max(this.mouseOffsetX - paddingLeft, 0), width)
-    const yPos = Math.min(Math.max(this.mouseOffsetY - paddingTop, 0), height)
-    const oneXPort = width / this.editorProps.HORIZONTAL_STEPS
-    const oneYPort = height / this.editorProps.VERTICAL_STEPS
-    const xIndex = Math.round(xPos / oneXPort)
-    const yIndex = Math.round(yPos / oneYPort)
-    const xNearest = xIndex * oneXPort
-    const yNearest = yIndex * oneYPort
-
-    let samePoint = false
-    const currentPoint = this.editorProps.pointsOnLine[xIndex]
-    if (currentPoint != null) {
-      if (currentPoint[0].parentNode != null) {
-        currentPoint[0].parentNode.removeChild(currentPoint[0])
-      }
-      samePoint = this.editorProps.VERTICAL_STEPS - yIndex === currentPoint[1]
-      this.editorProps.pointsOnLine[xIndex] = null
+  private setPoints(points: { x: number; y: number }[]): void {
+    const next = new Array<number | null>(BEND_COLUMNS + 1).fill(null)
+    for (const { x, y } of points) {
+      const column = Math.round(x)
+      if (column >= 0 && column <= BEND_COLUMNS) next[column] = y
     }
-    if (!samePoint) {
-      const point = drawPoint(xNearest, yNearest, paddingTop, paddingLeft, 7, this.getPointsTarget(), '')
-      this.editorProps.pointsOnLine[xIndex] = [point, this.editorProps.VERTICAL_STEPS - yIndex, xIndex]
-    }
-    this.connectAllBendPoints(this.getPointsTarget())
+    this.editor.points = next
   }
 
-  private setupBendSelectionListener(paddingTop: number, paddingLeft: number, width: number, height: number) {
-    const bendSelection = document.getElementById('bendSelection') as HTMLSelectElement
-    bendSelection.onchange = () => {
-      fastdom.mutate(() => {
-        const val = bendSelection.options[bendSelection.selectedIndex].value
-        this.applyBendPreset(parseInt(val, 10), paddingTop, paddingLeft, width, height, [])
-      })
-    }
-  }
-
-  private setupBendSelectButton() {
-    this.setupSelectButton('selectButton', () => {
-      if (!this.currentNotes) return
-
-      const bendObjs = this.createBendObjects()
-      const { notes, blocks } = this.currentNotes
-      const blockIds = [...blocks, ...notes.map((no) => no.blockId)]
-      recordBarEdit('Bend', { trackId: notes[0].trackId, blockIds }, () => {
-        toggleNoteEffect(notes, 'bend', this.isVariableSet)
-        this.applyBendToNotes(bendObjs)
-      })
-      requestBlocksRender(
-        this.currentNotes.notes[0].trackId,
-        this.currentNotes.blocks,
-        this.currentNotes.notes[0].voiceId,
-      )
+  private bendObjects(): { bendPosition: number; bendValue: number; vibrato: number }[] {
+    const result: { bendPosition: number; bendValue: number; vibrato: number }[] = []
+    this.editor.points.forEach((rowsUp, column) => {
+      if (rowsUp != null) result.push({ bendPosition: column * 5, bendValue: rowsUp * 25, vibrato: 0 })
     })
-  }
-
-  drawBendEditor(
-    arr: {
-      notes: {
-        trackId: number
-        blockId: number
-        voiceId: number
-        beatId: number
-        string: number
-        note: Note
-      }[]
-      blocks: number[]
-      beats: {
-        trackId: number
-        blockId: number
-        voiceId: number
-        beatId: number
-        beat: Beat
-      }[]
-    },
-    paddingTop: number,
-    paddingLeft: number,
-    width: number,
-    height: number,
-  ) {
-    fastdom.mutate(() => {
-      this.setupBendEditor()
-
-      const { note } = arr.notes[0]
-      if (note.bendObj == null) {
-        this.applyBendPreset(0, paddingTop, paddingLeft, width, height, [])
-      } else {
-        const preset = note.bendObj.map((bend) => ({
-          x: bend.bendPosition / 5,
-          y: bend.bendValue / 25,
-        }))
-        this.applyBendPreset(0, paddingTop, paddingLeft, width, height, preset)
-      }
-
-      this.connectAllBendPoints(this.getPointsTarget())
-    })
-  }
-
-  private setupBendEditor() {
-    const layer = this.getPointsTarget()
-    layer?.replaceChildren()
-    this.editorProps.bendPointsArr = []
-    this.editorProps.pointsOnLine = new Array(this.editorProps.HORIZONTAL_STEPS + 1).fill(null)
-  }
-
-  private applyBendPreset(
-    index: number,
-    paddingTop: number,
-    paddingLeft: number,
-    widthTotal: number,
-    heightTotal: number,
-    preset: { x: number; y: number }[],
-  ) {
-    const width = widthTotal / this.editorProps.HORIZONTAL_STEPS
-    const height = heightTotal / this.editorProps.VERTICAL_STEPS
-    for (let i = 0; i <= this.editorProps.HORIZONTAL_STEPS; i += 1) {
-      const currentPoint = this.editorProps.pointsOnLine[i]
-      if (currentPoint != null && currentPoint[0].parentNode != null) {
-        currentPoint[0].parentNode.removeChild(currentPoint[0])
-        this.editorProps.pointsOnLine[i] = null
-      }
-    }
-    // local to not waste RAM for an array not needed in most cases
-    const bendPresets = [
-      [
-        { x: 0, y: 0 },
-        { x: 6, y: 4 },
-        { x: 12, y: 4 },
-      ],
-      [
-        { x: 0, y: 0 },
-        { x: 3, y: 4 },
-        { x: 6, y: 4 },
-        { x: 9, y: 0 },
-        { x: 12, y: 0 },
-      ],
-      [
-        { x: 0, y: 0 },
-        { x: 2, y: 4 },
-        { x: 4, y: 4 },
-        { x: 6, y: 0 },
-        { x: 8, y: 0 },
-        { x: 10, y: 4 },
-        { x: 12, y: 4 },
-      ],
-      [
-        { x: 0, y: 4 },
-        { x: 12, y: 4 },
-      ],
-      [
-        { x: 0, y: 4 },
-        { x: 4, y: 4 },
-        { x: 8, y: 0 },
-        { x: 12, y: 0 },
-      ],
-    ]
-    const bendEditor = this.getPointsTarget()
-
-    let bendPreset = bendPresets[index]
-    if (preset != null && preset.length > 0) {
-      bendPreset = preset
-    }
-    for (let i = 0; i < bendPreset.length; i += 1) {
-      const xVal = bendPreset[i].x
-      const yVal = bendPreset[i].y // 0,0 is at the upper-left
-      this.editorProps.pointsOnLine[xVal] = [
-        drawPoint(
-          width * xVal,
-          height * (this.editorProps.VERTICAL_STEPS - yVal),
-          paddingTop,
-          paddingLeft,
-          7,
-          bendEditor,
-          '',
-        ),
-        yVal,
-        xVal,
-      ]
-    }
-    this.connectAllBendPoints(bendEditor)
-  }
-
-  private connectAllBendPoints(svgElem: SVGElement) {
-    for (let i = 0; i < this.editorProps.bendPointsArr.length; i += 1) {
-      const bendPointDom = this.editorProps.bendPointsArr[i]
-      if (bendPointDom != null && bendPointDom.parentNode != null) {
-        bendPointDom.parentNode.removeChild(bendPointDom)
-      }
-    }
-    this.editorProps.bendPointsArr.length = 0
-    let firstPoint = null
-    for (let i = 0; i < this.editorProps.pointsOnLine.length; i += 1) {
-      if (this.editorProps.pointsOnLine[i] != null) {
-        if (firstPoint == null) {
-          firstPoint = this.editorProps.pointsOnLine[i]
-        } else {
-          this.editorProps.bendPointsArr.push(
-            connectPoints(
-              firstPoint[0].childNodes[0] as SVGElement,
-              this.editorProps.pointsOnLine[i]![0].childNodes[0] as SVGElement,
-              svgElem,
-            ),
-          )
-          firstPoint = this.editorProps.pointsOnLine[i]
-        }
-      }
-    }
-  }
-
-  private createBendObjects(): { bendPosition: number; bendValue: number; vibrato: number }[] {
-    const bendObjs: { bendPosition: number; bendValue: number; vibrato: number }[] = []
-    for (let i = 0; i < this.editorProps.pointsOnLine.length; i += 1) {
-      const currentPoint = this.editorProps.pointsOnLine[i]
-      if (currentPoint != null) {
-        bendObjs.push({
-          bendPosition: currentPoint[2] * 5,
-          bendValue: currentPoint[1] * 25,
-          vibrato: 0,
-        })
-      }
-    }
-    return bendObjs
-  }
-
-  private applyBendToNotes(bendObjs: { bendPosition: number; bendValue: number; vibrato: number }[]) {
-    if (!this.currentNotes) return
-
-    for (const { trackId, blockId, voiceId, beatId, string } of this.currentNotes.notes) {
-      const note = Song.getBeat({ trackId, blockId, voiceId, beatId }).notes[string]
-      if (note) {
-        note.bendObj = bendObjs.map((point) => ({ ...point }))
-      }
-    }
+    return result
   }
 }

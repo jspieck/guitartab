@@ -5,14 +5,14 @@ test('undoing a shorter time signature brings the cut-off beats back', async ({ 
   await waitForEditorShell(page)
   const result = await page.evaluate(async () => {
     const { default: Song } = await import('/src/stores/song.ts')
-    const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
+    const { DIALOGS, dialogHandler } = await import('/src/services/dialogs/dialogs.ts')
     const { undoHistory } = await import('/src/services/editor/editCommands.ts')
 
     const snapshot = () => JSON.stringify(Song.measures[0][0])
     const before = snapshot()
     const beatsBefore = Song.measures[0][0][0].length
 
-    const handler = modalManager.getHandler('timeMeterModal') as unknown as {
+    const handler = (await dialogHandler(DIALOGS.TIME_METER)) as unknown as {
       modalState: Record<string, number>
       handleSubmit(): boolean
     }
@@ -39,14 +39,16 @@ test('removing a time signature with the toolbar re-fits the bars, and undo brin
   page,
 }) => {
   await waitForEditorShell(page)
+  // The time signature button is on the Bar tab of the edit bar.
+  await page.locator('#barButton4').click()
   const result = await page.evaluate(async () => {
     const { default: Song } = await import('/src/stores/song.ts')
-    const { modalManager } = await import('/src/services/dialogs/modalManager.ts')
+    const { DIALOGS, dialogHandler } = await import('/src/services/dialogs/dialogs.ts')
     const { undoHistory } = await import('/src/services/editor/editCommands.ts')
     const { selectionState } = await import('/src/stores/selectionState.ts')
 
     // 3/4 from bar 2 on.
-    const handler = modalManager.getHandler('timeMeterModal') as unknown as {
+    const handler = (await dialogHandler(DIALOGS.TIME_METER)) as unknown as {
       modalState: Record<string, number>
       handleSubmit(): boolean
     }
@@ -56,7 +58,7 @@ test('removing a time signature with the toolbar re-fits the bars, and undo brin
     const bars = () => JSON.stringify([Song.measures[0][1], Song.measures[0][2]])
     const barsWith34 = bars()
 
-    // The toolbar button on bar 2 removes it again (what Menu.vue's notationSelect does).
+    // The toolbar button on bar 2 removes it again.
     selectionState.cursor = { trackId: 0, voiceId: 0, blockId: 1, beatId: 0, string: 0 }
     ;(document.getElementById('timeMeter') as HTMLButtonElement).click()
     const removed = {

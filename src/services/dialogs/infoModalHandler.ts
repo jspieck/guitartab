@@ -1,14 +1,16 @@
+import { reactive } from 'vue'
 import { BaseModalHandler } from './baseModalHandler'
 import { Song, SongDescription } from '../../stores/song'
 import { recordSongInfoEdit } from '../editor/songSettingsCommands'
-import { MODALS } from './modalTypes'
+import { DIALOGS } from './dialogs'
 
 interface SongDescriptionModal extends SongDescription {
   bound: boolean
 }
 
 export class InfoModalHandler extends BaseModalHandler {
-  private infoModalData: SongDescriptionModal = {
+  // Filled in place on every opening: the dialog binds to this one object.
+  private readonly infoModalData: SongDescriptionModal = reactive({
     title: '',
     subtitle: '',
     author: '',
@@ -21,26 +23,22 @@ export class InfoModalHandler extends BaseModalHandler {
     comments: [''],
     bound: false,
     wordsAndMusic: '',
-  }
+  })
 
   constructor() {
-    super(MODALS.INFO.id, MODALS.INFO.name)
+    super(DIALOGS.INFO.id, DIALOGS.INFO.name)
   }
 
   openModal() {
     // Load current song description data
     const songDesc = Song.songDescription
-    this.infoModalData = {
+    Object.assign(this.infoModalData, {
       ...songDesc,
       bound: false,
-      comments: [...songDesc.comments], // Deep copy array
-    }
+      comments: [...songDesc.comments],
+    })
 
     this.showModal()
-  }
-
-  protected setupModalContent(): void {
-    // Vue component handles the setup
   }
 
   submitInfo(formData: SongDescriptionModal) {

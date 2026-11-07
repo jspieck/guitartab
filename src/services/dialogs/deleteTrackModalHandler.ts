@@ -1,3 +1,4 @@
+import { resetScoreTracks } from '../../stores/scoreViewState'
 import { selectionState } from '../../stores/selectionState'
 import { BaseModalHandler } from './baseModalHandler'
 import Song from '../../stores/song'
@@ -5,13 +6,13 @@ import { undoHistory } from '../editor/editCommands'
 import { requestTrackDeleteRender } from '../editor/renderCommands'
 import { notifySongDataChanged } from '../appEvents'
 import { switchTrack } from '../editor/trackLoading'
+import { DIALOGS } from './dialogs'
 
 export class DeleteTrackModalHandler extends BaseModalHandler {
-  readonly modalType = 'DeleteTrackModal' as const
   private trackToDelete?: number
 
   constructor() {
-    super('reallyDeleteModal', 'Delete')
+    super(DIALOGS.DELETE_TRACK.id, 'Delete')
   }
 
   openModal(params: { trackId: number }) {
@@ -19,16 +20,10 @@ export class DeleteTrackModalHandler extends BaseModalHandler {
     this.showModal()
   }
 
-  protected setupModalContent(): void {
-    if (this.trackToDelete === undefined) return
-
-    this.setupSelectButton('yesDelete', () => {
-      this.handleTrackDeletion(this.trackToDelete!)
-    })
-
-    this.setupSelectButton('noDelete', () => {
-      this.closeModal()
-    })
+  /** The dialog's Delete button. */
+  confirm(): void {
+    if (this.trackToDelete !== undefined) this.handleTrackDeletion(this.trackToDelete)
+    this.closeModal()
   }
 
   private handleTrackDeletion(trackId: number) {
@@ -39,6 +34,8 @@ export class DeleteTrackModalHandler extends BaseModalHandler {
 
     // Update handlers and UI
     undoHistory.adaptToTrackRemove(trackId)
+    // the score's track choice holds track numbers: show all again
+    resetScoreTracks()
     requestTrackDeleteRender(trackId)
 
     this.updateMarkedNote(trackId)

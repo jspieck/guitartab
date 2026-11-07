@@ -6,8 +6,9 @@ import { requestDurationRender } from './renderCommands'
 import { showNotification } from '../../stores/notificationState'
 import { initTrackPlayback } from './trackLoading'
 import { tabLayout } from '../../stores/tabLayoutState'
-import { fillMeasure } from './barFilling'
+import { fillMeasure, padBarWithRests } from './barFilling'
 import { redrawTrack } from './layoutInvalidation'
+import { shiftClefs } from '../../utils/clefs'
 
 /** Gives a new bar its default unit width until the layout engine sets the real one. */
 export function addMeasureSlot(trackId: number, blockId: number, voiceId: number): void {
@@ -94,6 +95,74 @@ export function addBlock(): void {
   })
 }
 
+/** Notes, tempo automations and clef changes that name a bar by index, for bars from `from` on. */
+function shiftBarReferences(from: number, delta: number): void {
+  const beats = Song.measures.flat(2).flatMap((voice) => voice ?? [])
+  for (const note of beats.flatMap((beat) => beat?.notes ?? [])) {
+    if (note?.tiedTo != null && note.tiedTo.blockId >= from) note.tiedTo.blockId += delta
+  }
+  for (const meta of Song.measureMeta) {
+    for (const automation of meta?.automations ?? []) {
+      if (automation.blockId >= from) automation.blockId += delta
+    }
+  }
+  for (const track of Song.tracks) shiftClefs(track, from, delta)
+}
+
+function spliceBars(at: number, count: number): void {
+  shiftBarReferences(at, count)
+  const template = Song.measureMeta[Math.min(at, Song.measureMeta.length - 1)]
+  const metas = Array.from({ length: count }, () => ({
+    ...Song.defaultMeasureMeta(),
+    numerator: template.numerator,
+    denominator: template.denominator,
+  }))
+  Song.measureMeta.splice(at, 0, ...metas)
+  Song.measures.forEach((bars, trackId) => {
+    bars.splice(
+      at,
+      0,
+      ...Array.from({ length: count }, () => Array.from({ length: Song.numVoices }, () => [])),
+    )
+    Song.measureMoveHelper[trackId]?.splice(at, 0, ...Array.from({ length: count }, () => []))
+    tabLayout.measureOffset[trackId]?.splice(at, 0, ...Array.from({ length: count }, () => []))
+    for (let blockId = at; blockId < at + count; blockId += 1) {
+      for (let voiceId = 0; voiceId < Song.numVoices; voiceId += 1) {
+        addMeasureSlot(trackId, blockId, voiceId)
+        padBarWithRests(trackId, blockId, voiceId)
+      }
+    }
+  })
+  Song.numMeasures += count
+}
+
+function unspliceBars(at: number, count: number): void {
+  Song.measureMeta.splice(at, count)
+  Song.measures.forEach((bars, trackId) => {
+    bars.splice(at, count)
+    Song.measureMoveHelper[trackId]?.splice(at, count)
+    tabLayout.measureOffset[trackId]?.splice(at, count)
+  })
+  Song.numMeasures -= count
+  shiftBarReferences(at + count, -count)
+  if (selectionState.cursor.blockId >= Song.numMeasures) {
+    selectionState.cursor.blockId = Song.numMeasures - 1
+    selectionState.cursor.beatId = 0
+  }
+}
+
+/** Inserts `count` empty bars before bar `at` on every track (time signature of bar `at`). */
+export function insertBars(at: number, count: number): void {
+  if (count <= 0 || at < 0 || at > Song.numMeasures) return
+  executeCommand({
+    label: count === 1 ? 'Insert bar' : 'Insert bars',
+    apply: () => spliceBars(at, count),
+    invert: () => unspliceBars(at, count),
+    afterChange: barStructureChanged,
+    adaptToTrackRemove: () => true,
+  })
+}
+
 /** Removes the last bar on every track. */
 export function removeBlock(): void {
   fastdom.mutate(() => {
@@ -156,8 +225,9 @@ export function createNewTrack(
     name: instrObj.name,
     color: { red: 0, blue: 127, green: 0 },
     channel: { index: channelId, effectChannel: 0 },
-    program: 0,
-    primaryChannel: 0,
+    // playbackInstrumentFor prefers the track's program over its channel, so it must be the instrument.
+    program: instrObj.channel,
+    primaryChannel: channelId,
     letItRing: false,
   }
 

@@ -4,7 +4,6 @@
 
 /* The desktop chrome stays mounted (legacy code looks its elements up by id) but hidden. */
 #content.layout-compact #completeBar,
-#content.layout-compact #sideBarButtons,
 #content.layout-compact #trackCapsule,
 #content.layout-compact .bottomBars,
 #content.layout-compact #footerBar {
@@ -18,8 +17,10 @@
 #content.layout-compact .mainWrapper {
   background: var(--color-surface);
   overflow-x: hidden;
-  /* Pinch zooms the tab (see services/compactLayout.ts), not the page. */
-  touch-action: pan-x pan-y;
+  /* Vertical scrolling stays native; pinch, sideways swipes and long-press are ours
+     (services/touchGestures.ts), and iOS shows no callout on a long-press. */
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
   overscroll-behavior: contain;
 }
 
@@ -37,4 +38,43 @@
 
 #content.layout-compact .autosave-drafts {
   top: 112px;
+}
+
+/* The phone layout has no desktop toolbar: the notification sits at the top as before. */
+#content.layout-compact #notificationEmblem {
+  top: 29px;
+}
+
+/* Dialogs are bottom sheets on a phone: full width, scrolling inside, and not draggable
+   (modalManager skips dragging and the centred position in the compact layout). */
+#content.layout-compact .modal {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 88vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-width: 1px 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+#content.layout-compact .modal .modalTopBar {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  background: inherit;
+}
+
+#content.layout-compact .modal .modal_close {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+#content.layout-compact .modal .modal-field-grid.two-column {
+  grid-template-columns: minmax(0, 1fr);
 }

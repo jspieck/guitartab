@@ -63,7 +63,7 @@
 import { onMounted, ref } from 'vue'
 import BaseModal from './BaseModal.vue'
 import Song from '../stores/song'
-import { modalManager } from '../services/dialogs/modalManager'
+import { closeDialog } from '../services/dialogs/dialogs'
 import { serializeSongToGtBytes } from '../utils/gtSerialization'
 import { loadCloudSongById } from '../services/cloudSongLoader'
 import { confirmReplaceUnsavedSong } from '../services/songAutosave'
@@ -146,7 +146,7 @@ async function openSong(songId: string, title: string) {
     await loadCloudSongById(songId)
     setShareUrl(songId)
     statusMessage.value = 'Song loaded from cloud.'
-    modalManager.closeModal('cloudSongsModal')
+    closeDialog('cloudSongsModal')
   } catch (error) {
     statusMessage.value = error instanceof Error ? error.message : 'Failed to open cloud song'
   } finally {

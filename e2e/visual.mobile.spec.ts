@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { waitForEditorShell } from './helpers'
+import { waitForEditorShell, waitForSoundFont } from './helpers'
 
 /** Phone layout baselines (`mobile` project, Pixel 7). Refresh: npx playwright test visual --update-snapshots */
 
@@ -12,6 +12,8 @@ async function openPhoneLayout(page: Page): Promise<void> {
     .poll(async () => Number(await page.locator('.tab-svg').getAttribute('width')))
     .toBeLessThanOrEqual(page.viewportSize()!.width)
   await page.evaluate(() => document.fonts.ready)
+  // The Play button shows the SoundFont download until it is done; the baseline is after it.
+  await waitForSoundFont(page)
 }
 
 test.describe('phone layout baselines', () => {

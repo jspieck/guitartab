@@ -1,0 +1,445 @@
+/*
+ * The toolbar (components/Menu.vue): a top bar for the song and playback and an edit bar with
+ * tabs, 48 px each. Buttons: `.tb-button` (icon), `.tb-pill` (text with a border), `.tb-play`.
+ * Pressed = accent-soft background with an accent icon; disabled = faint; keyboard focus ring.
+ */
+
+#completeBar.toolbar {
+  position: relative;
+  z-index: 200;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: 1.2;
+}
+
+.toolbar__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 48px;
+  padding: 0 var(--space-2);
+  box-sizing: border-box;
+  /* Groups fold into menus before this clips (useToolbarFit). */
+  overflow: hidden;
+}
+
+.toolbar__bar--edit {
+  justify-content: flex-start;
+  height: 47px;
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-chrome);
+}
+
+.toolbar__section,
+.toolbar__group {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar__position {
+  margin-left: auto;
+}
+
+.toolbar__sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--color-divider);
+}
+
+.toolbar__zoom {
+  min-width: 40px;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.toolbar__chip,
+.toolbar__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.toolbar__chip {
+  padding: 0 var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.toolbar__label {
+  margin: 0 6px 0 2px;
+}
+
+/* While playing the edit tools are inert (they used to be hidden). */
+.toolbar__bar--edit.is-inert > * {
+  opacity: 0.45;
+}
+
+/* Buttons */
+
+.toolbar .tb-button,
+.tb-menu .tb-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar .tb-button:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.toolbar__bar--edit .tb-button:hover:not(:disabled) {
+  background: var(--color-chrome-hover);
+}
+
+.toolbar .tb-button.is-pressed {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.toolbar .tb-button:disabled {
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
+.toolbar .tb-button--text {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.toolbar .tb-button--music-font {
+  font-family: notesFont;
+  font-size: 20px;
+  font-weight: normal;
+}
+
+/* Music symbols read better a little larger than the line icons. */
+.toolbar__bar--edit .tb-button .app-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.toolbar__bar--edit #wholeNote .app-icon {
+  width: 14px;
+}
+
+.toolbar .tb-play {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  cursor: pointer;
+}
+
+.toolbar .tb-play:hover {
+  background: var(--color-accent-strong);
+}
+
+/* SoundFont still downloading: a soft button with the download as a ring around it */
+.toolbar .tb-play.is-loading {
+  background:
+    radial-gradient(closest-side, var(--color-accent-soft) calc(100% - 3px), transparent calc(100% - 2px)),
+    conic-gradient(var(--color-accent) calc(var(--load-progress, 0) * 1turn), var(--color-border) 0);
+  color: var(--color-accent);
+}
+
+/* Play was pressed: it starts once the instruments are there */
+.toolbar .tb-play.is-waiting {
+  animation: play-waiting 1.2s ease-in-out infinite;
+}
+
+@keyframes play-waiting {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toolbar .tb-play.is-waiting {
+    animation: none;
+  }
+}
+
+.toolbar .tb-record {
+  color: var(--color-danger);
+}
+
+.toolbar .tb-record.is-pressed {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.toolbar .tb-record.recording .app-icon {
+  animation: tb-recording 1.2s ease-in-out infinite;
+}
+
+@keyframes tb-recording {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.toolbar .tb-pill,
+.tb-menu .tb-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-md);
+  white-space: nowrap;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.toolbar select.tb-pill {
+  padding: 0 4px;
+}
+
+.toolbar .tb-pill:hover {
+  border-color: var(--color-border-strong);
+}
+
+.toolbar .tb-tempo {
+  min-width: 64px;
+  justify-content: center;
+  cursor: ns-resize;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* The note sign is decoration: the element's text stays the number. */
+.toolbar .tb-tempo::before {
+  content: '♩';
+  font-size: 15px;
+}
+
+.toolbar input.tb-tempo--input {
+  width: 72px;
+  padding: 0 6px;
+  border-color: var(--color-accent);
+  background: var(--color-field);
+  color: var(--color-text);
+  cursor: text;
+}
+
+.toolbar input.tb-tempo--input::before {
+  content: none;
+}
+
+.toolbar__tuplet {
+  height: 26px;
+  margin-left: 2px;
+}
+
+.toolbar .tb-button:focus-visible,
+.toolbar .tb-pill:focus-visible,
+.toolbar .tb-play:focus-visible,
+.toolbar__tab:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+/* Edit tabs and the voice switch: segmented controls */
+
+.toolbar__tabs,
+.toolbar__segmented {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--color-surface-raised);
+}
+
+.toolbar__tab {
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toolbar__tab:hover {
+  color: var(--color-text);
+}
+
+.toolbar__tab.is-selected,
+.toolbar .toolbar__segmented .tb-button.is-pressed {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar .toolbar__segmented .tb-button {
+  width: 28px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+/* Menus opened from the toolbar (teleported to <body>) */
+
+.tb-menu {
+  display: inline-flex;
+  flex: none;
+}
+
+.tb-popover {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 120px);
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: 1.3;
+  box-shadow: var(--shadow-popover);
+  box-sizing: border-box;
+}
+
+.tb-popover__heading {
+  padding: 8px 8px 2px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tb-popover__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tb-popover__item:hover:not(:disabled),
+.tb-popover__item:focus-visible {
+  background: var(--color-hover);
+  outline: none;
+}
+
+.tb-popover__item.is-pressed {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.tb-popover__item:disabled {
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
+.tb-popover__icon {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
+  width: 24px;
+}
+
+.tb-popover__icon--music-font {
+  font-family: notesFont;
+  font-size: 18px;
+}
+
+.tb-popover__label {
+  flex: 1;
+}
+
+.tb-popover__hint {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.tb-tooltip {
+  position: fixed;
+  z-index: 1200;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-inverse);
+  color: var(--color-inverse-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  box-shadow: var(--shadow-md);
+}
+
+/* The current track's instrument, under the toolbar on the right. */
+#trackCapsule {
+  position: absolute;
+  z-index: 99;
+  top: 108px;
+  right: 24px;
+}
+
+#trackSign {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+#trackSign img {
+  padding: 7px;
+  box-sizing: border-box;
+}

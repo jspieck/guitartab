@@ -15,10 +15,6 @@ vi.mock('../src/services/playback', () => import('./helpers/legacyMocks').then((
 vi.mock('../src/services/midi/liveInput', () =>
   import('./helpers/legacyMocks').then((m) => m.liveInputModule),
 )
-vi.mock('../src/services/dialogs/modalManager', () =>
-  import('./helpers/legacyMocks').then((m) => m.modalManagerModule),
-)
-
 const getRowIdForBlock = vi.fn()
 const getBeatPositionInRow = vi.fn()
 const getMeasureEndPositionInRow = vi.fn()

@@ -84,13 +84,16 @@
 import { computed } from 'vue'
 import type { TabBeat } from '../../types/tab'
 import type { RowLanes } from '../../utils/tabRowLanes'
-import { getMeasureBeatWidth, getMeasureBeatX } from '../../utils/measureBeatLayout'
+import { getMeasureBeatNoteX } from '../../utils/measureBeatLayout'
 import {
   getRestSymbol,
   getBeamCount,
-  beatHasNotes,
+  beatShowsRhythm,
 } from '../../utils/durationUtils'
 import { getBeamedBeatGroups, getBeamedBeatIndices } from '../../utils/tabBeaming'
+import { stringLine } from '../../utils/tabStrings'
+import { STEMS_UP_BEAM_Y } from '../../utils/tabRowLanes'
+import Settings from '../../stores/settingsState'
 
 // =============================================================================
 // Types
@@ -139,6 +142,8 @@ interface Props {
   numStrings: number
   measureWidth: number
   lanes?: RowLanes
+  /** Rhythm on stems with a second voice in the bar: this (first) voice's stems go up. */
+  stemsUp?: boolean
 }
 
 const props = defineProps<Props>()
@@ -147,30 +152,32 @@ const BEAM_OFFSET_FROM_BOTTOM = 15  // Distance below the last string
 const BEAM_SPACING = 6  // Vertical spacing between multiple beams (needs room for 2+ beams)
 const BEAM_THICKNESS = 2  // Thickness of beam lines
 
+/** The primary beam: below the strings, or above them for stems going up. */
 function getBeamY(): number {
-  return (props.numStrings - 1) * props.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
+  return props.stemsUp ? STEMS_UP_BEAM_Y : (props.numStrings - 1) * props.stringSpacing + BEAM_OFFSET_FROM_BOTTOM
 }
 
-function calculateBeatX(beatIndex: number): number {
-  return getMeasureBeatX(
-    props.trackId,
-    props.voiceId,
-    props.blockId,
-    beatIndex,
-    props.measureData,
-  )
+/** Secondary beams and flags stack away from the strings. */
+const away = computed(() => (props.stemsUp ? -1 : 1))
+
+/**
+ * Where a stem starts. In the rhythm band: below the last string. On stems: at the digit
+ * nearest the beam (the lowest one, or the highest for stems going up; a slash's middle).
+ */
+function stemStartY(beat: TabBeat): number {
+  const lastStringY = (props.numStrings - 1) * props.stringSpacing
+  if (!Settings.tabRhythmOnStems) return lastStringY + 5
+  const ys = beat.slash
+    ? [lastStringY / 2]
+    : (beat.notes ?? []).flatMap((note, string) =>
+        note != null ? [stringLine(string, props.numStrings) * props.stringSpacing] : [],
+      )
+  if (ys.length === 0) return lastStringY + 5
+  return props.stemsUp ? Math.min(...ys) - 8 : Math.max(...ys) + 7
 }
 
 function getNoteCenterX(beatIndex: number): number {
-  const beatStartX = calculateBeatX(beatIndex)
-  const displayWidth = getMeasureBeatWidth(
-    props.trackId,
-    props.voiceId,
-    props.blockId,
-    beatIndex,
-    props.measureData,
-  )
-  return beatStartX + displayWidth / 2
+  return getMeasureBeatNoteX(props.trackId, props.voiceId, props.blockId, beatIndex, props.measureData)
 }
 
 /**
@@ -199,7 +206,7 @@ function createBeamPaths(beamGroup: BeatPosition[]): Beam[] {
   
   // Secondary beams (level 1+) - only connect adjacent notes that BOTH have this level
   for (let level = 1; level < maxBeamCount; level++) {
-    const y = beamY + (level * BEAM_SPACING)
+    const y = beamY + away.value * level * BEAM_SPACING
     
     for (let i = 0; i < beamGroup.length - 1; i++) {
       const current = beamGroup[i]
@@ -274,6 +281,7 @@ const beams = computed((): Beam[] => {
 /**
  * Calculate stems for notes that need them
  * Stems are shown for all notes except whole notes
+ * - Half notes get a short stem (half the height, on the beam side)
  * - Quarter notes get just a stem (no flag)
  * - Eighth notes get stem + 1 flag/beam
  * - Sixteenth notes get stem + 2 flags/beams
@@ -281,26 +289,25 @@ const beams = computed((): Beam[] => {
 const stems = computed((): Stem[] => {
   const result: Stem[] = []
   const beamY = getBeamY()
-  const lastStringY = (props.numStrings - 1) * props.stringSpacing
   
   props.measureData.forEach((beat, beatIndex) => {
     if (!beat) return
     
-    const hasNotes = beatHasNotes(beat)
-    if (!hasNotes) return
+    if (!beatShowsRhythm(beat)) return
     
     // Get base duration (without 'r' suffix)
     const baseDuration = beat.duration?.replace('r', '') || 'q'
     
-    // Whole notes (w) and half notes (h) don't need stems in tab
-    // Quarter notes (q) and shorter need stems
-    if (baseDuration === 'w' || baseDuration === 'h' || baseDuration === 'whole' || baseDuration === 'half') {
+    // Whole notes have no stem in tab
+    if (baseDuration === 'w' || baseDuration === 'whole') {
       return
     }
+    const isHalf = baseDuration === 'h' || baseDuration === 'half'
     
     const x = getNoteCenterX(beatIndex)
-    // Stem goes from just below the last string to the beam line
-    const y1 = lastStringY + 5
+    // Stem goes from its start (stemStartY) to the beam line; a half note's is half as long
+    const stemTop = stemStartY(beat)
+    const y1 = isHalf ? (stemTop + beamY) / 2 : stemTop
     const y2 = beamY
     
     result.push({ x, y1, y2 })
@@ -322,7 +329,7 @@ const flags = computed((): Flag[] => {
     if (!beat) return
     
     const beamCount = getBeamCount(beat.duration)
-    const hasNotes = beatHasNotes(beat)
+    const hasNotes = beatShowsRhythm(beat)
     
     // Only add flags for notes that:
     // 1. Have a beam count > 0 (eighth notes or shorter)
@@ -334,10 +341,11 @@ const flags = computed((): Flag[] => {
     const paths: string[] = []
     
     // Create curved flag paths (one for each beam level)
+    const dir = away.value
     for (let level = 0; level < beamCount; level++) {
-      const startY = beamY + (level * BEAM_SPACING)
-      // Create a curved flag that goes to the right and down
-      const path = `M${x} ${startY}Q${x + FLAG_LENGTH} ${startY + 3} ${x + FLAG_LENGTH - 2} ${startY + 10}`
+      const startY = beamY + dir * level * BEAM_SPACING
+      // A curved flag to the right, away from the strings
+      const path = `M${x} ${startY}Q${x + FLAG_LENGTH} ${startY + dir * 3} ${x + FLAG_LENGTH - 2} ${startY + dir * 10}`
       paths.push(path)
     }
     
@@ -359,11 +367,8 @@ const rests = computed((): Rest[] => {
   props.measureData.forEach((beat, beatIndex) => {
     if (!beat?.duration) return
     
-    // Check if this beat has any notes - be very thorough
-    const hasNotes = beatHasNotes(beat)
-    
-    // Skip if beat has any notes - never show rest over notes
-    if (hasNotes) return
+    // Never show a rest over notes or a slash
+    if (beatShowsRhythm(beat)) return
     
     // Only show rest for beats with no notes
     result.push({
@@ -383,6 +388,7 @@ const tuplets = computed((): Tuplet[] => {
   const result: Tuplet[] = []
   let currentGroup: { beatIndex: number; x: number }[] = []
   let currentTupletValue = 0
+  let currentTupletId: number | undefined
   
   props.measureData.forEach((beat, beatIndex) => {
     if (!beat) return
@@ -390,7 +396,10 @@ const tuplets = computed((): Tuplet[] => {
     const tupletValue = beat.tuplet || 0
     
     if (tupletValue > 0) {
-      if (currentTupletValue === 0 || currentTupletValue === tupletValue) {
+      // One bracket per tuplet group: two triplets in a row are two groups (`tupletId`, numbered on load).
+      const sameGroup = currentTupletValue === tupletValue && beat.tupletId === currentTupletId
+      currentTupletId = beat.tupletId
+      if (currentTupletValue === 0 || sameGroup) {
         // Continue or start group
         currentTupletValue = tupletValue
         currentGroup.push({

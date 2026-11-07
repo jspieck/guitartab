@@ -1,11 +1,12 @@
 import Song, { type Note } from '../../stores/song'
+import { advanceBeatClock, resetBeatClock } from '../../stores/beatClockState'
 import Settings from '../../stores/settingsState'
 import { setSequencerIndicator } from '../../stores/sequencerState'
 import { showPlaybackBeat } from '../../stores/soundingNotesState'
 import { tabLayout } from '../../stores/tabLayoutState'
 import { audioGraph } from '../audio/audioGraph'
 import * as navigationController from '../editor/navigationController'
-import { publishPlaybackPosition } from '../editor/playbackEngineBridge'
+import { publishPlaybackPosition } from '../../stores/playbackTransportState'
 import * as playbackController from '../editor/playbackController'
 import { startPosition } from './startPosition'
 
@@ -91,6 +92,7 @@ class Playhead {
     if (!Settings.songPlaying) {
       this.reset()
       this.queue.length = 0
+      resetBeatClock()
       return
     }
     if (this.pendingTrackChange) {
@@ -100,6 +102,7 @@ class Playhead {
       this.trackChanged = true
     }
     const now = audioGraph.getCurrentTime()
+    advanceBeatClock(now)
     let reached: QueuedBeat | null = null
     while (this.queue.length > 0 && this.queue[0].time < now) {
       reached = this.queue.shift()!
