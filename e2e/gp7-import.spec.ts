@@ -95,7 +95,8 @@ const expected = {
   comments: ['Line one', 'Line two'],
   tracks: [
     { name: 'Lead Guitar', strings: [40, 45, 50, 55, 59, 64], capo: 2, channel: 0, program: 29 },
-    { name: 'Drums', strings: [0, 0, 0, 0, 0, 0], capo: 0, channel: 9, program: 0 },
+    // A drum track has one line per drum it uses (utils/drumMap.ts): kick, hi-hat, snare.
+    { name: 'Drums', strings: [0, 0, 0], capo: 0, channel: 9, program: 0 },
   ],
   bars: [
     {
