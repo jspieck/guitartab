@@ -21,8 +21,9 @@ const BUDGETS_KB = {
   'editor-core-': 240,
   'notation-': 1100,
   // The shortcut table; the key handler matches every key against it, so it can't be lazy
-  // (6.9 KB with the selection, rhythm, voice and transpose keys of audit Big win 8)
-  'shortcuts-': 8,
+  // (6.9 KB with the selection, rhythm, voice and transpose keys of audit Big win 8;
+  // 8.5 KB with the drum editor's keys)
+  'shortcuts-': 10,
   // AppIcon + the generated icon map (scripts/build-icons.mjs)
   'icons-': 40,
   'toolbar-': 32,
@@ -79,7 +80,8 @@ if (violations.length > 0) {
   for (const violation of violations) {
     console.error(`- ${violation.file}: ${violation.sizeKb} KB (limit ${violation.limitKb} KB)`)
   }
-  process.exit(1)
+  // Keep going: a chunk cycle (below) crashes the app and must not hide behind a size overrun.
+  process.exitCode = 1
 }
 
 // Two chunks that import each other statically run in an order where one reads the other's
@@ -172,6 +174,8 @@ if (eagerLazy.length > 0 || startupBytes > STARTUP_BUDGET_KB * 1024) {
   )
   process.exit(1)
 }
+
+if (process.exitCode === 1) process.exit(1)
 
 console.log(
   `Bundle budgets passed for ${assets.length} JS assets; startup JS ${Math.round(startupBytes / 1024)} KB of ${STARTUP_BUDGET_KB} KB in ${startup.length} chunks.`,

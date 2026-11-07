@@ -93,6 +93,9 @@ const EDITOR_CORE_PATHS = [
   '/src/services/songMigrations.ts',
   '/src/services/userNotifications.ts',
   '/src/services/theme.ts',
+  // isDrumTrack is used by note entry and the keyboard dispatch; in studio-panels it made
+  // editor-core and studio-panels import each other (production build crashed on load).
+  '/src/services/drumMixer.ts',
 ]
 
 // The VexFlow code: loaded with the classical notation, never at startup.
@@ -169,7 +172,6 @@ function manualChunks(id: string): string | undefined {
     normalizedId.includes('/src/components/Compressor.vue') ||
     normalizedId.includes('/src/components/audio/VerticalFader.vue') ||
     normalizedId.includes('/src/components/audio/audioPlugin.css') ||
-    normalizedId.includes('/src/services/drumMixer.ts') ||
     normalizedId.includes('/src/components/audio/equalizerGraph.ts') ||
     normalizedId.includes('/src/composables/useDialogOpen.ts')
   ) {
