@@ -99,6 +99,8 @@
         <button type="button" role="menuitem" @click="zoomBy(0.15)">Larger tab</button>
         <button type="button" role="menuitem" @click="zoomBy(-0.15)">Smaller tab</button>
         <button type="button" role="menuitem" @click="run(useDesktopLayout)">Desktop layout</button>
+        <div class="compact-menu__heading" role="presentation">About</div>
+        <button type="button" role="menuitem" @click="run(() => toolbarAction('about').run())">About, credits and legal…</button>
       </div>
     </Teleport>
   </header>

@@ -200,7 +200,7 @@ export function downloadSvgMarkup(markup: string, filename = 'guitartab.svg'): v
   URL.revokeObjectURL(url)
 }
 
-/** Families named in the export's inlined styles ("Source Sans Pro", "notesFont", …). */
+/** Families named in the export's inlined styles ("Source Sans Pro", "musicFont", …). */
 export function usedFontFamilies(markup: string): Set<string> {
   const families = new Set<string>()
   // inlined styles (`font-family: &quot;Source Sans Pro&quot;`) and attributes (`font-family="…"`)

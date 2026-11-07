@@ -480,8 +480,10 @@ onBeforeUnmount(() => {
 }
 
 .note-menu__chip--music-font {
-  font-family: notesFont;
-  font-size: 20px;
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 700;
 }
 
 .note-menu__divider {

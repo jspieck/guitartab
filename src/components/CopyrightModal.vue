@@ -1,103 +1,34 @@
 <template>
   <BaseModal :modal-id="DIALOGS.COPYRIGHT.id">
-    <template #title>Copyright</template>
+    <template #title>About SereneTab</template>
     <div class="modal-stack copyright-modal">
       <p class="modal-body-text">
-        Copyright 2018–{{ currentYear }} Jan Spieck. The samples used for the instruments come from different sources.
-        If the usage of any sample is against the will of the respective owner, the sample will be removed immediately.
-        No copyright infringement is intended.
+        SereneTab is a free guitar tab editor and player that runs entirely in your browser: your songs and files
+        stay on your device. Copyright 2018–{{ currentYear }} Jan Spieck, released under the MIT licence.
+      </p>
+      <p class="copyright-links">
+        <a href="impressum.html" target="_blank" rel="noopener">Impressum</a>
+        <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz / Privacy</a>
+        <a href="https://github.com/jspieck/guitartab" target="_blank" rel="noopener">Source code</a>
+        <a href="https://github.com/jspieck/guitartab/issues" target="_blank" rel="noopener">Report a problem</a>
       </p>
       <!-- Scrolls on its own, so keyboard users must be able to focus it. -->
-      <div class="modal-surface-block copyright-table-wrap" tabindex="0" role="region" aria-label="Sample sources">
+      <div class="modal-surface-block copyright-table-wrap" tabindex="0" role="region" aria-label="Credits">
         <table id="sampleSourceList" class="copyright-table">
           <thead>
             <tr>
-              <th>Sample Source</th>
-              <th>URL</th>
-              <th>Instruments</th>
+              <th>Credit</th>
+              <th>Licence</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Sampled from AmpleSound Guitar VSTs</td>
-              <td>http://www.amplesound.net/en/index.asp</td>
-              <td>Nylon/Western Guitar, Muted Guitar, Overdrive Guitar, Bass</td>
-            </tr>
-            <tr>
-              <td>Hammondman</td>
-              <td>https://freesound.org/people/hammondman/packs/18842/</td>
-              <td>Accordeon</td>
-            </tr>
-            <tr>
-              <td>bigcat saxophone collection</td>
+            <tr v-for="credit in CREDITS" :key="credit.name">
               <td>
-                http://bigcatinstruments.blogspot.de/2014/03/bigcat-saxophone-collection.html
+                <a v-if="credit.url" :href="credit.url" target="_blank" rel="noopener">{{ credit.name }}</a>
+                <template v-else>{{ credit.name }}</template>
+                <span class="copyright-use">{{ credit.use }}</span>
               </td>
-              <td>Tenor/Soprano/Bartitone Sax</td>
-            </tr>
-            <tr>
-              <td>bigcat general midi instruments</td>
-              <td>
-                http://bigcatinstruments.blogspot.de/2014/08/gm-midi-instruments-for-kontakt.html
-              </td>
-              <td>
-                Pan Flute, Blown Bottle, Whistle, Ocarina, SynthBrass 1/2, Muted Tumpret, Brass Section, Synth Strings, Orchestra Hit,
-                GuitarFretNoise, Breath Noise, Seashore, Bird Tweet, Telephone Ring, Helicopter, Applause, Gunshot, Tinkle Bell, Steel Drum, Taiko,
-                Melodic Tom, Synth Drum, Reverse Cymbal, Sitar, Shamisen, Koto, Kalimba, Bagpipe, Fiddle, Shanai
-              </td>
-            </tr>
-            <tr>
-              <td>Sampled from Orchestral Companion VST</td>
-              <td>
-                https://sonivoxmi.com/products/details/orchestral-companion-strings
-              </td>
-              <td>Tremolo Strings, Pizzicato Strings, Violin</td>
-            </tr>
-            <tr>
-              <td>Kontakt Factory Library</td>
-              <td>
-                https://www.native-instruments.com/de/products/komplete/samplers/kontakt-5/
-              </td>
-              <td>
-                VoicesAah, VoicesOoh, EGuitar, Session Drums, Vibraphone, Agogo, Woodblock
-              </td>
-            </tr>
-            <tr>
-              <td>Leeds Organ</td>
-              <td>
-                https://www.samplephonics.com/products/free/sampler-instruments/the-leeds-town-hall-organ
-              </td>
-              <td>
-                Organ, Percussive Organ, Church Organ, Rock organ, Reed Organ,
-              </td>
-            </tr>
-            <tr>
-              <td>Don's General Midi Sample Set</td>
-              <td>http://midkar.com/soundfonts/</td>
-              <td>
-                Piano, Bright Piano, Electric Grand, HonkyTonk, EPiano1, Epiano2,
-                Harpsichord, Clavinet, Shakuhachi, Marimba, Tubular Bells, Dulcimer,
-                MusicBox, Celesta, Harmonica, Bandoneon, Cabasa & several other drum
-                sounds, Leads, Pads, FX
-              </td>
-            </tr>
-            <tr>
-              <td>Sonatina</td>
-              <td>https://sso.mattiaswestlund.net/</td>
-              <td>
-                Piccolo, Strings, Alto Sax, Clarinet, Flute, Xylophone, Harp,
-                Glockenspiel, Banjo
-              </td>
-            </tr>
-            <tr>
-              <td>Versilian Orchestra</td>
-              <td>http://vis.versilstudios.net/vsco-2.html</td>
-              <td>Cello, Contrabass</td>
-            </tr>
-            <tr>
-              <td>Philarmonia Orchestra</td>
-              <td>http://www.philharmonia.co.uk/explore/sound_samples</td>
-              <td>Tuba, Trumpet, Trombone, French/English Horn</td>
+              <td>{{ credit.licence }}</td>
             </tr>
           </tbody>
         </table>
@@ -112,11 +43,60 @@ import { DIALOGS } from "../services/dialogs/dialogs"
 
 // Read when the dialog mounts, so the range always ends at the current year.
 const currentYear = new Date().getFullYear();
+
+/** Same list as THIRD_PARTY_NOTICES.md; keep both in step. */
+const CREDITS = [
+  {
+    name: 'GeneralUser GS 2.0.3 by S. Christian Collins',
+    url: 'https://github.com/mrbumpy409/GeneralUser-GS',
+    licence: 'GeneralUser GS License v2.0',
+    use: 'Instrument and drum sounds',
+  },
+  {
+    name: 'Mutopia Project',
+    url: 'https://www.mutopiaproject.org',
+    licence: 'Public domain, CC BY-SA 2.0/2.5',
+    use: 'Example songs (credits in each song\'s info)',
+  },
+  { name: 'Vue', url: 'https://vuejs.org', licence: 'MIT', use: 'User interface' },
+  {
+    name: 'VexFlow',
+    url: 'https://www.vexflow.com',
+    licence: 'MIT; music fonts SIL OFL 1.1',
+    use: 'Classical notation',
+  },
+  { name: 'fflate, lz-string', url: null, licence: 'MIT', use: 'File compression' },
+  { name: 'mitt, fastdom, tinycolor2', url: null, licence: 'MIT', use: 'Events, layout, colours' },
+  { name: 'vanilla-picker', url: 'https://github.com/Sphinxxxx/vanilla-picker', licence: 'ISC', use: 'Colour picker' },
+  { name: '@wasm-audio-decoders/ogg-vorbis', url: null, licence: 'MIT', use: 'Decoding compressed SoundFonts' },
+  { name: 'Source Sans Pro (Adobe)', url: null, licence: 'SIL OFL 1.1', use: 'Text font' },
+] as const
 </script>
 
 <style scoped>
+/* Dialogs are at most 420 px wide (guitarTab.scss); same width as the example songs. */
 .copyright-modal {
-  width: min(640px, calc(100vw - 32px));
+  width: min(386px, calc(100vw - 66px));
+}
+
+.copyright-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.copyright-use {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.copyright-links a,
+.copyright-table a {
+  color: var(--color-accent);
 }
 
 .copyright-table-wrap {
@@ -129,6 +109,7 @@ const currentYear = new Date().getFullYear();
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  line-height: 1.4;
 }
 
 .copyright-table th,

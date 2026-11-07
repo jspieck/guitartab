@@ -1,0 +1,52 @@
+/* Impressum and privacy pages: static, outside the app (no tokens.css here). */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --text: #1f2328;
+  --muted: #57606a;
+  --link: #2558c8;
+  --rule: #d8dee4;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171b;
+    --text: #e6e8eb;
+    --muted: #a5adb8;
+    --link: #8db3ff;
+    --rule: #30363d;
+  }
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+h1 {
+  font-size: 1.8rem;
+  margin: 0.5rem 0 1.5rem;
+}
+h2 {
+  font-size: 1.15rem;
+  margin: 2rem 0 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+a {
+  color: var(--link);
+}
+.summary {
+  font-size: 1.05rem;
+}
+.back,
+.updated {
+  color: var(--muted);
+}
+.links {
+  margin-top: 2.5rem;
+}

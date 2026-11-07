@@ -43,7 +43,7 @@ export const DIALOGS = {
   REPEAT_ALTERNATIVE: { id: 'repeatAlternativeModal', name: 'Repeat Alternative' },
   ADD_CHORD: { id: 'addChordModal', name: 'Add Chord' },
   CHORD_MANAGER: { id: 'chordManagerModal', name: 'Chord Manager' },
-  COPYRIGHT: { id: 'copyrightModal', name: 'Copyright' },
+  COPYRIGHT: { id: 'copyrightModal', name: 'About' },
   EXAMPLE_SONGS: { id: 'exampleSongsModal', name: 'Example songs' },
   CLOUD_SONGS: { id: 'cloudSongsModal', name: 'Cloud songs' },
 } as const satisfies Record<string, DialogDefinition>

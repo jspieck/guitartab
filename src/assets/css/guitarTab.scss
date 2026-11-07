@@ -2,11 +2,6 @@
 @use 'sass:meta';
 
 @font-face {
-    font-family: maestro;
-    src: url(../fonts/maestro.ttf);
-    font-weight: normal;
-}
-@font-face {
     font-family: "Source Sans Pro";
     src: url(../fonts/SourceSansPro-Regular.ttf);
     font-weight: normal;
@@ -14,11 +9,6 @@
 @font-face {
     font-family: "musicFont";
     src: url(../fonts/musicFont.ttf);
-    font-weight: normal;
-}
-@font-face {
-    font-family: "notesFont";
-    src: url(../fonts/a1.ttf);
     font-weight: normal;
 }
 
@@ -2454,6 +2444,16 @@ table{
 #midiLabel{
     margin-right:2px;
     cursor: pointer;
+}
+.footerLink{
+    color: var(--color-text-muted);
+    text-decoration: none;
+}
+.footerLink:hover{
+    text-decoration: underline;
+}
+#footerImprint{
+    margin-left: 14px;
 }
 #modeSwitcher, #capoLabel, #autoScroll, #tuningFooter, #drumMixerOpen, #samplesOpen{
      cursor:pointer

@@ -108,7 +108,7 @@ export interface ToolbarAction {
   icon?: IconName
   /** Shown instead of an icon (T/S/P, the dynamics glyphs). */
   text?: string
-  /** The text is a glyph of the music font (dynamics). */
+  /** The text is a dynamic marking, drawn in bold italic serif like the tab's dynamics. */
   musicFont?: boolean
   /** Its keyboard shortcut, from `SHORTCUTS`; the tooltip shows it. */
   shortcut?: ShortcutId
@@ -228,6 +228,14 @@ export const TOOLBAR_ACTIONS: readonly ToolbarAction[] = [
     group: 'file',
     icon: 'history',
     run: () => toggleDraftsPanel(),
+  },
+  {
+    id: 'about',
+    label: 'About, credits and legal',
+    group: 'file',
+    icon: 'help',
+    opensDialog: true,
+    run: () => toggleDialog(DIALOGS.COPYRIGHT),
   },
   {
     id: 'undoButton',
@@ -549,15 +557,15 @@ export const TOOLBAR_ACTIONS: readonly ToolbarAction[] = [
   effect('stroke', 'Strum', 'effects-accent', { icon: 'stroke' }, true),
   effect('letRing', 'Let ring', 'effects-accent', { icon: 'let-ring' }),
 
-  // Edit bar, Dynamics (glyphs of the notes font)
-  dynamic('pppDynamic', 'Pianississimo (ppp)', '¸'),
+  // Edit bar, Dynamics (bold italic serif letters, as the tab draws them)
+  dynamic('pppDynamic', 'Pianississimo (ppp)', 'ppp'),
   dynamic('ppDynamic', 'Pianissimo (pp)', 'pp'),
   dynamic('pDynamic', 'Piano (p)', 'p'),
-  dynamic('mpDynamic', 'Mezzo piano (mp)', 'P'),
-  dynamic('mfDynamic', 'Mezzo forte (mf)', 'F'),
+  dynamic('mpDynamic', 'Mezzo piano (mp)', 'mp'),
+  dynamic('mfDynamic', 'Mezzo forte (mf)', 'mf'),
   dynamic('fDynamic', 'Forte (f)', 'f'),
-  dynamic('ffDynamic', 'Fortissimo (ff)', 'Ä'),
-  dynamic('fffDynamic', 'Fortississimo (fff)', 'ì'),
+  dynamic('ffDynamic', 'Fortissimo (ff)', 'ff'),
+  dynamic('fffDynamic', 'Fortississimo (fff)', 'fff'),
 
   // Edit bar, Bar
   notation('timeMeter', 'Time signature', 'bar', 'time-signature'),

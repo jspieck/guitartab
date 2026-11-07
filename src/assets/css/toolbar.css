@@ -128,10 +128,13 @@
   font-weight: 700;
 }
 
+/* Dynamics: bold italic serif, as the tab draws them. */
 .toolbar .tb-button--music-font {
-  font-family: notesFont;
-  font-size: 20px;
-  font-weight: normal;
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 /* Music symbols read better a little larger than the line icons. */
@@ -394,8 +397,10 @@
 }
 
 .tb-popover__icon--music-font {
-  font-family: notesFont;
-  font-size: 18px;
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 700;
 }
 
 .tb-popover__label {

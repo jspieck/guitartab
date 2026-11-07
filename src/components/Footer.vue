@@ -28,6 +28,9 @@
             @click="toggleDialog(DIALOGS.MIDI, {})" @keydown.enter.prevent="toggleDialog(DIALOGS.MIDI, {})">MIDI
             <span id="isMidiActive" :class="{ activated: midiConnected }" aria-hidden="true"></span>
         </div>
+        <!-- Legal pages (static files in public/), reachable from every screen. -->
+        <a id="footerImprint" class="footerBlock footerLink" href="impressum.html" target="_blank" rel="noopener">Impressum</a>
+        <a id="footerPrivacy" class="footerBlock footerLink" href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
     </div>
 </template>
 

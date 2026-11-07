@@ -10,7 +10,7 @@
                 <div v-else class="toolbar__group" data-fold="file">
                     <ToolbarButton :action="act('openFile')" />
                     <SaveFormatMenu />
-                    <ToolbarButton v-for="id in ['exampleSongs', 'cloudSongs', 'printTab', 'createPDF', 'info', 'recoverDrafts']" :key="id"
+                    <ToolbarButton v-for="id in FILE_BAR_ACTIONS" :key="id"
                         :action="act(id)" />
                     <span class="toolbar__sep" />
                 </div>
@@ -144,6 +144,7 @@ import { useToolbarFit } from '../composables/useToolbarFit'
 import { useToolbarTooltip } from '../composables/useToolbarTooltip'
 import { EXPORT_OPTIONS, exportSongAs } from '../utils/exportFormats'
 import { formatCursorPosition } from '../utils/positionLabel'
+import { CLOUD_ENABLED } from '../utils/features'
 import AppIcon from './AppIcon.vue'
 import PracticeControls from './PracticeControls.vue'
 import SaveFormatMenu from './SaveFormatMenu.vue'
@@ -222,6 +223,13 @@ const moreEntries = computed<ToolbarMenuEntry[]>(() =>
         .flatMap((group) => [{ kind: 'heading', label: group.label } as ToolbarMenuEntry, ...actionEntries(actionsInGroup(group.id))]),
 )
 
+/** The file group's extra actions; Cloud songs only in builds with the server API (utils/features.ts). */
+const FILE_MORE_ACTIONS = [
+    ...(CLOUD_ENABLED ? ['cloudSongs'] : []),
+    'printTab', 'createPDF', 'info', 'recoverDrafts',
+]
+const FILE_BAR_ACTIONS = ['exampleSongs', ...FILE_MORE_ACTIONS]
+
 const fileMenuEntries = computed<ToolbarMenuEntry[]>(() => [
     ...actionEntries([act('openFile'), act('exampleSongs')]),
     { kind: 'heading', label: 'Save as' },
@@ -233,7 +241,7 @@ const fileMenuEntries = computed<ToolbarMenuEntry[]>(() => [
         run: () => exportSongAs(option.format),
     })),
     { kind: 'heading', label: 'More' },
-    ...actionEntries(['cloudSongs', 'printTab', 'createPDF', 'info', 'recoverDrafts'].map(act)),
+    ...actionEntries([...FILE_MORE_ACTIONS, 'about'].map(act)),
 ])
 
 /** How the tab is drawn: options kept in one menu, so the top bar stays narrow. */

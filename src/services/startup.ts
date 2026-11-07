@@ -30,7 +30,6 @@ export function startUp(): void {
   }
 
   void document.fonts.load('10pt "musicFont"')
-  void document.fonts.load('10pt "notesFont"')
 
   document.addEventListener('wheel', zoomOnWheel, { passive: false })
   document.addEventListener('keydown', handleKeyDown, true)

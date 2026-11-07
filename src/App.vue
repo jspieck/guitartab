@@ -19,7 +19,7 @@
       <NoteMenu v-if="noteMenuState.open" :is-pressed="toolbar.isPressed" :is-disabled="toolbar.isDisabled" />
       <BigBeatDisplay v-if="practiceState.bigBeat" />
       <div id="mainContent" class="mainWrapper" ref="mainContent" role="main" aria-label="Tablature" tabindex="0" @click="focusMainContent">
-        <h1 class="visually-hidden">GuitarTab</h1>
+        <h1 class="visually-hidden">SereneTab</h1>
         <div id="completeTab" :class="completeTabClass" :style="completeTabStyle">
           <GuitarTabView
             :track-id="currentTrackId"
@@ -123,6 +123,7 @@ import { noteMenuState } from './stores/toolbarUiState'
 import { announcerState } from './stores/announcerState'
 import { openSongFile } from './services/songImport'
 import { SONG_FILE_INPUT_ID } from './services/editor/toolbarActions'
+import { CLOUD_ENABLED } from './utils/features'
 import { useToolbarState } from './composables/useToolbarState'
 
 const EffectsBar = defineAsyncComponent(() => import('./components/EffectsBar.vue'))
@@ -216,7 +217,7 @@ onMounted(() => {
   watchPracticeMemory()
   void checkForAutosaveDraft()
   // Shared links (?song=…); the loader is only fetched when there is one.
-  if (new URLSearchParams(window.location.search).has('song')) {
+  if (CLOUD_ENABLED && new URLSearchParams(window.location.search).has('song')) {
     void import('./services/cloudSongLoader').then(async ({ getCloudSongIdFromUrl, loadCloudSongById }) => {
       const cloudSongId = getCloudSongIdFromUrl()
       if (cloudSongId) await loadCloudSongById(cloudSongId)
