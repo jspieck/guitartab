@@ -1,0 +1,52 @@
+name: Deploy branch
+
+# Builds the app and force-pushes the finished dist/ to the `deploy` branch, which the
+# netcup webhosting (Plesk Git, automatic deployment via webhook) pulls into the
+# document root. Runs only after CI passed on main, so only green builds go live.
+# The SoundFont is not in the repository: it is uploaded once to <document root>/audio/.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+env:
+  HUSKY: 0
+
+jobs:
+  deploy:
+    name: Build and publish deploy branch
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The commit CI tested, not whatever main points at now.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vite build
+
+      # Never ship audio from the build: the hosted copy in /audio/ is managed by hand.
+      - name: Drop audio from the build
+        run: rm -rf dist/audio
+
+      - name: Publish dist/ to the deploy branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: deploy
+          publish_dir: ./dist
+          force_orphan: true
+          full_commit_message: Deploy ${{ github.event.workflow_run.head_sha || github.sha }}

@@ -1,0 +1,89 @@
+0.0000 sequencer 0:-1
+0.0000 bar@pos 0,0,0,0,0
+0.0000 ui started
+0.0000 position 0:0 0
+0.0250 note t0v0 s0 f0 vol=1 at=0.05 dur=0.5 guitar next=1 plain
+0.0640 sequencer 0:0
+0.0640 position 0:0 0
+0.0640 sounding 0
+0.0640 scroll 0,0,0,0
+0.0640 bar@beat 0,0,0,0,0
+0.0800 bar->pos 0,0,0,1,486,1.2,0,0
+0.1750 note t0v0 s0 f1 vol=1 at=0.55 dur=0.5 guitar next=2 plain
+0.5600 position 0:1 0
+0.5600 sounding 1
+0.5600 bar->pos 0,0,0,2,490,1.2,0,1
+0.6750 note t0v0 s0 f2 vol=1 at=1.05 dur=0.5 guitar next=3 plain
+1.0000 -- setLoop
+1.0000 stopVoice t0v0
+1.0000 stopVoice t0v1
+1.0000 stopAll
+1.0000 position 2:2 32
+1.0080 bar@beat 0,2,0,2,0
+1.0250 note t0v0 s0 f22 vol=1 at=1.025 dur=0.5 guitar next=23 plain
+1.0400 sequencer 0:2
+1.0400 position 2:2 0
+1.0400 sounding 22
+1.0400 scroll 0,0,1,2
+1.0400 bar@beat 0,2,0,2,0
+1.0560 bar->pos 0,2,0,3,485,1.2,2,2
+1.1250 note t0v0 s0 f23 vol=1 at=1.5 dur=0.5 guitar next=22 plain
+1.5040 position 2:3 0
+1.5040 sounding 23
+1.5040 bar->pos 0,2,0,2,496,1.2,2,3
+1.6250 note t0v0 s0 f22 vol=1 at=2 dur=0.5 guitar next=23 plain
+2.0000 position 2:2 32
+2.0160 position 2:2 0
+2.0160 sounding 22
+2.0160 bar@beat 0,2,0,2,0
+2.0320 bar->pos 0,2,0,3,484,1.2,2,2
+2.1250 note t0v0 s0 f23 vol=1 at=2.5 dur=0.5 guitar next=22 plain
+2.5120 position 2:3 0
+2.5120 sounding 23
+2.5120 bar->pos 0,2,0,2,488,1.2,2,3
+2.6250 note t0v0 s0 f22 vol=1 at=3 dur=0.5 guitar next=23 plain
+3.0000 position 2:2 32
+3.0080 position 2:2 0
+3.0080 sounding 22
+3.0080 bar@beat 0,2,0,2,0
+3.0240 bar->pos 0,2,0,3,492,1.2,2,2
+3.1250 note t0v0 s0 f23 vol=1 at=3.5 dur=0.5 guitar next=22 plain
+3.5040 position 2:3 0
+3.5040 sounding 23
+3.5040 bar->pos 0,2,0,2,496,1.2,2,3
+3.6250 note t0v0 s0 f22 vol=1 at=4 dur=0.5 guitar next=23 plain
+4.0000 position 2:2 32
+4.0000 -- clearLoop
+4.0000 stopVoice t0v0
+4.0000 stopVoice t0v1
+4.0160 position 2:2 0
+4.0160 sounding 22
+4.0160 bar@beat 0,2,0,2,0
+4.0250 note t0v0 s0 f22 vol=1 at=4.025 dur=0.5 guitar next=23 plain
+4.0320 position 2:2 0
+4.0320 sounding 22
+4.0320 bar->pos 0,2,0,3,484,1.2,2,2
+4.0480 bar@beat 0,2,0,2,0
+4.0640 bar->pos 0,2,0,3,493,1.2,2,2
+4.1250 note t0v0 s0 f23 vol=1 at=4.5 dur=0.5 guitar next=30 plain
+4.5120 position 2:3 0
+4.5120 sounding 23
+4.5120 bar->pos 0,3,0,0,488,1.2,2,3
+4.6250 note t0v0 s0 f30 vol=1 at=5 dur=0.5 guitar next=31 plain
+5.0080 sequencer 0:3
+5.0080 position 3:0 0
+5.0080 sounding 30
+5.0080 bar->pos 0,3,0,1,492,1.2,3,0
+5.1250 note t0v0 s0 f31 vol=1 at=5.5 dur=0.5 guitar next=32 plain
+5.5040 position 3:1 0
+5.5040 sounding 31
+5.5040 bar->pos 0,3,0,2,496,1.2,3,1
+5.6250 note t0v0 s0 f32 vol=1 at=6 dur=0.5 guitar next=33 plain
+6.0160 position 3:2 0
+6.0160 sounding 32
+6.0160 bar->pos 0,3,0,3,484,1.2,3,2
+6.1250 note t0v0 s0 f33 vol=1 at=6.5 dur=0.5 guitar next=40 plain
+6.5120 position 3:3 0
+6.5120 sounding 33
+6.5120 bar->pos 0,4,0,0,488,1.2,3,3
+6.6250 note t0v0 s0 f40 vol=1 at=7 dur=0.5 guitar next=41 plain

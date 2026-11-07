@@ -1,0 +1,169 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`classical notation conversion > converts a guitar track 1`] = `
+{
+  "bars": [
+    [
+      {
+        "duration": "q",
+        "keys": "e/3 b/3 e/4 g#/4",
+        "modifiers": "Accidental@3:#",
+        "strings": "0,1,2,3",
+        "tied": "false,false,false,false",
+      },
+      {
+        "duration": "qr",
+        "keys": "b/4",
+        "modifiers": "",
+        "strings": "",
+        "tied": "",
+      },
+      {
+        "duration": "q",
+        "keys": "g/5",
+        "modifiers": "",
+        "strings": "5",
+        "tied": "false",
+      },
+      {
+        "duration": "8",
+        "keys": "c/5",
+        "modifiers": "GraceNoteGroup@0",
+        "strings": "4",
+        "tied": "false",
+      },
+    ],
+    [
+      {
+        "duration": "h",
+        "keys": "a/4",
+        "modifiers": "",
+        "strings": "3",
+        "tied": "false",
+      },
+      {
+        "duration": "16",
+        "keys": "a/4",
+        "modifiers": "",
+        "strings": "3",
+        "tied": "true",
+      },
+      {
+        "duration": "16",
+        "keys": "f#/2",
+        "modifiers": "Accidental@0:#",
+        "strings": "-1",
+        "tied": "false",
+      },
+    ],
+    [
+      {
+        "duration": "8",
+        "keys": "d/4",
+        "modifiers": "",
+        "strings": "2",
+        "tied": "false",
+      },
+      {
+        "duration": "8",
+        "keys": "e/4",
+        "modifiers": "",
+        "strings": "2",
+        "tied": "false",
+      },
+      {
+        "duration": "8",
+        "keys": "f/4",
+        "modifiers": "",
+        "strings": "2",
+        "tied": "false",
+      },
+      {
+        "duration": "h",
+        "keys": "e/6",
+        "modifiers": "",
+        "strings": "5",
+        "tied": "false",
+      },
+      {
+        "duration": "q",
+        "keys": "e/3",
+        "modifiers": "",
+        "strings": "0",
+        "tied": "false",
+      },
+    ],
+  ],
+  "beatWidths": [
+    48,
+    50,
+    36,
+  ],
+  "extents": {
+    "0": {
+      "above": 13,
+      "below": 43,
+    },
+    "1": {
+      "above": 15,
+      "below": 73,
+    },
+    "2": {
+      "above": 38,
+      "below": 43,
+    },
+  },
+}
+`;
+
+exports[`classical notation conversion > uses the bass clef for four strings and the percussion clef for drums 1`] = `
+{
+  "bass": [
+    {
+      "duration": "h",
+      "keys": "e/2 g/3",
+      "modifiers": "",
+      "strings": "0,2",
+      "tied": "false,false",
+    },
+    {
+      "duration": "h",
+      "keys": "d/4",
+      "modifiers": "",
+      "strings": "3",
+      "tied": "false",
+    },
+  ],
+  "bassExtents": {
+    "above": 35,
+    "below": 18,
+  },
+  "drumExtents": {
+    "above": 68,
+    "below": 0,
+  },
+  "drums": [
+    {
+      "duration": "q",
+      "keys": "e/6 d#/7",
+      "modifiers": "Accidental@1:#",
+      "strings": "0,1",
+      "tied": "false,false",
+    },
+    {
+      "duration": "q",
+      "keys": "f#/6",
+      "modifiers": "Accidental@0:#",
+      "strings": "0",
+      "tied": "false",
+    },
+    {
+      "duration": "hr",
+      "keys": "b/4",
+      "modifiers": "",
+      "strings": "",
+      "tied": "",
+    },
+  ],
+}
+`;

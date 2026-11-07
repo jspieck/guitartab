@@ -1,0 +1,4 @@
+title:  | artist: 
+track 0: Track 1 | strings 40,45,50,55,59,64 | program 25
+  1 4/4 120bpm v1: h 3:3(b:0/50/100) | h 3:3(b:0/50/100)
+  2 4/4 v1: w 3:10(b:0/300/150)

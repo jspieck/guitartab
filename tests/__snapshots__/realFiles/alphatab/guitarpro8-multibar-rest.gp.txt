@@ -1,0 +1,7 @@
+title:  | artist: 
+track 0: Steel Guitar | strings 40,45,50,55,59,64 | program 25
+  1 4/4 120bpm v1: wr
+track 1: Steel Guitar | strings 40,45,50,55,59,64 | program 25
+  1 4/4 120bpm v1: wr
+track 2: Steel Guitar | strings 40,45,50,55,59,64 | program 25
+  1 4/4 120bpm v1: wr

@@ -1,0 +1,117 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`keyboard dispatch > ignores keys already handled, typed into fields, or undo while a dialog is open 1`] = `
+{
+  "bar": "er: er: er: er: er: er: er: er:",
+  "spaceOnButton": true,
+  "typed": false,
+  "undoInDialog": false,
+  "undoOutside": true,
+}
+`;
+
+exports[`keyboard dispatch > takes the shortcut keys and leaves the rest 1`] = `
+{
+  "bar": "e:.4 qr: er: er: er: er: er:",
+  "moves": [
+    "0:1:1",
+  ],
+  "results": {
+    "arrow": true,
+    "digit": true,
+    "letter": true,
+    "space": true,
+    "spaceRepeat": true,
+    "toggles": 1,
+    "unbound": false,
+  },
+}
+`;
+
+exports[`note entry > deletes the note at the cursor, or every note in the loop range in one step 1`] = `
+{
+  "afterOne": [
+    "er: e:..2 er: er: er: er: er: er:",
+    "e:...3 e:.4 er: er: er: er: er: er:",
+  ],
+  "afterRange": [
+    "er: er: er: er: er: er: er: er:",
+    "er: e:.4 er: er: er: er: er: er:",
+  ],
+  "oneStep": true,
+  "undone": [
+    "er: e:..2 er: er: er: er: er: er:",
+    "e:...3 e:.4 er: er: er: er: er: er:",
+  ],
+}
+`;
+
+exports[`note entry > moves across beats, bars and strings and stops at the edges 1`] = `
+[
+  "0:0:0",
+  "0:0:0",
+  "0:0:1",
+  "0:1:1",
+  "0:2:1",
+  "0:3:1",
+  "0:4:1",
+  "0:5:1",
+  "0:6:1",
+  "0:7:1",
+  "1:0:1",
+  "1:1:1",
+  "1:0:1",
+  "1:0:2",
+  "1:0:3",
+  "1:0:4",
+  "1:0:5",
+  "1:0:5",
+  "1:0:5",
+]
+`;
+
+exports[`note entry > places a note on a rest and sounds it 1`] = `
+[
+  "e:....9 er: er: er: er: er: er: er:",
+  [
+    [
+      0,
+      4,
+      9,
+      "guitar",
+    ],
+  ],
+]
+`;
+
+exports[`note entry > types frets only with an explicit note selection, two quick digits make one fret 1`] = `
+[
+  "e:5 e:..7 er: er: er: er: er: er:",
+  [
+    [
+      0,
+      0,
+      1,
+      "guitar",
+    ],
+    [
+      0,
+      0,
+      12,
+      "guitar",
+    ],
+    [
+      0,
+      0,
+      5,
+      "guitar",
+    ],
+    [
+      0,
+      2,
+      7,
+      "guitar",
+    ],
+  ],
+]
+`;

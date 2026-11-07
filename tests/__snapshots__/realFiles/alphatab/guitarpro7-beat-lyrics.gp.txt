@@ -1,0 +1,4 @@
+title:  | artist: 
+track 0: Dulcimer | strings 40,45,50,55,59,64 | program 15
+  1 4/4 120bpm v1: q 5:1 [lyrics This] | q 5:2 [lyrics is] | q 5:3 [lyrics a] | q 5:4 [lyrics test file]
+  2 4/4 v1: q 5:5 [lyrics for] | q 5:6 [lyrics lyrics] | q 5:7 | q 5:8

@@ -1,0 +1,11 @@
+title:  | artist: 
+track 0: Overdriven Guitar | strings 40,45,50,55,59,64 | program 29
+  1 4/4 120bpm v1: q 0:3 2:3 | q 2:3 | q 2:3 | q 2:3
+  2 4/4 v1: q 2:3 | q 2:3 | q 2:3 | q 2:3
+  3 4/4 v1: q 2:3 | q 2:3 | q 2:3 | q 2:3
+  4 4/4 v1: wr
+track 1: Overdriven Guitar | strings 40,45,50,55,59,64 | program 29
+  1 4/4 120bpm v1: e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3
+  2 4/4 v1: e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3
+  3 4/4 v1: e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3 | e 4:3
+  4 4/4 v1: wr

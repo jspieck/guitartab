@@ -1,0 +1,12 @@
+create oscillator#1
+oscillator#1.type = "square"
+oscillator#1.frequency.value = 1320
+create gain#1
+gain#1.gain.setValueAtTime(0.0001, 1)
+gain#1.gain.exponentialRampToValueAtTime(0.18, 1.002)
+gain#1.gain.exponentialRampToValueAtTime(0.0001, 1.05)
+oscillator#1.connect(gain#1)
+gain#1.connect(compressor#1)
+oscillator#1.start(1)
+oscillator#1.stop(1.06)
+=> undefined

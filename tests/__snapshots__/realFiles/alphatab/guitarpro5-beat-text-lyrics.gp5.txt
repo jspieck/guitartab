@@ -1,0 +1,10 @@
+title:  | artist: 
+track 0: Vocals | strings 40,45,50,55,59,64 | program -1
+  1 6/8 69bpm v1: qr ["  So  close, "] | e 2:2 | e. 2:2 | s 2:2 ["no"] | s 2:2 ["mat - ter"] | s 2:2
+  2 6/8 v1: s 2:4 ["how_"] | s 2:2 | q 2:2 ["far._______"] | q. 2:2(t)
+  3 6/8 v1: qr ["  Could-n't"] | s 2:0 | s 2:2 | e 2:2 ["be much"] | e 2:2 | s 2:2 [" more_"] | s 2:0 ["        from the"]
+  4 6/8 v1: e 2:0 | s 2:0 | s 2:0 ["heart.____"] | e 2:2 | q. 2:2(t)
+  5 6/8 v1: qr | sr ["For-ev-er"] | s 2:4 | s 3:0 | e 3:0 | e 3:0 ["trust-ing"] | s 2:0
+  6 6/8 v1: e 2:0 ["who"] | s 2:0 ["we"] | s 2:0 ["are.____________"] | e 2:2 | e 2:2 | s 2:0 | s 1:3 | e 1:3(t)
+  7 6/8 v1: qr | e 3:0 ["And"] | e 2:4 ["noth-ing else_"] | s 2:4 | s 2:4 | e 3:0
+  8 6/8 v1: s 2:4 ["mat-ters._______"] | s 2:2 | q 2:2(t) | q. 2:2(t)

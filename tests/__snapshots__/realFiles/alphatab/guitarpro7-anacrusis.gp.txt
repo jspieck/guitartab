@@ -1,0 +1,4 @@
+title:  | artist: 
+track 0: Clean Guitar | strings 40,45,50,55,59,64 | program 27
+  1 2/4 120bpm v1: q 5:3 | q 5:3
+  2 4/4 v1: q 5:1 | q 5:2 | q 5:3 | q 5:4

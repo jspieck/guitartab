@@ -1,0 +1,12 @@
+warnings: 2 notes in third or fourth voices
+title:  | artist: 
+track 0: Track 1 | strings 40,45,50,55,59,64 | program 0
+  1 4/4 120bpm v1: q 3:7 4:1 | q. 4:1 | sr | s 4:1 | q 4:1
+  1 4/4 120bpm v2: qr. | zr | h 5:8 | sr | tr | zr
+  2 4/4 v1: q 3:7 4:1 | q. 4:1 | sr | s 4:1 | q 4:1
+  2 4/4 v2: qr. | zr | h 5:8 | sr | tr | zr
+track 1: Track 2 | strings 40,45,50,55,59,64 | program 0
+  1 4/4 120bpm v1: hr | h 5:8
+  1 4/4 120bpm v2: qr | q 5:8 | hr
+  2 4/4 v1: hr | h 5:8
+  2 4/4 v2: qr | q 5:8 | hr

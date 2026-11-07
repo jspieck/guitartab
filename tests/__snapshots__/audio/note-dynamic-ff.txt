@@ -1,0 +1,19 @@
+create gain#1
+gain#1.connect(gain#2)
+create source#1
+source#1.buffer = buffer#1
+source#1.playbackRate.value = 0.2806155121
+source#1.loop = true
+source#1.loopStart = 0
+source#1.loopEnd = 0.002267573696
+create gain#3
+gain#3.gain.setValueAtTime(0, 2)
+gain#3.gain.linearRampToValueAtTime(0.192, 2.000976563)
+gain#3.gain.setValueAtTime(0.192, 2.25)
+gain#3.gain.setTargetAtTime(0, 2.25, 0.001302883446)
+source#1.start(2)
+source#1.stop(2.315)
+source#1.connect(gain#3)
+gain#3.connect(gain#1)
+source#1.addEventListener(ended)
+=> gain#1

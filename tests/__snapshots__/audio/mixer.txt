@@ -1,0 +1,9 @@
+gain#1.gain.value = 0.5039370079
+gain#2.gain.value = 0.2519685039
+pan#1.pan.value = 1
+pan#2.pan.value = 1
+pan#3.pan.value = 1
+gain#3.gain.value = 0.5
+context.resume()
+Chorus.ensureStarted()
+Chorus.ensureStarted()

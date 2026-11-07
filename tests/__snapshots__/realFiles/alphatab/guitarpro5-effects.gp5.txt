@@ -1,0 +1,34 @@
+title: Effects | artist: 
+track 0: Track 1 | strings 40,45,50,55,59,64 | program -1
+  1 4/4 120bpm "Dead Notes" v1: q 0:1(x) | q 1:2(x) | q 2:3(x) | q 3:4(x)
+  2 4/4 "Grace" v1: q 3:2(gr:3) | q 3:2(gr:2) | q 3:2(gr:2) | q 3:2(x,gr:2)
+  3 4/4 "Accentuations" v1: q 3:2(g) | q 3:2(>) | q 3:2(^) | q 3:2(lr)
+  4 4/4 "Harmonics" v1: q 3:2(h:N.H.) | q 3:2(h:A.H.) | q 3:2(h:T.H.) | q 3:2(h:S.H.) | q 3:2(h:P.H.)
+  5 4/4 "Hammer" v1: q 0:2(hp) 1:2(hp) 3:2(hp) 4:2 | q 0:2 1:2 3:2 4:2 | q 2:2(hp) 3:2(hp) | q 2:2 3:2
+  6 4/4 v1: q 0:2(hp) 3:2(hp) | q 0:3 3:3(hp) | q 0:2(hp) 3:2 | q 3:23(hp) | q 3:23
+  7 4/4 "Bends" v1: h 3:3(b:0/100/100) | h 3:3(b:0/100/100/0/0/100/100)
+  8 4/4 v1: w 3:10(b:0/300/25/250/75/225/100/175/125/150/150)
+  9 4/4 "Tremolo" v1: w 3:10 [whammy]
+  10 4/4 v1: w 3:10 [whammy]
+  11 4/4 v1: w 3:10 [whammy]
+  12 4/4 v1: w 3:10 [whammy]
+  13 4/4 v1: wr
+  14 4/4 "Slides" v1: q 1:1(sl) 4:1(sl) | q 1:3 4:2 | q 1:1(sl) | q 1:2
+  15 4/4 v1: q 4:1(sl) | q 4:2(sl) | q 4:3(sl) | q 4:4(sl)
+  16 4/4 "Vibrato" v1: q 4:3(~) | q 4:3(~) | q 4:4 | q 4:4
+  17 4/4 "Trills" v1: q 4:2(trill:2) | q 4:2(tr) | q 4:2(tr) | q 4:2(tr)
+  18 4/4 "Others" v1: q 4:2(pm) | q 4:2(.) | q 4:2 | q 4:2
+  19 4/4 v1: q 4:2 | q 4:2 | q 4:2 | q 4:2
+  20 4/4 v1: q 4:2 | hr | qr
+  21 4/4 v1: q 4:2 [chord C] | q 4:2 ["Text"] | hr
+  22 4/4 120bpm v1: q 4:2 | hr | qr
+  23 4/4 v1: wr
+  24 4/4 "Fingering" v1: q 4:2 | q 4:2 | q 4:2 | q 4:2 | q 4:2 | q 4:2 | q 4:2 | q 4:2 | q 4:2 | q 4:2
+  25 4/4 "Stroke" v1: q 1:3 2:2 3:0 4:1 [stroke down] | q 1:3 2:2 3:0 4:1 [stroke up] | q 1:2 | q 1:2
+  26 4/4 v1: q/3 1:3 | q/3 1:3 | q/3 1:3 | hr
+  27 4/4 v1: q/5 1:1 | q/5 1:1 | q/5 1:1 | q/5 1:1 | q/5 1:1
+  28 4/4 "Titles" v1: q 1:2 | q 1:2 | q 1:2 | q 1:2
+  29 4/4 v1: q/5 1:2 | hr | qr | tr | zr
+  30 4/4 "Ranges" v1: q 1:2(pm) | q 1:2(pm) | q 1:2(pm) | q 1:2(pm)
+  31 4/4 v1: q 1:2(pm) | q 1:2(lr) | q 1:2(lr) | q 1:2(lr)
+  32 4/4 v1: q 1:2(lr) | q 3:4 | hr

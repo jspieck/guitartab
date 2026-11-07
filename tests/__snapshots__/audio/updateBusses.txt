@@ -1,0 +1,208 @@
+create gain#1
+create pan#1
+gain#1.connect(pan#1)
+create gain#2
+pan#1.connect(gain#2)
+gain#2.connect(gain#3)
+create analyser#1
+analyser#1.smoothingTimeConstant = 0.9
+analyser#1.fftSize = 32
+gain#2.connect(analyser#1)
+new Freeverb({"dampening":3000,"roomSize":0.7,"wetGain":1})
+create gain#4
+create gain#5
+gain#4.connect(gain#5)
+new Chorus({"wetGain":1})
+create gain#6
+create gain#7
+gain#6.connect(gain#7)
+gain#5.connect(gain#3)
+gain#7.connect(gain#3)
+create gain#8
+gain#8.gain.value = 0.3149606299
+create gain#9
+gain#9.gain.value = 0.157480315
+gain#2.connect(gain#8)
+gain#8.connect(gain#4)
+gain#2.connect(gain#9)
+gain#9.connect(gain#6)
+create gain#10
+create gain#11
+create pan#2
+create pan#3
+create gain#12
+create gain#13
+gain#10.connect(pan#2)
+pan#2.connect(gain#12)
+gain#12.connect(gain#4)
+gain#11.connect(pan#3)
+pan#3.connect(gain#13)
+gain#13.connect(gain#6)
+gain#2.gain.value = 0.8
+gain#12.gain.value = 0.8
+gain#13.gain.value = 0.8
+pan#1.pan.value = -0.4960629921
+pan#2.pan.value = -0.4960629921
+pan#3.pan.value = -0.4960629921
+create gain#14
+create pan#4
+gain#14.connect(pan#4)
+create gain#15
+pan#4.connect(gain#15)
+gain#15.connect(gain#3)
+create analyser#2
+analyser#2.smoothingTimeConstant = 0.9
+analyser#2.fftSize = 32
+gain#15.connect(analyser#2)
+new Freeverb({"dampening":3000,"roomSize":0.7,"wetGain":1})
+create gain#16
+create gain#17
+gain#16.connect(gain#17)
+new Chorus({"wetGain":1})
+create gain#18
+create gain#19
+gain#18.connect(gain#19)
+gain#17.connect(gain#3)
+gain#19.connect(gain#3)
+create gain#20
+gain#20.gain.value = 0
+create gain#21
+gain#21.gain.value = 0
+gain#15.connect(gain#20)
+gain#20.connect(gain#16)
+gain#15.connect(gain#21)
+gain#21.connect(gain#18)
+create gain#22
+create gain#23
+create pan#5
+create pan#6
+create gain#24
+create gain#25
+gain#22.connect(pan#5)
+pan#5.connect(gain#24)
+gain#24.connect(gain#16)
+gain#23.connect(pan#6)
+pan#6.connect(gain#25)
+gain#25.connect(gain#18)
+gain#15.gain.value = 1
+gain#24.gain.value = 1
+gain#25.gain.value = 1
+pan#4.pan.value = 0.007874015748
+pan#5.pan.value = 0.007874015748
+pan#6.pan.value = 0.007874015748
+gain#1.disconnect()
+pan#1.disconnect()
+gain#2.disconnect()
+analyser#1.disconnect()
+gain#10.disconnect()
+gain#11.disconnect()
+pan#2.disconnect()
+pan#3.disconnect()
+gain#12.disconnect()
+gain#13.disconnect()
+Chorus.dispose()
+Freeverb.dispose()
+gain#14.disconnect()
+pan#4.disconnect()
+gain#15.disconnect()
+analyser#2.disconnect()
+gain#22.disconnect()
+gain#23.disconnect()
+pan#5.disconnect()
+pan#6.disconnect()
+gain#24.disconnect()
+gain#25.disconnect()
+Chorus.dispose()
+Freeverb.dispose()
+create gain#26
+create pan#7
+gain#26.connect(pan#7)
+create gain#27
+pan#7.connect(gain#27)
+gain#27.connect(gain#3)
+create analyser#3
+analyser#3.smoothingTimeConstant = 0.9
+analyser#3.fftSize = 32
+gain#27.connect(analyser#3)
+new Freeverb({"dampening":3000,"roomSize":0.7,"wetGain":1})
+create gain#28
+create gain#29
+gain#28.connect(gain#29)
+new Chorus({"wetGain":1})
+create gain#30
+create gain#31
+gain#30.connect(gain#31)
+gain#29.connect(gain#3)
+gain#31.connect(gain#3)
+create gain#32
+gain#32.gain.value = 0.3149606299
+create gain#33
+gain#33.gain.value = 0.157480315
+gain#27.connect(gain#32)
+gain#32.connect(gain#28)
+gain#27.connect(gain#33)
+gain#33.connect(gain#30)
+create gain#34
+create gain#35
+create pan#8
+create pan#9
+create gain#36
+create gain#37
+gain#34.connect(pan#8)
+pan#8.connect(gain#36)
+gain#36.connect(gain#28)
+gain#35.connect(pan#9)
+pan#9.connect(gain#37)
+gain#37.connect(gain#30)
+gain#27.gain.value = 0.8
+gain#36.gain.value = 0.8
+gain#37.gain.value = 0.8
+pan#7.pan.value = -0.4960629921
+pan#8.pan.value = -0.4960629921
+pan#9.pan.value = -0.4960629921
+create gain#38
+create pan#10
+gain#38.connect(pan#10)
+create gain#39
+pan#10.connect(gain#39)
+gain#39.connect(gain#3)
+create analyser#4
+analyser#4.smoothingTimeConstant = 0.9
+analyser#4.fftSize = 32
+gain#39.connect(analyser#4)
+new Freeverb({"dampening":3000,"roomSize":0.7,"wetGain":1})
+create gain#40
+create gain#41
+gain#40.connect(gain#41)
+new Chorus({"wetGain":1})
+create gain#42
+create gain#43
+gain#42.connect(gain#43)
+gain#41.connect(gain#3)
+gain#43.connect(gain#3)
+create gain#44
+gain#44.gain.value = 0
+create gain#45
+gain#45.gain.value = 0
+gain#39.connect(gain#44)
+gain#44.connect(gain#40)
+gain#39.connect(gain#45)
+gain#45.connect(gain#42)
+create gain#46
+create gain#47
+create pan#11
+create pan#12
+create gain#48
+create gain#49
+gain#46.connect(pan#11)
+pan#11.connect(gain#48)
+gain#48.connect(gain#40)
+gain#47.connect(pan#12)
+pan#12.connect(gain#49)
+gain#49.connect(gain#42)
+gain#39.gain.value = 1
+gain#48.gain.value = 1
+gain#49.gain.value = 1
+pan#10.pan.value = 0.007874015748
+pan#11.pan.value = 0.007874015748
+pan#12.pan.value = 0.007874015748

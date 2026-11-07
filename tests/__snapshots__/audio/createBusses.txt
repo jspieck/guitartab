@@ -1,0 +1,395 @@
+create destination#1
+create gain#1
+create analyser#1
+create compressor#1
+compressor#1.threshold.value = -1
+compressor#1.knee.value = 0
+compressor#1.ratio.value = 20
+compressor#1.attack.value = 0.005
+compressor#1.release.value = 0.05
+masterCompressor.attach(compressor#1)
+create gain#2
+gain#2.gain.value = 1
+masterEqualizer.setAudioContext()
+masterEqualizer.insertBetween(gain#2, compressor#1)
+gain#2.connect(compressor#1)
+compressor#1.connect(analyser#1)
+analyser#1.connect(destination#1)
+analyser#1.smoothingTimeConstant = 0.9
+analyser#1.fftSize = 4096
+create gain#3
+gain#3.gain.value = 2
+create pan#1
+pan#1.pan.value = 0
+pan#1.connect(gain#3)
+create analyser#2
+gain#3.connect(analyser#2)
+analyser#2.fftSize = 2048
+create gain#4
+gain#4.gain.value = 2
+create pan#2
+pan#2.pan.value = 0
+pan#2.connect(gain#4)
+create analyser#3
+gain#4.connect(analyser#3)
+analyser#3.fftSize = 2048
+create gain#5
+gain#5.gain.value = 1
+create pan#3
+pan#3.pan.value = 0
+pan#3.connect(gain#5)
+create analyser#4
+gain#5.connect(analyser#4)
+analyser#4.fftSize = 2048
+create gain#6
+gain#6.gain.value = 2
+create pan#4
+pan#4.pan.value = 0
+pan#4.connect(gain#6)
+create analyser#5
+gain#6.connect(analyser#5)
+analyser#5.fftSize = 2048
+create gain#7
+gain#7.gain.value = 1
+create pan#5
+pan#5.pan.value = 0
+pan#5.connect(gain#7)
+create analyser#6
+gain#7.connect(analyser#6)
+analyser#6.fftSize = 2048
+create gain#8
+gain#8.gain.value = 2
+create pan#6
+pan#6.pan.value = 0
+pan#6.connect(gain#8)
+create analyser#7
+gain#8.connect(analyser#7)
+analyser#7.fftSize = 2048
+create gain#9
+gain#9.gain.value = 1
+create pan#7
+pan#7.pan.value = 0
+pan#7.connect(gain#9)
+create analyser#8
+gain#9.connect(analyser#8)
+analyser#8.fftSize = 2048
+create gain#10
+gain#10.gain.value = 0.6
+create pan#8
+pan#8.pan.value = 0
+pan#8.connect(gain#10)
+create analyser#9
+gain#10.connect(analyser#9)
+analyser#9.fftSize = 2048
+create gain#11
+gain#11.gain.value = 1
+create pan#9
+pan#9.pan.value = 0
+pan#9.connect(gain#11)
+create analyser#10
+gain#11.connect(analyser#10)
+analyser#10.fftSize = 2048
+create gain#12
+gain#12.gain.value = 0.6
+create pan#10
+pan#10.pan.value = 0
+pan#10.connect(gain#12)
+create analyser#11
+gain#12.connect(analyser#11)
+analyser#11.fftSize = 2048
+create gain#13
+gain#13.gain.value = 1
+create pan#11
+pan#11.pan.value = 0
+pan#11.connect(gain#13)
+create analyser#12
+gain#13.connect(analyser#12)
+analyser#12.fftSize = 2048
+create gain#14
+gain#14.gain.value = 1
+create pan#12
+pan#12.pan.value = 0
+pan#12.connect(gain#14)
+create analyser#13
+gain#14.connect(analyser#13)
+analyser#13.fftSize = 2048
+create gain#15
+gain#15.gain.value = 1
+create pan#13
+pan#13.pan.value = 0
+pan#13.connect(gain#15)
+create analyser#14
+gain#15.connect(analyser#14)
+analyser#14.fftSize = 2048
+create gain#16
+gain#16.gain.value = 1
+create pan#14
+pan#14.pan.value = 0
+pan#14.connect(gain#16)
+create analyser#15
+gain#16.connect(analyser#15)
+analyser#15.fftSize = 2048
+create gain#17
+gain#17.gain.value = 1
+create pan#15
+pan#15.pan.value = 0
+pan#15.connect(gain#17)
+create analyser#16
+gain#17.connect(analyser#16)
+analyser#16.fftSize = 2048
+create gain#18
+gain#18.gain.value = 1
+create pan#16
+pan#16.pan.value = 0
+pan#16.connect(gain#18)
+create analyser#17
+gain#18.connect(analyser#17)
+analyser#17.fftSize = 2048
+create gain#19
+gain#19.gain.value = 1
+create pan#17
+pan#17.pan.value = 0
+pan#17.connect(gain#19)
+create analyser#18
+gain#19.connect(analyser#18)
+analyser#18.fftSize = 2048
+create gain#20
+gain#20.gain.value = 1
+create pan#18
+pan#18.pan.value = 0
+pan#18.connect(gain#20)
+create analyser#19
+gain#20.connect(analyser#19)
+analyser#19.fftSize = 2048
+create gain#21
+gain#21.gain.value = 1
+create pan#19
+pan#19.pan.value = 0
+pan#19.connect(gain#21)
+create analyser#20
+gain#21.connect(analyser#20)
+analyser#20.fftSize = 2048
+create gain#22
+gain#22.gain.value = 1
+create pan#20
+pan#20.pan.value = 0
+pan#20.connect(gain#22)
+create analyser#21
+gain#22.connect(analyser#21)
+analyser#21.fftSize = 2048
+create gain#23
+gain#23.gain.value = 1
+create pan#21
+pan#21.pan.value = 0
+pan#21.connect(gain#23)
+create analyser#22
+gain#23.connect(analyser#22)
+analyser#22.fftSize = 2048
+create gain#24
+gain#24.gain.value = 1
+create pan#22
+pan#22.pan.value = 0
+pan#22.connect(gain#24)
+create analyser#23
+gain#24.connect(analyser#23)
+analyser#23.fftSize = 2048
+create gain#25
+gain#25.gain.value = 1
+create pan#23
+pan#23.pan.value = 0
+pan#23.connect(gain#25)
+create analyser#24
+gain#25.connect(analyser#24)
+analyser#24.fftSize = 2048
+create gain#26
+gain#26.gain.value = 1
+create pan#24
+pan#24.pan.value = 0
+pan#24.connect(gain#26)
+create analyser#25
+gain#26.connect(analyser#25)
+analyser#25.fftSize = 2048
+create gain#27
+gain#27.gain.value = 1
+create pan#25
+pan#25.pan.value = 0
+pan#25.connect(gain#27)
+create analyser#26
+gain#27.connect(analyser#26)
+analyser#26.fftSize = 2048
+create gain#28
+gain#28.gain.value = 1
+create pan#26
+pan#26.pan.value = 0
+pan#26.connect(gain#28)
+create analyser#27
+gain#28.connect(analyser#27)
+analyser#27.fftSize = 2048
+create gain#29
+gain#29.gain.value = 1
+create pan#27
+pan#27.pan.value = 0
+pan#27.connect(gain#29)
+create analyser#28
+gain#29.connect(analyser#28)
+analyser#28.fftSize = 2048
+create gain#30
+gain#30.gain.value = 1
+create pan#28
+pan#28.pan.value = 0
+pan#28.connect(gain#30)
+create analyser#29
+gain#30.connect(analyser#29)
+analyser#29.fftSize = 2048
+create gain#31
+gain#31.gain.value = 1
+create pan#29
+pan#29.pan.value = 0
+pan#29.connect(gain#31)
+create analyser#30
+gain#31.connect(analyser#30)
+analyser#30.fftSize = 2048
+create gain#32
+gain#32.gain.value = 1
+create pan#30
+pan#30.pan.value = 0
+pan#30.connect(gain#32)
+create analyser#31
+gain#32.connect(analyser#31)
+analyser#31.fftSize = 2048
+create gain#33
+gain#33.gain.value = 1
+create pan#31
+pan#31.pan.value = 0
+pan#31.connect(gain#33)
+create analyser#32
+gain#33.connect(analyser#32)
+analyser#32.fftSize = 2048
+create gain#34
+gain#34.gain.value = 1
+create pan#32
+pan#32.pan.value = 0
+pan#32.connect(gain#34)
+create analyser#33
+gain#34.connect(analyser#33)
+analyser#33.fftSize = 2048
+create gain#35
+gain#35.gain.value = 1
+create pan#33
+pan#33.pan.value = 0
+pan#33.connect(gain#35)
+create analyser#34
+gain#35.connect(analyser#34)
+analyser#34.fftSize = 2048
+create gain#36
+gain#36.gain.value = 1
+create pan#34
+pan#34.pan.value = 0
+pan#34.connect(gain#36)
+create analyser#35
+gain#36.connect(analyser#35)
+analyser#35.fftSize = 2048
+create gain#37
+gain#37.gain.value = 1
+create pan#35
+pan#35.pan.value = 0
+pan#35.connect(gain#37)
+create analyser#36
+gain#37.connect(analyser#36)
+analyser#36.fftSize = 2048
+create gain#38
+gain#38.gain.value = 1
+create pan#36
+pan#36.pan.value = 0
+pan#36.connect(gain#38)
+create analyser#37
+gain#38.connect(analyser#37)
+analyser#37.fftSize = 2048
+create gain#39
+gain#39.gain.value = 1
+create pan#37
+pan#37.pan.value = 0
+pan#37.connect(gain#39)
+create analyser#38
+gain#39.connect(analyser#38)
+analyser#38.fftSize = 2048
+create gain#40
+gain#40.gain.value = 1
+create pan#38
+pan#38.pan.value = 0
+pan#38.connect(gain#40)
+create analyser#39
+gain#40.connect(analyser#39)
+analyser#39.fftSize = 2048
+create gain#41
+gain#41.gain.value = 1
+create pan#39
+pan#39.pan.value = 0
+pan#39.connect(gain#41)
+create analyser#40
+gain#41.connect(analyser#40)
+analyser#40.fftSize = 2048
+create gain#42
+gain#42.gain.value = 1
+create pan#40
+pan#40.pan.value = 0
+pan#40.connect(gain#42)
+create analyser#41
+gain#42.connect(analyser#41)
+analyser#41.fftSize = 2048
+create gain#43
+gain#43.gain.value = 1
+create pan#41
+pan#41.pan.value = 0
+pan#41.connect(gain#43)
+create analyser#42
+gain#43.connect(analyser#42)
+analyser#42.fftSize = 2048
+create gain#44
+gain#44.gain.value = 1
+create pan#42
+pan#42.pan.value = 0
+pan#42.connect(gain#44)
+create analyser#43
+gain#44.connect(analyser#43)
+analyser#43.fftSize = 2048
+create gain#45
+gain#45.gain.value = 1
+create pan#43
+pan#43.pan.value = 0
+pan#43.connect(gain#45)
+create analyser#44
+gain#45.connect(analyser#44)
+analyser#44.fftSize = 2048
+create gain#46
+gain#46.gain.value = 1
+create pan#44
+pan#44.pan.value = 0
+pan#44.connect(gain#46)
+create analyser#45
+gain#46.connect(analyser#45)
+analyser#45.fftSize = 2048
+create gain#47
+gain#47.gain.value = 1
+create pan#45
+pan#45.pan.value = 0
+pan#45.connect(gain#47)
+create analyser#46
+gain#47.connect(analyser#46)
+analyser#46.fftSize = 2048
+create gain#48
+gain#48.gain.value = 1
+create pan#46
+pan#46.pan.value = 0
+pan#46.connect(gain#48)
+create analyser#47
+gain#48.connect(analyser#47)
+analyser#47.fftSize = 2048
+create gain#49
+gain#49.gain.value = 1
+create pan#47
+pan#47.pan.value = 0
+pan#47.connect(gain#49)
+create analyser#48
+gain#49.connect(analyser#48)
+analyser#48.fftSize = 2048

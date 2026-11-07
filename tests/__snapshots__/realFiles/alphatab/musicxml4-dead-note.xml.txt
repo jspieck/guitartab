@@ -1,0 +1,17 @@
+title:  | artist: 
+track 0: Guitar TAB | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: q 3:2 | q 3:2(x)
+track 1: Guitar MuseScore | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: q 3:2(x) | qr
+  1 2/4 120bpm v2: q 3:2(x) | qr
+track 2: Guitar TuxGuitar | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: q 3:2(x) | qr
+  1 2/4 120bpm v2: q 3:2 | qr
+track 3: Guitar GP5 | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: q 3:2(x) | qr
+track 4: Drums | strings 0 | program 0
+  1 2/4 120bpm v1: q 0:42(x) | qr
+track 5: Voice | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: q 3:2(x) | qr
+track 6: Trumpet | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: q 3:2 | qr

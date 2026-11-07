@@ -1,0 +1,287 @@
+[
+ {
+  "name": "quarter → eighth",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "e 2:5",
+    "er",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "eighth → half (eats rests)",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "h 2:5",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "half → whole (no room after a note)",
+  "result": false,
+  "messages": [
+   "Not enough space in the bar."
+  ],
+  "bars": [
+   [
+    "h 2:5",
+    "h 3:7"
+   ]
+  ]
+ },
+ {
+  "name": "undo, undo",
+  "result": [
+   null,
+   null
+  ],
+  "messages": [],
+  "bars": [
+   [
+    "e 2:5",
+    "er",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "placeable: quarter where an eighth note follows",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "e 0:3",
+    "e 0:5",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "placeable: quarter on the second eighth (quarter rest follows)",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "e 0:3",
+    "e 0:5",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "placeable: shorter is always fine",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "e 0:3",
+    "e 0:5",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "triplet on a quarter note",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "e/3#0 1:2",
+    "er/3#0",
+    "er/3#0",
+    "q 1:4",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "quintuplet on the next quarter",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "e/3#0 1:2",
+    "er/3#0",
+    "er/3#0",
+    "s/5#1 1:4",
+    "sr/5#1",
+    "sr/5#1",
+    "sr/5#1",
+    "sr/5#1",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "remove the triplet",
+  "result": true,
+  "messages": [],
+  "bars": [
+   [
+    "q/-1#-1",
+    "s/5#1 1:4",
+    "sr/5#1",
+    "sr/5#1",
+    "sr/5#1",
+    "sr/5#1",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "no tuplet on a dotted note",
+  "result": false,
+  "messages": [
+   "Tuplets of dotted notes or 128ths are not possible yet."
+  ],
+  "bars": [
+   [
+    "q. 0:1",
+    "e",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "triplet on a quarter, then shorten its first note",
+  "result": {
+   "applied": true,
+   "rescale": true
+  },
+  "messages": [],
+  "bars": [
+   [
+    "s/3#2 0:1",
+    "sr/3#2",
+    "er/3#2",
+    "er/3#2",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "lengthen it again (uses the rests in the tuplet)",
+  "result": {
+   "applied": true,
+   "rescale": true
+  },
+  "messages": [],
+  "bars": [
+   [
+    "e/3#2 0:1",
+    "er/3#2",
+    "er/3#2",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "lengthen beyond the tuplet",
+  "result": {
+   "applied": false,
+   "rescale": false
+  },
+  "messages": [
+   "Not enough space in the bar."
+  ],
+  "bars": [
+   [
+    "e/3#2 0:1",
+    "er/3#2",
+    "er/3#2",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "fillMeasure numbers tuplets",
+  "result": [
+   1,
+   1,
+   1,
+   0,
+   0
+  ],
+  "messages": [],
+  "bars": [
+   [
+    "e/3#1 0:1",
+    "e/3#1 0:2",
+    "e/3#1 0:3",
+    "q",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "fill 3/4 with rests",
+  "messages": [],
+  "bars": [
+   [
+    "hr",
+    "qr"
+   ]
+  ]
+ },
+ {
+  "name": "fill a dotted remainder",
+  "messages": [],
+  "bars": [
+   [
+    "qr",
+    "er",
+    "sr"
+   ]
+  ]
+ },
+ {
+  "name": "draw a note on a rest",
+  "messages": [],
+  "bars": [
+   [
+    "qr",
+    "q 4:12",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "delete it again",
+  "messages": [],
+  "bars": [
+   [
+    "qr",
+    "qr",
+    "hr"
+   ]
+  ]
+ },
+ {
+  "name": "tuplet bookkeeping",
+  "tuplets": [
+   {
+    "originalDuration": "q"
+   },
+   {
+    "originalDuration": "q"
+   },
+   {
+    "originalDuration": "q"
+   }
+  ]
+ }
+]

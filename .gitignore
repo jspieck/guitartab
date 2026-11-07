@@ -29,7 +29,6 @@ coverage/
 
 # Playwright output
 test-results/
-tests/__snapshots__/
 playwright-report/
 
 # Audio samples and the SoundFont are not in the repository (licence unclear, see
@@ -40,4 +39,3 @@ public/audio/*
 # E2E test output
 e2e/test-results/
 e2e/playwright-report/
-e2e/**/*.png

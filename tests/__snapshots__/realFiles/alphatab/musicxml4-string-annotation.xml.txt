@@ -1,0 +1,5 @@
+title:  | artist: 
+track 0: Classical Guitar | strings 40,45,50,55,59,64 | program 0
+  1 4/4 120bpm v1: q 5:5 | q 5:5 | q 5:5 | q 5:5
+track 1: Guitar Tab | strings 40,45,50,55,59,64 | program 0
+  1 4/4 120bpm v1: q 5:5 | q 5:5 | q 5:5 | q 5:5

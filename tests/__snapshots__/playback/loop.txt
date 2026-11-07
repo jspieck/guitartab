@@ -1,0 +1,105 @@
+0.0000 position 1:1 16
+0.0000 sequencer 0:-1
+0.0000 bar@pos 0,1,0,16,0
+0.0000 ui started
+0.0000 position 1:0 16
+0.0250 note t0v0 s0 f11 vol=1 at=0.05 dur=0.625 guitar next=12 plain
+0.0250 click 0.05
+0.0640 sequencer 0:1
+0.0640 position 1:1 16
+0.0640 sounding 11
+0.0640 scroll 0,0,0,1
+0.0640 bar@beat 0,1,0,1,0
+0.0800 bar->pos 0,1,0,2,611,1.2,1,1
+0.2750 note t0v0 s0 f12 vol=1 at=0.675 dur=0.625 guitar next=13 plain
+0.2750 click 0.675
+0.6880 position 1:2 16
+0.6880 sounding 12
+0.6880 bar->pos 0,1,0,3,612,1.2,1,2
+0.9000 note t0v0 s0 f13 vol=1 at=1.3 dur=0.625 guitar next=20 plain
+0.9000 click 1.3
+1.3120 position 1:3 16
+1.3120 sounding 13
+1.3120 bar->pos 0,2,0,0,613,1.2,1,3
+1.5250 note t0v0 s0 f20 vol=1 at=1.925 dur=0.625 guitar next=21 plain
+1.5250 click 1.925 accent
+1.9360 sequencer 0:2
+1.9360 position 2:0 16
+1.9360 sounding 20
+1.9360 scroll 0,0,1,2
+1.9360 bar->pos 0,2,0,1,614,1.2,2,0
+2.1500 note t0v0 s0 f21 vol=1 at=2.55 dur=0.625 guitar next=22 plain
+2.1500 click 2.55
+2.5600 position 2:1 16
+2.5600 sounding 21
+2.5600 bar->pos 0,2,0,2,615,1.2,2,1
+2.7750 note t0v0 s0 f22 vol=1 at=3.175 dur=0.625 guitar next=11 plain
+2.7750 click 3.175
+3.1840 position 2:2 16
+3.1840 sounding 22
+3.1840 bar->pos 0,1,0,1,616,1.2,2,2
+3.4000 note t0v0 s0 f11 vol=1 at=3.8 dur=0.625 guitar next=12 plain
+3.4000 click 3.8
+3.8000 position 1:1 16
+3.8080 sequencer 0:1
+3.8080 position 1:1 16
+3.8080 sounding 11
+3.8080 scroll 0,0,0,1
+3.8080 bar@beat 0,1,0,1,0
+3.8240 bar->pos 0,1,0,2,617,1.2,1,1
+3.9750 note t0v0 s0 f12 vol=1 at=4.3556 dur=0.5556 guitar next=13 plain
+3.9750 click 4.3556
+4.3680 position 1:2 16
+4.3680 sounding 12
+4.3680 bar->pos 0,1,0,3,543.1111,1.2,1,2
+4.5250 note t0v0 s0 f13 vol=1 at=4.9111 dur=0.5556 guitar next=20 plain
+4.5250 click 4.9111
+4.9120 position 1:3 16
+4.9120 sounding 13
+4.9120 bar->pos 0,2,0,0,554.6667,1.2,1,3
+5.0750 note t0v0 s0 f20 vol=1 at=5.4667 dur=0.5556 guitar next=21 plain
+5.0750 click 5.4667 accent
+5.4720 sequencer 0:2
+5.4720 position 2:0 16
+5.4720 sounding 20
+5.4720 scroll 0,0,1,2
+5.4720 bar->pos 0,2,0,1,550.2222,1.2,2,0
+5.6250 note t0v0 s0 f21 vol=1 at=6.0222 dur=0.5556 guitar next=22 plain
+5.6250 click 6.0222
+6.0320 position 2:1 16
+6.0320 sounding 21
+6.0320 bar->pos 0,2,0,2,545.7778,1.2,2,1
+6.2000 note t0v0 s0 f22 vol=1 at=6.5778 dur=0.5556 guitar next=11 plain
+6.2000 click 6.5778
+6.5920 position 2:2 16
+6.5920 sounding 22
+6.5920 bar->pos 0,1,0,1,541.3333,1.2,2,2
+6.7500 note t0v0 s0 f11 vol=1 at=7.1333 dur=0.5556 guitar next=12 plain
+6.7500 click 7.1333
+7.1360 sequencer 0:1
+7.1360 position 1:1 16
+7.1360 sounding 11
+7.1360 scroll 0,0,0,1
+7.1360 bar->pos 0,1,0,2,552.8889,1.2,1,1
+7.1500 position 1:1 16
+7.2500 note t0v0 s0 f12 vol=1 at=7.6333 dur=0.5 guitar next=13 plain
+7.2500 click 7.6333
+7.6480 position 1:2 16
+7.6480 sounding 12
+7.6480 bar@beat 0,1,0,2,0
+7.6640 bar->pos 0,1,0,3,485.3333,1.2,1,2
+7.7500 note t0v0 s0 f13 vol=1 at=8.1333 dur=0.5 guitar next=20 plain
+7.7500 click 8.1333
+8.1440 position 1:3 16
+8.1440 sounding 13
+8.1440 bar->pos 0,2,0,0,489.3333,1.2,1,3
+8.2500 note t0v0 s0 f20 vol=1 at=8.6333 dur=0.5 guitar next=21 plain
+8.2500 click 8.6333 accent
+8.6400 sequencer 0:2
+8.6400 position 2:0 16
+8.6400 sounding 20
+8.6400 scroll 0,0,1,2
+8.6400 bar->pos 0,2,0,1,493.3333,1.2,2,0
+8.7500 note t0v0 s0 f21 vol=1 at=9.1333 dur=0.5 guitar next=22 plain
+8.7500 click 9.1333
+rate 1

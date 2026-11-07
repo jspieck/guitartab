@@ -1,0 +1,3 @@
+title:  | artist: 
+track 0: Track 1 | strings 40,45,50,55,59,64 | program 25
+  1 4/4 120bpm v1: w 0:1 | w 0:2 | w 0:3 | w 0:4 | wr | h 0:1 | h 0:2 | h 0:3 | h 0:4 | hr | q 0:1 | q 0:2 | q 0:3 | q 0:4 | qr | e 0:1 | e 0:2 | e 0:3 | e 0:4 | er | s 0:1 | s 0:2 | s 0:3 | s 0:4 | sr | t 0:1 | t 0:2 | t 0:3 | t 0:4 | tr | z 0:1 | z 0:2 | z 0:3 | z 0:4 | zr

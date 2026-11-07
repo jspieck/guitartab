@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MIDI file parsing > rejects a bad header 1`] = `[ImportError: Invalid MIDI file: malformed file header.]`;
+
+exports[`MIDI file parsing > rejects a bad track header 1`] = `[ImportError: Invalid MIDI file: malformed track header.]`;
+
+exports[`MIDI file parsing > rejects format 2 1`] = `[ImportError: Invalid MIDI file: MIDI file format type 2 is not supported.]`;
+
+exports[`MIDI file parsing > rejects running status first 1`] = `[ImportError: Invalid MIDI file: running status event with no previous event.]`;

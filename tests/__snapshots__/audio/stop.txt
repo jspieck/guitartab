@@ -1,0 +1,11 @@
+gain#1.gain.cancelScheduledValues(1.2)
+gain#1.gain.setValueAtTime(1, 1.2)
+gain#1.gain.exponentialRampToValueAtTime(0.000001, 1.201)
+gain#2.gain.cancelScheduledValues(1.2)
+gain#2.gain.setValueAtTime(1, 1.2)
+gain#2.gain.exponentialRampToValueAtTime(0.000001, 1.201)
+gain#3.gain.cancelScheduledValues(1.2)
+gain#3.gain.setValueAtTime(1, 1.2)
+gain#3.gain.exponentialRampToValueAtTime(0.000001, 1.201)
+playing after voice stop: 2
+playing after stop all: 0

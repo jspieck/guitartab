@@ -1,0 +1,27 @@
+0.0000 sequencer 0:-1
+0.0000 bar@pos 0,0,0,0,0
+0.0000 ui started
+0.0000 position 0:0 0
+0.0250 note t1v0 s0 f10 vol=1 at=0.05 dur=0.5 guitar next=11 plain
+0.0640 sequencer 0:0
+0.0640 position 0:0 0
+0.0640 sounding 0
+0.0640 scroll 0,0,0,0
+0.0640 bar@beat 0,0,0,0,0
+0.0800 bar->pos 0,0,0,1,486,1.2,0,0
+0.1750 note t1v0 s0 f11 vol=1 at=0.55 dur=0.5 guitar next=12 plain
+0.5600 position 0:1 0
+0.5600 sounding 1
+0.5600 bar->pos 0,0,0,2,490,1.2,0,1
+0.6750 note t1v0 s0 f12 vol=1 at=1.05 dur=0.5 guitar next=13 plain
+1.0560 position 0:2 0
+1.0560 sounding 2
+1.0560 bar->pos 0,0,0,3,494,1.2,0,2
+1.1750 note t1v0 s0 f13 vol=1 at=1.55 dur=0.5 guitar next=null plain
+1.5520 position 0:3 0
+1.5520 sounding 3
+1.5520 bar->pos 0,1,0,0,498,1.2,0,3
+2.0640 sequencer 0:1
+2.0640 position 1:0 0
+2.0640 sounding 
+2.0640 bar->pos 0,2,0,0,1986,1.2,1,0

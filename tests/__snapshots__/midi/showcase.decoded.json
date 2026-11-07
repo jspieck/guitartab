@@ -1,0 +1,395 @@
+{
+ "format": 1,
+ "numTracks": 3,
+ "ticksPerBeat": 480,
+ "tracks": [
+  {
+   "trackName": "Showcase",
+   "events": [
+    {
+     "type": "meta",
+     "metaType": 3,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      83,
+      104,
+      111,
+      119,
+      99,
+      97,
+      115,
+      101
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 81,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      7,
+      161,
+      32
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 88,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      3,
+      2,
+      24,
+      8
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 81,
+     "delta": 1440,
+     "midiChannel": 0,
+     "metaData": [
+      9,
+      39,
+      192
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 88,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      4,
+      2,
+      24,
+      8
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 47,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 0,
+     "parameter1": 0
+    }
+   ],
+   "byteLength": 47
+  },
+  {
+   "trackName": "Guitar",
+   "events": [
+    {
+     "type": "meta",
+     "metaType": 3,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      71,
+      117,
+      105,
+      116,
+      97,
+      114
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 12,
+     "parameter1": 25
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 40,
+     "parameter2": 100
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 480,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 40,
+     "parameter2": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 43,
+     "parameter2": 100
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 480,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 8,
+     "parameter1": 43,
+     "parameter2": 64
+    },
+    {
+     "type": "sysex",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      240,
+      5,
+      126,
+      127,
+      9,
+      1,
+      247
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 14,
+     "parameter1": 0,
+     "parameter2": 64
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 13,
+     "parameter1": 80
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 45,
+     "parameter2": 90
+    },
+    {
+     "type": "meta",
+     "metaType": 1,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      99,
+      104,
+      111,
+      114,
+      100
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 49,
+     "parameter2": 90
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 52,
+     "parameter2": 90
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 960,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 8,
+     "parameter1": 45,
+     "parameter2": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 8,
+     "parameter1": 49,
+     "parameter2": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 8,
+     "parameter1": 52,
+     "parameter2": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 47,
+     "parameter2": 80
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 1920,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 47,
+     "parameter2": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 47,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 0,
+     "parameter1": 0
+    }
+   ],
+   "byteLength": 86
+  },
+  {
+   "trackName": "Drums",
+   "events": [
+    {
+     "type": "meta",
+     "metaType": 3,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [
+      68,
+      114,
+      117,
+      109,
+      115
+     ],
+     "midiEventType": 0,
+     "parameter1": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 0,
+     "midiChannel": 9,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 36,
+     "parameter2": 110
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 240,
+     "midiChannel": 9,
+     "metaData": [],
+     "midiEventType": 8,
+     "parameter1": 36,
+     "parameter2": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 240,
+     "midiChannel": 9,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 38,
+     "parameter2": 100
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 240,
+     "midiChannel": 9,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 38,
+     "parameter2": 0
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 240,
+     "midiChannel": 9,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 42,
+     "parameter2": 70
+    },
+    {
+     "type": "MIDI",
+     "metaType": 0,
+     "delta": 240,
+     "midiChannel": 9,
+     "metaData": [],
+     "midiEventType": 9,
+     "parameter1": 42,
+     "parameter2": 0
+    },
+    {
+     "type": "meta",
+     "metaType": 47,
+     "delta": 0,
+     "midiChannel": 0,
+     "metaData": [],
+     "midiEventType": 0,
+     "parameter1": 0
+    }
+   ],
+   "byteLength": 39
+  }
+ ]
+}

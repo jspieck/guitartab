@@ -1,0 +1,5 @@
+title:  | artist: 
+track 0: Steel Guitar | strings 40,45,50,55,59,64 | program 25
+  1 4/4 120bpm v1: q 5:1 | q 5:1 | q 5:1 | q 5:1
+track 1: Electric Guitar | strings 40,45,50,55,59,64 | program 27
+  1 4/4 120bpm v1: q 5:2 | q 5:2 | q 5:2 | q 5:2

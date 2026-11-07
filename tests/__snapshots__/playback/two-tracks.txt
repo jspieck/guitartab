@@ -1,0 +1,61 @@
+0.0000 sequencer 0:-1
+0.0000 bar@pos 0,0,0,0,0
+0.0000 ui started
+0.0000 position 0:0 0
+0.0250 note t0v0 s0 f0 vol=1 at=0.05 dur=0.5 guitar next=1 plain
+0.0250 note t1v0 s0 f0 vol=1 at=0.05 dur=0.25 bass next=1 plain
+0.0250 note t1v0 s0 f1 vol=1 at=0.3 dur=0.25 bass next=2 plain
+0.0640 sequencer 0:0
+0.0640 position 0:0 0
+0.0640 sounding 0
+0.0640 scroll 0,0,0,0
+0.0640 bar@beat 0,0,0,0,0
+0.0800 bar->pos 0,0,0,1,486,1.2,0,0
+0.1750 note t0v0 s0 f1 vol=1 at=0.55 dur=0.5 guitar next=2 plain
+0.1750 note t1v0 s0 f2 vol=1 at=0.55 dur=0.25 bass next=3 plain
+0.4250 note t1v0 s0 f3 vol=1 at=0.8 dur=0.25 bass next=4 plain
+0.5600 position 0:1 0
+0.5600 sounding 1
+0.5600 bar->pos 0,0,0,2,490,1.2,0,1
+0.6750 note t0v0 s0 f2 vol=1 at=1.05 dur=0.5 guitar next=3 plain
+0.6750 note t1v0 s0 f4 vol=1 at=1.05 dur=0.25 bass next=5 plain
+0.9250 note t1v0 s0 f5 vol=1 at=1.3 dur=0.25 bass next=6 plain
+1.0560 position 0:2 0
+1.0560 sounding 2
+1.0560 bar->pos 0,0,0,3,494,1.2,0,2
+1.1750 note t0v0 s0 f3 vol=1 at=1.55 dur=0.5 guitar next=10 plain
+1.1750 note t1v0 s0 f6 vol=1 at=1.55 dur=0.25 bass next=7 plain
+1.4250 note t1v0 s0 f7 vol=1 at=1.8 dur=0.25 bass next=10 plain
+1.5520 position 0:3 0
+1.5520 sounding 3
+1.5520 bar->pos 0,1,0,0,498,1.2,0,3
+1.6750 note t0v0 s0 f10 vol=1 at=2.05 dur=0.5 guitar next=11 plain
+1.6750 note t1v0 s0 f10 vol=1 at=2.05 dur=0.25 bass next=11 plain
+1.9250 note t1v0 s0 f11 vol=1 at=2.3 dur=0.25 bass next=12 plain
+2.0640 sequencer 0:1
+2.0640 position 1:0 0
+2.0640 sounding 10
+2.0640 bar->pos 0,1,0,1,486,1.2,1,0
+2.1750 note t0v0 s0 f11 vol=1 at=2.55 dur=0.5 guitar next=12 plain
+2.1750 note t1v0 s0 f12 vol=1 at=2.55 dur=0.25 bass next=13 plain
+2.4250 note t1v0 s0 f13 vol=1 at=2.8 dur=0.25 bass next=14 plain
+2.5600 position 1:1 0
+2.5600 sounding 11
+2.5600 bar->pos 0,1,0,2,490,1.2,1,1
+2.6750 note t0v0 s0 f12 vol=1 at=3.05 dur=0.5 guitar next=13 plain
+2.6750 note t1v0 s0 f14 vol=1 at=3.05 dur=0.25 bass next=15 plain
+2.9250 note t1v0 s0 f15 vol=1 at=3.3 dur=0.25 bass next=16 plain
+3.0560 position 1:2 0
+3.0560 sounding 12
+3.0560 bar->pos 0,1,0,3,494,1.2,1,2
+3.1750 note t0v0 s0 f13 vol=1 at=3.55 dur=0.5 guitar next=null plain
+3.1750 note t1v0 s0 f16 vol=1 at=3.55 dur=0.25 bass next=17 plain
+3.4250 note t1v0 s0 f17 vol=1 at=3.8 dur=0.25 bass next=null plain
+3.5520 position 1:3 0
+3.5520 sounding 13
+3.5520 bar->pos 0,2,0,0,498,1.2,1,3
+4.0750 stopAll
+4.0750 hideBar
+4.0750 sounding cleared
+4.0750 position 0:0 0
+4.0750 ui stopped

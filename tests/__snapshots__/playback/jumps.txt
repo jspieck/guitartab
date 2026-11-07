@@ -1,0 +1,101 @@
+0.0000 sequencer 0:-1
+0.0000 bar@pos 0,0,0,0,0
+0.0000 ui started
+0.0000 position 0:0 0
+0.0250 note t0v0 s0 f0 vol=1 at=0.05 dur=0.5 guitar next=1 plain
+0.0640 sequencer 0:0
+0.0640 position 0:0 0
+0.0640 sounding 0
+0.0640 scroll 0,0,0,0
+0.0640 bar@beat 0,0,0,0,0
+0.0800 bar->pos 0,0,0,1,486,1.2,0,0
+0.1750 note t0v0 s0 f1 vol=1 at=0.55 dur=0.5 guitar next=2 plain
+0.5600 position 0:1 0
+0.5600 sounding 1
+0.5600 bar->pos 0,0,0,2,490,1.2,0,1
+0.6000 -- jumpToBeat
+0.6000 stopAll
+0.6000 position 3:1 16
+0.6080 bar@beat 0,3,0,1,0
+0.6250 note t0v0 s0 f31 vol=1 at=0.625 dur=0.5 guitar next=32 plain
+0.6400 sequencer 0:3
+0.6400 position 3:1 0
+0.6400 sounding 31
+0.6400 scroll 0,0,1,3
+0.6400 bar@beat 0,3,0,1,0
+0.6560 bar->pos 0,3,0,2,485,1.2,3,1
+0.7250 note t0v0 s0 f32 vol=1 at=1.1 dur=0.5 guitar next=33 plain
+1.1040 position 3:2 0
+1.1040 sounding 32
+1.1040 bar->pos 0,3,0,3,496,1.2,3,2
+1.2250 note t0v0 s0 f33 vol=1 at=1.6 dur=0.5 guitar next=40 plain
+1.5000 -- backward
+1.5000 stopAll
+1.5000 position 2:0 0
+1.5040 bar@beat 0,2,0,0,0
+1.5250 note t0v0 s0 f20 vol=1 at=1.525 dur=0.5 guitar next=21 plain
+1.5360 sequencer 0:2
+1.5360 position 2:0 0
+1.5360 sounding 20
+1.5360 bar@beat 0,2,0,0,0
+1.5520 bar->pos 0,2,0,1,489,1.2,2,0
+1.6000 note t0v0 s0 f21 vol=1 at=2 dur=0.5 guitar next=22 plain
+2.0160 position 2:1 0
+2.0160 sounding 21
+2.0160 bar->pos 0,2,0,2,484,1.2,2,1
+2.1250 note t0v0 s0 f22 vol=1 at=2.5 dur=0.5 guitar next=23 plain
+2.2000 -- forward
+2.2000 stopAll
+2.2000 position 3:0 0
+2.2080 bar@beat 0,3,0,0,0
+2.2250 note t0v0 s0 f30 vol=1 at=2.225 dur=0.5 guitar next=31 plain
+2.2400 sequencer 0:3
+2.2400 position 3:0 0
+2.2400 sounding 30
+2.2400 bar@beat 0,3,0,0,0
+2.2560 bar->pos 0,3,0,1,485,1.2,3,0
+2.3250 note t0v0 s0 f31 vol=1 at=2.7 dur=0.5 guitar next=32 plain
+2.7040 position 3:1 0
+2.7040 sounding 31
+2.7040 bar->pos 0,3,0,2,496,1.2,3,1
+2.8250 note t0v0 s0 f32 vol=1 at=3.2 dur=0.5 guitar next=33 plain
+3.0000 -- pause
+3.0000 stopAll
+3.0000 hideBar
+3.0000 sounding cleared
+3.0000 position 0:0 0
+3.0000 ui stopped
+3.0000 position 3:1 16
+3.0000 cursor 3:1
+position {"block":3,"positionInBlock":16}
+3.5000 -- resume
+3.5000 sequencer 0:-1
+3.5000 bar@pos 0,3,0,16,0
+3.5000 ui started
+3.5000 position 3:0 16
+3.5250 note t0v0 s0 f31 vol=1 at=3.55 dur=0.5 guitar next=32 plain
+3.5520 sequencer 0:3
+3.5520 position 3:1 16
+3.5520 sounding 31
+3.5520 scroll 0,0,1,3
+3.5520 bar@beat 0,3,0,1,0
+3.5680 bar->pos 0,3,0,2,498,1.2,3,1
+3.6750 note t0v0 s0 f32 vol=1 at=4.05 dur=0.5 guitar next=33 plain
+4.0640 position 3:2 16
+4.0640 sounding 32
+4.0640 bar->pos 0,3,0,3,486,1.2,3,2
+4.1500 note t0v0 s0 f33 vol=1 at=4.55 dur=0.5 guitar next=40 plain
+4.5600 position 3:3 16
+4.5600 sounding 33
+4.5600 bar->pos 0,4,0,0,490,1.2,3,3
+4.6500 note t0v0 s0 f40 vol=1 at=5.05 dur=0.5 guitar next=41 plain
+5.0560 sequencer 0:4
+5.0560 position 4:0 16
+5.0560 sounding 40
+5.0560 scroll 0,0,2,4
+5.0560 bar->pos 0,4,0,1,494,1.2,4,0
+5.1500 note t0v0 s0 f41 vol=1 at=5.55 dur=0.5 guitar next=42 plain
+5.5520 position 4:1 16
+5.5520 sounding 41
+5.5520 bar->pos 0,4,0,2,498,1.2,4,1
+5.6500 note t0v0 s0 f42 vol=1 at=6.05 dur=0.5 guitar next=43 plain

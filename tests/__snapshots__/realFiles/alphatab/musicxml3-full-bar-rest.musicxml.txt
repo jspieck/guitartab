@@ -1,0 +1,5 @@
+title: Title | artist: Composer
+track 0: Piano | strings 40,45,50,55,59,64 | program 0
+  1 2/4 120bpm v1: hr
+  2 2/4 v1: hr
+  3 2/4 v1: hr
