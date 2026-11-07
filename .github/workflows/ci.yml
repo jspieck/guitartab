@@ -59,8 +59,9 @@ jobs:
       - name: Generate test SoundFont
         run: node scripts/make-test-soundfont.mjs
 
-      # Missing Linux screenshot baselines are written instead of failing, and uploaded below
-      # so they can be committed. Existing baselines are compared as usual.
+      # Missing Linux screenshot baselines are written and uploaded below so they can be
+      # committed; the tests that wrote them still fail (Playwright's "missing" mode), so a new
+      # screenshot test is red until its Linux baseline is committed. Existing ones compare as usual.
       - name: Run Playwright
         run: npx playwright test --update-snapshots=missing
 
