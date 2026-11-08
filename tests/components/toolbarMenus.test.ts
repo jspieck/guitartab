@@ -87,7 +87,12 @@ describe('PracticeControls', () => {
     await wrapper!.get('#speedTrainerToggle').trigger('click')
     const popover = document.body.querySelector('.practice-controls__popover')
     expect(popover?.parentElement).toBe(document.body)
-    const enabled = document.querySelector('#speedTrainerEnabled') as HTMLInputElement
+    // PracticeOptions is an async component: its import may not be done yet (it often is not on CI).
+    const enabled = await vi.waitFor(() => {
+      const input = document.querySelector<HTMLInputElement>('#speedTrainerEnabled')
+      if (!input) throw new Error('practice options not loaded yet')
+      return input
+    })
     enabled.checked = true
     enabled.dispatchEvent(new Event('change'))
     expect(practiceState.trainer).toBe(true)
