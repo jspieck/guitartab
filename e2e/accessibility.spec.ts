@@ -27,6 +27,17 @@ test.describe('accessibility', () => {
     await expectNoAxeViolations(page)
     await page.locator('#themeToggle').click()
     await expect(page.locator('body')).toHaveAttribute('id', 'darkMode')
+    // Colours fade between themes (e.g. the sequencer's EQ/Comp buttons, 0.12 s); axe must
+    // not measure contrast halfway.
+    // Only transitions: an endless animation (a spinner) would never finish.
+    await page.evaluate(() =>
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation instanceof CSSTransition)
+          .map((animation) => animation.finished),
+      ),
+    )
     await expectNoAxeViolations(page)
   })
 

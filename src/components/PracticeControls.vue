@@ -72,47 +72,22 @@
         ref="popoverRef"
         class="practice-controls__popover"
         role="dialog"
-        aria-label="Speed trainer"
+        aria-label="Practice options"
         :style="popoverStyle"
         @keydown.esc="trainerOpen = false"
       >
-        <label v-if="folded" class="practice-controls__row practice-controls__row--check">
-          <input id="countInEnabled" v-model="practiceState.countIn" type="checkbox" />
-          Count-in (one bar before playing)
-        </label>
-        <label class="practice-controls__row practice-controls__row--check">
-          <input id="bigBeatEnabled" v-model="practiceState.bigBeat" type="checkbox" />
-          Big beat counter (also counts in)
-        </label>
-        <label class="practice-controls__row practice-controls__row--check">
-          <input id="speedTrainerEnabled" v-model="practiceState.trainer" type="checkbox" />
-          Speed up after every loop pass
-        </label>
-        <label class="practice-controls__row">
-          Step
-          <select id="speedTrainerStep" v-model.number="practiceState.trainerStep">
-            <option v-for="step in stepOptions" :key="step" :value="step">+{{ formatPercent(step) }}</option>
-          </select>
-        </label>
-        <label class="practice-controls__row">
-          Up to
-          <select id="speedTrainerTarget" v-model.number="practiceState.trainerTarget">
-            <option v-for="rate in targetOptions" :key="rate" :value="rate">{{ formatPercent(rate) }}</option>
-          </select>
-        </label>
-        <p class="practice-controls__hint">
-          Select a range of measures to loop, or click a marker in the sequencer to loop its
-          section. Start below the target speed, e.g. at 70 %. Speed and loop are remembered per song.
-        </p>
+        <PracticeOptions :count-in="folded" />
       </div>
     </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
 import { practiceState, setPlaybackRate } from '../stores/practiceState'
 import AppIcon from './AppIcon.vue'
+// only shown with the popover open: kept out of the startup toolbar chunk
+const PracticeOptions = defineAsyncComponent(() => import('./practice/PracticeOptions.vue'))
 
 withDefaults(defineProps<{ folded?: boolean }>(), { folded: false })
 
@@ -122,8 +97,6 @@ const trainerOpen = ref(false)
 const trainerRef = ref<HTMLElement | null>(null)
 const popoverRef = ref<HTMLElement | null>(null)
 const popoverStyle = ref<Record<string, string>>({})
-const stepOptions = [0.02, 0.05, 0.1]
-const targetOptions = [0.8, 0.9, 1, 1.1, 1.25, 1.5]
 
 // The trainer can produce speeds between the presets; keep the current one selectable.
 const speedOptions = computed(() => [...new Set([...BASE_SPEEDS, practiceState.playbackRate])].sort((a, b) => a - b))
@@ -135,7 +108,7 @@ function formatPercent(rate: number): string {
 function toggleTrainer(): void {
   if (!trainerOpen.value) {
     const rect = trainerRef.value?.getBoundingClientRect()
-    popoverStyle.value = rect ? { top: `${rect.bottom + 6}px`, left: `${Math.max(8, rect.right - 250)}px` } : {}
+    popoverStyle.value = rect ? { top: `${rect.bottom + 6}px`, left: `${Math.max(8, rect.right - 290)}px` } : {}
   }
   trainerOpen.value = !trainerOpen.value
 }
@@ -190,7 +163,9 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onPointerDown)
 .practice-controls__popover {
   position: fixed;
   z-index: 1000;
-  width: 260px;
+  width: 290px;
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
   padding: 8px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -202,22 +177,4 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', onPointerDown)
   box-shadow: var(--shadow-popover);
 }
 
-.practice-controls__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 4px 0;
-}
-
-.practice-controls__row--check {
-  justify-content: flex-start;
-  white-space: nowrap;
-}
-
-.practice-controls__hint {
-  margin: 6px 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
 </style>

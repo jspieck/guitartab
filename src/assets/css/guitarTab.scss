@@ -666,7 +666,7 @@ body {
     border-radius: var(--radius-lg);
 }
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalTopBar{
-    min-height: 44px;
+    min-height: 36px;
     height: auto;
     line-height: normal;
     display: flex;
@@ -680,7 +680,7 @@ body {
     box-sizing: border-box;
 }
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalTopBarLabel{
-    min-height: 44px;
+    min-height: 36px;
     padding: 0;
     flex: 1;
     display: flex;
@@ -693,7 +693,7 @@ body {
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .modalBody{
     gap: 0;
     padding: 16px;
-    max-height: calc(78vh - 44px);
+    max-height: calc(78vh - 36px);
     overflow-y: auto;
     overflow-x: hidden;
     align-content: start;
@@ -703,9 +703,9 @@ body {
     top: auto;
     right: auto;
     margin: 0;
-    width: 32px;
-    height: 32px;
-    flex: 0 0 32px;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
     border-radius: 8px;
     transition: background-color 0.15s ease;
 }
@@ -769,10 +769,10 @@ body {
     text-transform: none;
     line-height: 1.3;
 }
-.modal-field input:not([type=checkbox]):not(.styled-checkbox),
+.modal-field input:not([type=checkbox]):not([type=radio]):not(.styled-checkbox),
 .modal-field textarea,
 .modal-field .select,
-.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not([type=radio]):not(.styled-checkbox),
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea,
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select,
 .modal-surface-block {
@@ -783,9 +783,9 @@ body {
     background: var(--color-field);
     box-sizing: border-box;
 }
-.modal-field input:not([type=checkbox]):not(.styled-checkbox),
+.modal-field input:not([type=checkbox]):not([type=radio]):not(.styled-checkbox),
 .modal-field textarea,
-.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not(.styled-checkbox),
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not([type=radio]):not(.styled-checkbox),
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) textarea {
     margin: 0;
     padding: 0 var(--control-padding-x);
@@ -795,8 +795,8 @@ body {
     outline: none;
     box-sizing: border-box;
 }
-.modal-field input:not([type=checkbox]):not(.styled-checkbox),
-.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not(.styled-checkbox) {
+.modal-field input:not([type=checkbox]):not([type=radio]):not(.styled-checkbox),
+.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input:not([type=checkbox]):not([type=radio]):not(.styled-checkbox) {
     height: var(--control-height);
 }
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) input::placeholder,
@@ -821,8 +821,11 @@ body {
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select select {
     appearance: none;
     -webkit-appearance: none;
+    /* Block, so it doesn't sit on the wrapper's text baseline (which pushed it, its text and
+       its clipped bottom a few pixels down); fills the box inside the 1px border. */
+    display: block;
     width: 100%;
-    height: var(--control-height);
+    height: 100%;
     padding: 0 30px 0 var(--control-padding-x);
     margin: 0;
     border: 0;
@@ -833,18 +836,39 @@ body {
     line-height: var(--control-height);
     cursor: pointer;
 }
-.modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select__arrow {
-    top: 50%;
-    transform: translateY(-50%);
-    right: 11px;
-    border-width: 5px 4px 0 4px;
-    border-color: var(--color-text-muted) transparent transparent transparent;
-}
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select:hover,
 .modal:where(:not(#compressorModal, #equalizerModal, #guitarModal, #pianoModal, #mixerModal)) .select:focus-within {
     color: inherit;
     background: var(--color-hover);
     border-color: var(--color-border-strong);
+}
+/* A select placed straight into a field (Key signature, Clef, Audio export) looks like the
+   wrapped ones above; the chevron comes from the global select rule. */
+.modal-field > select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: var(--control-height);
+    margin: 0;
+    padding-left: var(--control-padding-x);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background-color: var(--color-field);
+    box-sizing: border-box;
+    color: inherit;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+.modal-field > select:hover,
+.modal-field > select:focus {
+    background-color: var(--color-hover);
+    border-color: var(--color-border-strong);
+}
+.modal-field > select:disabled {
+    opacity: 0.6;
+    cursor: default;
 }
 .modal-primary-button {
     display: inline-flex;
@@ -1264,17 +1288,6 @@ body.modal-resizing {
     box-shadow: inset 0px 0px 0px 30px var(--green-400);
   }
 }
-#bendEditor{
-    /*border: 1px solid var(--gray-400);*/
-    width: 487px;
-    display: block;
-    height: 200px;
-}
-#tremoloEditor{
-    width: 100%;
-    height: 300px;
-    margin-top: 20px;
-}
 #chordDisplay{
     display: block;
     margin-bottom: 10px;
@@ -1296,6 +1309,29 @@ body.modal-resizing {
 }
 #piano {
     min-width: 1064px;
+}
+/* Buttons in a window's title bar (the Guitar and Piano dialogs' "Dock under the tab"). */
+.modalTopBarActions{
+    position: absolute;
+    z-index: 6;
+    top: 0;
+    right: 40px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+}
+.modalTopBarActions .dockButton{
+    font: inherit;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    cursor: pointer;
+}
+.modalTopBarActions .dockButton:hover{
+    background: var(--color-hover);
 }
 .hideTopBar{
     position: absolute;
@@ -1387,21 +1423,17 @@ body.modal-resizing {
     opacity: 0.5;
     pointer-events: none;
 }
-.select__arrow {
-    position: absolute;
-    right: 10px;
-    top: 15px;
-    pointer-events: none;
-    border-style: solid;
-    border-width: 8px 5px 0 5px;
-    border-color: var(--gray-500) transparent transparent transparent;
-}
-.select:hover ~ .select__arrow,
-.select:focus ~ .select__arrow {
-  border-top-color: var(--gray-1000);
-}
-.select:disabled ~ .select__arrow {
-  border-top-color: var(--gray-300);
+/* Every single-line select draws the app's chevron instead of the browser's arrow. The selector is
+   specific enough to win over component rules, which then only set the background colour and the
+   other paddings. The studio panels (.ap-select) draw their own chevron on the dark panel. */
+html select:not([multiple]):not([size]):not(.ap-select) {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 26px;
+    background-image: var(--select-chevron);
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px 14px;
 }
 /*Separator*/
 /*Add Tracks*/
@@ -1859,7 +1891,8 @@ transform-origin: 11px center 0px;
         transform: rotate(90deg);
     }
 }
-#sequencerAddInstrument{
+#sequencerAddInstrument,
+#sequencerMixerOpen{
 	width: 30px;
     float: right;
     padding: 5px;
@@ -2251,12 +2284,6 @@ document, img {
 #stringCountSelectBox, #capoSelectBox{
 	display: block;
 }
-#stringCountSelectBox .select__arrow, #capoSelectBox .select__arrow{
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    border-width: 6px 3px 0 3px;
-}
 #tuningAreaModal{
     display: flex;
     flex-wrap: wrap;
@@ -2508,7 +2535,7 @@ svg text{
 .gridLine{
     stroke: var(--editor-grid);
 }
-#bendEditor rect, #tremoloEditor rect, #chordDisplay rect{
+#bendEditor rect, .tremolo-grid rect, #chordDisplay rect{
     stroke: var(--editor-cell-border);
     stroke-width: 1;
     fill: var(--editor-bg);
@@ -2669,15 +2696,22 @@ body {
     padding-left: 6px;
 }
 #openWindowArea .footerBlock{
+    /* The cell is the footer's height; centre the chip in it instead of hanging it from the top. */
+    display: flex;
+    align-items: center;
     padding: 0;
     border: none;
 }
 .openWindows{
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
     height: 18px;
-    line-height: 18px;
-    padding: 0 8px;
+    /* Source Sans sits high in its line box; 2px more above centres the letters (measured). */
+    padding: 2px 8px 0;
+    line-height: 1;
     border-radius: 4px;
-    background: var(--gray-150);
+    background: var(--gray-250);
     color: var(--blue-700);
     font-size: 11px;
     font-weight: 600;
@@ -2692,4 +2726,14 @@ body {
 .modal .modal-secondary-button{
     font-size: 12px;
     font-weight: 600;
+}
+
+/* The loop's A/B handles on the tab (Big win 28, TabRow.vue) */
+.loop-handle {
+    cursor: ew-resize;
+    pointer-events: all;
+    touch-action: none;
+}
+@media print {
+    .loop-handle { display: none; }
 }

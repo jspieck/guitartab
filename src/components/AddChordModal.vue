@@ -63,7 +63,6 @@
                   {{ note }}
                 </option>
               </select>
-              <div class="select__arrow"></div>
             </div>
           </div>
           <div class="modal-field">
@@ -74,7 +73,6 @@
                 <option value="maj">Major</option>
                 <option value="min">Minor</option>
               </select>
-              <div class="select__arrow"></div>
             </div>
           </div>
           <div class="modal-field">
@@ -153,19 +151,6 @@ const saveChord = () => {
   width: 100%;
   max-width: 220px;
   margin: 0;
-}
-
-.select__arrow {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid var(--color-text-muted);
-  pointer-events: none;
 }
 
 .chordCross {

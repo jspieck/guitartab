@@ -416,6 +416,16 @@
 .labelDiv{
     position: relative;
 }
+/* "Loading sound…" under a track's name while its instrument streams in (Big win 32) */
+.soundLoadingBadge{
+    position: absolute;
+    left: 34px;
+    bottom: 0;
+    font-size: 9px;
+    line-height: 11px;
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
 .instrumentChange{
     position: absolute;
     top: 50%;

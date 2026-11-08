@@ -37,6 +37,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx vite build
+        env:
+          # The public address (repository variable, e.g. https://serenetab.example): canonical
+          # links, og:url and sitemap.xml need it. Without it the build leaves them out.
+          SITE_URL: ${{ vars.SITE_URL }}
 
       # Never ship audio from the build: the hosted copy in /audio/ is managed by hand.
       - name: Drop audio from the build

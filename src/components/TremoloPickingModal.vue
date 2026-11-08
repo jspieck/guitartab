@@ -10,7 +10,6 @@
             <option value="s">Sixteenth</option>
             <option value="t">Thirty-second</option>
           </select>
-          <div class="select__arrow"></div>
         </div>
       </div>
       <div class="modal-submit-row">

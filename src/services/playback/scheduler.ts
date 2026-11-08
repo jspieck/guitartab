@@ -6,7 +6,7 @@ import Duration from '../../utils/duration'
 import { audioGraph } from '../audio/audioGraph'
 import { drawMeters } from '../audio/meters'
 import { metronome } from '../audio/metronome'
-import { queueBeatPulse, resetBeatClock } from '../../stores/beatClockState'
+import { dropBeatPulsesFrom, queueBeatPulse, resetBeatClock } from '../../stores/beatClockState'
 import { samplePlayer } from '../audio/samplePlayer'
 import {
   publishPlaybackPosition,
@@ -22,7 +22,7 @@ import {
   shouldTruncateNoteAtLoopEnd,
 } from '../playbackLoopController'
 import { computeCountIn, getBarBeatPositions, nextTrainerRate } from '../practiceTiming'
-import { notePlayback } from './notePlayback'
+import { notePlayback, type BeatRef } from './notePlayback'
 import { playhead } from './playhead'
 import {
   BarSequence,
@@ -43,7 +43,9 @@ import { createTimerWorker } from './timerWorker'
  * moves on to the next bar of the bar sequence when the bar is over, and schedules every
  * beat (each track and voice) and metronome click that starts within `scheduleAhead`
  * seconds, on the AudioContext clock. Also: count-in, the speed trainer (one step per loop
- * pass), jumps, and the periodic flush of MIDI recording.
+ * pass), jumps, and the periodic flush of MIDI recording. When the practice speed changes
+ * (the speed menu or a trainer step), what was queued ahead is taken back and scheduled
+ * again at the new speed, so the change is heard at once instead of 0.4 s later.
  */
 
 const TICK_MS = 25
@@ -85,6 +87,12 @@ class PlaybackScheduler {
   /** last metronome click scheduled, as `sequenceIndex * 64 + beat` */
   private lastClickKey = -1
 
+  /** clicks scheduled ahead and not sounded yet: taken back on a speed change */
+  private pendingClicks: { key: number; time: number; oscillator: OscillatorNode | undefined }[] = []
+
+  /** the practice speed the queued beats were scheduled at */
+  private scheduledRate = 1
+
   private nextRecordingFlush = 0
 
   init(): void {
@@ -113,6 +121,8 @@ class PlaybackScheduler {
     resetBeatClock()
     this.sequence.reset(Song.measureMeta)
     this.lastClickKey = -1
+    this.pendingClicks = []
+    this.scheduledRate = getPlaybackRate()
     this.playStartAudioTime = audioGraph.getCurrentTime() + START_LEAD_SECONDS
     if (practiceState.countIn) {
       this.playStartAudioTime += this.scheduleCountIn(this.playStartAudioTime + this.countInDuration())
@@ -229,6 +239,7 @@ class PlaybackScheduler {
     }
 
     if (this.barIndex + 5 > this.sequence.filledUntil) this.precompute(this.barIndex)
+    if (getPlaybackRate() !== this.scheduledRate) this.rescheduleAhead(currentTime)
     this.scheduleDueBeats(currentTime)
 
     // metronome (always while recording MIDI, otherwise when enabled); the beat counter needs the beats too
@@ -275,6 +286,61 @@ class PlaybackScheduler {
     // the loop restarts mid-bar: the bar clock starts at the loop start, not at 0
     this.timeInBar = (restartsLoop ? loop!.startRatio : 0) + intoNewBar * wps(Song.bpm)
     return true
+  }
+
+  /**
+   * The speed changed: takes back the notes, clicks and beat displays queued from now on and
+   * sets every voice back to the clock's position, so this tick schedules them again at the
+   * new speed. Notes already sounding ring on.
+   */
+  private rescheduleAhead(currentTime: number): void {
+    this.scheduledRate = getPlaybackRate()
+    // From a moment just ahead, so a beat exactly at the boundary is either kept or taken back
+    // and found again, never both (the clock's float sums land a hair either side of it).
+    // (past EPSILON, which the beat search allows for)
+    const ahead = 2 * EPSILON
+    const from = currentTime + ahead * spw(Song.bpm)
+    samplePlayer.cancelFrom(from)
+    playhead.dropQueuedFrom(from)
+    dropBeatPulsesFrom(from)
+    const cancelled = this.pendingClicks.filter((click) => click.time >= from)
+    for (const click of cancelled) click.oscillator?.disconnect()
+    if (cancelled.length > 0) this.lastClickKey = Math.min(...cancelled.map((click) => click.key)) - 1
+    this.pendingClicks = this.pendingClicks.filter((click) => click.time < from)
+    const loop = currentLoopInterval()
+    const blockId = this.sequence.blockAt(this.barIndex)
+    for (let trackId = 0; trackId < Song.measures.length; trackId += 1) {
+      for (let voiceId = 0; voiceId < Song.numVoices; voiceId += 1) {
+        this.nextBeats[trackId][voiceId] = nextBeatFrom(
+          Song,
+          this.sequence,
+          trackId,
+          voiceId,
+          blockId,
+          this.timeInBar + ahead,
+          loop,
+          this.barIndex,
+          this.songTime + ahead,
+        )
+      }
+    }
+  }
+
+  /**
+   * The beat after `ref` in a voice in playing order, as far as the bar sequence is filled
+   * (tie chains follow it). A tie doesn't carry over the loop's jump back.
+   */
+  private afterInSequence(trackId: number, voiceId: number): (ref: BeatRef) => BeatRef | null {
+    return (ref) => {
+      const beats = Song.measures[trackId][ref.blockId]?.[voiceId]
+      if (beats != null && ref.beatId + 1 < beats.length) return { ...ref, beatId: ref.beatId + 1 }
+      const index = ref.sequenceIndex
+      if (index == null || index + 1 > this.sequence.filledUntil) return null
+      if (currentLoopInterval()?.endBlock === ref.blockId) return null
+      const blockId = this.sequence.blockAt(index + 1)
+      if (Song.measures[trackId][blockId] == null) return null
+      return { blockId, beatId: 0, sequenceIndex: index + 1 }
+    }
   }
 
   /** Schedules every beat that starts before the horizon, voice by voice. */
@@ -344,8 +410,13 @@ class PlaybackScheduler {
         if (sequenceIndex + 5 > this.sequence.filledUntil) this.precompute(sequenceIndex)
       }
     }
-    const following = followingBeat !== -1 ? { blockId: followingBlock, beatId: followingBeat } : null
-    notePlayback.playBeat(trackId, blockId, voiceId, beatId, duration, start, beat, following)
+    const following =
+      followingBeat !== -1 ? { blockId: followingBlock, beatId: followingBeat, sequenceIndex } : null
+    notePlayback.playBeat(trackId, blockId, voiceId, beatId, duration, start, beat, following, {
+      player: samplePlayer,
+      secondsPerWhole: spw(Song.bpm),
+      after: this.afterInSequence(trackId, voiceId),
+    })
 
     if (Song.currentTrackId === trackId && Song.currentVoiceId === voiceId) {
       playhead.queueBeat({
@@ -394,7 +465,11 @@ class PlaybackScheduler {
         this.lastClickKey = key
         if (tickTime >= this.songTime - EPSILON) {
           const time = currentTime + (tickTime - this.songTime) * spw(bpm)
-          if (practiceState.metronome || liveInput.isRecording) metronome.playClick(time, beat === 0)
+          let oscillator: OscillatorNode | undefined
+          if (practiceState.metronome || liveInput.isRecording)
+            oscillator = metronome.playClick(time, beat === 0)
+          this.pendingClicks = this.pendingClicks.filter((click) => click.time >= currentTime)
+          this.pendingClicks.push({ key, time, oscillator })
           if (practiceState.bigBeat) {
             queueBeatPulse({ time, beat: beat + 1, beats: meta.numerator, blockId, countIn: false })
           }

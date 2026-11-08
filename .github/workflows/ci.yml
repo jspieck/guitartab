@@ -3,6 +3,8 @@ name: CI
 on:
   push:
   pull_request:
+    # labeled: adding the visual-change label re-runs the checks (see the e2e job).
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 concurrency:
@@ -43,8 +45,18 @@ jobs:
   e2e:
     name: Playwright (desktop + phone)
     runs-on: ubuntu-latest
+    env:
+      # An intended visual change: "[visual]" in the pushed commit's message, or the label
+      # "visual-change" on the pull request. Screenshot differences then only warn.
+      VISUAL_OK: ${{ contains(github.event.head_commit.message, '[visual]') || contains(github.event.pull_request.labels.*.name, 'visual-change') }}
+      # Only the generated test SF2 is here, not the streamed SF3 that public/audio/manifest.json
+      # names: load the SF2 whole (vite.config.ts). The streaming is covered by unit tests.
+      SOUNDFONT_MANIFEST: 'off'
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The base commit's sources are needed for the reference screenshots.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -55,39 +67,72 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       # The real SoundFont is not in the repository (public/audio/README.txt); playback tests
-      # run against a generated one-sample SoundFont instead.
+      # run against a generated one-sample SoundFont instead (untracked, so it survives the
+      # checkouts below).
       - name: Generate test SoundFont
         run: node scripts/make-test-soundfont.mjs
 
-      # Missing Linux screenshot baselines are written and uploaded below so they can be
-      # committed; the tests that wrote them still fail (Playwright's "missing" mode), so a new
-      # screenshot test is red until its Linux baseline is committed. Existing ones compare as usual.
-      - name: Run Playwright
-        run: npx playwright test --update-snapshots=missing
+      # Linux screenshot baselines are not committed. The reference for every @visual test is
+      # the same test run on the base commit (the pull request's target, or the commit before
+      # the push), so a run fails when the drawing changed in this push. The committed -win32
+      # baselines are for local runs only.
+      - name: Find the base commit
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+          REF: ${{ github.ref }}
+        run: bash scripts/ci/visual-base.sh
 
-      - name: Collect new Linux baselines
-        id: snapshots
-        if: always()
+      - name: Reference screenshots from the base commit
+        id: reference
+        if: steps.base.outputs.sha != ''
+        continue-on-error: true
+        env:
+          BASE: ${{ steps.base.outputs.sha }}
+          HEAD_SHA: ${{ steps.base.outputs.head }}
+        run: bash scripts/ci/visual-reference.sh
+
+      - name: Back to the tested commit
+        if: always() && steps.base.outputs.sha != ''
+        env:
+          BASE: ${{ steps.base.outputs.sha }}
+          HEAD_SHA: ${{ steps.base.outputs.head }}
         run: |
-          new=$(git ls-files --others --exclude-standard 'e2e/*-snapshots/*')
-          if [ -n "$new" ]; then
-            echo "::warning::New Linux screenshot baselines were written; download the linux-snapshots artifact and commit them."
-            echo "$new"
-            echo "found=true" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Upload new Linux baselines
-        if: always() && steps.snapshots.outputs.found == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-snapshots
-          path: e2e/*-snapshots/*-linux.png
+          git checkout --force --quiet "$HEAD_SHA"
+          find e2e -path '*-snapshots/*-linux.png' -delete
+          if ! git diff --quiet "$BASE" "$HEAD_SHA" -- package-lock.json; then npm ci && npx playwright install chromium; fi
+          if [ -d "$RUNNER_TEMP/reference/e2e" ]; then cp -r "$RUNNER_TEMP/reference/e2e" .; fi
+          echo "Reference screenshots: $(find e2e -path '*-snapshots/*-linux.png' | wc -l)"
+
+      - name: Run Playwright (without @visual)
+        run: npx playwright test --grep-invert @visual
+
+      # A screenshot with no reference (a new test, or the base commit failed) is written
+      # and passes: there is nothing to compare it with.
+      - name: Compare @visual screenshots with the base commit
+        id: visual
+        if: ${{ !cancelled() }}
+        continue-on-error: ${{ env.VISUAL_OK == 'true' }}
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-visual
+        run: npx playwright test --grep @visual --update-snapshots=missing --output=test-results-visual
+
+      - name: Note an accepted visual change
+        if: steps.visual.outcome == 'failure' && env.VISUAL_OK == 'true'
+        run: |
+          echo "::warning::Screenshots differ from the base commit; accepted because of [visual] / the visual-change label. Look at the diffs in the playwright-report artifact."
+          echo "Screenshots differ from the base commit (accepted as an intended visual change). The expected/actual/diff images are in the \`playwright-report\` artifact." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Playwright report
-        if: failure()
+        if: failure() || steps.visual.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: |
             playwright-report/
+            playwright-report-visual/
             test-results/
+            test-results-visual/
           retention-days: 14

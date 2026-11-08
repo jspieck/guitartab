@@ -11,6 +11,7 @@ import { toggleShortcutsHelp } from '../../stores/shortcutsHelpState'
 import type { EditTab } from '../../stores/toolbarUiState'
 import { typedEventBus } from '../../utils/typedEventBus'
 import { DIALOGS, openDialog, toggleDialog } from '../dialogs/dialogs'
+import { openGettingStarted } from '../whatsNew'
 import { applyNoteLengthSelection } from '../menuActionCommands'
 import liveInput from '../midi/liveInput'
 import playback from '../playback'
@@ -215,6 +216,14 @@ export const TOOLBAR_ACTIONS: readonly ToolbarAction[] = [
     run: () => void import('../pdfExport').then(({ exportTabAsPdf }) => exportTabAsPdf()),
   },
   {
+    id: 'exportAudio',
+    label: 'Export audio',
+    group: 'file',
+    icon: 'audio-export',
+    opensDialog: true,
+    run: () => openDialog(DIALOGS.AUDIO_EXPORT),
+  },
+  {
     id: 'info',
     label: 'Song info',
     group: 'file',
@@ -228,6 +237,21 @@ export const TOOLBAR_ACTIONS: readonly ToolbarAction[] = [
     group: 'file',
     icon: 'history',
     run: () => toggleDraftsPanel(),
+  },
+  {
+    id: 'gettingStarted',
+    label: 'Getting started guide',
+    group: 'file',
+    icon: 'help',
+    run: openGettingStarted,
+  },
+  {
+    id: 'whatsNew',
+    label: "What's new",
+    group: 'file',
+    icon: 'info',
+    opensDialog: true,
+    run: () => toggleDialog(DIALOGS.WHATS_NEW),
   },
   {
     id: 'about',

@@ -10,10 +10,85 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="SereneTab – guitar tab editor and player" />
     <meta property="og:description" content="Write, play and practise guitar tabs in the browser. No account, no installation; your songs stay on your device." />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:site_name" content="SereneTab" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- site:head -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "SereneTab",
+        "description": "Guitar tab editor and player in the browser. Opens Guitar Pro 3-8, MusicXML and MIDI files; exports Guitar Pro, MusicXML, MIDI and PDF. No account; songs stay on your device.",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Any (web browser)",
+        "browserRequirements": "Requires JavaScript and Web Audio",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "license": "https://opensource.org/licenses/MIT",
+        "screenshot": "og-image.png",
+        "featureList": [
+          "Guitar tab and classical notation editor",
+          "Playback with instrument sounds, mute and solo per track",
+          "Loops, speed trainer, count-in, metronome and tuner",
+          "Score view with several tracks, two voices per track, drum tracks, lyrics",
+          "Phone layout with a touch fret pad"
+        ],
+        "fileFormat": [".gp", ".gpx", ".gp5", ".gp4", ".gp3", ".musicxml", ".mxl", ".mid", ".gt"]
+      }
+    </script>
+    <style>
+      /* What a visitor (and a search engine) sees until the app has loaded; Vue replaces it. */
+      .site-intro { box-sizing: border-box; max-width: 40rem; margin: 0 auto; padding: 12vh 16px 32px;
+        font: 16px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1f2328; }
+      .site-intro h1 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; font-size: 1.6rem; }
+      .site-intro__lead { margin: 0 0 16px; font-size: 1.05rem; }
+      .site-intro__loading { color: #57606a; }
+      .site-intro__loading::after { content: ''; display: inline-block; width: 1em; animation: site-intro-dots 1.2s steps(4) infinite; text-align: left; }
+      @keyframes site-intro-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+      .site-intro ul { padding-left: 20px; color: #3d444d; }
+      .site-intro nav { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.95rem; }
+      .site-intro a { color: #2558c8; }
+      @media (prefers-color-scheme: dark) {
+        body:has(.site-intro) { background: #15171b; }
+        .site-intro { color: #e6e8eb; }
+        .site-intro__loading, .site-intro ul { color: #a5adb8; }
+        .site-intro a { color: #8db3ff; }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="site-intro">
+        <h1><img src="/favicon.svg" alt="" width="32" height="32" />SereneTab</h1>
+        <p class="site-intro__lead">
+          A free guitar tab editor and player in your browser. Open Guitar Pro, MusicXML and MIDI files, listen to
+          every track, practise with loops and a speed trainer, and write your own tabs, on a computer or a phone.
+          No account, nothing to install; your songs stay on your device.
+        </p>
+        <p class="site-intro__loading" role="status">Loading the editor</p>
+        <ul>
+          <li>Opens Guitar Pro 3&ndash;8 (.gp, .gpx, .gp5, .gp4, .gp3), MusicXML (.musicxml, .mxl), MIDI and .gt files</li>
+          <li>Saves as Guitar Pro 5, Guitar Pro 6&ndash;8, MusicXML, MIDI, PDF and .gt</li>
+          <li>Tab with classical notation, a score view for several tracks, drums, lyrics, two voices</li>
+          <li>Playback with real instrument sounds, mute and solo, loops, speed trainer, count-in, metronome, tuner</li>
+          <li>A phone layout with a touch fret pad, pinch to zoom and swipe between beats</li>
+        </ul>
+        <nav aria-label="About SereneTab">
+          <a href="getting-started.html">Getting started</a>
+          <a href="open-guitar-pro-files.html">Open Guitar Pro files</a>
+          <a href="guitar-tab-editor-for-phones.html">Tabs on your phone</a>
+          <a href="practice-with-loops.html">Practise with loops</a>
+          <a href="privacy.html">Privacy</a>
+          <a href="impressum.html">Impressum</a>
+        </nav>
+      </div>
+    </div>
+    <noscript>
+      <p class="site-intro">
+        SereneTab needs JavaScript to run: please turn it on for this site, or use a browser that supports it.
+        The <a href="getting-started.html">getting-started guide</a> works without it.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

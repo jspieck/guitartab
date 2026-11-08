@@ -15,7 +15,6 @@
               <option value="s">Sixteenth</option>
               <option value="t">Thirty-second</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
         <div class="modal-field">
@@ -25,7 +24,6 @@
               <option value="before">Before the note</option>
               <option value="with">With the note</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
         <div class="modal-field">
@@ -34,7 +32,6 @@
             <select id="grace-dynamic" v-model="form.dynamic">
               <option v-for="dynamic in DYNAMICS" :key="dynamic" :value="dynamic">{{ dynamic }}</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
         <div class="modal-field field-span-two">
@@ -46,7 +43,6 @@
               <option value="slide">Slide</option>
               <option value="hammer">Hammer-on</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
       </div>

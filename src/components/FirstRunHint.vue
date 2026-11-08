@@ -16,6 +16,9 @@
       <li><strong>Bring your own tab.</strong> Open a Guitar Pro, MusicXML, MIDI or .gt file with the folder button.</li>
       <li><strong>More music.</strong> Classical guitar pieces to hear and play along under Example songs.</li>
     </ol>
+    <p class="first-run-hint__more">
+      More in the <a :href="GETTING_STARTED_URL" target="_blank" rel="noopener" class="first-run-hint__link">getting-started guide</a>.
+    </p>
     <div class="first-run-hint__footer">
       <button v-if="!layoutModeState.compact" type="button" class="first-run-hint__link" @click="showShortcuts">All shortcuts <kbd>?</kbd></button>
       <span v-else />
@@ -33,6 +36,7 @@ import { dismissFirstRunHint } from '../stores/firstRunHintState'
 import { toggleShortcutsHelp } from '../stores/shortcutsHelpState'
 import { layoutModeState } from '../stores/layoutModeState'
 import { toolbarAction } from '../services/editor/toolbarActions'
+import { GETTING_STARTED_URL } from '../services/whatsNew'
 
 function showExampleSongs(): void {
   dismissFirstRunHint()
@@ -90,6 +94,10 @@ function showShortcuts(): void {
 
 .first-run-hint__steps li + li {
   margin-top: 4px;
+}
+
+.first-run-hint__more {
+  margin: 0 0 10px;
 }
 
 .first-run-hint__footer {

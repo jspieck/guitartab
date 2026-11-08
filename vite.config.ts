@@ -1,5 +1,23 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import { existsSync, readFileSync } from 'node:fs'
+import { sitePlugin } from './site/vitePlugin'
+
+/**
+ * The streamed SoundFont (Big win 32): `public/audio/manifest.json` (tracked; written by
+ * scripts/soundfont-file.mjs) names the hashed SF3 on the server and where its parts sit.
+ * `SOUNDFONT_MANIFEST=off` (CI's e2e job, which only has a generated test SF2) loads the SF2
+ * whole instead. A local build whose public/audio/ lacks the named file still uses it: the
+ * deploy build has no audio at all, the server has the file.
+ */
+function soundFontManifest(): unknown {
+  const path = 'public/audio/manifest.json'
+  if (process.env.SOUNDFONT_MANIFEST === 'off' || !existsSync(path)) return null
+  const manifest = JSON.parse(readFileSync(path, 'utf8'))
+  if (existsSync('public/audio/GeneralUser-GS.sf2') && !existsSync(`public/audio/${manifest.soundFont}`))
+    console.warn(`public/audio/${manifest.soundFont} is missing: the app will fall back to the SF2.`)
+  return manifest
+}
 
 const MODULE_CHUNKS: Record<string, string[]> = {
   // The shortcut table: the key handler needs it at startup, the Help sheet lists it.
@@ -43,6 +61,19 @@ const MODULE_CHUNKS: Record<string, string[]> = {
     '/src/services/import/guitarProReaders.ts',
     '/src/services/gpifImport.ts',
     '/src/services/gpContainers.ts',
+  ],
+  // Audio export (Big win 29): the render plan, the offline render, WAV and Ogg Opus. Loaded
+  // by the Export audio dialog.
+  'audio-export': ['/src/services/audioExport/'],
+  // Reading the SoundFont: the parser, SF3 decoding, bank building, whole-file and streamed
+  // loading (Big win 32). Startup imports it with import(); playback needs only synth.ts.
+  soundfont: [
+    '/src/services/audio/soundFont/loader.ts',
+    '/src/services/audio/soundFont/streaming.ts',
+    '/src/services/audio/soundFont/parser.ts',
+    '/src/services/audio/soundFont/riff.ts',
+    '/src/services/audio/soundFont/sf3.ts',
+    '/src/services/audio/soundFont/banks.ts',
   ],
   // The example song list and its loader (Big win 23).
   'example-songs': ['/src/data/exampleSongs.ts', '/src/services/exampleSongs.ts'],
@@ -93,9 +124,13 @@ const EDITOR_CORE_PATHS = [
   '/src/services/songMigrations.ts',
   '/src/services/userNotifications.ts',
   '/src/services/theme.ts',
+  '/src/services/whatsNew.ts',
   // isDrumTrack is used by note entry and the keyboard dispatch; in studio-panels it made
   // editor-core and studio-panels import each other (production build crashed on load).
   '/src/services/drumMixer.ts',
+  // Count-in and beat positions: the scheduler needs them; unassigned, Rollup moved them into
+  // the lazy audio-export chunk (which also uses them) and editor-core imported it.
+  '/src/services/practiceTiming.ts',
 ]
 
 // The VexFlow code: loaded with the classical notation, never at startup.
@@ -173,6 +208,9 @@ function manualChunks(id: string): string | undefined {
     normalizedId.includes('/src/components/audio/VerticalFader.vue') ||
     normalizedId.includes('/src/components/audio/audioPlugin.css') ||
     normalizedId.includes('/src/components/audio/equalizerGraph.ts') ||
+    normalizedId.includes('/src/components/audio/channelTargets.ts') ||
+    normalizedId.includes('/src/components/audio/TrackMixer.vue') ||
+    normalizedId.includes('/src/components/audio/DrumKitMixer.vue') ||
     normalizedId.includes('/src/composables/useDialogOpen.ts')
   ) {
     return 'studio-panels'
@@ -213,8 +251,10 @@ export default defineConfig({
     __VUE_OPTIONS_API__: true,
     __VUE_PROD_DEVTOOLS__: false,
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
+    __SOUND_FONT_MANIFEST__: JSON.stringify(soundFontManifest()),
   },
-  plugins: [vue()],
+  // sitePlugin: help and search pages, robots.txt, sitemap.xml, index.html's absolute URLs from SITE_URL.
+  plugins: [vue(), sitePlugin()],
   test: {
     globals: true,
     environment: 'node',

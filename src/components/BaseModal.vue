@@ -14,8 +14,9 @@
       :data-resized="resizedHeight ? '' : undefined"
       @pointerdown.capture="bringDialogToFront(modalId)"
     >
-      <div class="modalTopBar" @pointerdown="startDrag">
+      <div class="modalTopBar" :class="{ 'modal-draggable': !layoutModeState.compact }" @pointerdown="startDrag">
         <div :id="`${modalId}Title`" class="modalTopBarLabel" role="heading" aria-level="2"><slot name="title"></slot></div>
+        <div v-if="$slots['title-actions']" class="modalTopBarActions"><slot name="title-actions"></slot></div>
         <button type="button" class="modal_close" aria-label="Close" :aria-describedby="`${modalId}Title`" @click="hideDialog(modalId)">
           <span class="icon" aria-hidden="true">
             <svg viewBox="0 0 32 32">
@@ -215,6 +216,15 @@
   </script>
 
   <style scoped>
+  /* The title bar moves the window (not on phones, where windows are sheets). */
+  .modal-draggable {
+    cursor: move;
+  }
+
+  .modal-draggable .modal_close {
+    cursor: pointer;
+  }
+
   .modal-resize-edge {
     position: absolute;
     z-index: 3;

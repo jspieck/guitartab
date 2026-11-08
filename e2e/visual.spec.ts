@@ -1,11 +1,12 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { toggleClassicalNotation, waitForEditorShell, waitForSoundFont } from './helpers'
 import { loadEffectsShowcase } from './fixtures/effectsShowcase'
 
 /**
- * Pixel baselines for the main surfaces, per platform (`*-chromium-win32.png`, `*-chromium-linux.png`).
- * After an intended visual change: npx playwright test visual --update-snapshots
- * CI writes missing Linux baselines and uploads them as the `linux-snapshots` artifact.
+ * Pixel baselines for the main surfaces. Locally they are compared with the committed
+ * `*-chromium-win32.png` files (after an intended visual change:
+ * npx playwright test visual --update-snapshots). On CI there are no committed Linux baselines:
+ * the e2e job draws them from the base commit (the `@visual` tag, .github/workflows/ci.yml).
  */
 
 const SCREENSHOT = { maxDiffPixelRatio: 0.01, animations: 'disabled' } as const
@@ -27,8 +28,21 @@ async function openEffectsShowcase(page: Page): Promise<void> {
   await expect(page.locator('.beat-text').first()).toBeVisible()
 }
 
-function tabRow(page: Page, index: number): Locator {
-  return page.locator('.tab-row').nth(index)
+/**
+ * A tab row, clipped from its top to the next row's top. The row element's own box ends at
+ * its lowest glyph, and Chrome measures the dynamics' system font (Times New Roman bold italic)
+ * 1 px taller on some page loads, so an element screenshot changed size between runs.
+ */
+async function expectRowScreenshot(page: Page, index: number, name: string): Promise<void> {
+  const clip = await page.evaluate((rowIndex) => {
+    const rows = document.querySelectorAll('.tab-row')
+    const box = rows[rowIndex].getBoundingClientRect()
+    const next = rows[rowIndex + 1]?.getBoundingClientRect()
+    const top = Math.floor(box.top)
+    const bottom = next ? Math.floor(next.top) : Math.ceil(box.bottom) + 2
+    return { x: Math.floor(box.left), y: top, width: Math.ceil(box.width), height: bottom - top }
+  }, index)
+  await expect(page).toHaveScreenshot(name, { ...SCREENSHOT, clip })
 }
 
 async function enableDarkMode(page: Page): Promise<void> {
@@ -36,12 +50,12 @@ async function enableDarkMode(page: Page): Promise<void> {
   await expect(page.locator('body')).toHaveAttribute('id', 'darkMode')
 }
 
-test.describe('visual baselines', () => {
+test.describe('visual baselines', { tag: '@visual' }, () => {
   test('tab rows with every effect', async ({ page }) => {
     await openEffectsShowcase(page)
     await settle(page)
     for (const index of [0, 1, 2]) {
-      await expect(tabRow(page, index)).toHaveScreenshot(`effects-row-${index + 1}.png`, SCREENSHOT)
+      await expectRowScreenshot(page, index, `effects-row-${index + 1}.png`)
     }
   })
 
@@ -54,7 +68,7 @@ test.describe('visual baselines', () => {
       'effects-classical-staff-1.png',
       SCREENSHOT,
     )
-    await expect(tabRow(page, 0)).toHaveScreenshot('effects-classical-row-1.png', SCREENSHOT)
+    await expectRowScreenshot(page, 0, 'effects-classical-row-1.png')
   })
 
   test('dark mode: toolbar and tab', async ({ page }) => {
@@ -62,7 +76,7 @@ test.describe('visual baselines', () => {
     await enableDarkMode(page)
     await settle(page)
     await expect(page.locator('#completeBar')).toHaveScreenshot('dark-toolbar.png', SCREENSHOT)
-    await expect(tabRow(page, 0)).toHaveScreenshot('dark-effects-row-1.png', SCREENSHOT)
+    await expectRowScreenshot(page, 0, 'dark-effects-row-1.png')
   })
 
   test('light toolbar', async ({ page }) => {

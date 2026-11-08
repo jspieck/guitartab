@@ -13,7 +13,6 @@
             >
               <option v-for="n in 31" :key="n" :value="n">{{ n }}</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
         <div class="modal-field">
@@ -26,7 +25,6 @@
             >
               <option v-for="n in denominators" :key="n" :value="n">{{ n }}</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
       </div>

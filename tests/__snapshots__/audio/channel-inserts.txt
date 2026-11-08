@@ -1,0 +1,85 @@
+-- EQ +6 dB at 500 Hz
+create biquad#1
+create biquad#2
+create biquad#3
+create biquad#4
+biquad#1.connect(biquad#2)
+biquad#2.connect(biquad#3)
+biquad#3.connect(biquad#4)
+biquad#1.type = "lowshelf"
+biquad#1.frequency.value = 100
+biquad#1.gain.value = 0
+biquad#1.Q.value = 0.71
+biquad#2.type = "peaking"
+biquad#2.frequency.value = 500
+biquad#2.gain.value = 6
+biquad#2.Q.value = 1
+biquad#3.type = "peaking"
+biquad#3.frequency.value = 2500
+biquad#3.gain.value = 0
+biquad#3.Q.value = 1
+biquad#4.type = "highshelf"
+biquad#4.frequency.value = 8000
+biquad#4.gain.value = 0
+biquad#4.Q.value = 0.71
+gain#1.disconnect()
+biquad#4.disconnect()
+gain#1.connect(biquad#1)
+biquad#4.connect(pan#1)
+-- a knob move only sets the filter
+biquad#1.type = "lowshelf"
+biquad#1.frequency.value = 100
+biquad#1.gain.value = 0
+biquad#1.Q.value = 0.71
+biquad#2.type = "peaking"
+biquad#2.frequency.value = 500
+biquad#2.gain.value = 3
+biquad#2.Q.value = 1
+biquad#3.type = "peaking"
+biquad#3.frequency.value = 2500
+biquad#3.gain.value = 0
+biquad#3.Q.value = 1
+biquad#4.type = "highshelf"
+biquad#4.frequency.value = 8000
+biquad#4.gain.value = 0
+biquad#4.Q.value = 0.71
+-- compressor on
+create compressor#1
+compressor#1.threshold.value = -18
+compressor#1.ratio.value = 2
+compressor#1.knee.value = 6
+compressor#1.attack.value = 0.03
+compressor#1.release.value = 0.2
+gain#1.disconnect()
+biquad#4.disconnect()
+compressor#1.disconnect()
+gain#1.connect(biquad#1)
+biquad#4.connect(compressor#1)
+compressor#1.connect(pan#1)
+-- EQ back to flat
+biquad#1.type = "lowshelf"
+biquad#1.frequency.value = 100
+biquad#1.gain.value = 0
+biquad#1.Q.value = 0.71
+biquad#2.type = "peaking"
+biquad#2.frequency.value = 500
+biquad#2.gain.value = 0
+biquad#2.Q.value = 1
+biquad#3.type = "peaking"
+biquad#3.frequency.value = 2500
+biquad#3.gain.value = 0
+biquad#3.Q.value = 1
+biquad#4.type = "highshelf"
+biquad#4.frequency.value = 8000
+biquad#4.gain.value = 0
+biquad#4.Q.value = 0.71
+gain#1.disconnect()
+biquad#4.disconnect()
+compressor#1.disconnect()
+gain#1.connect(compressor#1)
+compressor#1.connect(pan#1)
+-- compressor off
+gain#1.disconnect()
+biquad#4.disconnect()
+compressor#1.disconnect()
+gain#1.connect(pan#1)

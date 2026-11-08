@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { shallowRef, ref, type Ref } from 'vue'
 import Settings from '../../stores/settingsState'
 import {
   EQ_BAND_COLORS,
@@ -6,13 +6,14 @@ import {
   EQ_MAX_GAIN,
   EQ_MIN_FREQ,
   eqTypeUsesGain,
-  masterEqualizer,
   type EqBand,
 } from '../../services/audio/masterEqualizer'
+import { masterEqTarget, type EqTarget } from './channelTargets'
 
 /**
  * The Equalizer panel's graph: geometry between frequency/dB and pixels, and the canvas
- * drawing (grid, live spectrum, band curves). The bands themselves are `masterEqualizer`.
+ * drawing (grid, live spectrum, band curves). The bands belong to its target: the master
+ * equalizer or a track's channel EQ (`channelTargets.ts`).
  */
 export class EqualizerGraph {
   // Canvas geometry in CSS pixels. The plot leaves room for dB labels on the
@@ -25,8 +26,19 @@ export class EqualizerGraph {
   public readonly frequencyLines = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000]
   public readonly decibelLines = [18, 12, 6, 0, -6, -12, -18]
 
-  public readonly bands = masterEqualizer.bands
+  public readonly target = shallowRef<EqTarget>(masterEqTarget)
   public readonly selectedBand = ref(-1)
+
+  get bands(): Ref<EqBand[]> {
+    return this.target.value.bands
+  }
+
+  setTarget(target: EqTarget): void {
+    this.target.value = target
+    this.selectedBand.value = -1
+    this.lastSpectrum = null
+    this.redraw()
+  }
 
   private ctx: CanvasRenderingContext2D | null = null
   private lastSpectrum: Uint8Array | null = null
@@ -34,17 +46,17 @@ export class EqualizerGraph {
   private readonly logMax = Math.log10(EQ_MAX_FREQ)
 
   public setBand(index: number, patch: Partial<EqBand>): void {
-    masterEqualizer.setBand(index, patch)
+    this.target.value.setBand(index, patch)
     this.redraw()
   }
 
   public resetBands(): void {
-    masterEqualizer.resetBands()
+    this.target.value.resetBands()
     this.redraw()
   }
 
   public isFlat(): boolean {
-    return masterEqualizer.isFlat()
+    return this.target.value.isFlat()
   }
 
   // ---- Geometry ---------------------------------------------------------
@@ -92,9 +104,12 @@ export class EqualizerGraph {
     this.ctx = null
   }
 
-  /** Called every frame while the song plays (`masterEqualizer.spectrumListener`). */
+  /**
+   * Called every frame while the song plays (`masterEqualizer.spectrumListener`) with the master
+   * spectrum; a track target reads its own channel's instead.
+   */
   public drawSpectrum(frequencyData: Uint8Array): void {
-    this.lastSpectrum = frequencyData
+    this.lastSpectrum = this.target.value.readSpectrum() ?? frequencyData
     this.redraw()
   }
 
@@ -108,7 +123,7 @@ export class EqualizerGraph {
     if (Settings.songPlaying && this.lastSpectrum != null) {
       this.drawSpectrumArea(ctx, this.lastSpectrum)
     }
-    if (masterEqualizer.equalizerNodes.length === 0) return
+    if (this.target.value.responseNodes().length === 0) return
     this.bands.value.forEach((band, index) => {
       if (band.enabled) this.drawBandCurve(ctx, index, index === this.selectedBand.value)
     })
@@ -146,7 +161,7 @@ export class EqualizerGraph {
   }
 
   private drawSpectrumArea(ctx: CanvasRenderingContext2D, data: Uint8Array): void {
-    const sampleRate = masterEqualizer.sampleRate
+    const sampleRate = this.target.value.sampleRate
     // Bin k of an AnalyserNode covers k * sampleRate / fftSize, and fftSize is
     // twice the number of bins.
     const hzPerBin = sampleRate / (data.length * 2)
@@ -204,7 +219,7 @@ export class EqualizerGraph {
 
   private drawBandCurve(ctx: CanvasRenderingContext2D, index: number, selected: boolean): void {
     const frequencies = this.sampleFrequencies(160)
-    const db = this.responseDb([masterEqualizer.equalizerNodes[index]], frequencies)
+    const db = this.responseDb([this.target.value.responseNodes()[index]], frequencies)
     const color = EQ_BAND_COLORS[index]
     this.tracePath(ctx, frequencies, db)
     ctx.lineTo(this.PLOT_WIDTH, this.PLOT_HEIGHT / 2)
@@ -222,7 +237,7 @@ export class EqualizerGraph {
 
   private drawSumCurve(ctx: CanvasRenderingContext2D): void {
     const frequencies = this.sampleFrequencies(320)
-    const db = this.responseDb(masterEqualizer.equalizerNodes, frequencies)
+    const db = this.responseDb(this.target.value.responseNodes(), frequencies)
     this.tracePath(ctx, frequencies, db)
     ctx.strokeStyle = '#f5f7fa'
     ctx.lineWidth = 2

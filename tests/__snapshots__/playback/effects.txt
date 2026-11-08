@@ -30,7 +30,7 @@
 1.0560 position 0:2 0
 1.0560 sounding . . . 5 3
 1.0560 bar->pos 0,0,0,3,494,1.2,0,2
-1.1750 note t0v0 s0 f3 vol=1 at=1.55 dur=1 guitar next=3 tieBegin
+1.1750 note t0v0 s0 f3 vol=1 at=1.55 dur=1.5 guitar next=3 tieBegin
 1.1750 note t2v0 s0 f38 vol=1 at=1.55 dur=0.5 drums next=49 -
 1.5520 position 0:3 0
 1.5520 sounding 3

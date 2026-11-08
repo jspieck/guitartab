@@ -17,6 +17,7 @@
       </div>
       <p class="shortcuts-help__intro">
         Click a line in the tab to select a string, then type the fret. Shortcuts don't apply while you type in a text field.
+        New here? The <a :href="GETTING_STARTED_URL" target="_blank" rel="noopener">getting-started guide</a> walks you through.
       </p>
       <div class="shortcuts-help__groups">
         <section v-for="group in groups" :key="group.name" class="shortcuts-help__group">
@@ -45,6 +46,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { displayKeys, groupShortcuts, isMacPlatform } from '../utils/keyboardShortcuts'
 import { closeShortcutsHelp } from '../stores/shortcutsHelpState'
 import { wrapTabFocus } from '../services/a11y/focusable'
+import { GETTING_STARTED_URL } from '../services/whatsNew'
 
 const groups = groupShortcuts()
 const mac = isMacPlatform()
@@ -116,6 +118,10 @@ onBeforeUnmount(() => {
   margin: 6px 0 14px;
   color: var(--color-inverse-muted);
   font-size: 13px;
+}
+
+.shortcuts-help__intro a {
+  color: var(--color-inverse-accent);
 }
 
 .shortcuts-help__groups {

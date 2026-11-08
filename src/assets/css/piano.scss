@@ -114,3 +114,12 @@
 .piano ul li:nth-child(7n) .upper-key, .piano ul li:nth-child(7n+3) .upper-key {
     display: none;
 }
+/* The next beats in the practice dock (Big win 28): a ring, fainter for the beat after next */
+.piano ul li .key.aheadKey,
+.piano ul li .upper-key.aheadKey {
+    box-shadow: inset 0 0 0 3px var(--amber-500);
+}
+.piano ul li .key.aheadKey2,
+.piano ul li .upper-key.aheadKey2 {
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--amber-500) 50%, transparent);
+}

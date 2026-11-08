@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 // @ts-expect-error plain .mjs build script without types
 import { buildTestSoundFont } from '../scripts/make-test-soundfont.mjs'
 import { parseSoundFont, upsampleToMinimumRate } from '../src/services/audio/soundFont/parser'
-import { buildBanks } from '../src/services/audio/soundFont/synth'
+import { buildBanks } from '../src/services/audio/soundFont/banks'
 
 vi.mock('../src/services/audio/audioGraph', () =>
   import('./helpers/legacyMocks').then((m) => m.audioGraphModule),

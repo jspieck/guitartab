@@ -1,12 +1,7 @@
 import { reactive, ref } from 'vue'
+import type { CompressorSettings } from '../../types/song'
 
-export interface CompressorSettings {
-  threshold: number // dB
-  knee: number // dB
-  ratio: number
-  attack: number // ms
-  release: number // ms
-}
+export type { CompressorSettings }
 
 export interface CompressorPreset {
   name: string
@@ -45,8 +40,15 @@ export function compressorCurve(inputDb: number, settings: CompressorSettings): 
   return threshold + (inputDb - threshold) / ratio
 }
 
-function clampSettings(settings: CompressorSettings): CompressorSettings {
-  const clamped = { ...settings }
+/** The settings inside the node's ranges (non-numbers become the first preset's). */
+export function clampCompressorSettings(settings: CompressorSettings): CompressorSettings {
+  const clamped = {
+    threshold: settings.threshold,
+    knee: settings.knee,
+    ratio: settings.ratio,
+    attack: settings.attack,
+    release: settings.release,
+  }
   ;(Object.keys(COMPRESSOR_RANGES) as (keyof CompressorSettings)[]).forEach((key) => {
     const range = COMPRESSOR_RANGES[key]
     const value = Number(clamped[key])
@@ -64,12 +66,43 @@ function loadStored(): { settings: CompressorSettings; bypass: boolean } {
     if (raw == null) return fallback
     const parsed = JSON.parse(raw) as { settings?: Partial<CompressorSettings>; bypass?: boolean }
     return {
-      settings: clampSettings({ ...fallback.settings, ...parsed.settings }),
+      settings: clampCompressorSettings({ ...fallback.settings, ...parsed.settings }),
       bypass: parsed.bypass === true,
     }
   } catch {
     return fallback
   }
+}
+
+/** The preset whose values the settings match, or '' (custom). */
+export function matchingCompressorPreset(settings: CompressorSettings): string {
+  const match = COMPRESSOR_PRESETS.find((preset) =>
+    (Object.keys(preset.settings) as (keyof CompressorSettings)[]).every(
+      (key) => Math.abs(preset.settings[key] - settings[key]) < 0.05,
+    ),
+  )
+  return match?.name ?? ''
+}
+
+/**
+ * Sets a compressor node (master, channel, audio render). Plain assignment, not automation, so
+ * the values also stick while the context is still suspended, before the first user gesture.
+ * Bypass = unity ratio at 0 dB threshold, so the node passes audio untouched.
+ */
+export function applyCompressor(node: DynamicsCompressorNode, s: CompressorSettings, bypass: boolean): void {
+  node.threshold.value = bypass ? 0 : s.threshold
+  node.ratio.value = bypass ? 1 : s.ratio
+  node.knee.value = s.knee
+  node.attack.value = s.attack / 1000
+  node.release.value = s.release / 1000
+}
+
+/** A compressor node's current gain reduction in dB (0 or negative). */
+export function compressorReduction(node: DynamicsCompressorNode | null): number {
+  if (node == null) return 0
+  const value = node.reduction as unknown
+  // Old Chrome exposed `reduction` as an AudioParam.
+  return typeof value === 'number' ? value : ((value as AudioParam | null)?.value ?? 0)
 }
 
 /**
@@ -95,7 +128,7 @@ export class MasterCompressor {
   }
 
   public update(patch: Partial<CompressorSettings>): void {
-    Object.assign(this.settings, clampSettings({ ...this.settings, ...patch }))
+    Object.assign(this.settings, clampCompressorSettings({ ...this.settings, ...patch }))
     this.apply()
     this.schedulePersist()
   }
@@ -108,33 +141,24 @@ export class MasterCompressor {
 
   /** Current gain reduction in dB (0 or negative). */
   public reduction(): number {
-    if (this.node == null || this.bypass.value) return 0
-    const value = this.node.reduction as unknown
-    // Old Chrome exposed `reduction` as an AudioParam.
-    return typeof value === 'number' ? value : ((value as AudioParam | null)?.value ?? 0)
+    return this.bypass.value ? 0 : compressorReduction(this.node)
   }
 
   public matchingPreset(): string {
-    const match = COMPRESSOR_PRESETS.find((preset) =>
-      (Object.keys(preset.settings) as (keyof CompressorSettings)[]).every(
-        (key) => Math.abs(preset.settings[key] - this.settings[key]) < 0.05,
-      ),
-    )
-    return match?.name ?? ''
+    return matchingCompressorPreset(this.settings)
+  }
+
+  /** Sets the current settings on another node (an audio render's), without attaching it. */
+  public applyTo(node: DynamicsCompressorNode): void {
+    this.applyOn(node)
   }
 
   private apply(): void {
-    const node = this.node
-    if (node == null) return
-    const s = this.settings
-    // Plain assignment (not automation) so the values also stick while the
-    // context is still suspended, before the first user gesture.
-    // Bypass = unity ratio at 0 dB threshold, so the node passes audio untouched.
-    node.threshold.value = this.bypass.value ? 0 : s.threshold
-    node.ratio.value = this.bypass.value ? 1 : s.ratio
-    node.knee.value = s.knee
-    node.attack.value = s.attack / 1000
-    node.release.value = s.release / 1000
+    if (this.node != null) this.applyOn(this.node)
+  }
+
+  private applyOn(node: DynamicsCompressorNode): void {
+    applyCompressor(node, this.settings, this.bypass.value)
   }
 
   private schedulePersist(): void {

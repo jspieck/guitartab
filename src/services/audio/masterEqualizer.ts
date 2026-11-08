@@ -1,12 +1,7 @@
 import { ref } from 'vue'
+import type { EqBand } from '../../types/song'
 
-export interface EqBand {
-  type: BiquadFilterType
-  frequency: number
-  gain: number
-  q: number
-  enabled: boolean
-}
+export type { EqBand }
 
 export const EQ_BAND_COLORS = ['#ff8a65', '#ffd54f', '#4dd0e1', '#b388ff']
 export const EQ_MIN_FREQ = 20
@@ -30,6 +25,40 @@ export function createDefaultEqBands(): EqBand[] {
   ]
 }
 
+const FILTER_TYPES = new Set<string>([
+  'peaking',
+  'lowshelf',
+  'highshelf',
+  'highpass',
+  'lowpass',
+  'bandpass',
+  'notch',
+])
+
+/** A band with its values inside the panel's ranges. */
+export function clampEqBand(band: EqBand): EqBand {
+  const finite = (value: number, fallback: number) => (Number.isFinite(value) ? value : fallback)
+  return {
+    type: FILTER_TYPES.has(band.type) ? band.type : 'peaking',
+    frequency: Math.min(EQ_MAX_FREQ, Math.max(EQ_MIN_FREQ, finite(band.frequency, 1000))),
+    gain: Math.min(EQ_MAX_GAIN, Math.max(-EQ_MAX_GAIN, finite(band.gain, 0))),
+    q: Math.min(EQ_Q_RANGE.max, Math.max(EQ_Q_RANGE.min, finite(band.q, 1))),
+    enabled: band.enabled !== false,
+  }
+}
+
+/** Four valid bands from stored data (a .gt file, localStorage), or null when they don't fit. */
+export function sanitizeEqBands(raw: unknown): EqBand[] | null {
+  if (!Array.isArray(raw) || raw.length !== EQ_BAND_COLORS.length) return null
+  const defaults = createDefaultEqBands()
+  return raw.map((band, index) => clampEqBand({ ...defaults[index], ...(band as Partial<EqBand>) }))
+}
+
+/** True when the bands leave the sound as it is (every band off or a shelf/bell at 0 dB). */
+export function eqBandsFlat(bands: readonly EqBand[]): boolean {
+  return bands.every((band) => !band.enabled || (eqTypeUsesGain(band.type) && Math.abs(band.gain) < 0.05))
+}
+
 function loadStoredBands(): EqBand[] {
   try {
     const raw = globalThis.localStorage?.getItem(STORAGE_KEY)
@@ -40,6 +69,15 @@ function loadStoredBands(): EqBand[] {
   } catch {
     return createDefaultEqBands()
   }
+}
+
+/** Sets a filter node to a band (master, channel and preview nodes alike). */
+export function applyEqBand(node: BiquadFilterNode, band: EqBand): void {
+  // A disabled band becomes an all-pass: flat magnitude, no rewiring needed.
+  node.type = band.enabled ? band.type : 'allpass'
+  node.frequency.value = band.frequency
+  node.gain.value = band.enabled ? band.gain : 0
+  node.Q.value = band.q
 }
 
 /**
@@ -71,6 +109,15 @@ export class MasterEqualizer {
     this.bands.value.forEach((_, index) => this.applyBand(index))
   }
 
+  /** A copy of the filter chain with the current settings, for another context (an audio render). */
+  public createFilters(context: BaseAudioContext): BiquadFilterNode[] {
+    return this.bands.value.map((band) => {
+      const node = context.createBiquadFilter()
+      applyEqBand(node, band)
+      return node
+    })
+  }
+
   public insertBetween(audioNodeBefore: AudioNode, audioNodeAfter: AudioNode): void {
     let previous = audioNodeBefore
     for (const node of this.equalizerNodes) {
@@ -83,10 +130,7 @@ export class MasterEqualizer {
   public setBand(index: number, patch: Partial<EqBand>): void {
     const band = this.bands.value[index]
     if (band == null) return
-    Object.assign(band, patch)
-    band.frequency = Math.min(EQ_MAX_FREQ, Math.max(EQ_MIN_FREQ, band.frequency))
-    band.gain = Math.min(EQ_MAX_GAIN, Math.max(-EQ_MAX_GAIN, band.gain))
-    band.q = Math.min(EQ_Q_RANGE.max, Math.max(EQ_Q_RANGE.min, band.q))
+    Object.assign(band, clampEqBand({ ...band, ...patch }))
     this.applyBand(index)
     this.schedulePersist()
   }
@@ -96,20 +140,14 @@ export class MasterEqualizer {
   }
 
   public isFlat(): boolean {
-    return this.bands.value.every(
-      (band) => !band.enabled || (eqTypeUsesGain(band.type) && Math.abs(band.gain) < 0.05),
-    )
+    return eqBandsFlat(this.bands.value)
   }
 
   private applyBand(index: number): void {
     const node = this.equalizerNodes[index]
     const band = this.bands.value[index]
     if (node == null || band == null) return
-    // A disabled band becomes an all-pass: flat magnitude, no rewiring needed.
-    node.type = band.enabled ? band.type : 'allpass'
-    node.frequency.value = band.frequency
-    node.gain.value = band.enabled ? band.gain : 0
-    node.Q.value = band.q
+    applyEqBand(node, band)
   }
 
   private schedulePersist(): void {

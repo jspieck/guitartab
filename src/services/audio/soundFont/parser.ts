@@ -5,7 +5,7 @@ import { fourCC, parseRiff, type RiffChunk } from './riff'
 
 /**
  * Reads a SoundFont 2 file into plain data (preset and instrument headers, their zones'
- * generators, the samples). Runs in node: `buildBanks` in `synth.ts` turns it into what
+ * generators, the samples). Runs in node: `buildBanks` in `banks.ts` turns it into what
  * playback looks up per program and key.
  */
 
@@ -89,6 +89,8 @@ export interface SoundFontData {
   samples: (Int16Array | Float32Array)[]
   /** SF3: the Ogg Vorbis bytes of each compressed sample (null for PCM ones) */
   compressed: (Uint8Array | null)[]
+  /** where each sample's bytes sit in the sample data (smpl chunk): [first byte, end byte) */
+  sampleRanges: [number, number][]
 }
 
 /** SoundFont 2.04, section 8.1.2; null marks unused operator numbers. */
@@ -259,57 +261,98 @@ export function upsampleToMinimumRate(
 /** sampleType bit of SF3 (MuseScore's SoundFont 3): the sample is an Ogg Vorbis stream */
 export const COMPRESSED_SAMPLE = 0x10
 
-function readSamples(
+/**
+ * The sample headers and where each sample's bytes sit in the sample data (`smpl`), as
+ * [first byte, end byte). Loop points are made relative to the sample's start.
+ */
+function readSampleHeaders(
   data: Uint8Array,
   chunk: RiffChunk,
-  samplingData: RiffChunk,
-): Pick<SoundFontData, 'sampleHeaders' | 'samples' | 'compressed'> {
+): Pick<SoundFontData, 'sampleHeaders' | 'sampleRanges'> {
   expectType(chunk, 'shdr')
   const sampleHeaders: SampleHeader[] = []
-  const samples: (Int16Array | Float32Array)[] = []
-  const compressed: (Uint8Array | null)[] = []
+  const sampleRanges: [number, number][] = []
   for (let ip = chunk.offset, end = chunk.offset + chunk.size; ip < end; ip += 46) {
     const start = u32(data, ip + 20)
     const sampleEnd = u32(data, ip + 24)
     const sampleType = u16(data, ip + 44)
-    const header: SampleHeader = {
+    const compressed = (sampleType & COMPRESSED_SAMPLE) !== 0
+    sampleHeaders.push({
       sampleName: name20(data, ip),
-      startLoop: u32(data, ip + 28) - start,
-      endLoop: u32(data, ip + 32) - start,
+      // SF3: start/end are byte offsets of the Ogg stream; the loop points already count
+      // decoded frames from the sample's start. PCM: frames, loop points absolute.
+      startLoop: u32(data, ip + 28) - (compressed ? 0 : start),
+      endLoop: u32(data, ip + 32) - (compressed ? 0 : start),
       sampleRate: u32(data, ip + 36),
       originalPitch: data[ip + 40],
       pitchCorrection: (data[ip + 41] << 24) >> 24,
       sampleLink: u16(data, ip + 42),
       sampleType,
-    }
-    sampleHeaders.push(header)
-    if (sampleType & COMPRESSED_SAMPLE) {
-      // SF3: start/end are byte offsets of the Ogg stream; the loop points already count
-      // decoded frames from the sample's start. Decoded later (`decodeCompressedSamples`).
-      header.startLoop = u32(data, ip + 28)
-      header.endLoop = u32(data, ip + 32)
-      compressed.push(data.slice(samplingData.offset + start, samplingData.offset + sampleEnd))
-      samples.push(new Int16Array(0))
-      continue
-    }
-    compressed.push(null)
-    let { startLoop, endLoop, sampleRate } = header
-    // copied, so the sample doesn't keep the whole file alive
-    let sample = new Int16Array(
-      new Uint8Array(data.subarray(samplingData.offset + start * 2, samplingData.offset + sampleEnd * 2))
-        .buffer,
-    )
-    if (sampleRate > 0) {
-      const adjusted = upsampleToMinimumRate(sample, sampleRate)
-      sample = adjusted.sample
-      sampleRate *= adjusted.multiply
-      startLoop *= adjusted.multiply
-      endLoop *= adjusted.multiply
-    }
-    samples.push(sample)
-    Object.assign(header, { startLoop, endLoop, sampleRate })
+    })
+    const bytesPerFrame = compressed ? 1 : 2
+    sampleRanges.push([start * bytesPerFrame, Math.max(start, sampleEnd) * bytesPerFrame])
   }
-  return { sampleHeaders, samples, compressed }
+  return { sampleHeaders, sampleRanges }
+}
+
+/**
+ * Puts sample `index`'s bytes (exactly its `sampleRanges` entry) into `data`: an SF3 stream
+ * into `compressed` (decoded later, `decodeCompressedSamples`), PCM into `samples`.
+ */
+export function setSampleBytes(data: SoundFontData, index: number, bytes: Uint8Array): void {
+  const header = data.sampleHeaders[index]
+  if (header.sampleType & COMPRESSED_SAMPLE) {
+    data.compressed[index] = bytes.slice()
+    data.samples[index] = new Int16Array(0)
+    return
+  }
+  data.compressed[index] = null
+  // copied, so the sample doesn't keep the whole file alive (and starts on an even byte)
+  let sample = new Int16Array(new Uint8Array(bytes.subarray(0, bytes.length & ~1)).buffer)
+  if (header.sampleRate > 0) {
+    const adjusted = upsampleToMinimumRate(sample, header.sampleRate)
+    sample = adjusted.sample
+    header.sampleRate *= adjusted.multiply
+    header.startLoop *= adjusted.multiply
+    header.endLoop *= adjusted.multiply
+  }
+  data.samples[index] = sample
+}
+
+/** The preset data (pdta) with no samples loaded yet. */
+function readPresetData(input: Uint8Array, pdta: RiffChunk): SoundFontData {
+  const pdtaChunks = listChunks(input, pdta, 'pdta')
+  if (pdtaChunks.length !== 9) throw new Error('invalid pdta chunk')
+  const [phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr] = pdtaChunks
+  expectType(pmod, 'pmod')
+  expectType(pgen, 'pgen')
+  expectType(imod, 'imod')
+  expectType(igen, 'igen')
+  const samples = readSampleHeaders(input, shdr)
+  return {
+    presetHeaders: readPresetHeaders(input, phdr),
+    presetBags: readBags(input, pbag, 'pbag'),
+    presetModulators: readGenerators(input, pmod, true),
+    presetGenerators: readGenerators(input, pgen, false),
+    instruments: readInstruments(input, inst),
+    instrumentBags: readBags(input, ibag, 'ibag'),
+    instrumentModulators: readGenerators(input, imod, true),
+    instrumentGenerators: readGenerators(input, igen, false),
+    ...samples,
+    samples: samples.sampleHeaders.map(() => new Int16Array(0)),
+    compressed: samples.sampleHeaders.map(() => null),
+  }
+}
+
+/**
+ * Reads only the preset data of a SoundFont: `input` is its pdta LIST chunk (from its
+ * 8-byte header on), as the app fetches it first with a range request. Every sample is empty
+ * until `setSampleBytes` fills it.
+ */
+export function parsePresetData(input: Uint8Array): SoundFontData {
+  const chunks = parseRiff(input, { padding: false })
+  if (!chunks.length) throw new Error('no pdta chunk')
+  return readPresetData(input, chunks[0])
 }
 
 export function parseSoundFont(input: Uint8Array): SoundFontData {
@@ -326,25 +369,12 @@ export function parseSoundFont(input: Uint8Array): SoundFontData {
   listChunks(input, info, 'INFO')
   const samplingChunks = listChunks(input, sdta, 'sdta')
   if (samplingChunks.length !== 1) throw new Error('sdta must hold exactly one sample chunk')
-  const pdtaChunks = listChunks(input, pdta, 'pdta')
-  if (pdtaChunks.length !== 9) throw new Error('invalid pdta chunk')
-  const [phdr, pbag, pmod, pgen, inst, ibag, imod, igen, shdr] = pdtaChunks
-  expectType(pmod, 'pmod')
-  expectType(pgen, 'pgen')
-  expectType(imod, 'imod')
-  expectType(igen, 'igen')
-
-  return {
-    presetHeaders: readPresetHeaders(input, phdr),
-    presetBags: readBags(input, pbag, 'pbag'),
-    presetModulators: readGenerators(input, pmod, true),
-    presetGenerators: readGenerators(input, pgen, false),
-    instruments: readInstruments(input, inst),
-    instrumentBags: readBags(input, ibag, 'ibag'),
-    instrumentModulators: readGenerators(input, imod, true),
-    instrumentGenerators: readGenerators(input, igen, false),
-    ...readSamples(input, shdr, samplingChunks[0]),
-  }
+  const data = readPresetData(input, pdta)
+  const sampleData = input.subarray(samplingChunks[0].offset)
+  data.sampleRanges.forEach(([start, end], index) =>
+    setSampleBytes(data, index, sampleData.subarray(start, end)),
+  )
+  return data
 }
 
 /** The named generators of entries [start, end); later entries win. */

@@ -3,9 +3,12 @@ import {
   applyRangeAsLoop,
   clearRange,
   currentLoopInterval,
+  moveRangeEdge,
+  orderedRange,
   startRange,
   extendRange,
 } from '../services/editor/rangeSelection'
+import { announce } from '../stores/announcerState'
 import type { RenderedTabRow, TabSelectionData } from '../types/tab'
 import { resolveTabPointerPosition, TAB_CONSTANTS } from '../utils/tabLayout'
 import { barOtherVoiceNotes } from '../utils/measureBeatLayout'
@@ -200,8 +203,44 @@ export function useTabRangeSelection(options: TabRangeSelectionOptions) {
     clearRange()
   }
 
+  /**
+   * Dragging a loop handle (A or B above the tab, Big win 28): that end of the loop follows
+   * the pointer beat by beat in the loop's track and voice; the loop is set when let go.
+   */
+  function handleLoopHandleDown(event: PointerEvent, edge: 'start' | 'end'): void {
+    if (event.button !== 0) return
+    const range = orderedRange()
+    if (range == null) return
+    event.preventDefault()
+    event.stopPropagation()
+    const { trackId, voiceId } = range[0]
+    isDraggingRange.value = true
+    const follow = (move: PointerEvent) => {
+      const current = resolvePointer(move)
+      if (current && current.trackId === trackId && current.voiceId === voiceId)
+        moveRangeEdge(edge, current.blockId, current.beatIndex)
+    }
+    const finish = (up: PointerEvent) => {
+      follow(up)
+      window.removeEventListener('pointermove', follow)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      isDraggingRange.value = false
+      applyRangeAsLoop()
+      const ends = orderedRange()
+      if (ends)
+        announce(
+          `Loop from bar ${ends[0].blockId + 1} beat ${ends[0].beatId + 1} to bar ${ends[1].blockId + 1} beat ${ends[1].beatId + 1}`,
+        )
+    }
+    window.addEventListener('pointermove', follow)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+  }
+
   return {
     isDraggingRange,
+    handleLoopHandleDown,
     handleStringPointerDown,
     selectForContextMenu,
     clearRangeSelection,

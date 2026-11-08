@@ -14,7 +14,7 @@ export interface DialogDefinition {
 
 export const DIALOGS = {
   INSTRUMENT_SETTINGS: { id: 'instrumentSettingsModal', name: 'Instrument Settings' },
-  MIXER: { id: 'mixerModal', name: 'Drum Mixer' },
+  MIXER: { id: 'mixerModal', name: 'Mixer' },
   ADD_TRACK: { id: 'addTrackModal', name: 'Add Track' },
   GRACE: { id: 'graceModal', name: 'Grace' },
   MARKER: { id: 'markerModal', name: 'Marker' },
@@ -27,6 +27,7 @@ export const DIALOGS = {
   KEY_SIGNATURE: { id: 'keySignatureModal', name: 'Key signature' },
   CLEF: { id: 'clefModal', name: 'Clef' },
   TUNER: { id: 'tunerModal', name: 'Tuner' },
+  PRACTICE: { id: 'practiceModal', name: 'Practice' },
   ARTIFICIAL: { id: 'artificialModal', name: 'Artificial' },
   BEND: { id: 'bendModal', name: 'Bend' },
   DELETE_TRACK: { id: 'deleteTrackModal', name: 'Delete Track' },
@@ -44,6 +45,8 @@ export const DIALOGS = {
   ADD_CHORD: { id: 'addChordModal', name: 'Add Chord' },
   CHORD_MANAGER: { id: 'chordManagerModal', name: 'Chord Manager' },
   COPYRIGHT: { id: 'copyrightModal', name: 'About' },
+  WHATS_NEW: { id: 'whatsNewModal', name: "What's new" },
+  AUDIO_EXPORT: { id: 'audioExportModal', name: 'Export audio' },
   EXAMPLE_SONGS: { id: 'exampleSongsModal', name: 'Example songs' },
   CLOUD_SONGS: { id: 'cloudSongsModal', name: 'Cloud songs' },
 } as const satisfies Record<string, DialogDefinition>

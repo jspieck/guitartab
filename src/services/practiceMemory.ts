@@ -3,6 +3,8 @@ import Song from '../stores/song'
 import { playbackLoopVersion } from '../stores/playbackLoopState'
 import { clampPlaybackRate, practiceState, setPlaybackRate } from '../stores/practiceState'
 import { selectionState } from '../stores/selectionState'
+import { sectionPracticeState, setSectionRates } from '../stores/sectionPracticeState'
+import { rememberSectionSpeed } from './sectionLoops'
 import {
   applyRangeAsLoop,
   clearRange,
@@ -28,6 +30,8 @@ export interface PracticeMemory {
   playbackRate: number
   /** The loop's first and last beat; null without a loop. */
   loop: { start: LoopEnd; end: LoopEnd } | null
+  /** Speed trainer per section loop: the speed reached, by the section's first bar (Big win 28). */
+  sections?: Record<string, number>
 }
 
 const STORAGE_PREFIX = 'guitartab:practice-song:'
@@ -44,6 +48,9 @@ export function currentPracticeMemory(): PracticeMemory {
   return {
     playbackRate: practiceState.playbackRate,
     loop: looping ? { start: loopEnd(rangeStart), end: loopEnd(rangeEnd) } : null,
+    ...(Object.keys(sectionPracticeState.rates).length
+      ? { sections: { ...sectionPracticeState.rates } }
+      : {}),
   }
 }
 
@@ -59,7 +66,8 @@ function validEnd(value: unknown): value is LoopEnd {
 /** Applies remembered speed and loop; returns false for data that doesn't fit this song. */
 export function applyPracticeMemory(memory: unknown): boolean {
   if (memory == null || typeof memory !== 'object') return false
-  const { playbackRate, loop } = memory as Partial<PracticeMemory>
+  const { playbackRate, loop, sections } = memory as Partial<PracticeMemory>
+  setSectionRates(sections)
   if (typeof playbackRate === 'number') setPlaybackRate(clampPlaybackRate(playbackRate))
   if (loop != null && validEnd(loop.start) && validEnd(loop.end)) {
     const { start, end } = loop
@@ -105,6 +113,7 @@ export function rememberPractice(): void {
 
 /** After loading a song: the .gt file's own practice part, else what this browser remembers. */
 export function recallPractice(fromFile?: unknown): void {
+  setSectionRates(null)
   if (applyPracticeMemory(fromFile)) return
   try {
     const stored = storage()?.getItem(`${STORAGE_PREFIX}${songMemoryKey()}`)
@@ -121,7 +130,9 @@ let timer: ReturnType<typeof setTimeout> | null = null
 export function watchPracticeMemory(): void {
   if (watching) return
   watching = true
-  watch([() => practiceState.playbackRate, playbackLoopVersion], () => {
+  watch([() => practiceState.playbackRate, playbackLoopVersion], ([rate], [previousRate]) => {
+    // the trainer's steps (and any speed change) while a section loops belong to that section
+    if (rate !== previousRate) rememberSectionSpeed(rate)
     if (timer != null) clearTimeout(timer)
     timer = setTimeout(rememberPractice, 500)
   })

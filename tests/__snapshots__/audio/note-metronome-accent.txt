@@ -9,4 +9,4 @@ oscillator#1.connect(gain#1)
 gain#1.connect(compressor#1)
 oscillator#1.start(0.5)
 oscillator#1.stop(0.56)
-=> undefined
+=> oscillator#1

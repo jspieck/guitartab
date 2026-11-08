@@ -35,7 +35,13 @@ playwright-report/
 # public/audio/README.txt). CI generates a stand-in: scripts/make-test-soundfont.mjs
 public/audio/*
 !public/audio/README.txt
+# which hashed SoundFont the build streams (Big win 32; the file itself is uploaded by hand)
+!public/audio/manifest.json
 
 # E2E test output
 e2e/test-results/
 e2e/playwright-report/
+
+# Linux screenshot baselines are not committed: CI draws them from the base commit
+# (e2e job in .github/workflows/ci.yml).
+e2e/*-snapshots/*-linux.png

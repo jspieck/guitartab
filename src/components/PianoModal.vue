@@ -1,51 +1,32 @@
 <template>
     <BaseModal :modal-id="DIALOGS.PIANO.id" resize="x">
         <template #title>Piano</template>
-        <div id="piano" class="piano">
-            <ul id="pianoList">
-                <li v-for="key in keys" :key="key.pitch">
-                    <div class="key" :class="{ activeKey: soundingPitches.has(key.pitch) }"
-                        :data-pitch="key.pitch" @mousedown="press(key.pitch)"></div>
-                    <div v-if="key.hasUpperKey" class="upper-key"
-                        :class="{ activeKey: soundingPitches.has(key.pitch + 1) }"
-                        :data-pitch="key.pitch + 1" @mousedown="press(key.pitch + 1)"></div>
-                </li>
-            </ul>
+        <template #title-actions>
+            <button type="button" class="dockButton" @click="dock" v-hint="'Show the keyboard under the tab instead'">Dock under the tab</button>
+        </template>
+        <div id="piano" class="pianoHost">
+            <PianoKeyboard :pressed="soundingPitches" list-id="pianoList" />
         </div>
     </BaseModal>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount } from 'vue';
 import BaseModal from './BaseModal.vue';
-import { DIALOGS } from '../services/dialogs/dialogs'
-import liveInput from '../services/midi/liveInput';
+import PianoKeyboard from './PianoKeyboard.vue';
+import { DIALOGS, closeDialog } from '../services/dialogs/dialogs'
 import { soundingPitches } from '../stores/soundingNotesState';
+import { setDockInstrument } from '../stores/practiceDockState';
+import { vHint } from '../composables/vHint';
 
-const WHITE_KEYS = 56;
-
-// Key numbers are MIDI pitches, starting at C; E and B have no black key above them.
-const keys: { pitch: number; hasUpperKey: boolean }[] = [];
-for (let i = 0, pitch = 0; i < WHITE_KEYS; i += 1) {
-    const hasUpperKey = i % 7 !== 2 && i % 7 !== 6;
-    keys.push({ pitch, hasUpperKey });
-    pitch += hasUpperKey ? 2 : 1;
+function dock() {
+    setDockInstrument('piano');
+    closeDialog(DIALOGS.PIANO);
 }
-
-let held = -1;
-
-function release() {
-    if (held !== -1) liveInput.noteOff(held);
-    held = -1;
-}
-
-function press(pitch: number) {
-    release();
-    held = pitch;
-    liveInput.noteOn(pitch, 80);
-    // The key sounds until the mouse is let go anywhere.
-    window.addEventListener('mouseup', release, { once: true });
-}
-
-onBeforeUnmount(release);
 </script>
+
+<style scoped>
+.pianoHost {
+    width: 100%;
+    height: 100%;
+}
+</style>

@@ -2,28 +2,47 @@ import {
   setSoundFontDecoding,
   setSoundFontLoading,
   setSoundFontSettled,
+  soundFontState,
 } from '../../../stores/soundFontState'
 import { markStartupStepDone } from '../../../utils/startupReadiness'
+import { buildBanksFrom } from './banks'
 import { parseSoundFont } from './parser'
 import { decodeCompressedSamples, hasCompressedSamples } from './sf3'
-import { buildBanksFrom, synth } from './synth'
+import { streamSoundFont, WholeFileError, type SoundFontManifest } from './streaming'
+import { synth } from './synth'
 
-/** Where the app's SoundFont (GeneralUser GS) is served from (see public/audio/README.txt). */
-export const SOUND_FONT_URL = './audio/GeneralUser-GS.sf2'
+/**
+ * Loads the SoundFont (lazy `soundfont` chunk, with the parser, SF3 decoding and bank
+ * building; startup only needs `synth.ts` to look notes up). With a manifest from the build
+ * (`public/audio/manifest.json`, Big win 32) it streams the hashed SF3 preset by preset
+ * (`streaming.ts`); otherwise, and for `?soundfont=`, it loads one file whole.
+ */
+
+/** The audio folder next to index.html (uploaded by hand, see public/audio/README.txt). */
+export const AUDIO_FOLDER = './audio/'
+
+/** The uncompressed GeneralUser GS: loaded whole without a manifest, and the SF3's fallback. */
+export const SOUND_FONT_URL = `${AUDIO_FOLDER}GeneralUser-GS.sf2`
 
 /** Banks `?soundfont=<name>` loads instead, to compare them by ear. */
 const ALTERNATIVE_SOUND_FONTS: Record<string, string> = {
-  musescore: './audio/MuseScore_General.sf3',
+  musescore: `${AUDIO_FOLDER}MuseScore_General.sf3`,
+  // the uncompressed original, against the streamed SF3
+  sf2: SOUND_FONT_URL,
 }
 
-/** The SoundFont to load: the default, or the one `?soundfont=` names. */
+/** What the build read from `public/audio/manifest.json` (null without one). */
+const BUILT_MANIFEST: SoundFontManifest | null =
+  typeof __SOUND_FONT_MANIFEST__ === 'undefined' ? null : __SOUND_FONT_MANIFEST__
+
+/** The SoundFont to load whole: the default, or the one `?soundfont=` names. */
 export function soundFontUrl(search = globalThis.location?.search ?? ''): string {
   const name = new URLSearchParams(search).get('soundfont')
   return (name && ALTERNATIVE_SOUND_FONTS[name]) || SOUND_FONT_URL
 }
 
-// lazy, so the notification store stays out of the audio chunk's startup path
-function showError(text: string): void {
+// lazy, so the notification store stays out of this chunk's path
+export function showSoundFontError(text: string): void {
   setSoundFontSettled('failed')
   void import('../../userNotifications').then(({ showUserError }) => showUserError(text))
 }
@@ -44,8 +63,8 @@ export async function loadSoundFontBytes(input: Uint8Array): Promise<void> {
   setSoundFontSettled('ready')
 }
 
-/** Fetches and loads the SoundFont in the background (progress in `soundFontState`); failures only show a banner. */
-export function loadSoundFont(url = soundFontUrl()): void {
+/** Fetches one SoundFont file and loads it (progress in `soundFontState`); failures only show a banner. */
+export function loadWholeSoundFont(url: string): void {
   const xhr = new XMLHttpRequest()
   xhr.open('GET', url, true)
   xhr.responseType = 'arraybuffer'
@@ -55,30 +74,52 @@ export function loadSoundFont(url = soundFontUrl()): void {
   })
   xhr.addEventListener('load', () => {
     if (xhr.status < 200 || xhr.status >= 300) {
-      showError(`SoundFont missing (${xhr.status}). Place it under /audio/ — see DEPLOYMENT.md.`)
+      showSoundFontError(`SoundFont missing (${xhr.status}). Place it under /audio/ — see DEPLOYMENT.md.`)
       return
     }
     const response = xhr.response as ArrayBuffer | null
     if (!response || response.byteLength === 0) {
-      showError('SoundFont file was empty. Check /audio/ hosting for deploy.')
+      showSoundFontError('SoundFont file was empty. Check /audio/ hosting for deploy.')
       return
     }
     loadSoundFontBytes(new Uint8Array(response))
       .then(() => {
         document.documentElement.dataset.soundfont = url
         // an A/B comparison has to be verifiable: which bank is playing
-        if (url !== SOUND_FONT_URL)
+        if (url !== SOUND_FONT_URL || new URLSearchParams(location.search).has('soundfont'))
           void import('../../userNotifications').then(({ showUserMessage }) =>
             showUserMessage(`SoundFont: ${decodeURIComponent(url.split('/').pop() ?? url)}`),
           )
       })
       .catch((error: unknown) => {
         console.error(error)
-        showError('The SoundFont could not be read. Playback instruments may be silent.')
+        showSoundFontError('The SoundFont could not be read. Playback instruments may be silent.')
       })
   })
   xhr.addEventListener('error', () => {
-    showError('Could not load SoundFont. Playback instruments may be silent.')
+    showSoundFontError('Could not load SoundFont. Playback instruments may be silent.')
   })
   xhr.send()
+}
+
+/**
+ * Loads the SoundFont in the background: streamed when the build has a manifest and no
+ * `?soundfont=` asks for another bank, else as one file. A streamed file that can't be read
+ * (missing on the server, no Vorbis decoder) falls back to the whole SF2.
+ */
+export function loadSoundFont(search = globalThis.location?.search ?? ''): void {
+  const manifest = BUILT_MANIFEST
+  if (manifest && !new URLSearchParams(search).get('soundfont')) {
+    void streamSoundFont(manifest, AUDIO_FOLDER).catch((error: unknown) => {
+      soundFontState.streaming = false
+      synth.onMissingPreset = null
+      // a server without range requests sent the whole SF3: use it
+      if (error instanceof WholeFileError)
+        return loadSoundFontBytes(error.bytes).catch(() => loadWholeSoundFont(SOUND_FONT_URL))
+      console.warn('Streaming the SoundFont failed; loading the SF2 instead.', error)
+      loadWholeSoundFont(SOUND_FONT_URL)
+    })
+    return
+  }
+  loadWholeSoundFont(soundFontUrl(search))
 }

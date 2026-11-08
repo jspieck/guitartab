@@ -16,7 +16,7 @@ async function openPhoneLayout(page: Page): Promise<void> {
   await waitForSoundFont(page)
 }
 
-test.describe('phone layout baselines', () => {
+test.describe('phone layout baselines', { tag: '@visual' }, () => {
   test('viewer: compact bar and tab', async ({ page }) => {
     await openPhoneLayout(page)
     await expect(page.locator('#compactBar')).toHaveScreenshot('compact-bar.png', SCREENSHOT)

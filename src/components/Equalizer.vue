@@ -1,6 +1,6 @@
 <template>
     <BaseModal :modal-id="DIALOGS.EQUALIZER.id">
-        <template #title>Master Equalizer</template>
+        <template #title>{{ title }}</template>
         <div class="ap-root eq">
             <div class="ap-toolbar">
                 <span class="ap-section-label">4-band parametric</span>
@@ -87,6 +87,10 @@ import {
 } from '../services/audio/masterEqualizer';
 import { EqualizerGraph } from './audio/equalizerGraph';
 import { isDialogOpen } from '../stores/dialogState';
+import { getDialogHandler } from '../services/dialogs/dialogHandlers';
+import type { PlainModalHandler } from '../services/dialogs/baseModalHandler';
+import { masterEqTarget, targetName, trackEqTarget } from './audio/channelTargets';
+import Song from '../stores/song';
 
 const FILTER_TYPES: { value: BiquadFilterType, label: string }[] = [
     { value: 'peaking', label: 'Bell' },
@@ -99,7 +103,15 @@ const FILTER_TYPES: { value: BiquadFilterType, label: string }[] = [
 ];
 
 const handler = new EqualizerGraph();
-const bands = handler.bands;
+// Opened with { trackId } for a track's channel EQ (mixer), without for the master.
+const dialog = getDialogHandler<PlainModalHandler<{ trackId?: number | null }>>(DIALOGS.EQUALIZER.id);
+const trackId = computed(() => {
+    const id = dialog.params.value?.trackId;
+    return id != null && Song.tracks[id] != null ? id : null;
+});
+watch(trackId, (id) => handler.setTarget(id == null ? masterEqTarget : trackEqTarget(id)), { immediate: true });
+const title = computed(() => (trackId.value == null ? 'Master Equalizer' : `Equalizer · ${targetName(trackId.value)}`));
+const bands = computed(() => handler.target.value.bands.value);
 const selected = computed(() => handler.selectedBand.value);
 const defaults = createDefaultEqBands();
 const isFlat = computed(() => handler.isFlat());

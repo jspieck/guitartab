@@ -44,6 +44,13 @@ export function advanceBeatClock(now: number): void {
   beatClockState.countIn = reached.countIn
 }
 
+/** Drops the bar beats queued at `time` or later (the scheduler queues them again); keeps the count-in. */
+export function dropBeatPulsesFrom(time: number): void {
+  for (let index = queue.length - 1; index >= 0; index -= 1) {
+    if (queue[index].time >= time && !queue[index].countIn) queue.splice(index, 1)
+  }
+}
+
 /** Playback stopped or jumped: nothing queued is going to sound. */
 export function resetBeatClock(): void {
   queue.length = 0

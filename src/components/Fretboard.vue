@@ -35,7 +35,9 @@
           </button>
           <div v-else class="fretboard__cell" :data-column="index">
             <span v-if="capoColumn === index" class="fretboard__capo" aria-hidden="true"></span>
-            <span v-if="markAt(row.string, index)" class="fretboard__mark guitarNoteMarker" :data-string="row.string" :data-fret="column.neckFret"></span>
+            <span v-if="markAt(row.string, index)" class="fretboard__mark"
+              :class="markAt(row.string, index)?.ahead ? `fretboard__mark--ahead fretboard__mark--ahead${markAt(row.string, index)?.ahead}` : 'guitarNoteMarker'"
+              :data-string="row.string" :data-fret="column.neckFret"></span>
           </div>
         </template>
       </div>
@@ -90,15 +92,22 @@ const rows = computed(() => {
     .map((string) => ({ string, label: count - string, gauge: 1 + ((count - 1 - string) / (count - 1)) * 2 }))
 })
 
+const rank = (mark: FretboardMark) => (mark.ahead ? -mark.ahead : 0)
+
 const marksByPosition = computed(() => {
   const map = new Map<string, FretboardMark>()
   for (const mark of props.marks) {
     const column = columnOfNeckFret(mark.neckFret, capo.value, props.input)
-    if (column >= 0) map.set(`${mark.string}:${column}`, mark)
+    if (column < 0) continue
+    const key = `${mark.string}:${column}`
+    // a sounding note wins over a next beat's ring at the same place, a nearer ring over a farther
+    const there = map.get(key)
+    if (there && rank(there) >= rank(mark)) continue
+    map.set(key, mark)
   }
   return map
 })
-const soundingStrings = computed(() => new Set(props.input ? [] : props.marks.map((mark) => mark.string)))
+const soundingStrings = computed(() => new Set(props.input ? [] : props.marks.filter((mark) => !mark.ahead).map((mark) => mark.string)))
 
 function markAt(string: number, column: number): FretboardMark | undefined {
   return marksByPosition.value.get(`${string}:${column}`)
@@ -310,6 +319,15 @@ button.fretboard__cell:focus-visible {
   border-radius: 50%;
   background: var(--red-300);
   pointer-events: none;
+}
+
+.fretboard__mark--ahead {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--red-300);
+}
+
+.fretboard__mark--ahead2 {
+  opacity: 0.45;
 }
 
 .fretboard--input .fretboard__mark {

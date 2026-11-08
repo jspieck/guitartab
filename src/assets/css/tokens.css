@@ -226,6 +226,8 @@
   --tab-cursor: color-mix(in srgb, var(--blue-500) 20%, transparent);
   --tab-cursor-border: var(--blue-500);
   --tab-on-marker: var(--gray-0);
+  /* The chevron of every select (guitarTab.scss); the stroke is --color-text-muted (gray-550). */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6573' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* ===== Semantic tokens, dark ===== */
@@ -303,6 +305,8 @@
   --tab-slide: var(--blue-300);
   --tab-voice2: var(--teal-300);
   --tab-hover: var(--blue-800);
+  /* Stroke = dark --color-text-muted (gray-400). */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ba2ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /*

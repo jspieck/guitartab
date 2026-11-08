@@ -12,7 +12,6 @@
             <option value="P.H.">Pinch harmonic (P.H.)</option>
             <option value="S.H.">Semi harmonic (S.H.)</option>
           </select>
-          <div class="select__arrow"></div>
         </div>
       </div>
       <div class="modal-submit-row">

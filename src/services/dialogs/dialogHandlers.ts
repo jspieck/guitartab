@@ -42,6 +42,7 @@ const HANDLER_CLASSES: Record<string, new () => BaseModalHandler> = {
   [DIALOGS.KEY_SIGNATURE.id]: KeySignatureModalHandler,
   [DIALOGS.CLEF.id]: ClefModalHandler,
   [DIALOGS.TUNER.id]: definePlainModal(DIALOGS.TUNER),
+  [DIALOGS.PRACTICE.id]: definePlainModal(DIALOGS.PRACTICE),
   [DIALOGS.ARTIFICIAL.id]: ArtificialModalHandler,
   [DIALOGS.BEND.id]: BendModalHandler,
   [DIALOGS.DELETE_TRACK.id]: DeleteTrackModalHandler,

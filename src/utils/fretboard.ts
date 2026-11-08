@@ -17,6 +17,8 @@ export interface FretboardMark {
   neckFret: number
   /** The note at the cursor (drawn in the accent colour). */
   current?: boolean
+  /** One of the next beats (1 = the next), drawn as a fading ring (practice dock, Big win 28). */
+  ahead?: number
 }
 
 export interface FretboardColumn {

@@ -19,6 +19,10 @@
                         aria-label="Add instrument" @click="openAddTrack">
                         <AppIcon name="add" />
                     </button>
+                    <button id="sequencerMixerOpen" type="button" class="seq-icon-button" v-hint="'Mixer: channel strips with EQ and compressor for every track'"
+                        aria-label="Open the mixer" :aria-pressed="mixerOpen" @click="toggleDialog(DIALOGS.MIXER, {})">
+                        <AppIcon name="mixer" />
+                    </button>
                     <div id="sequencerPanInstrument" v-if="!editModeActive" v-hint="'Pan: where a track sits between left and right'">Pan</div>
                     <div id="sequencerRevInstrument" v-if="!editModeActive" v-hint="'Rev: how much reverb (room) a track gets'">Rev</div>
                     <div id="sequencerChoInstrument" v-if="!editModeActive" v-hint="'Cho: how much chorus (shimmer) a track gets'">Cho</div>
@@ -35,13 +39,13 @@
                         <div class="masterFxBtn" :class="{ fxActive: eqActive }" role="button" tabindex="0"
                             :title="`Master equalizer${eqActive ? ' (shaping the sound)' : ' (flat)'}`" aria-label="EQ: master equalizer"
                             v-hint="'Master equalizer: shape the tone of the whole song'"
-                            @click="toggleDialog(DIALOGS.EQUALIZER)"
-                            @keydown.enter.prevent="toggleDialog(DIALOGS.EQUALIZER)">EQ</div>
+                            @click="toggleMasterPanel(DIALOGS.EQUALIZER)"
+                            @keydown.enter.prevent="toggleMasterPanel(DIALOGS.EQUALIZER)">EQ</div>
                         <div class="masterFxBtn" :class="{ fxActive: compressorActive }" role="button" tabindex="0"
                             :title="`Master compressor${compressorActive ? '' : ' (bypassed)'}`" aria-label="Comp: master compressor"
                             v-hint="'Master compressor: even out loud and quiet parts'"
-                            @click="toggleDialog(DIALOGS.COMPRESSOR)"
-                            @keydown.enter.prevent="toggleDialog(DIALOGS.COMPRESSOR)">Comp</div>
+                            @click="toggleMasterPanel(DIALOGS.COMPRESSOR)"
+                            @keydown.enter.prevent="toggleMasterPanel(DIALOGS.COMPRESSOR)">Comp</div>
                         <Fader v-if="editModeActive" :fader-id="0" ref="masterFaderRef" label="Master volume" v-hint="'Master volume'" />
                     </div>
                     <div v-for="(track, trackId) in reactiveSongData.tracks" :key="trackId" class="labelDiv disable-select"
@@ -56,6 +60,9 @@
                             v-hint="`Edit ${instrumentLabelName[trackId]} in the tab`"
                             @click="handleTrackLabelClick(trackId)" @keyup="handleKeyUp(trackId)">{{
                                 instrumentLabelName[trackId] }}</div>
+                        <!-- streamed SoundFont (Big win 32): this track's instrument is still on its way -->
+                        <span v-if="soundLoading(trackId)" class="soundLoadingBadge" role="status"
+                            :id="`soundLoading${trackId}`">Loading sound…</span>
                         <button type="button" class="muteBtn" v-if="editModeActive" v-hint="`Mute ${instrumentLabelName[trackId]}`"
                             :aria-label="`Mute ${instrumentLabelName[trackId]}`" :aria-pressed="!!reactiveSongData.playBackInstrument[trackId]?.mute"
                             @click="toggleTrackFlag(trackId, 'mute')">
@@ -159,7 +166,10 @@ import { audioGraph } from '../services/audio/audioGraph';
 import { applyRangeAsLoop, clearRange, startRange, extendRange } from '../services/editor/rangeSelection';
 import playback from '../services/playback';
 import { typedEventBus } from '../utils/typedEventBus';
-import { DIALOGS, toggleDialog } from '../services/dialogs/dialogs';
+import {
+    DIALOGS, closeDialog, isDialogOpen, loadDialogHandlers, openDialog, toggleDialog, type DialogDefinition,
+} from '../services/dialogs/dialogs';
+import type { PlainModalHandler } from '../services/dialogs/baseModalHandler';
 import { masterEqualizer } from '../services/audio/masterEqualizer';
 import { masterCompressor } from '../services/audio/masterCompressor';
 import editorCore from '../services/editor/editorCore';
@@ -178,6 +188,15 @@ import { vHint } from '../composables/vHint';
 import { isSectionLooped, toggleSectionLoop } from '../services/sectionLoops';
 import { playbackLoopState } from '../stores/playbackLoopState';
 import { sectionAt } from '../utils/markerSections';
+import { isPresetLoading, soundFontState } from '../stores/soundFontState';
+import { trackPresetKey } from '../services/audio/samplePlayer';
+
+/** A track whose SoundFont preset is still loading (streamed; reads the reactive state). */
+function soundLoading(trackId: number): boolean {
+    if (!soundFontState.streaming && soundFontState.status !== 'loading') return false;
+    void songDataVersion.value;
+    return isPresetLoading(trackPresetKey(trackId));
+}
 
 /** Whether the marker at `blockId` is the section being looped (reads the reactive loop state). */
 function sectionLooped(blockId: number): boolean {
@@ -199,6 +218,18 @@ let indicatorPosition = { trackId: 0, blockId: 0 };
 const masterFaderRef = ref<InstanceType<typeof Fader> | null>(null);
 
 const editModeActive = computed(() => sequencerState.editMode);
+const mixerOpen = computed(() => isDialogOpen(DIALOGS.MIXER.id));
+
+/**
+ * The master row's EQ/Comp. The panels are shared with the mixer's channel strips: one open on
+ * a track switches to the master instead of closing.
+ */
+async function toggleMasterPanel(dialog: DialogDefinition) {
+    const { getDialogHandler } = await loadDialogHandlers();
+    const params = getDialogHandler<PlainModalHandler<{ trackId?: number | null }>>(dialog.id).params.value;
+    if (isDialogOpen(dialog.id) && params?.trackId == null) closeDialog(dialog);
+    else await openDialog(dialog, { trackId: null });
+}
 const eqActive = computed(() => !masterEqualizer.isFlat());
 const compressorActive = computed(() => !masterCompressor.bypass.value);
 const sequencerMinimized = ref(false);

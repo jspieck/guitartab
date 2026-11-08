@@ -8,7 +8,8 @@
       </p>
       <p class="copyright-links">
         <a href="impressum.html" target="_blank" rel="noopener">Impressum</a>
-        <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz / Privacy</a>
+        <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a>
+        <a href="privacy.html" target="_blank" rel="noopener">Privacy (English)</a>
         <a href="https://github.com/jspieck/guitartab" target="_blank" rel="noopener">Source code</a>
         <a href="https://github.com/jspieck/guitartab/issues" target="_blank" rel="noopener">Report a problem</a>
       </p>

@@ -10,7 +10,6 @@
               <option value="up">Upstroke</option>
               <option value="down">Downstroke</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
         <div class="modal-field">
@@ -24,7 +23,6 @@
               <option :value="64">64th</option>
               <option :value="128">128th</option>
             </select>
-            <div class="select__arrow"></div>
           </div>
         </div>
       </div>

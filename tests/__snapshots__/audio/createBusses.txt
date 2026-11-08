@@ -7,9 +7,9 @@ compressor#1.knee.value = 0
 compressor#1.ratio.value = 20
 compressor#1.attack.value = 0.005
 compressor#1.release.value = 0.05
-masterCompressor.attach(compressor#1)
 create gain#2
 gain#2.gain.value = 1
+masterCompressor.attach(compressor#1)
 masterEqualizer.setAudioContext()
 masterEqualizer.insertBetween(gain#2, compressor#1)
 gain#2.connect(compressor#1)

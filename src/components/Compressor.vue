@@ -1,6 +1,6 @@
 <template>
     <BaseModal :modal-id="DIALOGS.COMPRESSOR.id">
-        <template #title>Master Compressor</template>
+        <template #title>{{ title }}</template>
         <div class="ap-root comp" :class="{ 'comp-bypassed': bypass }">
             <div class="ap-toolbar">
                 <label class="ap-section-label" for="compressorPreset">Preset</label>
@@ -78,9 +78,13 @@ import BaseModal from './BaseModal.vue';
 import RotaryKnob from './audio/RotaryKnob.vue';
 import './audio/audioPlugin.css';
 import { DIALOGS } from '../services/dialogs/dialogs';
-import { audioGraph } from '../services/audio/audioGraph';
+import { getDialogHandler } from '../services/dialogs/dialogHandlers';
+import type { PlainModalHandler } from '../services/dialogs/baseModalHandler';
+import { masterCompressorTarget, targetName, trackCompressorTarget } from './audio/channelTargets';
+import { DEFAULT_TRACK_COMPRESSOR } from '../services/audio/trackInserts';
+import Song from '../stores/song';
 import {
-    COMPRESSOR_PRESETS, COMPRESSOR_RANGES, compressorCurve, masterCompressor,
+    COMPRESSOR_PRESETS, COMPRESSOR_RANGES, compressorCurve,
 } from '../services/audio/masterCompressor';
 import { useAnimationLoop, useDialogOpen } from '../composables/useDialogOpen';
 
@@ -88,13 +92,21 @@ const CURVE = 200;
 const MIN_DB = -60;
 const GRID_DB = [-48, -36, -24, -12];
 const GR_RANGE = 24;
-const DEFAULTS = COMPRESSOR_PRESETS[0].settings;
 const PEAK_FALL_DB_PER_FRAME = 0.5;
 
-const handler = masterCompressor;
-const settings = handler.settings;
-const bypass = computed(() => handler.bypass.value);
-const presetName = computed(() => handler.matchingPreset());
+// Opened with { trackId } for a track's channel compressor (mixer), without for the master.
+const dialog = getDialogHandler<PlainModalHandler<{ trackId?: number | null }>>(DIALOGS.COMPRESSOR.id);
+const trackId = computed(() => {
+    const id = dialog.params.value?.trackId;
+    return id != null && Song.tracks[id] != null ? id : null;
+});
+const handler = computed(() => (trackId.value == null ? masterCompressorTarget : trackCompressorTarget(trackId.value)));
+const title = computed(() => (trackId.value == null ? 'Master Compressor' : `Compressor · ${targetName(trackId.value)}`));
+// double-click resets a knob to the master limiter or to the channel compressor's start values
+const DEFAULTS = computed(() => (trackId.value == null ? COMPRESSOR_PRESETS[0].settings : DEFAULT_TRACK_COMPRESSOR));
+const settings = computed(() => handler.value.settings);
+const bypass = computed(() => handler.value.bypass.value);
+const presetName = computed(() => handler.value.matchingPreset());
 
 const outputDb = ref(MIN_DB);
 const reductionDb = ref(0);
@@ -110,10 +122,10 @@ function formatMs(value: number): string {
 
 function applyPreset(event: Event) {
     const preset = COMPRESSOR_PRESETS.find((p) => p.name === (event.target as HTMLSelectElement).value);
-    if (preset) handler.update(preset.settings);
+    if (preset) handler.value.update(preset.settings);
 }
 
-const activeSettings = computed(() => (bypass.value ? { ...settings, threshold: 0, ratio: 1 } : settings));
+const activeSettings = computed(() => (bypass.value ? { ...settings.value, threshold: 0, ratio: 1 } : settings.value));
 
 const curvePoints = computed(() => {
     const points: string[] = [];
@@ -161,7 +173,8 @@ const meters = computed(() => [
 ]);
 
 function readPeakDb(): number {
-    const analyser = audioGraph.masterAnalyser;
+    const analyser = handler.value.outputAnalyser();
+    if (analyser == null) return MIN_DB;
     if (timeDomain == null || timeDomain.length !== analyser.fftSize) {
         timeDomain = new Float32Array(analyser.fftSize);
     }
@@ -179,7 +192,7 @@ useAnimationLoop(isOpen, () => {
     const peak = readPeakDb();
     // Instant attack, slow fall, so peaks stay readable.
     outputDb.value = Math.max(peak, outputDb.value - PEAK_FALL_DB_PER_FRAME, MIN_DB);
-    const reduction = handler.reduction();
+    const reduction = handler.value.reduction();
     reductionDb.value = Math.min(reduction, reductionDb.value + PEAK_FALL_DB_PER_FRAME, 0);
 });
 </script>

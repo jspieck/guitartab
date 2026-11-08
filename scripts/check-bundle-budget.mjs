@@ -17,8 +17,11 @@ const BUDGETS_KB = {
   // 302.5 KB with the amp settings, bus routing and GP tone hints of Big win 21 (the DSP is lazy);
   // 307 KB with clef changes, slash beats, rhythm on stems and multi-bar rests of Big win 24
   // (their file-format parts live in the lazy format chunks); 228 KB after Big win 30 moved
-  // the dialog handlers, the Guitar Pro readers and fflate into lazy chunks.
-  'editor-core-': 240,
+  // the dialog handlers, the Guitar Pro readers and fflate into lazy chunks; 243 KB with
+  // Big win 29 (dead-note click, re-scheduling on speed changes, tie chains, the graph copy
+  // for audio renders: 4.3 KB; the render itself is the lazy audio-export chunk); 236 KB after
+  // Big win 32 moved the SoundFont reader into the lazy soundfont chunk.
+  'editor-core-': 248,
   'notation-': 1100,
   // The shortcut table; the key handler matches every key against it, so it can't be lazy
   // (6.9 KB with the selection, rhythm, voice and transpose keys of audit Big win 8;
@@ -39,6 +42,11 @@ const BUDGETS_KB = {
   'dialog-handlers-': 24,
   'gp-import-': 34,
   'zip-': 8,
+  // Audio export: render plan, offline render, WAV and Ogg Opus writers (audit Big win 29)
+  'audio-export-': 14,
+  // Reading and streaming the SoundFont (parser, SF3, bank building, loader; Big win 32): 19 KB,
+  // loaded right after startup; it took 11 KB out of editor-core
+  'soundfont-': 22,
   // The dialog shell; each dialog is its own chunk now
   'ModalsContainer-': 20,
 }
@@ -146,6 +154,9 @@ const LAZY_CHUNKS = [
   'musicXmlImport-',
   'midi-import-',
   'example-songs-',
+  'audio-export-',
+  'AudioExportModal-',
+  'soundfont-',
   'NoteMenu-',
   'CompactBar-',
 ]

@@ -5,6 +5,7 @@ import tseslint from 'typescript-eslint'
 
 const lintTargets = [
   'vite.config.ts',
+  'site/**/*.ts',
   'src/**/*.vue',
   'src/**/*.ts',
   'tests/**/*.ts',

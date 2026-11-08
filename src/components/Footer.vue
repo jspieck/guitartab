@@ -13,8 +13,8 @@
         <div v-if="isDrumTrack" id="drumGridFooter" class="footerBlock" role="button" tabindex="0"
             title="Edit the cursor's bar as a step grid"
             @click="toggleDialog(DIALOGS.DRUM_GRID, {})" @keydown.enter.prevent="toggleDialog(DIALOGS.DRUM_GRID, {})">Step grid</div>
-        <div id="drumMixerOpen" class="footerBlock" role="button" tabindex="0"
-            @click="toggleDialog(DIALOGS.MIXER, {})" @keydown.enter.prevent="toggleDialog(DIALOGS.MIXER, {})">Drum mixer</div>
+        <div id="drumMixerOpen" class="footerBlock" role="button" tabindex="0" title="Mixer: every track and the drum kit"
+            @click="toggleDialog(DIALOGS.MIXER, {})" @keydown.enter.prevent="toggleDialog(DIALOGS.MIXER, {})">Mixer</div>
         <div id="autoScroll" class="footerBlock" role="button" tabindex="0" :aria-pressed="isAutoscrollEnabled"
             title="Follow the playback position while playing"
             @click="toggleScrolling()" @keydown.enter.prevent="toggleScrolling()"><span class="footerLabel">Autoscroll</span>{{ isAutoscrollEnabled ? 'On' : 'Off' }}</div>

@@ -84,12 +84,18 @@
       <div v-if="moreOpen" id="compactMoreMenu" ref="menuRef" class="compact-menu" role="menu" aria-label="More" @keydown="onMenuKeydown">
         <button type="button" role="menuitem" @click="run(openFile)">Open file…</button>
         <button type="button" role="menuitem" @click="run(() => toolbarAction('exampleSongs').run())">Example songs…</button>
+        <button type="button" role="menuitem" @click="run(() => toolbarAction('exportAudio').run())">Export audio…</button>
+        <button type="button" role="menuitem" @click="run(() => toolbarAction('printTab').run())">Print…</button>
         <div class="compact-menu__tempo" role="group" aria-label="Song tempo">
           <span class="compact-menu__label">Tempo</span>
           <button type="button" role="menuitem" aria-label="Slower" @click="nudgeTempo(-5)">−</button>
           <span id="compactTempo" class="compact-menu__value">♩ {{ currentTempo }}</span>
           <button type="button" role="menuitem" aria-label="Faster" @click="nudgeTempo(5)">+</button>
         </div>
+        <div class="compact-menu__heading" role="presentation">Practice</div>
+        <button id="compactPracticeOptions" type="button" role="menuitem" @click="run(() => openDialog(DIALOGS.PRACTICE))">Practice options…</button>
+        <button id="compactTuner" type="button" role="menuitem" @click="run(() => toolbarAction('tunerButton').run())">Tuner…</button>
+        <button id="compactDockToggle" type="button" role="menuitem" @click="run(toggleDock)">{{ practiceDockState.instrument === 'off' ? 'Fretboard under the tab' : 'Hide the fretboard/keyboard' }}</button>
         <div class="compact-menu__heading" role="presentation">Track</div>
         <button type="button" role="menuitem" @click="run(() => openTrackSettings(currentTrackId))">Track settings and tuning…</button>
         <button type="button" role="menuitem" @click="run(() => openChangeInstrument(currentTrackId))">Change instrument…</button>
@@ -100,6 +106,8 @@
         <button type="button" role="menuitem" @click="zoomBy(-0.15)">Smaller tab</button>
         <button type="button" role="menuitem" @click="run(useDesktopLayout)">Desktop layout</button>
         <div class="compact-menu__heading" role="presentation">About</div>
+        <button type="button" role="menuitem" @click="run(() => toolbarAction('gettingStarted').run())">Getting started guide</button>
+        <button type="button" role="menuitem" @click="run(() => toolbarAction('whatsNew').run())">What's new…</button>
         <button type="button" role="menuitem" @click="run(() => toolbarAction('about').run())">About, credits and legal…</button>
       </div>
     </Teleport>
@@ -130,6 +138,8 @@ import { changeTrackWithLoading, focusEditorPosition } from '../../services/edit
 import { readCompactZoom, setCompactZoom } from '../../services/compactLayout'
 import { layoutModeState, setCompactEditing, setCompactLayout } from '../../stores/layoutModeState'
 import { practiceState, setPlaybackRate } from '../../stores/practiceState'
+import { practiceDockState, setDockInstrument } from '../../stores/practiceDockState'
+import { DIALOGS, openDialog } from '../../services/dialogs/dialogs'
 
 const SPEEDS = [0.5, 0.6, 0.75, 0.9, 1, 1.25, 1.5]
 
@@ -177,6 +187,11 @@ async function toggleMore(): Promise<void> {
 function closeMore({ focusButton = false } = {}): void {
   moreOpen.value = false
   if (focusButton) moreButtonRef.value?.focus()
+}
+
+/** The fretboard under the tab (Big win 28; the Practice options choose the keyboard). */
+function toggleDock(): void {
+  setDockInstrument(practiceDockState.instrument === 'off' ? 'guitar' : 'off')
 }
 
 /** Menu entries that open something close the menu first. */

@@ -226,7 +226,7 @@ const moreEntries = computed<ToolbarMenuEntry[]>(() =>
 /** The file group's extra actions; Cloud songs only in builds with the server API (utils/features.ts). */
 const FILE_MORE_ACTIONS = [
     ...(CLOUD_ENABLED ? ['cloudSongs'] : []),
-    'printTab', 'createPDF', 'info', 'recoverDrafts',
+    'printTab', 'createPDF', 'exportAudio', 'info', 'recoverDrafts',
 ]
 const FILE_BAR_ACTIONS = ['exampleSongs', ...FILE_MORE_ACTIONS]
 
@@ -241,7 +241,7 @@ const fileMenuEntries = computed<ToolbarMenuEntry[]>(() => [
         run: () => exportSongAs(option.format),
     })),
     { kind: 'heading', label: 'More' },
-    ...actionEntries([...FILE_MORE_ACTIONS, 'about'].map(act)),
+    ...actionEntries([...FILE_MORE_ACTIONS, 'gettingStarted', 'whatsNew', 'about'].map(act)),
 ])
 
 /** How the tab is drawn: options kept in one menu, so the top bar stays narrow. */

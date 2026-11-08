@@ -2,7 +2,8 @@ import Song from '../../stores/song'
 import { audioGraph } from '../audio/audioGraph'
 import type { Chord } from '../../types/tab'
 import type { PlayBackInstrument, Track } from '../../stores/song'
-import type { TrackAmp } from '../../types/song'
+import type { EqBand, TrackAmp, TrackCompressor } from '../../types/song'
+import { notifySongDataChanged } from '../appEvents'
 import { cloneData, executeCommand, setValue, syncInto, trackScoped, type EditCommand } from './editCommands'
 import { requestChordDiagramsRender } from './renderCommands'
 import { clampTempo } from '../../utils/tempo'
@@ -76,6 +77,29 @@ export function setTrackAmp(
   )
 }
 
+/**
+ * A track's channel EQ (null: flat, out of the bus). Mixer setting: no undo step, like the
+ * sequencer's pan and effect knobs; autosave sees it through the change event.
+ */
+export function setTrackEq(trackId: number, bands: EqBand[] | null): void {
+  const track = Song.tracks[trackId]
+  if (track == null) return
+  if (bands) track.eq = cloneData(bands)
+  else delete track.eq
+  audioGraph.applyTrackInserts(trackId)
+  notifySongDataChanged()
+}
+
+/** A track's channel compressor (null: none). Mixer setting, no undo step. */
+export function setTrackCompressor(trackId: number, compressor: TrackCompressor | null): void {
+  const track = Song.tracks[trackId]
+  if (track == null) return
+  if (compressor) track.compressor = { ...compressor }
+  else delete track.compressor
+  audioGraph.applyTrackInserts(trackId)
+  notifySongDataChanged()
+}
+
 function trackChords(trackId: number): Map<string, Chord> {
   if (Song.chordsMap[trackId] == null) {
     Song.chordsMap[trackId] = new Map()
@@ -138,9 +162,17 @@ function captureTrack(trackId: number): TrackState {
 }
 
 function restoreTrack(trackId: number, state: TrackState): void {
+  // The channel EQ and compressor are mixer settings without undo: undoing an older track
+  // edit keeps them as they are now.
+  const restored = cloneData(state.track)
+  const { eq, compressor } = Song.tracks[trackId] ?? {}
+  delete restored.eq
+  delete restored.compressor
+  if (eq) restored.eq = cloneData(eq)
+  if (compressor) restored.compressor = cloneData(compressor)
   syncInto(
     Song.tracks[trackId] as unknown as Record<string, unknown>,
-    cloneData(state.track) as unknown as Record<string, unknown>,
+    restored as unknown as Record<string, unknown>,
   )
   const playback = Song.playBackInstrument[trackId]
   if (playback && state.playback) {

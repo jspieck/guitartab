@@ -32,7 +32,10 @@ vi.mock('../src/services/audio/audioGraph', () => ({
 vi.mock('../src/services/audio/meters', () => ({ drawMeters: () => {} }))
 vi.mock('../src/services/audio/metronome', () => ({
   metronome: {
-    playClick: (time: number, accent: boolean) => add(`click ${r(time)}${accent ? ' accent' : ''}`),
+    playClick: (time: number, accent: boolean) => {
+      add(`click ${r(time)}${accent ? ' accent' : ''}`)
+      return { disconnect: () => add(`click ${r(time)} taken back`) }
+    },
   },
 }))
 vi.mock('../src/services/audio/samplePlayer', () => {
@@ -61,6 +64,7 @@ vi.mock('../src/services/audio/samplePlayer', () => {
         add(`preload t${track} s${string} f${fret}`),
       stopVoice: (track: number, voice: number) => add(`stopVoice t${track}v${voice}`),
       stopAll: () => add('stopAll'),
+      cancelFrom: (time: number) => add(`cancelFrom ${r(time)}`),
     },
   }
 })
@@ -450,6 +454,20 @@ describe('playback characterization', () => {
     run(9000)
     env.log.push(`rate ${practice.practiceState.playbackRate}`)
     await expect(snapshot()).toMatchFileSnapshot(file('loop'))
+  })
+
+  it('a speed change while playing re-schedules what was queued ahead', async () => {
+    // The beats queued 0.4 s ahead are taken back and scheduled again at the new speed
+    // (before, they kept the old speed and the change was heard a beat late).
+    setSong([0, 1, 2].map((bar) => ({ tracks: [quarters(bar)] })))
+    practice.practiceState.metronome = true
+    playback.start()
+    run(3000, {
+      1300: function halfSpeed() {
+        practice.setPlaybackRate(0.5)
+      },
+    })
+    await expect(snapshot()).toMatchFileSnapshot(file('speed-change'))
   })
 
   it('a loop set while playing, then cleared', async () => {

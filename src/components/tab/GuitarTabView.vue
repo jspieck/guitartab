@@ -90,6 +90,7 @@
           :width="tabGroupWidth"
           :label-gutter="row.labelGutter ?? row.id === 0"
           :on-string-pointer-down="handleStringPointerDown"
+          :on-loop-handle-down="handleLoopHandleDown"
         />
 
         <!-- Vue playback bar -->
@@ -270,6 +271,7 @@ function getMeasureContentPadding(blockId: number): number {
 
 const {
   handleStringPointerDown,
+  handleLoopHandleDown,
   selectForContextMenu,
   clearRangeSelection,
 } = useTabRangeSelection({

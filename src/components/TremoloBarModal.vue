@@ -5,9 +5,9 @@
       <div class="tremolo-editor-container modal-surface-block">
         <svg
           class="graph-editor"
-          viewBox="0 0 300 300"
-          width="300"
-          height="300"
+          :viewBox="`${-labelRoom} 0 ${editorSize + labelRoom} ${editorSize}`"
+          :width="editorSize + labelRoom"
+          :height="editorSize"
           @pointerdown="handlePointerDown"
         >
           <!-- Static grid owned by Vue (no createElementNS) -->
@@ -22,10 +22,10 @@
             <text
               v-for="label in axisLabels"
               :key="label.text"
-              :x="padding - 5"
+              :x="padding - 11"
               :y="label.y"
               text-anchor="end"
-              alignment-baseline="middle"
+              dominant-baseline="middle"
               font-size="12"
             >{{ label.text }}</text>
             <line
@@ -46,7 +46,7 @@
               :x2="padding + gridWidth"
               :y2="padding + (gridHeight * (i - 1)) / rowCount"
               stroke-width="1"
-              class="gridLine"
+              :class="i - 1 === rowCount / 3 ? 'strongGridLine' : 'gridLine'"
             />
           </g>
           <g class="tremolo-points">
@@ -68,6 +68,12 @@
           </g>
         </svg>
       </div>
+      <GraphEditorHelp summary="Click the grid to add a point, click it again to remove it.">
+        <li>Left to right is the length of the beat; up raises the pitch, down lowers it, in semitones (frets).</li>
+        <li>Each column holds one point; the line joins them from left to right.</li>
+        <li>Start below 0 for a pre-dive, end at 0 to return to the note.</li>
+        <li>A preset replaces the curve with a common shape that you can then adjust.</li>
+      </GraphEditorHelp>
       <div class="modal-field">
         <label for="tremoloSelection">Preset</label>
         <div class="select">
@@ -83,7 +89,6 @@
             <option value="4">Return</option>
             <option value="5">Release down</option>
           </select>
-          <div class="select__arrow"></div>
         </div>
       </div>
       <div class="modal-submit-row">
@@ -96,6 +101,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseModal from './BaseModal.vue'
+import GraphEditorHelp from './GraphEditorHelp.vue'
 import SubmitButton from './SubmitButton.vue'
 import { DIALOGS } from '../services/dialogs/dialogs'
 import { getDialogHandler } from '../services/dialogs/dialogHandlers'
@@ -117,11 +123,15 @@ const gridHeight = editorSize - 2 * padding
 const columnWidth = gridWidth / columnCount
 const rowHeight = gridHeight / rowCount
 
+// Extra room left of the viewBox, so the axis labels end clear of the points in the first column.
+const labelRoom = 14
+
+// A row is a semitone (value 50, as bends); the handler stores rows 16 as 0, so +8 … -16.
 const axisLabels = computed(() => [
-  { text: '+16', y: padding },
-  { text: '+8', y: gridHeight / 3 + padding },
-  { text: '0', y: (2 * gridHeight) / 3 + padding },
-  { text: '-8', y: gridHeight + padding },
+  { text: '+8', y: padding },
+  { text: '0', y: gridHeight / 3 + padding },
+  { text: '-8', y: (2 * gridHeight) / 3 + padding },
+  { text: '-16', y: gridHeight + padding },
 ])
 
 const points = computed(() =>
@@ -141,7 +151,7 @@ const connections = computed(() =>
 function handlePointerDown(event: PointerEvent) {
   if (event.button !== 0) return
   event.preventDefault()
-  const point = svgPointFromEvent(event.currentTarget as SVGSVGElement, event, editorSize, editorSize)
+  const point = svgPointFromEvent(event.currentTarget as SVGSVGElement, event, editorSize + labelRoom, editorSize)
   const x = Math.min(Math.max(point.x - padding, 0), gridWidth)
   const y = Math.min(Math.max(point.y - padding, 0), gridHeight)
   handler.togglePoint(Math.round(x / columnWidth), rowCount - Math.round(y / rowHeight))
@@ -152,14 +162,16 @@ function handlePointerDown(event: PointerEvent) {
 .tremolo-editor-container {
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 8px;
 }
 
 /* Scales down to the dialog's width on a phone; a finger places points instead of scrolling. */
 .graph-editor {
   width: 100%;
-  max-width: 300px;
+  max-width: 314px;
   height: auto;
+  aspect-ratio: 314 / 300;
   touch-action: none;
 }
 </style>

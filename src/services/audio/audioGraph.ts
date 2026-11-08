@@ -1,18 +1,20 @@
 import Song, { type PlayBackInstrument } from '../../stores/song'
-import { masterCompressor } from './masterCompressor'
-import { masterEqualizer } from './masterEqualizer'
+import { applyCompressor, compressorReduction, masterCompressor } from './masterCompressor'
+import { applyEqBand, eqBandsFlat, masterEqualizer } from './masterEqualizer'
 import { setEffectGain as applyEffectGain, type EffectGainType } from './audioModulation'
 import { noteToDrum } from './drumKit'
 import { Chorus, Freeverb } from './effects'
 import { trackAmp } from './ampModel'
-import type { TrackAmp } from '../../types/song'
+import { trackCompressor, trackEq } from './trackInserts'
+import type { EqBand, TrackAmp, TrackCompressor } from '../../types/song'
 
 /**
  * The Web Audio graph: one AudioContext, a bus per track and per drum piece (routed into the
  * playing drum track's bus), then master gain → equalizer → limiter → master analyser → speakers.
  *
- * A track bus is input → amp simulation (when on, `ampSimulator.ts`) → pan → volume → master
- * (dry), with the track's reverb and chorus as sends
+ * A track bus is input → amp simulation → channel EQ → channel compressor → pan → volume → master
+ * (dry); the three inserts are in the chain only while they change the sound (`reroute`), so
+ * tracks without them cost nothing. The track's reverb and chorus are sends
  * from after the volume (the mixer knobs, like MIDI CC 91/93). Notes add their SoundFont
  * zone's own sends through `reverbIn`/`chorusIn`, which have their own pan and volume
  * kept equal to the dry path's (`setPan`/`setVolume`).
@@ -23,7 +25,7 @@ let ampModule: AmpModule | null = null
 let ampModuleLoad: Promise<AmpModule> | null = null
 
 /** The amp simulation is a lazy chunk; tracks that don't use it never load it. */
-function loadAmpModule(): Promise<AmpModule> {
+export function loadAmpModule(): Promise<AmpModule> {
   ampModuleLoad ??= import('./ampSimulator').then((module) => (ampModule = module))
   return ampModuleLoad
 }
@@ -48,14 +50,24 @@ export class TrackBus {
   ampActive = false
   private amp: InstanceType<AmpModule['AmpSimulator']> | null = null
   private ampSettings: TrackAmp | null = null
-  private routedThroughAmp = false
+  /** the channel EQ's filters (created when it is first switched on) */
+  private eqFilters: BiquadFilterNode[] = []
+  private eqOn = false
+  private compressor: DynamicsCompressorNode | null = null
+  private compressorOn = false
+  /** the inserts the chain runs through now, e.g. "amp,eq" */
+  private routing = ''
+  private meter: AnalyserNode | null = null
+  private compressorMeter: AnalyserNode | null = null
   private disposed = false
+  private readonly context: BaseAudioContext
 
   constructor(
-    context: AudioContext,
+    context: BaseAudioContext,
     output: AudioNode,
     settings: { volume: number; pan: number; reverb: number; chorus: number },
   ) {
+    this.context = context
     this.input = context.createGain()
     this.pan = context.createStereoPanner()
     this.input.connect(this.pan)
@@ -111,15 +123,102 @@ export class TrackBus {
       return
     }
     if (settings.enabled && this.amp == null && ampModule != null) {
-      this.amp = new ampModule.AmpSimulator(this.input.context)
-      this.amp.output.connect(this.pan)
+      this.amp = new ampModule.AmpSimulator(this.context)
     }
     this.amp?.set(settings)
-    const throughAmp = settings.enabled && this.amp != null
-    if (throughAmp === this.routedThroughAmp) return
+    this.reroute()
+  }
+
+  /** The channel EQ (null or flat: out of the chain). Live, while notes sound. */
+  setEq(bands: readonly EqBand[] | null): void {
+    this.eqOn = bands != null && !eqBandsFlat(bands)
+    if (bands != null && (this.eqOn || this.eqFilters.length > 0)) {
+      if (this.eqFilters.length === 0) {
+        this.eqFilters = bands.map(() => this.context.createBiquadFilter())
+        for (let i = 1; i < this.eqFilters.length; i += 1) this.eqFilters[i - 1].connect(this.eqFilters[i])
+      }
+      bands.forEach((band, index) => applyEqBand(this.eqFilters[index], band))
+    }
+    this.reroute()
+  }
+
+  /** The channel compressor (null or not enabled: out of the chain). */
+  setCompressor(settings: TrackCompressor | null): void {
+    this.compressorOn = settings?.enabled === true
+    if (settings != null && this.compressorOn) {
+      this.compressor ??= this.context.createDynamicsCompressor()
+      applyCompressor(this.compressor, settings, false)
+    }
+    this.reroute()
+  }
+
+  /** Whether the EQ / compressor are in the chain (tests, the mixer). */
+  get eqInChain(): boolean {
+    return this.routing.includes('eq')
+  }
+
+  get compressorInChain(): boolean {
+    return this.routing.includes('comp')
+  }
+
+  /** The compressor's gain reduction now, in dB (0 or negative). */
+  compressorReduction(): number {
+    return this.compressorInChain ? compressorReduction(this.compressor) : 0
+  }
+
+  /**
+   * A level/spectrum tap after the volume, made on first use (the mixer's meters, the
+   * channel EQ's spectrum). The sequencer's `analyser` is too short for peaks.
+   */
+  meterAnalyser(): AnalyserNode {
+    if (this.meter == null) {
+      this.meter = this.context.createAnalyser()
+      this.meter.fftSize = 4096
+      this.meter.smoothingTimeConstant = 0.8
+      this.volume.connect(this.meter)
+    }
+    return this.meter
+  }
+
+  /** A tap right after the compressor (the Compressor panel's output meter), made on first use. */
+  compressorAnalyser(): AnalyserNode | null {
+    if (this.compressor == null) return null
+    if (this.compressorMeter == null) {
+      this.compressorMeter = this.context.createAnalyser()
+      this.compressorMeter.fftSize = 2048
+      this.compressor.connect(this.compressorMeter)
+    }
+    return this.compressorMeter
+  }
+
+  /**
+   * Connects input → the inserts that are on → pan. Only reconnects when the set changes:
+   * knob moves don't touch the wiring.
+   */
+  private reroute(): void {
+    const stages: { name: string; input: AudioNode; output: AudioNode }[] = []
+    if (this.ampActive && this.amp != null)
+      stages.push({ name: 'amp', input: this.amp.input, output: this.amp.output })
+    if (this.eqOn && this.eqFilters.length > 0) {
+      stages.push({ name: 'eq', input: this.eqFilters[0], output: this.eqFilters[this.eqFilters.length - 1] })
+    }
+    if (this.compressorOn && this.compressor != null) {
+      stages.push({ name: 'comp', input: this.compressor, output: this.compressor })
+    }
+    const routing = stages.map((stage) => stage.name).join(',')
+    if (routing === this.routing) return
     this.input.disconnect()
-    this.input.connect(throughAmp && this.amp ? this.amp.input : this.pan)
-    this.routedThroughAmp = throughAmp
+    this.amp?.output.disconnect()
+    this.eqFilters[this.eqFilters.length - 1]?.disconnect()
+    this.compressor?.disconnect()
+    if (this.compressor != null && this.compressorMeter != null) this.compressor.connect(this.compressorMeter)
+    let previous: AudioNode = this.input
+    for (const stage of stages) {
+      previous.connect(stage.input)
+      previous = stage.output
+    }
+    previous.connect(this.pan)
+    this.routing = routing
   }
 
   dispose(): void {
@@ -130,6 +229,10 @@ export class TrackBus {
       this.pan,
       this.volume,
       this.analyser,
+      ...this.eqFilters,
+      ...(this.compressor ? [this.compressor] : []),
+      ...(this.meter ? [this.meter] : []),
+      ...(this.compressorMeter ? [this.compressorMeter] : []),
       this.reverbIn,
       this.chorusIn,
       ...this.sendPans,
@@ -153,16 +256,16 @@ function showError(text: string): void {
   void import('../userNotifications').then(({ showUserError }) => showUserError(text))
 }
 
-export class AudioGraph {
+export class AudioGraph<Context extends BaseAudioContext = AudioContext> {
   // The context is passed in, so an OfflineAudioContext can render a song (audio export) and
   // tests can hand in a fake one; the app's graph uses a live AudioContext.
-  readonly context: AudioContext
+  readonly context: Context
 
   masterGain: GainNode
 
   readonly masterAnalyser: AnalyserNode
 
-  constructor(context: AudioContext) {
+  constructor(context: Context) {
     this.context = context
     this.masterGain = context.createGain()
     this.masterAnalyser = context.createAnalyser()
@@ -186,7 +289,7 @@ export class AudioGraph {
     }
     if (this.context.state !== 'running') {
       try {
-        await this.context.resume()
+        await (this.context as BaseAudioContext as AudioContext).resume()
       } catch (error) {
         console.error('AudioContext resume failed', error)
         showError('Could not start audio. Click play again after interacting with the page.')
@@ -196,20 +299,31 @@ export class AudioGraph {
     for (const bus of this.busses) bus?.chorus?.ensureStarted()
   }
 
-  /** The master chain and one bus per drum piece; once at startup. */
-  createBusses(): void {
+  /**
+   * The master chain and one bus per drum piece; once at startup. With `copyOf` (an audio
+   * render) the graph takes over that graph's settings as they are now (master volume, EQ,
+   * limiter, drum pieces) and leaves the panels bound to the live graph.
+   */
+  createBusses(copyOf?: AudioGraph<BaseAudioContext>): void {
     const limiter = this.context.createDynamicsCompressor()
     limiter.threshold.value = -1.0 // leave some headroom
     limiter.knee.value = 0.0
     limiter.ratio.value = 20.0
     limiter.attack.value = 0.005
     limiter.release.value = 0.05
-    // user settings from the Compressor panel (defaults match the values above)
-    masterCompressor.attach(limiter)
     this.masterGain = this.context.createGain()
-    this.masterGain.gain.value = 1.0
-    masterEqualizer.setAudioContext(this.context)
-    masterEqualizer.insertBetween(this.masterGain, limiter)
+    this.masterGain.gain.value = copyOf?.masterGain.gain.value ?? 1.0
+    if (copyOf) {
+      masterCompressor.applyTo(limiter)
+      let previous: AudioNode = this.masterGain
+      for (const filter of masterEqualizer.createFilters(this.context)) previous = previous.connect(filter)
+      previous.connect(limiter)
+    } else {
+      // user settings from the Compressor panel (defaults match the values above)
+      masterCompressor.attach(limiter)
+      masterEqualizer.setAudioContext(this.context as BaseAudioContext as AudioContext)
+      masterEqualizer.insertBetween(this.masterGain, limiter)
+    }
     // the analyser passes audio through; connecting the limiter to the destination
     // directly as well would double the output (+6 dB, clipping past the limiter)
     limiter.connect(this.masterAnalyser)
@@ -221,10 +335,11 @@ export class AudioGraph {
     let i = 0
     for (const drumInfo of noteToDrum.values()) {
       const volume = this.context.createGain()
-      volume.gain.value = drumInfo[2]
+      // (the Drum Mixer sets the live buses' gain and pan directly)
+      volume.gain.value = copyOf?.drumBusses[i]?.volume.gain.value ?? drumInfo[2]
       // routed into the playing track's bus on demand (connectDrumBus)
       const pan = this.context.createStereoPanner()
-      pan.pan.value = 0
+      pan.pan.value = copyOf?.drumBusses[i]?.pan.pan.value ?? 0
       pan.connect(volume)
       const analyser = this.context.createAnalyser()
       volume.connect(analyser)
@@ -233,6 +348,24 @@ export class AudioGraph {
       this.drumBusses[i] = { volume, pan, analyser }
       i += 1
     }
+  }
+
+  /**
+   * One bus per track as the live graph has them now (volume, pan, sends, amp), for an audio
+   * render. Wait for `loadAmpModule()` first when a track uses the amp.
+   */
+  copyBussesOf(live: AudioGraph<BaseAudioContext>): void {
+    this.updateBusses(Song.playBackInstrument)
+    this.busses.forEach((bus, trackId) => {
+      const source = live.busses[trackId]
+      if (source != null) {
+        bus.setVolume(source.volume.gain.value)
+        bus.setPan(source.pan.pan.value)
+        bus.reverbSend.gain.value = source.reverbSend.gain.value
+        bus.chorusSend.gain.value = source.chorusSend.gain.value
+      }
+      bus.chorus.ensureStarted()
+    })
   }
 
   /** One bus per track, built again whenever the tracks change. */
@@ -248,13 +381,24 @@ export class AudioGraph {
         reverb: channels[i].reverb / 127,
         chorus: channels[i].chorus / 127,
       })
-      if (Song.tracks[i]) this.busses[i].setAmp(trackAmp(i))
+      if (Song.tracks[i]) {
+        this.busses[i].setAmp(trackAmp(i))
+        this.applyTrackInserts(i)
+      }
     }
   }
 
   /** After a track's amp settings or program changed. */
   applyTrackAmp(trackId: number): void {
     if (Song.tracks[trackId]) this.busses[trackId]?.setAmp(trackAmp(trackId))
+  }
+
+  /** After a track's channel EQ or compressor changed (mixer, undo of a track edit, a loaded song). */
+  applyTrackInserts(trackId: number): void {
+    const bus = this.busses[trackId]
+    if (bus == null || Song.tracks[trackId] == null) return
+    bus.setEq(trackEq(trackId))
+    bus.setCompressor(trackCompressor(trackId))
   }
 
   /** Drum piece bus → the track bus that plays it (connect() is idempotent). */

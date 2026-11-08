@@ -16,6 +16,8 @@ const audioGraphStub = {
   getCurrentTime: () => 0,
   setEffectGain: () => {},
   updateBusses: () => {},
+  applyTrackAmp: () => {},
+  applyTrackInserts: () => {},
   busses: [] as { volume?: { gain: { value: number } } }[],
   drumBusses: [] as { volume?: { gain: { value: number } } }[],
 }

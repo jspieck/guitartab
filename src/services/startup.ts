@@ -7,14 +7,15 @@ import {
 } from '../data/demoSong'
 import { startFirstRunHint } from '../stores/firstRunHintState'
 import { markStartupStepDone } from '../utils/startupReadiness'
+import { setSoundFontLoading, setSoundFontSettled } from '../stores/soundFontState'
 import { audioGraph } from './audio/audioGraph'
-import { loadSoundFont } from './audio/soundFont/loader'
 import { handleKeyDown } from './editor/keyboardDispatch'
 import { loadSongIntoEditor } from './editor/trackLoading'
 import { zoomOnWheel } from './editor/zoom'
 import playback from './playback'
 import { loadBuiltSong } from './songImport'
 import { showUserError } from './userNotifications'
+import { showWhatsNewAfterUpdate } from './whatsNew'
 
 /**
  * Starts the editor once the app is mounted: document listeners (shortcuts, Ctrl + wheel
@@ -60,5 +61,14 @@ export function startUp(): void {
   } else {
     markStartupStepDone('editor')
   }
-  loadSoundFont()
+  // After an update: the newest CHANGELOG entry, once (not on a first visit).
+  showWhatsNewAfterUpdate(firstVisit)
+  // Play waits for the instruments from now on; the reader is its own chunk (Big win 32)
+  setSoundFontLoading(0, 0)
+  void import('./audio/soundFont/loader')
+    .then(({ loadSoundFont }) => loadSoundFont())
+    .catch(() => {
+      setSoundFontSettled('failed')
+      showUserError('Could not load the instruments. Playback may be silent; reload to try again.')
+    })
 }

@@ -61,6 +61,23 @@
       />
     </g>
 
+    <!-- A/B handles of the loop (Big win 28): drag to move its start or end beat by beat -->
+    <g
+      v-for="handle in loopHandles"
+      :key="handle.edge"
+      class="loop-handle"
+      :class="`loop-handle--${handle.edge}`"
+      :transform="`translate(${handle.x}, ${rangeOverlayRect!.y})`"
+      @pointerdown="(event: PointerEvent) => onLoopHandleDown?.(event, handle.edge)"
+    >
+      <title>{{ handle.edge === 'start' ? 'Loop start: drag to move' : 'Loop end: drag to move' }}</title>
+      <rect class="loop-handle__grip" x="-7" :y="-22" width="14" :height="rangeOverlayRect!.height + 26" style="fill: transparent" />
+      <line x1="0" x2="0" :y1="-8" :y2="rangeOverlayRect!.height + 4" style="stroke: var(--color-accent); stroke-width: 2" />
+      <rect :x="handle.edge === 'start' ? 0 : -14" y="-22" width="14" height="14" rx="3" style="fill: var(--color-accent)" />
+      <text :x="handle.edge === 'start' ? 7 : -7" y="-11" text-anchor="middle" font-size="10" font-weight="700"
+        style="fill: var(--color-on-accent)">{{ handle.edge === 'start' ? 'A' : 'B' }}</text>
+    </g>
+
     <!-- Selection indicator -->
     <g
       v-if="selectionRenderPoint"
@@ -155,6 +172,8 @@ import { computed } from 'vue'
 import TabMeasure from './TabMeasure.vue'
 import TabMeasureInfo from './TabMeasureInfo.vue'
 import { useOverlaySelection } from '../../composables/useOverlaySelection'
+import { orderedRange } from '../../services/editor/rangeSelection'
+import { playbackLoopState } from '../../stores/playbackLoopState'
 import { useTabSelection } from '../../composables/useTabSelection'
 import { usePlaybackEngine } from '../../composables/usePlaybackEngine'
 import editorCore from '../../services/editor/editorCore'
@@ -181,11 +200,13 @@ interface Props {
   width: number
   labelGutter?: boolean
   onStringPointerDown?: (event: MouseEvent, stringIndex: number) => void
+  onLoopHandleDown?: (event: PointerEvent, edge: 'start' | 'end') => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   labelGutter: false,
   onStringPointerDown: undefined,
+  onLoopHandleDown: undefined,
 })
 
 const { STRING_SPACING } = TAB_CONSTANTS
@@ -231,6 +252,20 @@ const { rangeOverlayRect } = useOverlaySelection({
   labelGutter: computed(() => props.labelGutter),
   numStrings,
   getMeasureContentPadding,
+})
+
+/** The loop's A/B handles in this row: at the range's start and end when they fall in it. */
+const loopHandles = computed<{ edge: 'start' | 'end'; x: number }[]>(() => {
+  const rect = rangeOverlayRect.value
+  if (!rect || !playbackLoopState.active || !props.onLoopHandleDown) return []
+  const ends = orderedRange()
+  if (!ends || ends[0].trackId !== props.trackId || ends[0].voiceId !== props.voiceId) return []
+  const inRow = (blockId: number) =>
+    blockId >= props.rowData.startBlockId && blockId < props.rowData.startBlockId + props.rowData.measures.length
+  const handles: { edge: 'start' | 'end'; x: number }[] = []
+  if (inRow(ends[0].blockId)) handles.push({ edge: 'start', x: rect.x })
+  if (inRow(ends[1].blockId)) handles.push({ edge: 'end', x: rect.x + rect.width })
+  return handles
 })
 
 const selectionRenderPoint = computed(() => {

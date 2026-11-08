@@ -15,6 +15,8 @@ export interface PracticeSettings {
   trainerStep: number
   /** Speed at which the trainer stops increasing. */
   trainerTarget: number
+  /** Speed a section loop starts at with the trainer on, the first time (Big win 28). */
+  trainerStart: number
   /** A big beat counter while playing and during the count-in, readable from the instrument. */
   bigBeat: boolean
 }
@@ -31,6 +33,7 @@ const DEFAULTS: PracticeSettings = {
   trainer: false,
   trainerStep: 0.05,
   trainerTarget: 1,
+  trainerStart: 0.7,
   bigBeat: false,
 }
 
@@ -54,6 +57,7 @@ function readStored(): PracticeSettings {
       trainer: stored.trainer === true,
       trainerStep: Number(stored.trainerStep) > 0 ? Number(stored.trainerStep) : DEFAULTS.trainerStep,
       trainerTarget: clampPlaybackRate(Number(stored.trainerTarget ?? DEFAULTS.trainerTarget)),
+      trainerStart: clampPlaybackRate(Number(stored.trainerStart ?? DEFAULTS.trainerStart)),
       bigBeat: stored.bigBeat === true,
     }
   } catch {

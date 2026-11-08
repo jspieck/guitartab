@@ -61,6 +61,12 @@ class Playhead {
     this.queue.length = 0
   }
 
+  /** Drops the beats queued to start at `time` or later (they are scheduled again). */
+  dropQueuedFrom(time: number): void {
+    const keep = this.queue.findIndex((entry) => entry.time >= time)
+    if (keep !== -1) this.queue.length = keep
+  }
+
   /** After a jump: drop what was queued and put the playhead on a beat. */
   jumpTo(trackId: number, blockId: number, voiceId: number, beatId: number): void {
     this.moves.length = 0

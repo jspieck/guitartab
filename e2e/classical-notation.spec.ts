@@ -83,7 +83,7 @@ async function expectOneStaffUnderEachRow(page: Page): Promise<void> {
 }
 
 test.describe('classical notation', () => {
-  test('renders staff lines below the tab when enabled', async ({ page }) => {
+  test('renders staff lines below the tab when enabled', { tag: '@visual' }, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await waitForEditorShell(page)
 

@@ -73,9 +73,10 @@ export class TremoloBarModalHandler extends BaseModalHandler {
     this.isVariableSet = params.isVariableSet
     this.editor.preset = 0
     const existing = params.beats?.[0]?.beat.effects?.tremoloBar
+    // A new tremolo bar starts as the preset the select shows, like the bend dialog.
     this.setPoints(
       existing == null
-        ? []
+        ? TREMOLO_PRESETS[0]
         : existing.map((point) => ({ x: point.position / 5, y: (point.value + 800) / 50 })),
     )
     this.showModal()

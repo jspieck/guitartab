@@ -89,6 +89,27 @@ export function currentLoopInterval(): Interval | null {
   return rangeComplete ? loopInterval : null
 }
 
+/**
+ * Moves one end of the range (an A/B handle on the tab, Big win 28) to a beat of its voice;
+ * the other end stays, and the moved end never passes it. `applyRangeAsLoop` makes it the
+ * loop when the drag ends.
+ */
+export function moveRangeEdge(edge: 'start' | 'end', blockId: number, beatId: number): void {
+  const ordered = orderedRange()
+  if (ordered == null) return
+  const [first, last] = ordered
+  const { trackId, voiceId } = first
+  const before = (a: { blockId: number; beatId: number }, b: { blockId: number; beatId: number }) =>
+    a.blockId < b.blockId || (a.blockId === b.blockId && a.beatId < b.beatId)
+  let start: { blockId: number; beatId: number } = first
+  let end: { blockId: number; beatId: number } = last
+  if (edge === 'start') start = before(last, { blockId, beatId }) ? last : { blockId, beatId }
+  else end = before({ blockId, beatId }, first) ? first : { blockId, beatId }
+  selectionState.rangeStart = endpoint(trackId, start.blockId, voiceId, start.beatId, false)
+  selectionState.rangeEnd = endpoint(trackId, end.blockId, voiceId, end.beatId, true)
+  rangeComplete = true
+}
+
 /** The range with its start before its end, however it was dragged. */
 export function orderedRange(): [RangeEndpoint, RangeEndpoint] | null {
   const { rangeStart: a, rangeEnd: b } = selectionState

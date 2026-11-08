@@ -32,6 +32,8 @@
         </div>
       </div>
     </div>
+    <!-- The fretboard or keyboard following playback (Big win 28); above the phone's note pad. -->
+    <PracticeDock v-if="practiceDockState.instrument !== 'off'" />
     <TouchNotePad v-if="layoutModeState.editing" />
     <div class="bottomBars" role="region" aria-label="Effects and tracks">
       <EffectsBar :track-id="currentTrackId" />
@@ -111,6 +113,7 @@ import {
 } from './services/songAutosave'
 import { watchPracticeMemory } from './services/practiceMemory'
 import { practiceState } from './stores/practiceState'
+import { practiceDockState } from './stores/practiceDockState'
 import { draftsPanelState } from './stores/draftsPanelState'
 import { notificationState, runNotificationAction, showNotification } from './stores/notificationState'
 import { shortcutsHelpState } from './stores/shortcutsHelpState'
@@ -131,6 +134,7 @@ const Footer = defineAsyncComponent(() => import('./components/Footer.vue'))
 const Sequencer = defineAsyncComponent(() => import('./components/Sequencer.vue'))
 const ModalsContainer = defineAsyncComponent(() => import('./components/ModalsContainer.vue'))
 const BigBeatDisplay = defineAsyncComponent(() => import('./components/BigBeatDisplay.vue'))
+const PracticeDock = defineAsyncComponent(() => import('./components/practice/PracticeDock.vue'))
 const AutosaveDraftsPanel = defineAsyncComponent(() => import('./components/AutosaveDraftsPanel.vue'))
 const HelpOverlays = defineAsyncComponent(() => import('./components/HelpOverlays.vue'))
 const CompactBar = defineAsyncComponent(() => import('./components/compact/CompactBar.vue'))

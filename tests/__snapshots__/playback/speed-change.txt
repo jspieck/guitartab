@@ -1,0 +1,38 @@
+0.0000 sequencer 0:-1
+0.0000 bar@pos 0,0,0,0,0
+0.0000 ui started
+0.0000 position 0:0 0
+0.0250 note t0v0 s0 f0 vol=1 at=0.05 dur=0.5 guitar next=1 plain
+0.0250 click 0.05 accent
+0.0640 sequencer 0:0
+0.0640 position 0:0 0
+0.0640 sounding 0
+0.0640 scroll 0,0,0,0
+0.0640 bar@beat 0,0,0,0,0
+0.0800 bar->pos 0,0,0,1,486,1.2,0,0
+0.1750 note t0v0 s0 f1 vol=1 at=0.55 dur=0.5 guitar next=2 plain
+0.1750 click 0.55
+0.5600 position 0:1 0
+0.5600 sounding 1
+0.5600 bar->pos 0,0,0,2,490,1.2,0,1
+0.6750 note t0v0 s0 f2 vol=1 at=1.05 dur=0.5 guitar next=3 plain
+0.6750 click 1.05
+1.0560 position 0:2 0
+1.0560 sounding 2
+1.0560 bar->pos 0,0,0,3,494,1.2,0,2
+1.1750 note t0v0 s0 f3 vol=1 at=1.55 dur=0.5 guitar next=10 plain
+1.1750 click 1.55
+1.3000 -- halfSpeed
+1.3250 cancelFrom 1.333
+1.3250 click 1.55 taken back
+1.4250 note t0v0 s0 f3 vol=1 at=1.8 dur=1 guitar next=10 plain
+1.4250 click 1.8
+1.8080 position 0:3 0
+1.8080 sounding 3
+1.8080 bar->pos 0,1,0,0,992,1.2,0,3
+2.4250 note t0v0 s0 f10 vol=1 at=2.8 dur=1 guitar next=11 plain
+2.4250 click 2.8 accent
+2.8160 sequencer 0:1
+2.8160 position 1:0 0
+2.8160 sounding 10
+2.8160 bar->pos 0,1,0,1,984,1.2,1,0

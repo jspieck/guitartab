@@ -6,8 +6,8 @@
         <svg
           id="bendEditor"
           class="graph-editor"
-          :viewBox="`0 0 ${editorWidth} ${editorHeight}`"
-          :width="editorWidth"
+          :viewBox="`${-labelRoom} 0 ${editorWidth + labelRoom} ${editorHeight}`"
+          :width="editorWidth + labelRoom"
           :height="editorHeight"
           @pointerdown="onPointerDown"
         >
@@ -22,8 +22,10 @@
             <text
               v-for="label in axisLabels"
               :key="label.text"
-              x="0"
+              :x="paddingLeft - 11"
               :y="label.y"
+              text-anchor="end"
+              dominant-baseline="middle"
               font-size="12px"
             >{{ label.text }}</text>
             <path
@@ -63,6 +65,12 @@
           </g>
         </svg>
       </div>
+      <GraphEditorHelp summary="Click the grid to add a point, click it again to remove it.">
+        <li>Left to right is the length of the note; up is the pitch in whole tones (Full = two frets).</li>
+        <li>Each column holds one point; the line joins them from left to right.</li>
+        <li>Start above 0 for a pre-bend, go back down for a release.</li>
+        <li>A preset replaces the curve with a common shape that you can then adjust.</li>
+      </GraphEditorHelp>
       <div class="modal-field">
         <label for="bendSelection">Preset</label>
         <div class="select">
@@ -77,7 +85,6 @@
             <option value="3">Pre-bend</option>
             <option value="4">Pre-bend / release</option>
           </select>
-          <div class="select__arrow"></div>
         </div>
       </div>
       <div class="modal-submit-row">
@@ -90,6 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import BaseModal from './BaseModal.vue'
+import GraphEditorHelp from './GraphEditorHelp.vue'
 import SubmitButton from './SubmitButton.vue'
 import { DIALOGS } from '../services/dialogs/dialogs'
 import { getDialogHandler } from '../services/dialogs/dialogHandlers'
@@ -114,12 +122,16 @@ const horizontalSteps = BEND_COLUMNS
 const verticalSteps = BEND_ROWS
 const gridWidth = editorWidth - 2 * paddingLeft
 const gridHeight = editorHeight - 2 * paddingTop
+// Extra room left of the viewBox, so the axis labels end clear of the points in the first column.
+const labelRoom = 12
 
+// A row is a quarter tone (bendValue 25, as in Guitar Pro; the tab writes 100 as "full"),
+// so the strong line every 4 rows is a whole tone.
 const axisLabels = computed(() => [
   { text: '0', y: gridHeight + paddingTop },
-  { text: 'Half', y: (gridHeight * 2) / 3 + paddingTop },
-  { text: 'Full', y: paddingTop + gridHeight / 3 },
-  { text: '1.5', y: paddingTop },
+  { text: 'Full', y: (gridHeight * 2) / 3 + paddingTop },
+  { text: '2', y: paddingTop + gridHeight / 3 },
+  { text: '3', y: paddingTop },
 ])
 
 const verticalLines = computed(() => {
@@ -174,7 +186,7 @@ const connections = computed(() =>
 function onPointerDown(event: PointerEvent) {
   if (event.button !== 0) return
   event.preventDefault()
-  const point = svgPointFromEvent(event.currentTarget as SVGSVGElement, event, editorWidth, editorHeight)
+  const point = svgPointFromEvent(event.currentTarget as SVGSVGElement, event, editorWidth + labelRoom, editorHeight)
   const x = Math.min(Math.max(point.x - paddingLeft, 0), gridWidth)
   const y = Math.min(Math.max(point.y - paddingTop, 0), gridHeight)
   handler.togglePoint(Math.round(x / columnWidth), verticalSteps - Math.round(y / rowHeight))
@@ -185,14 +197,18 @@ function onPointerDown(event: PointerEvent) {
 .bend-editor-container {
   display: flex;
   justify-content: center;
+  /* Not stretched, so the graph keeps its aspect ratio when it narrows. */
+  align-items: center;
   padding: 8px;
 }
 
 /* Scales down to the dialog's width on a phone; a finger places points instead of scrolling. */
 .graph-editor {
   width: 100%;
-  max-width: 501px;
+  max-width: 513px;
+  /* The height attribute would otherwise keep it 200px tall while it narrows, letterboxing the grid. */
   height: auto;
+  aspect-ratio: 513 / 200;
   touch-action: none;
 }
 </style>

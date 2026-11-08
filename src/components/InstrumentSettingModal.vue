@@ -61,7 +61,6 @@
                 >
                   <option v-for="pitch in pitches" :key="pitch.value" :value="pitch.value">{{ pitch.name }}</option>
                 </select>
-                <div class="select__arrow"></div>
               </div>
             </div>
           </div>

@@ -13,19 +13,36 @@ biquad#1.frequency.value = 1000
 gain#4.connect(biquad#1)
 biquad#1.connect(gain#1)
 create source#1
+create buffer#1(1, NaN, undefined)
 source#1.buffer = buffer#1
-source#1.playbackRate.value = 0.2227246795
-source#1.loop = true
-source#1.loopStart = 0
-source#1.loopEnd = 0.002267573696
+create biquad#2
+biquad#2.type = "bandpass"
+biquad#2.frequency.value = 391.995436
+biquad#2.Q.value = 1.2
 create gain#5
-gain#5.gain.setValueAtTime(0, 1)
-gain#5.gain.linearRampToValueAtTime(0.2, 1.000976563)
-gain#5.gain.setValueAtTime(0.2, 1.07)
-gain#5.gain.setTargetAtTime(0, 1.07, 0.001302883446)
+gain#5.gain.setValueAtTime(0.0001, 1)
+gain#5.gain.exponentialRampToValueAtTime(0.32, 1.001)
+gain#5.gain.exponentialRampToValueAtTime(0.0001, 1.03)
+source#1.connect(biquad#2)
+biquad#2.connect(gain#5)
+gain#5.connect(gain#1)
 source#1.start(1)
-source#1.stop(1.135)
-source#1.connect(gain#5)
-gain#5.connect(gain#4)
+source#1.stop(1.04)
 source#1.addEventListener(ended)
+create source#2
+source#2.buffer = buffer#2
+source#2.playbackRate.value = 0.2227246795
+source#2.loop = true
+source#2.loopStart = 0
+source#2.loopEnd = 0.002267573696
+create gain#6
+gain#6.gain.setValueAtTime(0, 1)
+gain#6.gain.linearRampToValueAtTime(0.2, 1.000976563)
+gain#6.gain.setValueAtTime(0.2, 1.07)
+gain#6.gain.setTargetAtTime(0, 1.07, 0.001302883446)
+source#2.start(1)
+source#2.stop(1.135)
+source#2.connect(gain#6)
+gain#6.connect(gain#4)
+source#2.addEventListener(ended)
 => gain#1

@@ -7,7 +7,7 @@ class EffectNode {
   readonly input: GainNode
   readonly output: GainNode
 
-  constructor(protected readonly ctx: AudioContext) {
+  constructor(protected readonly ctx: BaseAudioContext) {
     this.input = ctx.createGain()
     this.output = ctx.createGain()
   }
@@ -21,7 +21,7 @@ class EffectNode {
 
 /** Feedback comb filter with a low-pass in the loop (one Freeverb voice). */
 class LowpassCombFilter extends EffectNode {
-  constructor(ctx: AudioContext, options: { delayTime: number; resonance: number; dampening: number }) {
+  constructor(ctx: BaseAudioContext, options: { delayTime: number; resonance: number; dampening: number }) {
     super(ctx)
     const lowPass = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: options.dampening })
     const delay = new DelayNode(ctx, { delayTime: options.delayTime })
@@ -41,7 +41,7 @@ export class Freeverb extends EffectNode {
   private readonly wet: GainNode
   private readonly dry: GainNode
 
-  constructor(ctx: AudioContext, options: { roomSize: number; dampening: number; wetGain: number }) {
+  constructor(ctx: BaseAudioContext, options: { roomSize: number; dampening: number; wetGain: number }) {
     super(ctx)
     this.wet = new GainNode(ctx, { gain: options.wetGain })
     this.dry = new GainNode(ctx, { gain: 1 - options.wetGain })
@@ -86,7 +86,7 @@ export class Chorus extends EffectNode {
   private readonly lfos: OscillatorNode[]
   private started = false
 
-  constructor(ctx: AudioContext, options: { wetGain: number }) {
+  constructor(ctx: BaseAudioContext, options: { wetGain: number }) {
     super(ctx)
     this.wet = new GainNode(ctx, { gain: options.wetGain })
     this.dryGain = new GainNode(ctx, { gain: 1 - options.wetGain })

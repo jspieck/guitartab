@@ -1,0 +1,2 @@
+# Run on the Linux CI runner: keep LF even when checked out on Windows.
+*.sh text eol=lf

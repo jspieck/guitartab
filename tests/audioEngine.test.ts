@@ -76,11 +76,14 @@ vi.mock('../src/services/audio/effects', () => {
     },
   }
 })
-// The master EQ and compressor only log how the graph wires them.
-vi.mock('../src/services/audio/masterCompressor', () => ({
+// The master EQ and compressor only log how the graph wires them; their pure helpers (also
+// used by the channel inserts) stay real.
+vi.mock('../src/services/audio/masterCompressor', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   masterCompressor: { attach: (node: FakeNode) => audio.log.add(`masterCompressor.attach(${node.id})`) },
 }))
-vi.mock('../src/services/audio/masterEqualizer', () => ({
+vi.mock('../src/services/audio/masterEqualizer', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   masterEqualizer: {
     setAudioContext: () => audio.log.add('masterEqualizer.setAudioContext()'),
     insertBetween: (from: FakeNode, to: FakeNode) => {
@@ -161,6 +164,67 @@ describe('audio engine graph', () => {
     context.state = 'suspended'
     await graph.ensureContextRunning()
     await expect(snapshotOf(audio.log.take())).toMatchFileSnapshot('__snapshots__/audio/mixer.txt')
+  })
+
+  it('puts the channel EQ and compressor in a bus only while they change the sound', async () => {
+    const bus = graph.busses[0]
+    const bands = (gain: number) =>
+      [
+        { type: 'lowshelf', frequency: 100, gain: 0, q: 0.71, enabled: true },
+        { type: 'peaking', frequency: 500, gain, q: 1, enabled: true },
+        { type: 'peaking', frequency: 2500, gain: 0, q: 1, enabled: true },
+        { type: 'highshelf', frequency: 8000, gain: 0, q: 0.71, enabled: true },
+      ] as never
+    const compressor = { enabled: true, threshold: -18, knee: 6, ratio: 2, attack: 30, release: 200 }
+    audio.log.take()
+
+    // flat: no nodes, no rewiring (songs without inserts keep their graph and cost)
+    bus.setEq(bands(0))
+    bus.setCompressor({ ...compressor, enabled: false })
+    expect(audio.log.take()).toEqual([])
+    expect(bus.eqInChain || bus.compressorInChain).toBe(false)
+
+    audio.log.add('-- EQ +6 dB at 500 Hz')
+    bus.setEq(bands(6))
+    expect(bus.eqInChain).toBe(true)
+    audio.log.add('-- a knob move only sets the filter')
+    bus.setEq(bands(3))
+    audio.log.add('-- compressor on')
+    bus.setCompressor(compressor)
+    expect(bus.compressorInChain).toBe(true)
+    audio.log.add('-- EQ back to flat')
+    bus.setEq(bands(0))
+    expect(bus.eqInChain).toBe(false)
+    audio.log.add('-- compressor off')
+    bus.setCompressor(null)
+    expect(bus.compressorInChain).toBe(false)
+    await expect(snapshotOf(audio.log.take())).toMatchFileSnapshot('__snapshots__/audio/channel-inserts.txt')
+  })
+
+  it('takes the inserts from the song when it builds the buses', async () => {
+    const Song = (await import('../src/stores/song')).default as unknown as {
+      tracks: Record<string, unknown>[]
+      playBackInstrument: never[]
+    }
+    Song.tracks[0].eq = [
+      { type: 'highpass', frequency: 80, gain: 0, q: 0.7, enabled: true },
+      { type: 'peaking', frequency: 500, gain: 0, q: 1, enabled: true },
+      { type: 'peaking', frequency: 2500, gain: 0, q: 1, enabled: true },
+      { type: 'highshelf', frequency: 8000, gain: 0, q: 0.71, enabled: true },
+    ]
+    Song.tracks[1].compressor = { enabled: true, threshold: -20, knee: 3, ratio: 4, attack: 10, release: 100 }
+    try {
+      graph.updateBusses(Song.playBackInstrument)
+      expect(graph.busses[0].eqInChain).toBe(true)
+      expect(graph.busses[0].compressorInChain).toBe(false)
+      expect(graph.busses[1].eqInChain).toBe(false)
+      expect(graph.busses[1].compressorInChain).toBe(true)
+    } finally {
+      delete Song.tracks[0].eq
+      delete Song.tracks[1].compressor
+      graph.updateBusses(Song.playBackInstrument)
+      audio.log.take()
+    }
   })
 })
 
@@ -269,6 +333,38 @@ describe('audio engine notes', () => {
     const lines = [...audio.log.take(), `playing after voice stop: ${afterVoice}`]
     lines.push(`playing after stop all: ${player.playing.size}`)
     await expect(snapshotOf(lines)).toMatchFileSnapshot('__snapshots__/audio/stop.txt')
+  })
+
+  it('takes back notes that have not started and undoes their choke (speed change)', () => {
+    player.stopAll()
+    context.currentTime = 0
+    const first = player.playFret(
+      0,
+      0,
+      0,
+      3,
+      1,
+      1,
+      0.5,
+      beat(),
+      note(),
+      'guitar',
+      null,
+    ) as unknown as FakeNode
+    // a strummed note: it starts after its beat, but goes with the beat
+    player.beatStart = 2
+    player.playFret(0, 0, 1, 5, 1, 2.01, 0.5, beat(), note(), 'guitar', null)
+    player.beatStart = null
+    player.playFret(0, 0, 0, 7, 1, 2, 0.5, beat(), note(), 'guitar', null)
+    audio.log.take()
+    player.cancelFrom(1.5)
+    const lines = audio.log.take()
+    expect(player.playing.size).toBe(1)
+    // the first note's choke at 2 s is undone, so it rings until a note that is played again cuts it
+    expect(lines).toContain(`${first.id}.gain.cancelScheduledValues(2)`)
+    expect(lines.filter((line) => line.endsWith('.disconnect()'))).toHaveLength(2)
+    player.playFret(0, 0, 0, 8, 1, 2.2, 0.5, beat(), note(), 'guitar', null)
+    expect(audio.log.take()).toContain(`${first.id}.gain.setValueAtTime(1, 2.2)`)
   })
 
   it('forgets a source when it ends', () => {

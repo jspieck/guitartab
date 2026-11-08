@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SoundFontData } from '../src/services/audio/soundFont/parser'
-import { buildBanksFrom, voicesFor } from '../src/services/audio/soundFont/synth'
+import { buildBanksFrom } from '../src/services/audio/soundFont/banks'
+import { voicesFor } from '../src/services/audio/soundFont/synth'
 
 vi.mock('../src/services/audio/audioGraph', () =>
   import('./helpers/legacyMocks').then((m) => m.audioGraphModule),

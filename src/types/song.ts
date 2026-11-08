@@ -68,6 +68,10 @@ export interface Track {
   letItRing: boolean
   /** Amp and cabinet simulation; absent = the default for the program (`services/audio/ampModel.ts`). */
   amp?: TrackAmp
+  /** The channel's 4-band equalizer; absent = flat (no filters in the bus). */
+  eq?: EqBand[]
+  /** The channel's compressor; absent = off (no compressor in the bus). */
+  compressor?: TrackCompressor
   /**
    * Clef changes of the classical staff: bar index → the clef from that bar on; absent = the
    * instrument's clef everywhere (`utils/clefs.ts`).
@@ -90,6 +94,32 @@ export interface TrackAmp {
   /** 0 (dark) – 1 (bright) */
   tone: number
   cabinet: AmpCabinet
+}
+
+/** One band of a parametric equalizer (master or channel; `services/audio/masterEqualizer.ts`). */
+export interface EqBand {
+  type: BiquadFilterType
+  frequency: number
+  gain: number
+  q: number
+  enabled: boolean
+}
+
+/** Settings of a DynamicsCompressorNode as the Compressor panel shows them. */
+export interface CompressorSettings {
+  /** dB */
+  threshold: number
+  /** dB */
+  knee: number
+  ratio: number
+  /** ms */
+  attack: number
+  /** ms */
+  release: number
+}
+
+export interface TrackCompressor extends CompressorSettings {
+  enabled: boolean
 }
 
 export interface BendPoint {
