@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="40"
+   height="50"
+   viewBox="0 0 40.000001 50.000001"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.91 r13725"
+   sodipodi:docname="myShanaiDesign.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="11.2"
+     inkscape:cx="-5.1809171"
+     inkscape:cy="20.29998"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-1002.3622)">
+    <path
+       style="fill:#4d4d4d;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 4.2976352,1046.36 -0.076769,2.0261 1.7290988,-0.1735 c 0,0 -0.1019107,-1.1843 0.4935957,-1.9343 3.1302468,-3.9424 13.7612753,-16.0624 18.7286263,-22.878 0.398599,-0.5469 0.907289,-1.0505 1.574341,-1.9461 2.955604,-3.9682 6.458679,-4.1875 6.458679,-4.1875 0.941891,-0.2148 2.136671,1.9581 2.136671,1.9581 l 0.562795,-0.6052 -9.256483,-9.4901 -0.452774,0.4733 1.199555,1.1073 c 0,0 -0.452489,4.603 -3.561135,8.8224 -0.47402,0.6434 -1.027733,1.4147 -1.454038,2.0414 -4.75883,6.9957 -13.7272175,20.1469 -16.7102349,24.1183 -0.5912374,0.7872 -1.3719281,0.6678 -1.3719279,0.6678 z"
+       id="path4442"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccsssscccccsssc" />
+    <path
+       style="fill:#666666;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 7.9680269,1042.3777 c 0.3367175,0.2841 0.6287922,0.871 0.9655097,0.897 l 18.2666154,-22.0117 -3.446905,-1.6862 z"
+       id="path4141"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc" />
+    <ellipse
+       style="opacity:1;fill:#999999;fill-opacity:1;stroke:none;stroke-width:4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4444"
+       cx="13.361674"
+       cy="1036.4362"
+       rx="0.67188627"
+       ry="0.65610266" />
+    <ellipse
+       style="opacity:1;fill:#999999;fill-opacity:1;stroke:none;stroke-width:4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4444-1"
+       cx="15.938351"
+       cy="1033.2007"
+       rx="0.62453538"
+       ry="0.60875177" />
+    <ellipse
+       style="opacity:1;fill:#999999;fill-opacity:1;stroke:none;stroke-width:4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4444-1-1"
+       cx="18.177687"
+       cy="1030.1154"
+       rx="0.64031899"
+       ry="0.65610266" />
+    <circle
+       style="opacity:1;fill:#999999;fill-opacity:1;stroke:none;stroke-width:4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4444-1-1-9"
+       cx="20.691229"
+       cy="1026.9014"
+       r="0.75080442" />
+    <circle
+       style="opacity:1;fill:#999999;fill-opacity:1;stroke:none;stroke-width:4;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path4444-1-1-9-0"
+       cx="22.872849"
+       cy="1023.9172"
+       r="0.89285713" />
+  </g>
+</svg>
